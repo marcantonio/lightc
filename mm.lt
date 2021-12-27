@@ -1,0 +1,11 @@
+
+fn arith(x: u64, y: u64): u64 {
+    let result = (x + y) * 4 / 4
+    result
+}
+
+fn main() {
+    // Call arith()
+    let a = arith(36, 434)
+    printf(a)
+}
