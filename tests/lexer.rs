@@ -1,9 +1,8 @@
 use light::*;
+use Token::*;
 
 #[test]
 fn test_lexer_full() {
-    use Token::*;
-
     let input = "\
 fn arith(x: u64, y: u64): u64 {
     let result = (x + y) * 4 / 4
@@ -23,14 +22,14 @@ fn main() {
         OpenParen,
         Ident("x".to_string()),
         Colon,
-        Type("u64".to_string()),
+        VarType(Type::U64),
         Comma,
         Ident("y".to_string()),
         Colon,
-        Type("u64".to_string()),
+        VarType(Type::U64),
         CloseParen,
         Colon,
-        Type("u64".to_string()),
+        VarType(Type::U64),
         OpenBrace,
         Let,
         Ident("result".to_string()),
@@ -67,11 +66,29 @@ fn main() {
         CloseBrace,
     ];
 
-    assert_eq!(&lexer(input).unwrap(), &output);
+    assert_eq!(lexer(input).unwrap(), &output);
 }
 
 #[test]
 fn test_lexer_err_num() {
     let input = "let foo = 1b4";
     assert_eq!(lexer(input), Err(LexError::InvalidNum));
+}
+
+#[test]
+fn test_lexer_multiline_comment() {
+    let input = "\
+let foo = 14
+// line1
+// line2
+foo
+";
+    let output = [
+        Let,
+        Ident("foo".to_string()),
+        Assign,
+        Int(14),
+        Ident("foo".to_string()),
+    ];
+    assert_eq!(lexer(input).unwrap(), &output);
 }
