@@ -158,7 +158,7 @@ impl Display for ExprAst {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct AstNode {
     value: ExprAst,
     lhs: Option<Box<AstNode>>,
@@ -241,7 +241,8 @@ impl<'a> Parser<'a> {
             // Should always be an operator after parse_primary().
             let op = match next {
                 Token::Op(op) => op,
-                _ => return Err(format!("Expected binary operator. Got: {}", next)),
+                // Start a new expression if we see two primaries in a row.
+                _ => break,
             };
 
             // Determine operator precedence and associativity.
@@ -391,5 +392,14 @@ fn test_parser_right_assoc_expr() {
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
     let ast = "(/ (^ 19 (^ 21 40)) 2)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_multiple_exprs() {
+    let input = "19 ^ 21 ^ 40 19 - 21 * 20 + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(^ 19 (^ 21 40))\n(+ (- 19 (* 21 20)) 40)\n";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
