@@ -231,15 +231,23 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // Parses arbitrary length binary expressions.
     fn parse_expression(&mut self, min_p: u8) -> Result<AstNode, String> {
+        // Consume token and load up lhs.
         let mut lhs = self.parse_primary()?;
 
+        // Peek at the next token, otherwise return current lhs.
         while let Some(next) = self.tokens.peek() {
+            // Should always be an operator after parse_primary().
             let op = match next {
                 Token::Op(op) => op,
-                _ => break,
+                _ => return Err(format!("Expected binary operator. Got: {}", next)),
             };
 
+            // Determine operator precedence and associativity.
+            // Stop eating and return the lhs if the current op:
+            //   - is lower precedence than the last one (min_p), or:
+            //   - is the same precedence and associates left
             let p = match Parser::op_prec(*op)? {
                 OpPrec::Left(p) => {
                     if p <= min_p {
@@ -255,21 +263,25 @@ impl<'a> Parser<'a> {
                 }
             };
 
+            // Advance past op.
             self.tokens.next();
 
+            // Descend for rhs with the current precedence as min_p.
             let rhs = self.parse_expression(p)?;
+            // Make a lhs and continue loop.
             lhs = AstNode::new(self.parse_op(*op), Some(Box::new(lhs)), Some(Box::new(rhs)));
         }
         Ok(lhs)
     }
 
+    // Returns atomic expression components.
     fn parse_primary(&mut self) -> Result<AstNode, String> {
         let node = if let Some(t) = self.tokens.next() {
             let expr = match t {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
                 x => {
-                    return Err(format!("Expecting expression token. Got: {}", x));
+                    return Err(format!("Expecting primary expression. Got: {}", x));
                 }
             };
             AstNode::new(expr, None, None)
