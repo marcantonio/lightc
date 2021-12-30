@@ -97,7 +97,7 @@ pub fn lexer(input: &str) -> LexResult {
         }
 
         // Everything else
-        if cur == '+' || cur == '-' || cur == '*' || cur == '/' {
+        if cur == '+' || cur == '-' || cur == '*' || cur == '/' || cur == '^' {
             tokens.push(Token::Op(cur));
         } else if cur == '=' {
             tokens.push(Token::Assign);
@@ -159,6 +159,11 @@ impl AstNode {
     }
 }
 
+enum OpPrec {
+    Left(u8),
+    Right(u8),
+}
+
 pub struct Parser<'a> {
     ast: Vec<AstNode>,
     tokens: std::iter::Peekable<std::slice::Iter<'a, Token>>,
@@ -175,7 +180,7 @@ impl<'a> Parser<'a> {
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
         loop {
             if self.tokens.peek().is_some() {
-                let node = self.parse_expression()?;
+                let node = self.parse_expression(0)?;
                 self.ast.push(node);
             } else {
                 break;
@@ -189,30 +194,49 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
-    fn parse_expression(&mut self) -> Result<AstNode, String> {
-        let lhs = self.parse_primary()?;
+    fn op_prec(op: char) -> Result<OpPrec, String> {
+        match op {
+            '^' => Ok(OpPrec::Right(3)),
+            '*' | '/' => Ok(OpPrec::Left(2)),
+            '+' | '-' => Ok(OpPrec::Left(1)),
+            x => Err(format!("Unknown operator: {}", x)),
+        }
+    }
 
-        let op = match self.tokens.next() {
-            Some(next) => {
-                if let Token::Op(op) = next {
-                    op
-                } else {
-                    unimplemented!("no op???")
-                }
-            }
-            None => return Ok(lhs),
-        };
+    fn parse_expression(&mut self, min_p: u8) -> Result<AstNode, String> {
+        let mut lhs = self.parse_primary()?;
 
-        if self.tokens.peek().is_some() {
-            let rhs = self.parse_expression()?;
-            Ok(AstNode::new(
+        while let Some(next) = self.tokens.peek() {
+            let op = match next {
+                Token::Op(op) => op,
+                _ => break,
+            };
+
+            let p = match Parser::op_prec(*op)? {
+                OpPrec::Left(p) => {
+                    if p <= min_p {
+                        break;
+                    }
+                    p
+                },
+                OpPrec::Right(p) => {
+                    if p < min_p {
+                        break;
+                    }
+                    p
+                },
+            };
+
+            self.tokens.next();
+
+            let rhs = self.parse_expression(p)?;
+            lhs = AstNode::new(
                 self.parse_op(*op),
                 Some(Box::new(lhs)),
                 Some(Box::new(rhs)),
-            ))
-        } else {
-            Ok(lhs)
+            );
         }
+        Ok(lhs)
     }
 
     fn parse_primary(&mut self) -> Result<AstNode, String> {
