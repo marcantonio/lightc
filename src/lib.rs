@@ -146,190 +146,6 @@ pub enum ExprAst {
     },
 }
 
-/*
-pub struct Settings {
-    op_precedence: HashMap<char, i32>,
-}
-
-impl Settings {
-    pub fn new() -> Settings {
-        let mut op_precedence = HashMap::new();
-        op_precedence.insert('<', 10);
-        op_precedence.insert('-', 20);
-        op_precedence.insert('+', 30);
-        op_precedence.insert('/', 40);
-        op_precedence.insert('*', 50);
-
-        Settings { op_precedence }
-    }
-
-    fn get_precedence_for(&self, token: &Token) -> Option<i32> {
-        if let Token::Op(op) = token {
-            self.op_precedence.get(op).copied()
-        } else {
-            None
-        }
-    }
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-
-static IDX: AtomicUsize = AtomicUsize::new(0);
-
-//struct Tokens
-
-fn next_token(tokens: &[Token]) -> Option<&Token> {
-    let idx = IDX.fetch_add(1, Ordering::Relaxed);
-    tokens.get(idx+1)
-}
-
-fn current_token(tokens: &[Token]) -> Option<&Token> {
-    let idx = IDX.load(Ordering::Relaxed);
-    tokens.get(idx)
-}
-
-
-pub fn parse(tokens: &mut [Token], settings: Settings) -> Vec<ExprAst> {
-    let ast: Vec<ExprAst> = vec![];
-    loop {
-        let res = parse_expression(tokens, &settings);
-        if let Some(expr) = res {
-            println!("end: {:?}", expr);
-        } else {
-            break;
-        };
-    }
-
-//    println!("{:?}", ast);
-
-    ast
-}
-
-
-fn parse_expression(tokens: &[Token], settings: &Settings) -> Option<ExprAst> {
-    if let Some(lhs) = parse_primary(tokens) {
-        parse_binop_rhs(tokens, lhs, 0, settings)
-    } else {
-        None
-    }
-}
-
-fn parse_binop_rhs(tokens: &[Token], mut lhs: ExprAst, min_prec: i32, settings: &Settings) -> Option<ExprAst> {
-    println!("in binop with lhs: {:?}, cur: {:?}", lhs, current_token(tokens));
-
-    let mut cur = match current_token(tokens) {
-        Some(cur) => cur,
-        None => return None,
-    };
-    loop {
-        let prec = match settings.get_precedence_for(cur) {
-            Some(p) => p,
-            None => {
-                println!("returning lhs");
-                return Some(lhs)
-            },
-        };
-
-        if prec < min_prec {
-            // Not high enough precedence
-            println!("returning lhs2");
-            return Some(lhs);
-        }
-
-        // Op found
-        println!(">op: {:?}", cur);
-        let op = cur;
-        cur = match next_token(tokens) {
-            Some(t) => t,
-            None => {
-                println!("no next token");
-                break;
-            }
-        };
-        println!(">new cur: {:?}", cur);
-
-        let mut rhs = match parse_primary(tokens) {
-            Some(rhs) => rhs,
-            None => {
-                println!("no rhs");
-                break;
-            }
-        };
-
-        println!(">rhs: {:?}", rhs);
-
-        println!(">cur:::{:?}", cur); //out of date
-        println!(">current:::{:?}", current_token(tokens));
-
-        cur = match current_token(tokens) {
-            Some(t) => t,
-            None => {
-                println!("no next token2");
-                break;
-            }
-        };
-
-        let next_prec = match settings.get_precedence_for(cur) {
-            Some(p) => p,
-            None => {
-                println!("returning lhs");
-                return Some(lhs)
-            },
-        };
-
-        if prec < next_prec {
-            rhs = match parse_binop_rhs(tokens, rhs, prec+1, settings) {
-                Some(rhs) => rhs,
-                None => {
-                    println!("no rhs2");
-                    break;
-                }
-            };
-
-            if let Token::Op(op) = op {
-                println!(">>>>>>assigning");
-                lhs = ExprAst::BinOp { op: *op, lhs: Box::new(lhs), rhs: Box::new(rhs) };
-
-            }
-        }
-    }
-    None
-}
-
-fn parse_primary(tokens: &[Token]) -> Option<ExprAst> {
-    if let Some(t) = current_token(tokens) {
-        println!(">parse_primary: {:?}", t);
-        match t {
-            Token::Int(n) => Some(parse_num(tokens, *n)),
-            Token::Ident(id) => Some(parse_ident(tokens, id)),
-            x => {
-                println!("Expecting expression token. Got: {}", x);
-                None
-            }
-        }
-    } else {
-        None
-    }
-}
-
-fn parse_num(tokens: &[Token], n: u64) -> ExprAst {
-    next_token(tokens);
-    ExprAst::Num { value: n }
-}
-
-fn parse_ident(tokens: &[Token], id: &str) -> ExprAst {
-    next_token(tokens);
-    ExprAst::Var {
-        name: id.to_owned(),
-    }
-}
-*/
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNode {
     value: ExprAst,
@@ -358,8 +174,8 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
         loop {
-            let node = self.parse_expression()?;
-            if let Some(node) = node {
+            if self.tokens.peek().is_some() {
+                let node = self.parse_expression()?;
                 self.ast.push(node);
             } else {
                 break;
@@ -373,36 +189,9 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
-    fn parse_expression(&mut self) -> Result<Option<AstNode>, String> {
-        let node = if let Some(lhs) = self.parse_primary()? {
-            if let Some(rhs) = self.binop_rhs(lhs.clone())? {
-                Some(rhs)
-            } else {
-                Some(lhs)
-            }
-        } else {
-            None
-        };
-        Ok(node)
-    }
+    fn parse_expression(&mut self) -> Result<AstNode, String> {
+        let lhs = self.parse_primary()?;
 
-    fn parse_primary(&mut self) -> Result<Option<AstNode>, String> {
-        let node = if let Some(t) = self.tokens.next() {
-            let expr = match t {
-                Token::Int(n) => self.parse_num(*n),
-                Token::Ident(id) => self.parse_ident(id),
-                x => {
-                    return Err(format!("Expecting expression token. Got: {}", x));
-                }
-            };
-            Some(AstNode::new(expr, None, None))
-        } else {
-            None
-        };
-        Ok(node)
-    }
-
-    fn binop_rhs(&mut self, lhs: AstNode) -> Result<Option<AstNode>, String> {
         let op = match self.tokens.next() {
             Some(next) => {
                 if let Token::Op(op) = next {
@@ -411,18 +200,35 @@ impl<'a> Parser<'a> {
                     unimplemented!("no op???")
                 }
             }
-            None => return Ok(None),
+            None => return Ok(lhs),
         };
 
-        if let Some(rhs) = self.parse_expression()? {
-            Ok(Some(AstNode::new(
+        if self.tokens.peek().is_some() {
+            let rhs = self.parse_expression()?;
+            Ok(AstNode::new(
                 self.parse_op(*op),
                 Some(Box::new(lhs)),
                 Some(Box::new(rhs)),
-            )))
+            ))
         } else {
-            Ok(None)
+            Ok(lhs)
         }
+    }
+
+    fn parse_primary(&mut self) -> Result<AstNode, String> {
+        let node = if let Some(t) = self.tokens.next() {
+            let expr = match t {
+                Token::Int(n) => self.parse_num(*n),
+                Token::Ident(id) => self.parse_ident(id),
+                x => {
+                    return Err(format!("Expecting expression token. Got: {}", x));
+                }
+            };
+            AstNode::new(expr, None, None)
+        } else {
+            unimplemented!("oops")
+        };
+        Ok(node)
     }
 
     fn parse_num(&self, n: u64) -> ExprAst {
