@@ -403,23 +403,25 @@ impl<'a> Parser<'a> {
     }
 
     fn binop_rhs(&mut self, lhs: AstNode) -> Result<Option<AstNode>, String> {
-        let next = match self.tokens.next() {
-            Some(next) => next,
+        let op = match self.tokens.next() {
+            Some(next) => {
+                if let Token::Op(op) = next {
+                    op
+                } else {
+                    unimplemented!("no op???")
+                }
+            }
             None => return Ok(None),
         };
 
-        if let Token::Op(op) = next {
-            if let Some(rhs) = self.parse_expression()? {
-                Ok(Some(AstNode::new(
-                    self.parse_op(*op),
-                    Some(Box::new(lhs)),
-                    Some(Box::new(rhs)),
-                )))
-            } else {
-                Ok(None)
-            }
+        if let Some(rhs) = self.parse_expression()? {
+            Ok(Some(AstNode::new(
+                self.parse_op(*op),
+                Some(Box::new(lhs)),
+                Some(Box::new(rhs)),
+            )))
         } else {
-            unimplemented!()
+            Ok(None)
         }
     }
 
@@ -463,6 +465,35 @@ fn test_parser_two_num_expr() {
             value: ExprAst::Num { value: 21 },
             lhs: None,
             rhs: None,
+        })),
+    }];
+    assert_eq!(parser.parse().unwrap(), ast)
+}
+
+#[test]
+fn test_parser_three_num_expr() {
+    let input = "19 + 21 + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = [AstNode {
+        value: ExprAst::BinOp { op: '+' },
+        lhs: Some(Box::new(AstNode {
+            value: ExprAst::Num { value: 19 },
+            lhs: None,
+            rhs: None,
+        })),
+        rhs: Some(Box::new(AstNode {
+            value: ExprAst::BinOp { op: '+' },
+            lhs: Some(Box::new(AstNode {
+                value: ExprAst::Num { value: 21 },
+                lhs: None,
+                rhs: None,
+            })),
+            rhs: Some(Box::new(AstNode {
+                value: ExprAst::Num { value: 40 },
+                lhs: None,
+                rhs: None,
+            })),
         })),
     }];
     assert_eq!(parser.parse().unwrap(), ast)
