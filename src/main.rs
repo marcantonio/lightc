@@ -9,5 +9,9 @@ fn main() {
     println!("tokens: {:?}", tokens);
 
     let parser = Parser::new(&tokens);
-    parser.parse().expect("Error parsing");
+    let ast = parser.parse().expect("Error parsing");
+    println!("ast:");
+    for node in ast {
+        println!("{}", node);
+    }
 }

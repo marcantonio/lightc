@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Fn,
@@ -146,6 +148,16 @@ pub enum ExprAst {
     },
 }
 
+impl Display for ExprAst {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExprAst::Num { value } => write!(f, "{}", value),
+            ExprAst::BinOp { op } => write!(f, "{}", op),
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct AstNode {
     value: ExprAst,
@@ -156,6 +168,26 @@ pub struct AstNode {
 impl AstNode {
     fn new(value: ExprAst, lhs: Option<Box<AstNode>>, rhs: Option<Box<AstNode>>) -> Self {
         AstNode { value, lhs, rhs }
+    }
+}
+
+impl Display for AstNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s: String;
+        s = match &self.value {
+            ExprAst::BinOp { op: value } => format!("({}", value),
+            _ => format!("{}", self.value),
+        };
+
+        if let Some(lhs) = &self.lhs {
+            s += &format!(" {}", lhs);
+        }
+
+        if let Some(rhs) = &self.rhs {
+            s += &format!(" {})", rhs);
+        }
+
+        write!(f, "{}", s)
     }
 }
 
@@ -187,10 +219,6 @@ impl<'a> Parser<'a> {
             }
         }
 
-        for node in &self.ast {
-            println!("ast:\n{:?}", node);
-        }
-
         Ok(self.ast)
     }
 
@@ -218,23 +246,19 @@ impl<'a> Parser<'a> {
                         break;
                     }
                     p
-                },
+                }
                 OpPrec::Right(p) => {
                     if p < min_p {
                         break;
                     }
                     p
-                },
+                }
             };
 
             self.tokens.next();
 
             let rhs = self.parse_expression(p)?;
-            lhs = AstNode::new(
-                self.parse_op(*op),
-                Some(Box::new(lhs)),
-                Some(Box::new(rhs)),
-            );
+            lhs = AstNode::new(self.parse_op(*op), Some(Box::new(lhs)), Some(Box::new(rhs)));
         }
         Ok(lhs)
     }
@@ -270,13 +294,26 @@ impl<'a> Parser<'a> {
     }
 }
 
+#[allow(dead_code)] // this is not dead code...
+fn ast_to_string(ast: &[AstNode]) -> String {
+    if ast.len() == 1 {
+        return ast[0].to_string();
+    }
+
+    let mut s = String::new();
+    for node in ast {
+        s = s + &node.to_string() + "\n";
+    }
+    s
+}
+
 #[test]
 fn test_parser_single_num() {
     let input = "19";
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
-    let ast = [AstNode::new(ExprAst::Num { value: 19 }, None, None)];
-    assert_eq!(parser.parse().unwrap(), ast)
+    let ast = "19";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 
 #[test]
@@ -284,20 +321,8 @@ fn test_parser_two_num_expr() {
     let input = "19 + 21";
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
-    let ast = [AstNode {
-        value: ExprAst::BinOp { op: '+' },
-        lhs: Some(Box::new(AstNode {
-            value: ExprAst::Num { value: 19 },
-            lhs: None,
-            rhs: None,
-        })),
-        rhs: Some(Box::new(AstNode {
-            value: ExprAst::Num { value: 21 },
-            lhs: None,
-            rhs: None,
-        })),
-    }];
-    assert_eq!(parser.parse().unwrap(), ast)
+    let ast = "(+ 19 21)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 
 #[test]
@@ -305,26 +330,54 @@ fn test_parser_three_num_expr() {
     let input = "19 + 21 + 40";
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
-    let ast = [AstNode {
-        value: ExprAst::BinOp { op: '+' },
-        lhs: Some(Box::new(AstNode {
-            value: ExprAst::Num { value: 19 },
-            lhs: None,
-            rhs: None,
-        })),
-        rhs: Some(Box::new(AstNode {
-            value: ExprAst::BinOp { op: '+' },
-            lhs: Some(Box::new(AstNode {
-                value: ExprAst::Num { value: 21 },
-                lhs: None,
-                rhs: None,
-            })),
-            rhs: Some(Box::new(AstNode {
-                value: ExprAst::Num { value: 40 },
-                lhs: None,
-                rhs: None,
-            })),
-        })),
-    }];
-    assert_eq!(parser.parse().unwrap(), ast)
+    let ast = "(+ (+ 19 21) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_precedence_expr() {
+    let input = "19 + 21 * 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(+ 19 (* 21 40))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "19 * 21 - 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(- (* 19 21) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "19 - 21 + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(+ (- 19 21) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "19 - 21 * 20 + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(+ (- 19 (* 21 20)) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_right_assoc_expr() {
+    let input = "19 ^ 21 ^ 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(^ 19 (^ 21 40))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "19 ^ 21 + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(+ (^ 19 21) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "19 ^ 21 ^ 40 / 2";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(/ (^ 19 (^ 21 40)) 2)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
