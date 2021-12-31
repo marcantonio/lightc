@@ -121,8 +121,8 @@ pub fn lexer(input: &str) -> LexResult {
     Ok(tokens)
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum ExprAst {
+#[derive(Debug, PartialEq)]
+pub enum Atom {
     Num {
         value: u64,
         //val_type: Type,
@@ -136,23 +136,35 @@ pub enum ExprAst {
     },
     Call {
         name: String,
-        args: Vec<ExprAst>,
+        args: Vec<AstNode>,
     },
     Proto {
         name: String,
         args: Vec<String>,
     },
     Func {
-        proto: Box<ExprAst>,
-        body: Vec<ExprAst>,
+        proto: Box<Atom>,
+        body: Vec<Atom>,
     },
 }
 
-impl Display for ExprAst {
+impl Display for Atom {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExprAst::Num { value } => write!(f, "{}", value),
-            ExprAst::BinOp { op } => write!(f, "{}", op),
+            Atom::Num { value } => write!(f, "{}", value),
+            Atom::BinOp { op } => write!(f, "{}", op),
+            Atom::Var { name } => write!(f, "{}", name),
+            Atom::Call { name, args } => {
+                let mut s = format!("({}", name);
+                if !args.is_empty() {
+                    for arg in args {
+                        s += &format!(" {}", arg);
+                    }
+                }
+                s += ")";
+
+                write!(f, "{}", s)
+            },
             _ => todo!(),
         }
     }
@@ -160,13 +172,13 @@ impl Display for ExprAst {
 
 #[derive(Debug, PartialEq)]
 pub struct AstNode {
-    value: ExprAst,
+    value: Atom,
     lhs: Option<Box<AstNode>>,
     rhs: Option<Box<AstNode>>,
 }
 
 impl AstNode {
-    fn new(value: ExprAst, lhs: Option<Box<AstNode>>, rhs: Option<Box<AstNode>>) -> Self {
+    fn new(value: Atom, lhs: Option<Box<AstNode>>, rhs: Option<Box<AstNode>>) -> Self {
         AstNode { value, lhs, rhs }
     }
 }
@@ -175,7 +187,7 @@ impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s: String;
         s = match &self.value {
-            ExprAst::BinOp { op: value } => format!("({}", value),
+            Atom::BinOp { op: value } => format!("({}", value),
             _ => format!("{}", self.value),
         };
 
@@ -195,6 +207,8 @@ enum OpPrec {
     Left(u8),
     Right(u8),
 }
+
+type ParseResult = Result<AstNode, String>;
 
 pub struct Parser<'a> {
     ast: Vec<AstNode>,
@@ -232,7 +246,7 @@ impl<'a> Parser<'a> {
     }
 
     // Parses arbitrary length binary expressions.
-    fn parse_expression(&mut self, min_p: u8) -> Result<AstNode, String> {
+    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
         // Consume token and load up lhs.
         let mut lhs = self.parse_primary()?;
 
@@ -270,48 +284,97 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p.
             let rhs = self.parse_expression(p)?;
             // Make a lhs and continue loop.
-            lhs = self.parse_op(*op, lhs, rhs);
+            lhs = self.parse_op(*op, lhs, rhs).unwrap();
         }
         Ok(lhs)
     }
 
     // Returns atomic expression components.
-    fn parse_primary(&mut self) -> Result<AstNode, String> {
+    fn parse_primary(&mut self) -> ParseResult {
         let node = if let Some(t) = self.tokens.next() {
             match t {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
                 Token::OpenParen => self.parse_paren(),
-                x => {
-                    return Err(format!("Expecting primary expression. Got: {}", x));
-                }
+                x => return Err(format!("Expecting primary expression. Got: {}", x))
             }
         } else {
-            unimplemented!("oops")
+            unreachable!("parse_primary()");
         };
-        Ok(node)
+        node
     }
 
-    fn parse_num(&self, n: u64) -> AstNode {
-        AstNode::new(ExprAst::Num { value: n }, None, None)
+    fn parse_num(&self, n: u64) -> ParseResult {
+        Ok(AstNode::new(Atom::Num { value: n }, None, None))
     }
 
-    fn parse_ident(&self, id: &str) -> AstNode {
-        AstNode::new(
-            ExprAst::Var {
+    fn parse_ident(&mut self, id: &str) -> ParseResult {
+        let node = AstNode::new(
+            Atom::Var {
                 name: id.to_owned(),
             },
             None,
             None,
-        )
+        );
+
+        let &next = match self.tokens.peek() {
+            Some(t) => t,
+            None => return Ok(node),
+        };
+
+        if *next != Token::OpenParen {
+            return Ok(node);
+        }
+
+        // Eat open paren
+        self.tokens.next();
+
+        let mut args: Vec<AstNode> = vec![];
+        while let Some(&next) = self.tokens.peek() {
+            if *next == Token::CloseParen {
+                break;
+            }
+            args.push(self.parse_expression(0)?);
+
+            let &next = match self.tokens.peek() {
+                Some(t) => t,
+                None => return Err("Premature end. Expecting ',' or ')'.".to_string()),
+            };
+
+            if *next == Token::CloseParen {
+                break;
+            } else if *next != Token::Comma {
+                return Err(format!("Expecting ','. Got: {}", next));
+            }
+            // Eat comma
+            self.tokens.next();
+        }
+
+        // Eat close paren
+        self.tokens.next();
+
+        Ok(AstNode::new(
+            Atom::Call {
+                name: id.to_owned(),
+                args,
+            },
+            None,
+            None,
+        ))
     }
 
-    fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> AstNode {
-        AstNode::new(ExprAst::BinOp { op }, Some(Box::new(lhs)), Some(Box::new(rhs)))
+    fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> ParseResult {
+        Ok(AstNode::new(
+            Atom::BinOp { op },
+            Some(Box::new(lhs)),
+            Some(Box::new(rhs)),
+        ))
     }
 
-    fn parse_paren(&self) -> AstNode {
-        todo!()
+    fn parse_paren(&mut self) -> ParseResult {
+        let lhs = self.parse_expression(0);
+        self.tokens.next(); // Eat ')'
+        lhs
     }
 }
 
@@ -418,5 +481,50 @@ fn test_parser_paren_precedence_expr() {
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
     let ast = "(/ (+ 19 21) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_paren_complex_precedence_expr() {
+    let input = "3 * ((19 + 21) - 5) / 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(/ (* 3 (- (+ 19 21) 5)) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_excessive_parens_expr() {
+    let input = "(((0)))";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "0";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_simple_ident_expr() {
+    let input = "19 + a + 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(+ (+ 19 a) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_nullary_call_expr() {
+    let input = "a()";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(a)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_call_expr() {
+    let input = "a(b, c)";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(a b c)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
