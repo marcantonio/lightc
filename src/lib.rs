@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p.
             let rhs = self.parse_expression(p)?;
             // Make a lhs and continue loop.
-            lhs = AstNode::new(self.parse_op(*op), Some(Box::new(lhs)), Some(Box::new(rhs)));
+            lhs = self.parse_op(*op, lhs, rhs);
         }
         Ok(lhs)
     }
@@ -278,32 +278,40 @@ impl<'a> Parser<'a> {
     // Returns atomic expression components.
     fn parse_primary(&mut self) -> Result<AstNode, String> {
         let node = if let Some(t) = self.tokens.next() {
-            let expr = match t {
+            match t {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
+                Token::OpenParen => self.parse_paren(),
                 x => {
                     return Err(format!("Expecting primary expression. Got: {}", x));
                 }
-            };
-            AstNode::new(expr, None, None)
+            }
         } else {
             unimplemented!("oops")
         };
         Ok(node)
     }
 
-    fn parse_num(&self, n: u64) -> ExprAst {
-        ExprAst::Num { value: n }
+    fn parse_num(&self, n: u64) -> AstNode {
+        AstNode::new(ExprAst::Num { value: n }, None, None)
     }
 
-    fn parse_ident(&self, id: &str) -> ExprAst {
-        ExprAst::Var {
-            name: id.to_owned(),
-        }
+    fn parse_ident(&self, id: &str) -> AstNode {
+        AstNode::new(
+            ExprAst::Var {
+                name: id.to_owned(),
+            },
+            None,
+            None,
+        )
     }
 
-    fn parse_op(&self, op: char) -> ExprAst {
-        ExprAst::BinOp { op }
+    fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> AstNode {
+        AstNode::new(ExprAst::BinOp { op }, Some(Box::new(lhs)), Some(Box::new(rhs)))
+    }
+
+    fn parse_paren(&self) -> AstNode {
+        todo!()
     }
 }
 
@@ -401,5 +409,14 @@ fn test_parser_multiple_exprs() {
     let tokens = lexer(input).unwrap();
     let parser = Parser::new(&tokens);
     let ast = "(^ 19 (^ 21 40))\n(+ (- 19 (* 21 20)) 40)\n";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_paren_precedence_expr() {
+    let input = "(19 + 21) / 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(/ (+ 19 21) 40)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
