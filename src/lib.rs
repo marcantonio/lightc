@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+/// lexer ///
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Fn,
@@ -121,6 +123,8 @@ pub fn lexer(input: &str) -> LexResult {
     Ok(tokens)
 }
 
+/// parser ///
+
 #[derive(Debug, PartialEq)]
 pub enum Atom {
     Num {
@@ -143,29 +147,42 @@ pub enum Atom {
         args: Vec<String>,
     },
     Func {
-        proto: Box<Atom>,
-        body: Vec<Atom>,
+        proto: Box<AstNode>,
+        body: Option<Box<AstNode>>,
     },
 }
 
+impl Atom {
+    fn format_proto(name: &str, args: &[String]) -> String {
+        let mut s = format!("({}", name);
+        if !args.is_empty() {
+            for arg in args {
+                s += &format!(" {}", arg);
+            }
+        }
+        s += ")";
+        s
+    }
+}
 impl Display for Atom {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Atom::Num { value } => write!(f, "{}", value),
             Atom::BinOp { op } => write!(f, "{}", op),
             Atom::Var { name } => write!(f, "{}", name),
-            Atom::Call { name, args } => {
-                let mut s = format!("({}", name);
-                if !args.is_empty() {
-                    for arg in args {
-                        s += &format!(" {}", arg);
-                    }
-                }
-                s += ")";
-
-                write!(f, "{}", s)
+            Atom::Call { name, args } => write!(
+                f,
+                "{}",
+                Atom::format_proto(
+                    name,
+                    &args.iter().map(|x| x.to_string()).collect::<Vec<_>>()
+                )
+            ),
+            Atom::Proto { name, args } => write!(f, "{}", Atom::format_proto(name, args)),
+            Atom::Func { proto, body } => match body {
+                Some(body) => write!(f, "(define {} {})", proto, body),
+                _ => write!(f, "(define {})", proto),
             },
-            _ => todo!(),
         }
     }
 }
@@ -208,6 +225,17 @@ enum OpPrec {
     Right(u8),
 }
 
+impl OpPrec {
+    fn prec(op: char) -> Result<OpPrec, String> {
+        match op {
+            '^' => Ok(OpPrec::Right(3)),
+            '*' | '/' => Ok(OpPrec::Left(2)),
+            '+' | '-' => Ok(OpPrec::Left(1)),
+            x => Err(format!("Unknown operator: {}", x)),
+        }
+    }
+}
+
 type ParseResult = Result<AstNode, String>;
 
 pub struct Parser<'a> {
@@ -224,25 +252,15 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
-        loop {
-            if self.tokens.peek().is_some() {
-                let node = self.parse_expression(0)?;
-                self.ast.push(node);
-            } else {
-                break;
-            }
+        while let Some(t) = self.tokens.peek() {
+            let node = match t {
+                Token::Fn => self.parse_function()?,
+                _ => self.parse_expression(0)?,
+            };
+            self.ast.push(node);
         }
 
         Ok(self.ast)
-    }
-
-    fn op_prec(op: char) -> Result<OpPrec, String> {
-        match op {
-            '^' => Ok(OpPrec::Right(3)),
-            '*' | '/' => Ok(OpPrec::Left(2)),
-            '+' | '-' => Ok(OpPrec::Left(1)),
-            x => Err(format!("Unknown operator: {}", x)),
-        }
     }
 
     // Parses arbitrary length binary expressions.
@@ -263,7 +281,7 @@ impl<'a> Parser<'a> {
             // Stop eating and return the lhs if the current op:
             //   - is lower precedence than the last one (min_p), or:
             //   - is the same precedence and associates left
-            let p = match Parser::op_prec(*op)? {
+            let p = match OpPrec::prec(*op)? {
                 OpPrec::Left(p) => {
                     if p <= min_p {
                         break;
@@ -289,6 +307,92 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
+    fn parse_function(&mut self) -> ParseResult {
+        // Eat 'fn'
+        self.tokens.next();
+
+        let proto = self.parse_proto()?;
+
+        match self.tokens.next() {
+            Some(t @ Token::OpenBrace) => t,
+            Some(_) | None => return Err("Expecting '{' in function definition".to_string()),
+        };
+
+        // If close brace, body is empty.
+        let body: Option<Box<AstNode>> = match self.tokens.peek() {
+            Some(Token::CloseBrace) => None,
+            Some(_) => Some(Box::new(self.parse_expression(0)?)),
+            None => return Err("Expecting '}' in function definition".to_string()),
+        };
+
+        let node = AstNode::new(
+            Atom::Func {
+                proto: Box::new(proto),
+                body,
+            },
+            None,
+            None,
+        );
+
+        match self.tokens.next() {
+            Some(t @ Token::CloseBrace) => t,
+            Some(_) | None => return Err("Expecting '}' in function definition".to_string()),
+        };
+
+        Ok(node)
+    }
+
+    fn parse_proto(&mut self) -> ParseResult {
+        let fn_name = match self.tokens.next() {
+            Some(Token::Ident(t)) => t,
+            Some(_) | None => return Err("Expecting function name".to_string()),
+        };
+
+        match self.tokens.next() {
+            Some(t @ Token::OpenParen) => t,
+            Some(_) | None => return Err("Expecting '(' in prototype)".to_string()),
+        };
+
+        let mut args: Vec<String> = vec![];
+        while let Some(&next) = self.tokens.peek() {
+            if *next == Token::CloseParen {
+                break;
+            }
+
+            let id = match self.tokens.next() {
+                Some(Token::Ident(t)) => t,
+                Some(_) | None => return Err("Expecting identifier in prototype)".to_string()),
+            };
+
+            args.push(id.to_string());
+
+            let &next = match self.tokens.peek() {
+                Some(t) => t,
+                None => return Err("Premature end. Expecting ',' or ')'.".to_string()),
+            };
+
+            if *next == Token::CloseParen {
+                break;
+            } else if *next != Token::Comma {
+                return Err(format!("Expecting ','. Got: {}", next));
+            }
+            // Eat comma
+            self.tokens.next();
+        }
+
+        // Eat close paren
+        self.tokens.next();
+
+        Ok(AstNode::new(
+            Atom::Proto {
+                name: fn_name.to_string(),
+                args,
+            },
+            None,
+            None,
+        ))
+    }
+
     // Returns atomic expression components.
     fn parse_primary(&mut self) -> ParseResult {
         let node = if let Some(t) = self.tokens.next() {
@@ -296,7 +400,7 @@ impl<'a> Parser<'a> {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
                 Token::OpenParen => self.parse_paren(),
-                x => return Err(format!("Expecting primary expression. Got: {}", x))
+                x => return Err(format!("Expecting primary expression. Got: {}", x)),
             }
         } else {
             unreachable!("parse_primary()");
@@ -317,14 +421,11 @@ impl<'a> Parser<'a> {
             None,
         );
 
-        let &next = match self.tokens.peek() {
-            Some(t) => t,
-            None => return Ok(node),
+        // If next is not a '(', the current token is just a simple var.
+        match self.tokens.peek() {
+            Some(t @ Token::OpenParen) => t,
+            Some(_) | None => return Ok(node),
         };
-
-        if *next != Token::OpenParen {
-            return Ok(node);
-        }
 
         // Eat open paren
         self.tokens.next();
@@ -376,155 +477,4 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat ')'
         lhs
     }
-}
-
-#[allow(dead_code)] // this is not dead code...
-fn ast_to_string(ast: &[AstNode]) -> String {
-    if ast.len() == 1 {
-        return ast[0].to_string();
-    }
-
-    let mut s = String::new();
-    for node in ast {
-        s = s + &node.to_string() + "\n";
-    }
-    s
-}
-
-#[test]
-fn test_parser_single_num() {
-    let input = "19";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "19";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_two_num_expr() {
-    let input = "19 + 21";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ 19 21)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_three_num_expr() {
-    let input = "19 + 21 + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ (+ 19 21) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_precedence_expr() {
-    let input = "19 + 21 * 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ 19 (* 21 40))";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-
-    let input = "19 * 21 - 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(- (* 19 21) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-
-    let input = "19 - 21 + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ (- 19 21) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-
-    let input = "19 - 21 * 20 + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ (- 19 (* 21 20)) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_right_assoc_expr() {
-    let input = "19 ^ 21 ^ 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(^ 19 (^ 21 40))";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-
-    let input = "19 ^ 21 + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ (^ 19 21) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-
-    let input = "19 ^ 21 ^ 40 / 2";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(/ (^ 19 (^ 21 40)) 2)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_multiple_exprs() {
-    let input = "19 ^ 21 ^ 40 19 - 21 * 20 + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(^ 19 (^ 21 40))\n(+ (- 19 (* 21 20)) 40)\n";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_paren_precedence_expr() {
-    let input = "(19 + 21) / 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(/ (+ 19 21) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_paren_complex_precedence_expr() {
-    let input = "3 * ((19 + 21) - 5) / 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(/ (* 3 (- (+ 19 21) 5)) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_excessive_parens_expr() {
-    let input = "(((0)))";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "0";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_simple_ident_expr() {
-    let input = "19 + a + 40";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(+ (+ 19 a) 40)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_nullary_call_expr() {
-    let input = "a()";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(a)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-}
-
-#[test]
-fn test_parser_call_expr() {
-    let input = "a(b, c)";
-    let tokens = lexer(input).unwrap();
-    let parser = Parser::new(&tokens);
-    let ast = "(a b c)";
-    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
