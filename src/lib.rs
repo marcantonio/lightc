@@ -150,7 +150,7 @@ pub enum Expr {
     },
     Func {
         proto: Box<AstNode>,
-        body: Option<Box<AstNode>>,
+        body: Vec<AstNode>,
     },
 }
 
@@ -182,9 +182,16 @@ impl Display for Expr {
                 )
             ),
             Expr::Proto { name, args } => write!(f, "{}", Expr::format_proto(name, args)),
-            Expr::Func { proto, body } => match body {
-                Some(body) => write!(f, "(define {} {})", proto, body),
-                _ => write!(f, "(define {})", proto),
+            Expr::Func { proto, body } => {
+                if body.is_empty() {
+                    write!(f, "(define {})", proto)
+                } else {
+                    let s = body.iter().fold(String::new(), |mut acc, n| {
+                        acc += &format!(" {}", n);
+                        acc
+                    });
+                    write!(f, "(define {}{})", proto, s)
+                }
             },
         }
     }
@@ -304,21 +311,25 @@ impl<'a> Parser<'a> {
         };
 
         // If close brace, body is empty.
-        let body: Option<Box<AstNode>> = match self.tokens.peek() {
-            Some(Token::CloseBrace) => None,
-            Some(_) => Some(Box::new(self.parse_expression(0)?)),
-            None => return Err("Expecting '}' in function definition".to_string()),
+        let mut body: Vec<AstNode> = vec![];
+        if self.tokens.peek().is_some() {
+            while let Some(t) = self.tokens.peek() {
+                match t {
+                    Token::CloseBrace => {
+                        self.tokens.next();
+                        break;
+                    },
+                    _ => body.push(self.parse_expression(0)?),
+                }
+            }
+        } else {
+            return Err("Expecting '}' in function definition".to_string())
         };
 
         let node = AstNode::new(Expr::Func {
             proto: Box::new(proto),
             body,
         });
-
-        match self.tokens.next() {
-            Some(t @ Token::CloseBrace) => t,
-            Some(_) | None => return Err("Expecting '}' in function definition".to_string()),
-        };
 
         Ok(node)
     }

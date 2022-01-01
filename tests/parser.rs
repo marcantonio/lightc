@@ -182,6 +182,20 @@ fn a(b, c) {
 }
 
 #[test]
+fn test_parser_func_def_multi_line() {
+    let input = "\
+fn a(b, c) {
+    19 + a + 40
+    b + a
+}
+";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(define (a b c) (+ (+ 19 a) 40) (+ b a))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
 fn test_parser_empty_func_def() {
     let input = "fn a() {}";
     let tokens = lexer(input).unwrap();
