@@ -126,7 +126,7 @@ pub fn lexer(input: &str) -> LexResult {
 /// parser ///
 
 #[derive(Debug, PartialEq)]
-pub enum Atom {
+pub enum Expr {
     Num {
         value: u64,
         //val_type: Type,
@@ -137,6 +137,8 @@ pub enum Atom {
     },
     BinOp {
         op: char,
+        lhs: Box<AstNode>,
+        rhs: Box<AstNode>,
     },
     Call {
         name: String,
@@ -152,7 +154,7 @@ pub enum Atom {
     },
 }
 
-impl Atom {
+impl Expr {
     fn format_proto(name: &str, args: &[String]) -> String {
         let mut s = format!("({}", name);
         if !args.is_empty() {
@@ -164,22 +166,23 @@ impl Atom {
         s
     }
 }
-impl Display for Atom {
+
+impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Atom::Num { value } => write!(f, "{}", value),
-            Atom::BinOp { op } => write!(f, "{}", op),
-            Atom::Var { name } => write!(f, "{}", name),
-            Atom::Call { name, args } => write!(
+            Expr::Num { value } => write!(f, "{}", value),
+            Expr::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
+            Expr::Var { name } => write!(f, "{}", name),
+            Expr::Call { name, args } => write!(
                 f,
                 "{}",
-                Atom::format_proto(
+                Expr::format_proto(
                     name,
                     &args.iter().map(|x| x.to_string()).collect::<Vec<_>>()
                 )
             ),
-            Atom::Proto { name, args } => write!(f, "{}", Atom::format_proto(name, args)),
-            Atom::Func { proto, body } => match body {
+            Expr::Proto { name, args } => write!(f, "{}", Expr::format_proto(name, args)),
+            Expr::Func { proto, body } => match body {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
@@ -188,35 +191,17 @@ impl Display for Atom {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstNode {
-    value: Atom,
-    lhs: Option<Box<AstNode>>,
-    rhs: Option<Box<AstNode>>,
-}
+pub struct AstNode(Expr);
 
 impl AstNode {
-    fn new(value: Atom, lhs: Option<Box<AstNode>>, rhs: Option<Box<AstNode>>) -> Self {
-        AstNode { value, lhs, rhs }
+    fn new(value: Expr) -> Self {
+        AstNode(value)
     }
 }
 
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s: String;
-        s = match &self.value {
-            Atom::BinOp { op: value } => format!("({}", value),
-            _ => format!("{}", self.value),
-        };
-
-        if let Some(lhs) = &self.lhs {
-            s += &format!(" {}", lhs);
-        }
-
-        if let Some(rhs) = &self.rhs {
-            s += &format!(" {})", rhs);
-        }
-
-        write!(f, "{}", s)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -325,14 +310,10 @@ impl<'a> Parser<'a> {
             None => return Err("Expecting '}' in function definition".to_string()),
         };
 
-        let node = AstNode::new(
-            Atom::Func {
-                proto: Box::new(proto),
-                body,
-            },
-            None,
-            None,
-        );
+        let node = AstNode::new(Expr::Func {
+            proto: Box::new(proto),
+            body,
+        });
 
         match self.tokens.next() {
             Some(t @ Token::CloseBrace) => t,
@@ -383,14 +364,10 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::new(
-            Atom::Proto {
-                name: fn_name.to_string(),
-                args,
-            },
-            None,
-            None,
-        ))
+        Ok(AstNode::new(Expr::Proto {
+            name: fn_name.to_string(),
+            args,
+        }))
     }
 
     // Returns atomic expression components.
@@ -409,17 +386,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_num(&self, n: u64) -> ParseResult {
-        Ok(AstNode::new(Atom::Num { value: n }, None, None))
+        Ok(AstNode::new(Expr::Num { value: n }))
     }
 
     fn parse_ident(&mut self, id: &str) -> ParseResult {
-        let node = AstNode::new(
-            Atom::Var {
-                name: id.to_owned(),
-            },
-            None,
-            None,
-        );
+        let node = AstNode::new(Expr::Var {
+            name: id.to_owned(),
+        });
 
         // If next is not a '(', the current token is just a simple var.
         match self.tokens.peek() {
@@ -454,22 +427,18 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::new(
-            Atom::Call {
-                name: id.to_owned(),
-                args,
-            },
-            None,
-            None,
-        ))
+        Ok(AstNode::new(Expr::Call {
+            name: id.to_owned(),
+            args,
+        }))
     }
 
     fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> ParseResult {
-        Ok(AstNode::new(
-            Atom::BinOp { op },
-            Some(Box::new(lhs)),
-            Some(Box::new(rhs)),
-        ))
+        Ok(AstNode::new(Expr::BinOp {
+            op,
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }))
     }
 
     fn parse_paren(&mut self) -> ParseResult {

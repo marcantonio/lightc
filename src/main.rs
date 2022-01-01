@@ -11,7 +11,7 @@ fn main() {
     let parser = Parser::new(&tokens);
     let ast = parser.parse().expect("Error parsing");
     println!("ast:");
-    for node in ast {
+    for node in &ast {
         println!("{}", node);
     }
 }
