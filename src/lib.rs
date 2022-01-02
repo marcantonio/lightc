@@ -167,7 +167,7 @@ impl Display for Expression {
                     }
                 }
                 write!(f, "{})", s)
-            },
+            }
         }
     }
 }
@@ -473,4 +473,145 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat ')'
         lhs
     }
+}
+
+
+/// IR Generator ///
+use inkwell::builder::Builder;
+use inkwell::context::Context;
+use inkwell::module::Module;
+use inkwell::values::{FloatValue, PointerValue};
+use inkwell::FloatPredicate;
+use std::collections::HashMap;
+
+type IrResult<'ctx> = Result<FloatValue<'ctx>, String>;
+
+pub struct IrGenerator<'ctx> {
+    context: &'ctx Context,
+    builder: Builder<'ctx>,
+    module: Module<'ctx>,
+    values: HashMap<String, PointerValue<'ctx>>,
+}
+
+impl<'ctx> IrGenerator<'ctx> {
+    pub fn new(
+        context: &'ctx Context,
+        builder: Builder<'ctx>,
+        module: Module<'ctx>,
+        values: HashMap<String, PointerValue<'ctx>>,
+    ) -> Self {
+        IrGenerator {
+            context,
+            builder,
+            module,
+            values,
+        }
+    }
+
+    pub fn generate(&self, ast: &[AstNode]) {
+        for n in ast {
+            match self.walk_ast(n) {
+                Ok(v) => println!("success: {:?}", v),
+                Err(e) => println!("Compiler error: {:?}", e),
+            }
+        }
+    }
+
+    fn walk_ast(&self, node: &AstNode) -> IrResult {
+        match &node {
+            AstNode::Expr(expr) => {
+                match expr {
+                    Expression::Num { value: v } => self.gen_num_ir(*v),
+                    Expression::Var { name: n } => self.gen_var_ir(n),
+                    // Expr::Func { proto, body } => self.gen_func_ir(proto, body),
+                    Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
+                    Expression::Call { name, args } => self.gen_call_ir(name, args),
+                    //            Expr::Proto { name, args } => self.gen_proto_ir(name, args),
+                }
+            }
+            AstNode::Proto(_) => todo!(),
+            AstNode::Func(_) => todo!(),
+        }
+    }
+
+    fn gen_num_ir(&self, num: f64) -> IrResult {
+        Ok(self.context.f64_type().const_float(num))
+    }
+
+    fn gen_var_ir(&self, name: &str) -> IrResult {
+        match self.values.get(name) {
+            Some(var) => Ok(self.builder.build_load(*var, name).into_float_value()),
+            None => Err(format!("Unknown variable: {}", name)),
+        }
+    }
+
+    // fn gen_func_ir(&self, proto: &AstNode, body: &[AstNode]) {
+    //     println!("codegen for func: {}", proto);
+    //     for node in body {
+    //         self.walk_ast(node);
+    //     }
+    // }
+
+    fn gen_binop_ir(&self, op: char, lhs: &AstNode, rhs: &AstNode) -> IrResult {
+        let lhs = self.walk_ast(lhs)?;
+        let rhs = self.walk_ast(rhs)?;
+
+        match op {
+            '*' => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
+            '/' => Ok(self.builder.build_float_div(lhs, rhs, "tmpdic")),
+            '+' => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
+            '-' => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
+            op @ ('>' | '<') => {
+                let res = if op == '>' {
+                    self.builder
+                        .build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp")
+                } else {
+                    self.builder
+                        .build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp")
+                };
+                Ok(self.builder.build_unsigned_int_to_float(
+                    res,
+                    self.context.f64_type(),
+                    "tmpbool",
+                ))
+            }
+            x => Err(format!("Unknown binary operator: {}", x)),
+        }
+    }
+
+    fn gen_call_ir(&self, name: &str, args: &[AstNode]) -> IrResult {
+        let func = match self.module.get_function(name) {
+            Some(f) => f,
+            None => return Err(format!("Unknown function call: {}", name)),
+        };
+
+        let mut args_ir = Vec::with_capacity(args.len());
+        for arg in args {
+            args_ir.push(self.walk_ast(arg)?.into());
+        }
+
+        let foo = self
+            .builder
+            .build_call(func, &args_ir, "tmpcall")
+            .try_as_basic_value();
+        println!("{:?}", foo);
+        unimplemented!("call!")
+    }
+
+    // fn gen_proto_ir(&self, name: &str, args: &[String]) -> IrResult {
+    //     let f64_type = self.context.f64_type();
+    //     let args_type = args
+    //         .iter()
+    //         .map(|_| f64_type.into())
+    //         .collect::<Vec<BasicMetadataTypeEnum>>();
+
+    //     let func_type = f64_type.fn_type(&args_type, false);
+    //     let func = self.module.add_function(name, func_type, None);
+
+    //     func.get_param_iter().enumerate().for_each(|(i, arg)| {
+    //         arg.into_float_value().set_name(&args[i]);
+    //     });
+
+    //     Ok(func)
+    // }
 }
