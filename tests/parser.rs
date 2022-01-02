@@ -203,3 +203,18 @@ fn test_parser_empty_func_def() {
     let ast = "(define (a))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+#[test]
+fn test_parser_gt_lt() {
+    let input = "a + b > 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(> (+ a b) 40)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "a < b / 40";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(< a (/ b 40))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}

@@ -4,8 +4,9 @@ use Token::*;
 #[test]
 fn test_lexer_full() {
     let input = "\
-fn arith(x: u64, y: u64): u64 {
+fn arith(x, y) {
     let result = (x + y) * 4 / 4
+    a > b
     result
 }
 
@@ -21,15 +22,9 @@ fn main() {
         Ident("arith".to_string()),
         OpenParen,
         Ident("x".to_string()),
-        Colon,
-        VarType(Type::U64),
         Comma,
         Ident("y".to_string()),
-        Colon,
-        VarType(Type::U64),
         CloseParen,
-        Colon,
-        VarType(Type::U64),
         OpenBrace,
         Let,
         Ident("result".to_string()),
@@ -40,9 +35,12 @@ fn main() {
         Ident("y".to_string()),
         CloseParen,
         Op('*'),
-        Int(4),
+        Int(4.0),
         Op('/'),
-        Int(4),
+        Int(4.0),
+        Ident("a".to_string()),
+        Op('>'),
+        Ident("b".to_string()),
         Ident("result".to_string()),
         CloseBrace,
         Fn,
@@ -55,9 +53,9 @@ fn main() {
         Assign,
         Ident("arith".to_string()),
         OpenParen,
-        Int(36),
+        Int(36.0),
         Comma,
-        Int(434),
+        Int(434.0),
         CloseParen,
         Ident("printf".to_string()),
         OpenParen,
@@ -87,7 +85,7 @@ foo
         Let,
         Ident("foo".to_string()),
         Assign,
-        Int(14),
+        Int(14.0),
         Ident("foo".to_string()),
     ];
     assert_eq!(lexer(input).unwrap(), &output);

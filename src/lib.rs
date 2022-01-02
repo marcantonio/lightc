@@ -14,9 +14,11 @@ pub enum Token {
     Colon,
     Assign,
     Ident(String),
-    Int(u64),
+    Int(f64),
     VarType(Type),
     Op(char),
+    GreaterThan,
+    LessThan,
 }
 
 impl std::fmt::Display for Token {
@@ -27,7 +29,7 @@ impl std::fmt::Display for Token {
 
 #[derive(Debug, PartialEq)]
 pub enum Type {
-    U64,
+    F64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -77,7 +79,7 @@ pub fn lexer(input: &str) -> LexResult {
             tokens.push(match identifier.as_str() {
                 "fn" => Token::Fn,
                 "let" => Token::Let,
-                "u64" => Token::VarType(Type::U64),
+                "f64" => Token::VarType(Type::F64),
                 _ => Token::Ident(identifier),
             })
         }
@@ -101,7 +103,14 @@ pub fn lexer(input: &str) -> LexResult {
         }
 
         // Everything else
-        if cur == '+' || cur == '-' || cur == '*' || cur == '/' || cur == '^' {
+        if cur == '+'
+            || cur == '-'
+            || cur == '*'
+            || cur == '/'
+            || cur == '^'
+            || cur == '>'
+            || cur == '<'
+        {
             tokens.push(Token::Op(cur));
         } else if cur == '=' {
             tokens.push(Token::Assign);
@@ -126,14 +135,12 @@ pub fn lexer(input: &str) -> LexResult {
 /// parser ///
 
 #[derive(Debug, PartialEq)]
-pub enum Expr {
+pub enum Expression {
     Num {
-        value: u64,
-        //val_type: Type,
+        value: f64,
     },
     Var {
         name: String,
-        //var_type: Type,
     },
     BinOp {
         op: char,
@@ -144,71 +151,79 @@ pub enum Expr {
         name: String,
         args: Vec<AstNode>,
     },
-    Proto {
-        name: String,
-        args: Vec<String>,
-    },
-    Func {
-        proto: Box<AstNode>,
-        body: Vec<AstNode>,
-    },
 }
 
-impl Expr {
-    fn format_proto(name: &str, args: &[String]) -> String {
-        let mut s = format!("({}", name);
-        if !args.is_empty() {
-            for arg in args {
-                s += &format!(" {}", arg);
-            }
-        }
-        s += ")";
-        s
-    }
-}
-
-impl Display for Expr {
+impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expr::Num { value } => write!(f, "{}", value),
-            Expr::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
-            Expr::Var { name } => write!(f, "{}", name),
-            Expr::Call { name, args } => write!(
-                f,
-                "{}",
-                Expr::format_proto(
-                    name,
-                    &args.iter().map(|x| x.to_string()).collect::<Vec<_>>()
-                )
-            ),
-            Expr::Proto { name, args } => write!(f, "{}", Expr::format_proto(name, args)),
-            Expr::Func { proto, body } => {
-                if body.is_empty() {
-                    write!(f, "(define {})", proto)
-                } else {
-                    let s = body.iter().fold(String::new(), |mut acc, n| {
-                        acc += &format!(" {}", n);
-                        acc
-                    });
-                    write!(f, "(define {}{})", proto, s)
+            Expression::Num { value } => write!(f, "{}", value),
+            Expression::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
+            Expression::Var { name } => write!(f, "{}", name),
+            Expression::Call { name, args } => {
+                let mut s = format!("({}", name);
+                if !args.is_empty() {
+                    for arg in args {
+                        s += &format!(" {}", arg);
+                    }
                 }
+                write!(f, "{})", s)
             },
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct AstNode(Expr);
+pub struct Prototype {
+    name: String,
+    args: Vec<String>,
+}
 
-impl AstNode {
-    fn new(value: Expr) -> Self {
-        AstNode(value)
+impl Display for Prototype {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = format!("({}", self.name);
+        if !self.args.is_empty() {
+            for arg in &self.args {
+                s += &format!(" {}", arg);
+            }
+        }
+        write!(f, "{})", s)
     }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Function {
+    proto: Box<AstNode>,
+    body: Vec<AstNode>,
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.body.is_empty() {
+            write!(f, "(define {})", self.proto)
+        } else {
+            let s = self.body.iter().fold(String::new(), |mut acc, n| {
+                acc += &format!(" {}", n);
+                acc
+            });
+            write!(f, "(define {}{})", self.proto, s)
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum AstNode {
+    Expr(Expression),
+    Proto(Prototype),
+    Func(Function),
 }
 
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            AstNode::Expr(expr) => write!(f, "{}", expr),
+            AstNode::Proto(proto) => write!(f, "{}", proto),
+            AstNode::Func(func) => write!(f, "{}", func),
+        }
     }
 }
 
@@ -220,9 +235,10 @@ enum OpPrec {
 impl OpPrec {
     fn prec(op: char) -> Result<OpPrec, String> {
         match op {
-            '^' => Ok(OpPrec::Right(3)),
-            '*' | '/' => Ok(OpPrec::Left(2)),
-            '+' | '-' => Ok(OpPrec::Left(1)),
+            '^' => Ok(OpPrec::Right(4)),
+            '*' | '/' => Ok(OpPrec::Left(3)),
+            '+' | '-' => Ok(OpPrec::Left(2)),
+            '>' | '<' => Ok(OpPrec::Left(1)),
             x => Err(format!("Unknown operator: {}", x)),
         }
     }
@@ -318,15 +334,15 @@ impl<'a> Parser<'a> {
                     Token::CloseBrace => {
                         self.tokens.next();
                         break;
-                    },
+                    }
                     _ => body.push(self.parse_expression(0)?),
                 }
             }
         } else {
-            return Err("Expecting '}' in function definition".to_string())
+            return Err("Expecting '}' in function definition".to_string());
         };
 
-        let node = AstNode::new(Expr::Func {
+        let node = AstNode::Func(Function {
             proto: Box::new(proto),
             body,
         });
@@ -375,7 +391,7 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::new(Expr::Proto {
+        Ok(AstNode::Proto(Prototype {
             name: fn_name.to_string(),
             args,
         }))
@@ -396,12 +412,12 @@ impl<'a> Parser<'a> {
         node
     }
 
-    fn parse_num(&self, n: u64) -> ParseResult {
-        Ok(AstNode::new(Expr::Num { value: n }))
+    fn parse_num(&self, n: f64) -> ParseResult {
+        Ok(AstNode::Expr(Expression::Num { value: n }))
     }
 
     fn parse_ident(&mut self, id: &str) -> ParseResult {
-        let node = AstNode::new(Expr::Var {
+        let node = AstNode::Expr(Expression::Var {
             name: id.to_owned(),
         });
 
@@ -438,14 +454,14 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::new(Expr::Call {
+        Ok(AstNode::Expr(Expression::Call {
             name: id.to_owned(),
             args,
         }))
     }
 
     fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> ParseResult {
-        Ok(AstNode::new(Expr::BinOp {
+        Ok(AstNode::Expr(Expression::BinOp {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
