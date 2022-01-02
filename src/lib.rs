@@ -133,7 +133,6 @@ pub fn lexer(input: &str) -> LexResult {
 }
 
 /// parser ///
-
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Num {
@@ -315,6 +314,7 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
+
     fn parse_function(&mut self) -> ParseResult {
         // Eat 'fn'
         self.tokens.next();
@@ -474,30 +474,28 @@ impl<'a> Parser<'a> {
         lhs
     }
 }
-
-
+/*
 /// IR Generator ///
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
-use inkwell::values::{FloatValue, PointerValue};
+use inkwell::types::BasicMetadataTypeEnum;
+use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
 use std::collections::HashMap;
 
-type IrResult<'ctx> = Result<FloatValue<'ctx>, String>;
-
-pub struct IrGenerator<'ctx> {
+pub struct IrGenerator<'a, 'ctx> {
     context: &'ctx Context,
-    builder: Builder<'ctx>,
-    module: Module<'ctx>,
+    builder: &'a Builder<'ctx>,
+    module: &'a Module<'ctx>,
     values: HashMap<String, PointerValue<'ctx>>,
 }
 
-impl<'ctx> IrGenerator<'ctx> {
+impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     pub fn new(
         context: &'ctx Context,
-        builder: Builder<'ctx>,
-        module: Module<'ctx>,
+        builder: &'a Builder<'ctx>,
+        module: &'a Module<'ctx>,
         values: HashMap<String, PointerValue<'ctx>>,
     ) -> Self {
         IrGenerator {
@@ -509,56 +507,56 @@ impl<'ctx> IrGenerator<'ctx> {
     }
 
     pub fn generate(&self, ast: &[AstNode]) {
-        for n in ast {
-            match self.walk_ast(n) {
+        for node in ast {
+            let res = match node {
+                AstNode::Expr(expr) => self.gen_expr_ir(expr),
+                AstNode::Proto(_) => todo!(),
+                AstNode::Func(_) => todo!(),
+            };
+            match res {
                 Ok(v) => println!("success: {:?}", v),
                 Err(e) => println!("Compiler error: {:?}", e),
             }
         }
     }
 
-    fn walk_ast(&self, node: &AstNode) -> IrResult {
-        match &node {
-            AstNode::Expr(expr) => {
-                match expr {
-                    Expression::Num { value: v } => self.gen_num_ir(*v),
-                    Expression::Var { name: n } => self.gen_var_ir(n),
-                    // Expr::Func { proto, body } => self.gen_func_ir(proto, body),
-                    Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
-                    Expression::Call { name, args } => self.gen_call_ir(name, args),
-                    //            Expr::Proto { name, args } => self.gen_proto_ir(name, args),
-                }
-            }
-            AstNode::Proto(_) => todo!(),
-            AstNode::Func(_) => todo!(),
+    fn gen_expr_ir(&self, expr: &Expression) -> Result<FloatValue<'ctx>, String> {
+        match expr {
+            Expression::Num { value: v } => self.gen_num_ir(*v),
+            Expression::Var { name: n } => self.gen_var_ir(&n),
+            Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
+            Expression::Call { name, args } => todo!(),
+            //Expression::Call { name, args } => self.gen_call_ir(name, args),
         }
     }
 
-    fn gen_num_ir(&self, num: f64) -> IrResult {
+    fn gen_num_ir(&self, num: f64) -> Result<FloatValue<'ctx>, String> {
         Ok(self.context.f64_type().const_float(num))
     }
 
-    fn gen_var_ir(&self, name: &str) -> IrResult {
+    fn gen_var_ir(&self, name: &str) -> Result<FloatValue<'ctx>, String> {
         match self.values.get(name) {
-            Some(var) => Ok(self.builder.build_load(*var, name).into_float_value()),
+            Some(var) => {
+                Ok(self.builder.build_load(*var, name).into_float_value())
+            },
             None => Err(format!("Unknown variable: {}", name)),
         }
     }
 
-    // fn gen_func_ir(&self, proto: &AstNode, body: &[AstNode]) {
-    //     println!("codegen for func: {}", proto);
-    //     for node in body {
-    //         self.walk_ast(node);
-    //     }
-    // }
+    fn gen_func_ir(&self, proto: &AstNode, body: &[AstNode]) {
+        println!("codegen for func: {}", proto);
+        for node in body {
+            //self.walk_ast(node);
+        }
+    }
 
-    fn gen_binop_ir(&self, op: char, lhs: &AstNode, rhs: &AstNode) -> IrResult {
-        let lhs = self.walk_ast(lhs)?;
-        let rhs = self.walk_ast(rhs)?;
+    fn gen_binop_ir(&self, op: char, lhs: &Expression, rhs: &Expression) -> Result<FloatValue<'ctx>, String> {
+        let lhs = self.gen_expr_ir(lhs)?;
+        let rhs = self.gen_expr_ir(rhs)?;
 
         match op {
             '*' => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
-            '/' => Ok(self.builder.build_float_div(lhs, rhs, "tmpdic")),
+            '/' => Ok(self.builder.build_float_div(lhs, rhs, "tmpdiv")),
             '+' => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
             '-' => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
             op @ ('>' | '<') => {
@@ -579,7 +577,7 @@ impl<'ctx> IrGenerator<'ctx> {
         }
     }
 
-    fn gen_call_ir(&self, name: &str, args: &[AstNode]) -> IrResult {
+    fn gen_call_ir(&self, name: &str, args: &[AstNode]) -> Result<FloatValue, String> {
         let func = match self.module.get_function(name) {
             Some(f) => f,
             None => return Err(format!("Unknown function call: {}", name)),
@@ -587,7 +585,8 @@ impl<'ctx> IrGenerator<'ctx> {
 
         let mut args_ir = Vec::with_capacity(args.len());
         for arg in args {
-            args_ir.push(self.walk_ast(arg)?.into());
+            //let IrValue::Float(arg) = self.walk_ast(arg)?;
+            args_ir.push(self.gen_expr_ir(arg)?.into());
         }
 
         let foo = self
@@ -598,20 +597,21 @@ impl<'ctx> IrGenerator<'ctx> {
         unimplemented!("call!")
     }
 
-    // fn gen_proto_ir(&self, name: &str, args: &[String]) -> IrResult {
-    //     let f64_type = self.context.f64_type();
-    //     let args_type = args
-    //         .iter()
-    //         .map(|_| f64_type.into())
-    //         .collect::<Vec<BasicMetadataTypeEnum>>();
+    fn gen_proto_ir(&self, name: &str, args: &[String]) -> Result<FunctionValue, String> {
+        let f64_type = self.context.f64_type();
+        let args_type = args
+            .iter()
+            .map(|_| f64_type.into())
+            .collect::<Vec<BasicMetadataTypeEnum>>();
 
-    //     let func_type = f64_type.fn_type(&args_type, false);
-    //     let func = self.module.add_function(name, func_type, None);
+        let func_type = f64_type.fn_type(&args_type, false);
+        let func = self.module.add_function(name, func_type, None);
 
-    //     func.get_param_iter().enumerate().for_each(|(i, arg)| {
-    //         arg.into_float_value().set_name(&args[i]);
-    //     });
+        func.get_param_iter().enumerate().for_each(|(i, arg)| {
+            arg.into_float_value().set_name(&args[i]);
+        });
 
-    //     Ok(func)
-    // }
+        Ok(func)
+    }
 }
+*/
