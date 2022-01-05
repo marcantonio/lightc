@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 /// lexer ///
-
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Fn,
@@ -143,12 +142,12 @@ pub enum Expression {
     },
     BinOp {
         op: char,
-        lhs: Box<AstNode>,
-        rhs: Box<AstNode>,
+        lhs: Box<Expression>,
+        rhs: Box<Expression>,
     },
     Call {
         name: String,
-        args: Vec<AstNode>,
+        args: Vec<Expression>,
     },
 }
 
@@ -191,8 +190,8 @@ impl Display for Prototype {
 
 #[derive(Debug, PartialEq)]
 pub struct Function {
-    proto: Box<AstNode>,
-    body: Vec<AstNode>,
+    proto: Box<Prototype>,
+    body: Vec<Expression>,
 }
 
 impl Display for Function {
@@ -216,6 +215,7 @@ pub enum AstNode {
     Func(Function),
 }
 
+// Display functions allow us to convert to S-expressions for easier testing.
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -243,7 +243,9 @@ impl OpPrec {
     }
 }
 
-type ParseResult = Result<AstNode, String>;
+type ExprParseResult = Result<Expression, String>;
+type ProtoParseResult = Result<Prototype, String>;
+type FuncParseResult = Result<Function, String>;
 
 pub struct Parser<'a> {
     ast: Vec<AstNode>,
@@ -258,20 +260,21 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // Parse each token using recursive descent.
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
         while let Some(t) = self.tokens.peek() {
             let node = match t {
-                Token::Fn => self.parse_function()?,
-                _ => self.parse_expression(0)?,
+                Token::Fn => AstNode::Func(self.parse_function()?),
+                _ => AstNode::Expr(self.parse_expression(0)?),
             };
             self.ast.push(node);
         }
-
         Ok(self.ast)
     }
 
-    // Parses arbitrary length binary expressions.
-    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
+    // Parses arbitrary length binary expressions. Uses Pratt with op precedence
+    // parsing.
+    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
         // Consume token and load up lhs.
         let mut lhs = self.parse_primary()?;
 
@@ -314,8 +317,7 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
-
-    fn parse_function(&mut self) -> ParseResult {
+    fn parse_function(&mut self) -> FuncParseResult {
         // Eat 'fn'
         self.tokens.next();
 
@@ -327,7 +329,7 @@ impl<'a> Parser<'a> {
         };
 
         // If close brace, body is empty.
-        let mut body: Vec<AstNode> = vec![];
+        let mut body: Vec<Expression> = vec![];
         if self.tokens.peek().is_some() {
             while let Some(t) = self.tokens.peek() {
                 match t {
@@ -342,15 +344,15 @@ impl<'a> Parser<'a> {
             return Err("Expecting '}' in function definition".to_string());
         };
 
-        let node = AstNode::Func(Function {
+        let node = Function {
             proto: Box::new(proto),
             body,
-        });
+        };
 
         Ok(node)
     }
 
-    fn parse_proto(&mut self) -> ParseResult {
+    fn parse_proto(&mut self) -> ProtoParseResult {
         let fn_name = match self.tokens.next() {
             Some(Token::Ident(t)) => t,
             Some(_) | None => return Err("Expecting function name".to_string()),
@@ -391,14 +393,14 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::Proto(Prototype {
+        Ok(Prototype {
             name: fn_name.to_string(),
             args,
-        }))
+        })
     }
 
-    // Returns atomic expression components.
-    fn parse_primary(&mut self) -> ParseResult {
+    // Returns primary expression
+    fn parse_primary(&mut self) -> ExprParseResult {
         let node = if let Some(t) = self.tokens.next() {
             match t {
                 Token::Int(n) => self.parse_num(*n),
@@ -412,14 +414,14 @@ impl<'a> Parser<'a> {
         node
     }
 
-    fn parse_num(&self, n: f64) -> ParseResult {
-        Ok(AstNode::Expr(Expression::Num { value: n }))
+    fn parse_num(&self, n: f64) -> ExprParseResult {
+        Ok(Expression::Num { value: n })
     }
 
-    fn parse_ident(&mut self, id: &str) -> ParseResult {
-        let node = AstNode::Expr(Expression::Var {
+    fn parse_ident(&mut self, id: &str) -> ExprParseResult {
+        let node = Expression::Var {
             name: id.to_owned(),
-        });
+        };
 
         // If next is not a '(', the current token is just a simple var.
         match self.tokens.peek() {
@@ -430,11 +432,12 @@ impl<'a> Parser<'a> {
         // Eat open paren
         self.tokens.next();
 
-        let mut args: Vec<AstNode> = vec![];
+        let mut args: Vec<Expression> = vec![];
         while let Some(&next) = self.tokens.peek() {
             if *next == Token::CloseParen {
                 break;
             }
+
             args.push(self.parse_expression(0)?);
 
             let &next = match self.tokens.peek() {
@@ -454,27 +457,27 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
-        Ok(AstNode::Expr(Expression::Call {
+        Ok(Expression::Call {
             name: id.to_owned(),
             args,
-        }))
+        })
     }
 
-    fn parse_op(&self, op: char, lhs: AstNode, rhs: AstNode) -> ParseResult {
-        Ok(AstNode::Expr(Expression::BinOp {
+    fn parse_op(&self, op: char, lhs: Expression, rhs: Expression) -> ExprParseResult {
+        Ok(Expression::BinOp {
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
-        }))
+        })
     }
 
-    fn parse_paren(&mut self) -> ParseResult {
+    fn parse_paren(&mut self) -> ExprParseResult {
         let lhs = self.parse_expression(0);
         self.tokens.next(); // Eat ')'
         lhs
     }
 }
-/*
+
 /// IR Generator ///
 use inkwell::builder::Builder;
 use inkwell::context::Context;
@@ -484,6 +487,15 @@ use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
 use std::collections::HashMap;
 
+enum IrRetVal<'ctx> {
+    Expr(FloatValue<'ctx>),
+    Func(FunctionValue<'ctx>),
+}
+
+type ExprIrResult<'ctx> = Result<FloatValue<'ctx>, String>;
+type FuncIrResult<'ctx> = Result<FunctionValue<'ctx>, String>;
+
+// TODO: Think about some tests for IR generation.
 pub struct IrGenerator<'a, 'ctx> {
     context: &'ctx Context,
     builder: &'a Builder<'ctx>,
@@ -496,8 +508,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         context: &'ctx Context,
         builder: &'a Builder<'ctx>,
         module: &'a Module<'ctx>,
-        values: HashMap<String, PointerValue<'ctx>>,
     ) -> Self {
+        let values = HashMap::new();
         IrGenerator {
             context,
             builder,
@@ -506,51 +518,58 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    pub fn generate(&self, ast: &[AstNode]) {
+    // taken from inkwell example
+    // todo: figure out what this is
+    fn create_entry_block_alloca(&self, name: &str, func: &FunctionValue) -> PointerValue<'ctx> {
+        let builder = self.context.create_builder();
+
+        let entry = func.get_first_basic_block().unwrap();
+
+        match entry.get_first_instruction() {
+            Some(first_instr) => builder.position_before(&first_instr),
+            None => builder.position_at_end(entry),
+        }
+
+        builder.build_alloca(self.context.f64_type(), name)
+    }
+
+    // Iterate over all nodes and generate IR.
+    pub fn generate(&mut self, ast: &[AstNode]) -> Result<(), String> {
         for node in ast {
-            let res = match node {
-                AstNode::Expr(expr) => self.gen_expr_ir(expr),
-                AstNode::Proto(_) => todo!(),
-                AstNode::Func(_) => todo!(),
+            let ir = match node {
+                AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
+                AstNode::Proto(proto) => IrRetVal::Func(self.gen_proto_ir(proto)?),
+                AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
             };
-            match res {
-                Ok(v) => println!("success: {:?}", v),
-                Err(e) => println!("Compiler error: {:?}", e),
+
+            if let IrRetVal::Func(f) = ir {
+                f.print_to_stderr();
             }
         }
+        Ok(())
     }
 
-    fn gen_expr_ir(&self, expr: &Expression) -> Result<FloatValue<'ctx>, String> {
+    fn gen_expr_ir(&self, expr: &Expression) -> ExprIrResult<'ctx> {
         match expr {
             Expression::Num { value: v } => self.gen_num_ir(*v),
-            Expression::Var { name: n } => self.gen_var_ir(&n),
+            Expression::Var { name: n } => self.gen_var_ir(n),
             Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
-            Expression::Call { name, args } => todo!(),
-            //Expression::Call { name, args } => self.gen_call_ir(name, args),
+            Expression::Call { name, args } => self.gen_call_ir(name, args),
         }
     }
 
-    fn gen_num_ir(&self, num: f64) -> Result<FloatValue<'ctx>, String> {
+    fn gen_num_ir(&self, num: f64) -> ExprIrResult<'ctx> {
         Ok(self.context.f64_type().const_float(num))
     }
 
-    fn gen_var_ir(&self, name: &str) -> Result<FloatValue<'ctx>, String> {
+    fn gen_var_ir(&self, name: &str) -> ExprIrResult<'ctx> {
         match self.values.get(name) {
-            Some(var) => {
-                Ok(self.builder.build_load(*var, name).into_float_value())
-            },
+            Some(var) => Ok(self.builder.build_load(*var, name).into_float_value()),
             None => Err(format!("Unknown variable: {}", name)),
         }
     }
 
-    fn gen_func_ir(&self, proto: &AstNode, body: &[AstNode]) {
-        println!("codegen for func: {}", proto);
-        for node in body {
-            //self.walk_ast(node);
-        }
-    }
-
-    fn gen_binop_ir(&self, op: char, lhs: &Expression, rhs: &Expression) -> Result<FloatValue<'ctx>, String> {
+    fn gen_binop_ir(&self, op: char, lhs: &Expression, rhs: &Expression) -> ExprIrResult<'ctx> {
         let lhs = self.gen_expr_ir(lhs)?;
         let rhs = self.gen_expr_ir(rhs)?;
 
@@ -577,7 +596,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_call_ir(&self, name: &str, args: &[AstNode]) -> Result<FloatValue, String> {
+    fn gen_call_ir(&self, name: &str, args: &[Expression]) -> ExprIrResult<'ctx> {
         let func = match self.module.get_function(name) {
             Some(f) => f,
             None => return Err(format!("Unknown function call: {}", name)),
@@ -585,33 +604,68 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         let mut args_ir = Vec::with_capacity(args.len());
         for arg in args {
-            //let IrValue::Float(arg) = self.walk_ast(arg)?;
             args_ir.push(self.gen_expr_ir(arg)?.into());
         }
 
-        let foo = self
+        match self
             .builder
             .build_call(func, &args_ir, "tmpcall")
-            .try_as_basic_value();
-        println!("{:?}", foo);
-        unimplemented!("call!")
+            .try_as_basic_value()
+            .left()
+        {
+            Some(v) => Ok(v.into_float_value()),
+            None => Err(String::from("Invalid call?")),
+        }
     }
 
-    fn gen_proto_ir(&self, name: &str, args: &[String]) -> Result<FunctionValue, String> {
+    fn gen_proto_ir(&self, proto: &Prototype) -> FuncIrResult<'ctx> {
         let f64_type = self.context.f64_type();
-        let args_type = args
+        let args_type = proto
+            .args
             .iter()
             .map(|_| f64_type.into())
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         let func_type = f64_type.fn_type(&args_type, false);
-        let func = self.module.add_function(name, func_type, None);
+        let func = self.module.add_function(&proto.name, func_type, None);
 
         func.get_param_iter().enumerate().for_each(|(i, arg)| {
-            arg.into_float_value().set_name(&args[i]);
+            arg.into_float_value().set_name(&proto.args[i]);
         });
 
         Ok(func)
     }
+
+    fn gen_func_ir(&mut self, func: &Function) -> FuncIrResult<'ctx> {
+        let function = self.gen_proto_ir(&func.proto)?;
+
+        // todo: check for externs
+
+        let bb = self.context.append_basic_block(function, "entry");
+        self.builder.position_at_end(bb);
+
+        self.values.reserve(func.proto.args.len());
+        for (i, arg) in function.get_param_iter().enumerate() {
+            let arg_name = &func.proto.args[i];
+            let alloca = self.create_entry_block_alloca(arg_name, &function);
+            self.builder.build_store(alloca, arg);
+            self.values.insert(arg_name.to_owned(), alloca);
+        }
+
+        let mut last_expr: Option<Box<dyn BasicValue>> = None;
+        for e in &func.body {
+            last_expr = Some(Box::new(self.gen_expr_ir(e)?));
+        }
+        self.builder.build_return(last_expr.as_deref());
+
+        if function.verify(true) {
+            Ok(function)
+        } else {
+            unsafe {
+                // TODO: Do we care about this for AOT comiplation?
+                function.delete();
+            }
+            Err(String::from("Bad function generation"))
+        }
+    }
 }
-*/
