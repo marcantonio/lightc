@@ -20,7 +20,7 @@ fn main() {
 
     let context = Context::create();
     let builder = context.create_builder();
-    let module = context.create_module("main");
+    let module = context.create_module("main_mod");
     let mut ir_gen = IrGenerator::new(&context, &builder, &module);
-    ir_gen.generate(&ast).expect("Compiler error:");
+    ir_gen.generate(&ast, true).expect("Compiler error:");
 }

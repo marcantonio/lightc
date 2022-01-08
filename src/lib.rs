@@ -483,7 +483,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
+use inkwell::values::{AnyValue, BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
 use std::collections::HashMap;
 
@@ -533,8 +533,9 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         builder.build_alloca(self.context.f64_type(), name)
     }
 
-    // Iterate over all nodes and generate IR.
-    pub fn generate(&mut self, ast: &[AstNode]) -> Result<(), String> {
+    // Iterate over all nodes and generate IR. Optionally return a string (for
+    // testing).
+    pub fn generate(&mut self, ast: &[AstNode], is_debug: bool) -> Result<Option<String>, String> {
         for node in ast {
             let ir = match node {
                 AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
@@ -542,11 +543,15 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
             };
 
-            if let IrRetVal::Func(f) = ir {
-                f.print_to_stderr();
+            if is_debug {
+                if let IrRetVal::Func(f) = ir {
+                    let output = f.print_to_string().to_string();
+                    f.print_to_stderr();
+                    return Ok(Some(output));
+                }
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     fn gen_expr_ir(&self, expr: &Expression) -> ExprIrResult<'ctx> {
