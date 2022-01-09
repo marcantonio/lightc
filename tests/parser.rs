@@ -218,3 +218,12 @@ fn test_parser_gt_lt() {
     let ast = "(< a (/ b 40))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+#[test]
+fn test_parser_extern() {
+    let input = "extern cos(x)";
+    let tokens = lexer(input).unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(define (cos x))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}

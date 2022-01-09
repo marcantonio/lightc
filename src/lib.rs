@@ -18,6 +18,7 @@ pub enum Token {
     Op(char),
     GreaterThan,
     LessThan,
+    Extern,
 }
 
 impl std::fmt::Display for Token {
@@ -79,6 +80,7 @@ pub fn lexer(input: &str) -> LexResult {
                 "fn" => Token::Fn,
                 "let" => Token::Let,
                 "f64" => Token::VarType(Type::F64),
+                "extern" => Token::Extern,
                 _ => Token::Ident(identifier),
             })
         }
@@ -191,19 +193,20 @@ impl Display for Prototype {
 #[derive(Debug, PartialEq)]
 pub struct Function {
     proto: Box<Prototype>,
-    body: Vec<Expression>,
+    body: Option<Vec<Expression>>,
 }
 
 impl Display for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.body.is_empty() {
-            write!(f, "(define {})", self.proto)
-        } else {
-            let s = self.body.iter().fold(String::new(), |mut acc, n| {
-                acc += &format!(" {}", n);
-                acc
-            });
-            write!(f, "(define {}{})", self.proto, s)
+        match &self.body {
+            Some(body) if !body.is_empty() => {
+                let s = body.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+                write!(f, "(define {}{})", self.proto, s)
+            }
+            _ => write!(f, "(define {})", self.proto),
         }
     }
 }
@@ -265,6 +268,7 @@ impl<'a> Parser<'a> {
         while let Some(t) = self.tokens.peek() {
             let node = match t {
                 Token::Fn => AstNode::Func(self.parse_function()?),
+                Token::Extern => AstNode::Func(self.parse_extern()?),
                 _ => AstNode::Expr(self.parse_expression(0)?),
             };
             self.ast.push(node);
@@ -346,10 +350,21 @@ impl<'a> Parser<'a> {
 
         let node = Function {
             proto: Box::new(proto),
-            body,
+            body: Some(body),
         };
 
         Ok(node)
+    }
+
+    fn parse_extern(&mut self) -> FuncParseResult {
+        // Eat 'fn'
+        self.tokens.next();
+
+        let proto = self.parse_proto()?;
+        Ok(Function {
+            proto: Box::new(proto),
+            body: None,
+        })
     }
 
     fn parse_proto(&mut self) -> ProtoParseResult {
@@ -658,8 +673,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
     fn gen_func_ir(&mut self, func: &Function) -> FuncIrResult<'ctx> {
         let function = self.gen_proto_ir(&func.proto)?;
-
-        // todo: check for externs
+        let body = match func.body.as_ref() {
+            Some(body) => body,
+            None => return Ok(function), // is extern
+        };
 
         let bb = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(bb);
@@ -673,7 +690,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
 
         let mut last_expr: Option<Box<dyn BasicValue>> = None;
-        for e in &func.body {
+        for e in body {
             last_expr = Some(Box::new(self.gen_expr_ir(e)?));
         }
         self.builder.build_return(last_expr.as_deref());

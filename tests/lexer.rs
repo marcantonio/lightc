@@ -4,6 +4,8 @@ use Token::*;
 #[test]
 fn test_lexer_full() {
     let input = "\
+extern cos(x)
+
 fn arith(x, y) {
     let result = (x + y) * 4 / 4
     a > b
@@ -18,6 +20,11 @@ fn main() {
 ";
 
     let output = [
+        Extern,
+        Ident("cos".to_string()),
+        OpenParen,
+        Ident("x".to_string()),
+        CloseParen,
         Fn,
         Ident("arith".to_string()),
         OpenParen,
