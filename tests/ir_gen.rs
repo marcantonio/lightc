@@ -1,4 +1,4 @@
-use inkwell::context::Context;
+use inkwell::{context::Context, passes::PassManager};
 use light::*;
 
 // I don't know if this test is worth the trouble...
@@ -12,7 +12,8 @@ fn test_ir_gen() {
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("main");
-    let mut ir_gen = IrGenerator::new(&context, &builder, &module);
+    let fpm = PassManager::create(&module);
+    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
 
     let expected = "define double @main() {
 entry:
@@ -22,3 +23,5 @@ entry:
 
     assert_eq!(ir_gen.generate(&ast, true).unwrap().unwrap(), expected);
 }
+
+//ready> def test(x) (1+2+x)*(x+(1+2));

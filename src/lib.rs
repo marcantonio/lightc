@@ -482,6 +482,7 @@ impl<'a> Parser<'a> {
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
+use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{AnyValue, BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
@@ -495,11 +496,11 @@ enum IrRetVal<'ctx> {
 type ExprIrResult<'ctx> = Result<FloatValue<'ctx>, String>;
 type FuncIrResult<'ctx> = Result<FunctionValue<'ctx>, String>;
 
-// TODO: Think about some tests for IR generation.
 pub struct IrGenerator<'a, 'ctx> {
     context: &'ctx Context,
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
+    fpm: &'a PassManager<FunctionValue<'ctx>>,
     values: HashMap<String, PointerValue<'ctx>>,
 }
 
@@ -508,12 +509,21 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         context: &'ctx Context,
         builder: &'a Builder<'ctx>,
         module: &'a Module<'ctx>,
+        fpm: &'a PassManager<FunctionValue<'ctx>>
     ) -> Self {
         let values = HashMap::new();
+
+        fpm.add_instruction_combining_pass();
+        fpm.add_reassociate_pass();
+        fpm.add_gvn_pass();
+        fpm.add_cfg_simplification_pass();
+        fpm.initialize();
+
         IrGenerator {
             context,
             builder,
             module,
+            fpm,
             values,
         }
     }
@@ -536,6 +546,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     // Iterate over all nodes and generate IR. Optionally return a string (for
     // testing).
     pub fn generate(&mut self, ast: &[AstNode], is_debug: bool) -> Result<Option<String>, String> {
+        let mut output = String::new();
         for node in ast {
             let ir = match node {
                 AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
@@ -545,13 +556,17 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
             if is_debug {
                 if let IrRetVal::Func(f) = ir {
-                    let output = f.print_to_string().to_string();
-                    f.print_to_stderr();
-                    return Ok(Some(output));
+                    output += &f.print_to_string().to_string();
                 }
             }
         }
-        Ok(None)
+
+        if output.is_empty() {
+            Ok(None)
+        } else {
+            println!("{}", output);
+            Ok(Some(output))
+        }
     }
 
     fn gen_expr_ir(&self, expr: &Expression) -> ExprIrResult<'ctx> {
@@ -664,6 +679,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         self.builder.build_return(last_expr.as_deref());
 
         if function.verify(true) {
+            self.fpm.run_on(&function);
             Ok(function)
         } else {
             unsafe {

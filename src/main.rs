@@ -1,4 +1,4 @@
-use inkwell::context::Context;
+use inkwell::{context::Context, passes::PassManager};
 use light::*;
 use std::fs;
 
@@ -21,6 +21,7 @@ fn main() {
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("main_mod");
-    let mut ir_gen = IrGenerator::new(&context, &builder, &module);
+    let fpm = PassManager::create(&module);
+    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
     ir_gen.generate(&ast, true).expect("Compiler error:");
 }
