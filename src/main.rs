@@ -1,4 +1,4 @@
-use inkwell::{context::Context, passes::PassManager};
+use inkwell::{context::Context, passes::PassManager, OptimizationLevel};
 use light::*;
 use std::fs;
 
@@ -23,5 +23,21 @@ fn main() {
     let module = context.create_module("main_mod");
     let fpm = PassManager::create(&module);
     let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
-    ir_gen.generate(&ast, true).expect("Compiler error:");
+    let main = ir_gen.generate(&ast).expect("Compiler error:");
+    println!("main() IR:");
+    main.print_to_stderr();
+    println!();
+
+    let ee = module.create_jit_execution_engine(OptimizationLevel::None).unwrap();
+
+    let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> f64>("main") };
+    match f {
+        Ok(f) => unsafe {
+            let ret = f.call();
+            println!("main: {:?}", ret);
+        },
+        Err(e) => {
+            println!("Execution error: {}", e);
+        }
+    };
 }

@@ -484,7 +484,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{AnyValue, BasicValue, FloatValue, FunctionValue, PointerValue};
+use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
 use std::collections::HashMap;
 
@@ -545,8 +545,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
     // Iterate over all nodes and generate IR. Optionally return a string (for
     // testing).
-    pub fn generate(&mut self, ast: &[AstNode], is_debug: bool) -> Result<Option<String>, String> {
-        let mut output = String::new();
+    pub fn generate(&mut self, ast: &[AstNode]) -> Result<FunctionValue, String> {
+        let mut main: Option<FunctionValue> = None;
         for node in ast {
             let ir = match node {
                 AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
@@ -554,18 +554,18 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
             };
 
-            if is_debug {
-                if let IrRetVal::Func(f) = ir {
-                    output += &f.print_to_string().to_string();
+            if let IrRetVal::Func(f) = ir {
+                if f.get_name().to_str().unwrap() == "main" {
+                    main = Some(f);
                 }
             }
         }
 
-        if output.is_empty() {
-            Ok(None)
+        // Return main
+        if let Some(m) = main {
+            Ok(m)
         } else {
-            println!("{}", output);
-            Ok(Some(output))
+            Err(String::from("main() not found"))
         }
     }
 
