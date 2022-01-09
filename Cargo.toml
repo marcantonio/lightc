@@ -1,8 +1,7 @@
 [package]
-name = "light"
+name = "lightc"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#inkwell = "0.1.0-beta.4"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }

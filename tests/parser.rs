@@ -1,4 +1,4 @@
-use light::*;
+use lightc::*;
 
 fn ast_to_string(ast: &[AstNode]) -> String {
     if ast.len() == 1 {

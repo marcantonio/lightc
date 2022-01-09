@@ -357,7 +357,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_extern(&mut self) -> FuncParseResult {
-        // Eat 'fn'
+        // Eat 'extern'
         self.tokens.next();
 
         let proto = self.parse_proto()?;

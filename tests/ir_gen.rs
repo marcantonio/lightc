@@ -1,5 +1,5 @@
 use inkwell::{context::Context, passes::PassManager, values::AnyValue};
-use light::*;
+use lightc::*;
 
 // I don't know if this test is worth the trouble...
 #[test]

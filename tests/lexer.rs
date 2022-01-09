@@ -1,4 +1,4 @@
-use light::*;
+use lightc::*;
 use Token::*;
 
 #[test]
