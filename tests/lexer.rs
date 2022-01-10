@@ -1,5 +1,5 @@
-use lightc::*;
-use Token::*;
+use lightc::lexer::Token::*;
+use lightc::lexer::*;
 
 #[test]
 fn test_lexer_full() {
@@ -71,13 +71,14 @@ fn main() {
         CloseBrace,
     ];
 
-    assert_eq!(lexer(input).unwrap(), &output);
+    let lexer = Lexer {};
+    assert_eq!(lexer.lex(input).unwrap(), &output);
 }
 
 #[test]
 fn test_lexer_err_num() {
     let input = "let foo = 1b4";
-    assert_eq!(lexer(input), Err(LexError::InvalidNum));
+    assert_eq!(Lexer {}.lex(input), Err(LexError::InvalidNum));
 }
 
 #[test]
@@ -95,5 +96,5 @@ foo
         Int(14.0),
         Ident("foo".to_string()),
     ];
-    assert_eq!(lexer(input).unwrap(), &output);
+    assert_eq!(Lexer {}.lex(input).unwrap(), &output);
 }

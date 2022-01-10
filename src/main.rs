@@ -1,12 +1,21 @@
+pub mod ir_generator;
+pub mod lexer;
+pub mod parser;
+
+use crate::ir_generator::IrGenerator;
+use crate::lexer::Lexer;
+use crate::lexer::Token;
+use crate::parser::Parser;
 use inkwell::{context::Context, passes::PassManager, OptimizationLevel};
-use lightc::*;
 use std::fs;
 
 fn main() {
     let mut tokens: Vec<Token> = vec![];
     let code = fs::read_to_string("/home/mas/Code/lightc/mm.lt").expect("Error opening file");
 
-    tokens.append(&mut lexer(&code).expect("Error lexing"));
+    let lexer = Lexer {};
+
+    tokens.append(&mut lexer.lex(&code).expect("Error lexing"));
     println!("tokens: {:?}", tokens);
     println!();
 
@@ -28,7 +37,9 @@ fn main() {
     main.print_to_stderr();
     println!();
 
-    let ee = module.create_jit_execution_engine(OptimizationLevel::None).unwrap();
+    let ee = module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .unwrap();
 
     let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> f64>("main") };
     match f {

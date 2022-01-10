@@ -1,11 +1,13 @@
 use inkwell::{context::Context, passes::PassManager, values::AnyValue};
-use lightc::*;
+use lightc::ir_generator::IrGenerator;
+use lightc::lexer::Lexer;
+use lightc::parser::Parser;
 
 // I don't know if this test is worth the trouble...
 #[test]
 fn test_ir_gen() {
     let input = "fn main() { 19 + 21 + 40 }";
-    let tokens = lexer(input).unwrap();
+    let tokens = Lexer {}.lex(input).unwrap();
     let parser = Parser::new(&tokens);
     let ast = parser.parse().unwrap();
 
