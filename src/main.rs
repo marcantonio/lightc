@@ -29,7 +29,7 @@ fn main() {
     let module = context.create_module("main_mod");
     let fpm = PassManager::create(&module);
     let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
-    let main = ir_gen.generate(&ast).expect("Compiler error:");
+    let main = ir_gen.generate(&ast).expect("Compiler error");
     println!("main() IR:");
     main.print_to_stderr();
     println!();

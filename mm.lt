@@ -15,10 +15,14 @@ fn sum(x, y) {
     x + y
 }
 
-fn main() {
+fn cmp(x) {
     if x > 3 {
         cos(sum(3, 4))
     } else {
         sum(3, 4)
     }
+}
+
+fn main() {
+   cmp(4)
 }
