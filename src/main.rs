@@ -4,18 +4,15 @@ pub mod parser;
 
 use crate::ir_generator::IrGenerator;
 use crate::lexer::Lexer;
-use crate::lexer::Token;
 use crate::parser::Parser;
 use inkwell::{context::Context, passes::PassManager, OptimizationLevel};
 use std::fs;
 
 fn main() {
-    let mut tokens: Vec<Token> = vec![];
     let code = fs::read_to_string("/home/mas/Code/lightc/mm.lt").expect("Error opening file");
 
-    let lexer = Lexer {};
-
-    tokens.append(&mut lexer.lex(&code).expect("Error lexing"));
+    let lexer = Lexer::new(&code);
+    let tokens = lexer.collect::<Result<Vec<_>, _>>().expect("Error lexing");
     println!("tokens: {:?}", tokens);
     println!();
 

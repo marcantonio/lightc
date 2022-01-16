@@ -7,7 +7,7 @@ use lightc::parser::Parser;
 #[test]
 fn test_ir_gen() {
     let input = "fn main() { 19 + 21 + 40 }";
-    let tokens = Lexer {}.lex(input).unwrap();
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
     let parser = Parser::new(&tokens);
     let ast = parser.parse().unwrap();
 

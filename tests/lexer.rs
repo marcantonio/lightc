@@ -71,14 +71,17 @@ fn main() {
         CloseBrace,
     ];
 
-    let lexer = Lexer {};
-    assert_eq!(lexer.lex(input).unwrap(), &output);
+    let lexer = Lexer::new(input);
+    assert_eq!(lexer.collect::<Result<Vec<_>, _>>().unwrap(), &output);
 }
 
 #[test]
 fn test_lexer_err_num() {
     let input = "let foo = 1b4";
-    assert_eq!(Lexer {}.lex(input), Err(LexError::InvalidNum));
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>(),
+        Err(LexError::InvalidNum)
+    );
 }
 
 #[test]
@@ -96,5 +99,25 @@ foo
         Int(14.0),
         Ident("foo".to_string()),
     ];
-    assert_eq!(Lexer {}.lex(input).unwrap(), &output);
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+}
+
+#[test]
+fn test_lexer_trailing_comment() {
+    let input = "\
+let foo = 14
+// line2";
+    let output = [
+        Let,
+        Ident("foo".to_string()),
+        Assign,
+        Int(14.0),
+    ];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
 }
