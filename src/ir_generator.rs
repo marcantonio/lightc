@@ -141,10 +141,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     }
 
     fn gen_call_ir(&self, name: &str, args: &[Expression]) -> ExprIrResult<'ctx> {
-        let func = match self.module.get_function(name) {
-            Some(f) => f,
-            None => return Err(format!("Unknown function call: {}", name)),
-        };
+        let func = self
+            .module
+            .get_function(name)
+            .ok_or(format!("Unknown function call: {}", name))?;
 
         let mut args_ir = Vec::with_capacity(args.len());
         for arg in args {

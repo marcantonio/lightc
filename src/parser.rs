@@ -259,10 +259,10 @@ impl<'a> Parser<'a> {
 
             args.push(id.to_string());
 
-            let &next = match self.tokens.peek() {
-                Some(t) => t,
-                None => return Err("Premature end. Expecting ',' or ')'.".to_string()),
-            };
+            let &next = self
+                .tokens
+                .peek()
+                .ok_or_else(|| "Premature end. Expecting ',' or ')'.".to_string())?;
 
             if *next == Token::CloseParen {
                 break;
@@ -323,10 +323,10 @@ impl<'a> Parser<'a> {
 
             args.push(self.parse_expression(0)?);
 
-            let &next = match self.tokens.peek() {
-                Some(t) => t,
-                None => return Err("Premature end. Expecting ',' or ')'.".to_string()),
-            };
+            let &next = self
+                .tokens
+                .peek()
+                .ok_or_else(|| "Premature end. Expecting ',' or ')'.".to_string())?;
 
             if *next == Token::CloseParen {
                 break;
