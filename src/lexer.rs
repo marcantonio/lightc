@@ -15,9 +15,9 @@ pub enum Token {
     Int(f64),
     VarType(Type),
     Op(char),
-    GreaterThan,
-    LessThan,
     Extern,
+    If,
+    Else,
     Eof,
 }
 
@@ -94,6 +94,8 @@ impl<'a> Lexer<'a> {
                 "let" => Token::Let,
                 "f64" => Token::VarType(Type::F64),
                 "extern" => Token::Extern,
+                "if" => Token::If,
+                "else" => Token::Else,
                 _ => Token::Ident(identifier),
             });
         }

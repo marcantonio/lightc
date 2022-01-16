@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, iter::Peekable, slice::Iter};
 
 use crate::lexer::Token;
 
@@ -19,6 +19,11 @@ pub enum Expression {
         name: String,
         args: Vec<Expression>,
     },
+    Cond {
+        cond: Box<Expression>,
+        cons: Box<Expression>,
+        alt: Option<Box<Expression>>,
+    },
 }
 
 impl Display for Expression {
@@ -36,6 +41,13 @@ impl Display for Expression {
                 }
                 write!(f, "{})", s)
             }
+            Expression::Cond { cond, cons, alt } => {
+                let mut s = format!("(if {} {}", cond, cons);
+                if let Some(alt) = alt {
+                    s += &format!(" {}", alt);
+                }
+                write!(f, "{})", s)
+            },
         }
     }
 }
@@ -120,7 +132,7 @@ type FuncParseResult = Result<Function, String>;
 
 pub struct Parser<'a> {
     ast: Vec<AstNode>,
-    tokens: std::iter::Peekable<std::slice::Iter<'a, Token>>,
+    tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
@@ -203,6 +215,7 @@ impl<'a> Parser<'a> {
         // If close brace, body is empty.
         let mut body: Vec<Expression> = vec![];
         if self.tokens.peek().is_some() {
+            // XXX
             while let Some(t) = self.tokens.peek() {
                 match t {
                     Token::CloseBrace => {
@@ -289,6 +302,7 @@ impl<'a> Parser<'a> {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
                 Token::OpenParen => self.parse_paren(),
+                Token::If => self.parse_cond(),
                 x => return Err(format!("Expecting primary expression. Got: {}", x)),
             }
         } else {
@@ -358,5 +372,49 @@ impl<'a> Parser<'a> {
         let lhs = self.parse_expression(0);
         self.tokens.next(); // Eat ')'
         lhs
+    }
+
+    fn parse_cond(&mut self) -> ExprParseResult {
+        let cond = self.parse_expression(0)?;
+
+        // todo: create a macro for these
+        match self.tokens.next() {
+            Some(t @ Token::OpenBrace) => t,
+            Some(_) | None => return Err("Expecting '{' after conditional)".to_string()),
+        };
+
+        let cons = self.parse_expression(0)?;
+
+        match self.tokens.next() {
+            Some(t @ Token::CloseBrace) => t,
+            Some(_) | None => return Err("Expecting '}' after consequent)".to_string()),
+        };
+
+        let alt = match self.tokens.peek() {
+            Some(Token::Else) => {
+                self.tokens.next(); // Eat else
+
+                match self.tokens.next() {
+                    Some(t @ Token::OpenBrace) => t,
+                    Some(_) | None => return Err("Expecting '{' after conditional)".to_string()),
+                };
+
+                let alt = Some(self.parse_expression(0)?);
+
+                match self.tokens.next() {
+                    Some(t @ Token::CloseBrace) => t,
+                    Some(_) | None => return Err("Expecting '}' after consequent)".to_string()),
+                };
+
+                alt
+            }
+            _ => None,
+        };
+
+        Ok(Expression::Cond {
+            cond: Box::new(cond),
+            cons: Box::new(cons),
+            alt: alt.map(Box::new),
+        })
     }
 }

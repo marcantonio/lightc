@@ -110,11 +110,39 @@ fn test_lexer_trailing_comment() {
     let input = "\
 let foo = 14
 // line2";
+    let output = [Let, Ident("foo".to_string()), Assign, Int(14.0)];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+}
+
+#[test]
+fn test_lexer_if_else() {
+    let input = "\
+if x > 3 {
+    print(x)
+} else {
+    exit()
+}
+";
     let output = [
-        Let,
-        Ident("foo".to_string()),
-        Assign,
-        Int(14.0),
+        If,
+        Ident("x".to_string()),
+        Op('>'),
+        Int(3.0),
+        OpenBrace,
+        Ident("print".to_string()),
+        OpenParen,
+        Ident("x".to_string()),
+        CloseParen,
+        CloseBrace,
+        Else,
+        OpenBrace,
+        Ident("exit".to_string()),
+        OpenParen,
+        CloseParen,
+        CloseBrace,
     ];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),

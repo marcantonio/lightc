@@ -228,3 +228,23 @@ fn test_parser_extern() {
     let ast = "(define (cos x))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+#[test]
+fn test_parser_if_only() {
+    let input = "if a > b { foo }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    println!("{:?}", tokens);
+    let parser = Parser::new(&tokens);
+    let ast = "(if (> a b) foo)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_if_else() {
+    let input = "if a > b { foo } else { bar }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    println!("{:?}", tokens);
+    let parser = Parser::new(&tokens);
+    let ast = "(if (> a b) foo bar)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
