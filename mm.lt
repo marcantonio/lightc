@@ -19,7 +19,9 @@ fn cmp(x) {
     if x > 3 {
         cos(sum(3, 4))
     } else {
-        sum(3, 4)
+        for let y = 1; y < 10; 1 {
+            sum(y, 1)
+        }
     }
 }
 

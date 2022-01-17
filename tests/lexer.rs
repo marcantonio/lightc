@@ -149,3 +149,35 @@ if x > 3 {
         &output
     );
 }
+
+#[test]
+fn test_lexer_for() {
+    let input = "\
+for let x = 1; x < 10; 1 {
+    print(x)
+}
+";
+    let output = [
+        For,
+        Let,
+        Ident("x".to_string()),
+        Assign,
+        Int(1.0),
+        Semicolon,
+        Ident("x".to_string()),
+        Op('<'),
+        Int(10.0),
+        Semicolon,
+        Int(1.0),
+        OpenBrace,
+        Ident("print".to_string()),
+        OpenParen,
+        Ident("x".to_string()),
+        CloseParen,
+        CloseBrace,
+    ];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+}

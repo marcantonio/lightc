@@ -2,23 +2,25 @@ use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
-    Fn,
-    Let,
-    OpenParen,
-    CloseParen,
-    OpenBrace,
-    CloseBrace,
-    Comma,
-    Colon,
     Assign,
-    Ident(String),
-    Int(f64),
-    VarType(Type),
-    Op(char),
-    Extern,
-    If,
+    CloseBrace,
+    CloseParen,
+    Colon,
+    Comma,
     Else,
     Eof,
+    Extern,
+    Fn,
+    For,
+    Ident(String),
+    If,
+    Int(f64),
+    Let,
+    Op(char),
+    OpenBrace,
+    OpenParen,
+    Semicolon,
+    VarType(Type),
 }
 
 impl std::fmt::Display for Token {
@@ -90,12 +92,13 @@ impl<'a> Lexer<'a> {
             }
 
             return Ok(match identifier.as_str() {
-                "fn" => Token::Fn,
-                "let" => Token::Let,
-                "f64" => Token::VarType(Type::F64),
-                "extern" => Token::Extern,
-                "if" => Token::If,
                 "else" => Token::Else,
+                "extern" => Token::Extern,
+                "f64" => Token::VarType(Type::F64),
+                "fn" => Token::Fn,
+                "for" => Token::For,
+                "if" => Token::If,
+                "let" => Token::Let,
                 _ => Token::Ident(identifier),
             });
         }
@@ -122,16 +125,14 @@ impl<'a> Lexer<'a> {
         Ok(match cur {
             '+' | '-' | '*' | '/' | '^' | '>' | '<' => Token::Op(cur),
             '=' => Token::Assign,
+            '}' => Token::CloseBrace,
+            ')' => Token::CloseParen,
             ':' => Token::Colon,
             ',' => Token::Comma,
-            '(' => Token::OpenParen,
-            ')' => Token::CloseParen,
             '{' => Token::OpenBrace,
-            '}' => Token::CloseBrace,
-            x => {
-                println!("{:?}", x);
-                return Err(LexError::UnknownLexeme);
-            }
+            '(' => Token::OpenParen,
+            ';' => Token::Semicolon,
+            _ => return Err(LexError::UnknownLexeme),
         })
     }
 }

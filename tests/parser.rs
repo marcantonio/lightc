@@ -248,3 +248,13 @@ fn test_parser_if_else() {
     let ast = "(if (> a b) foo bar)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+#[test]
+fn test_parser_for() {
+    let input = "for let x = 1; x < 10; 1 { foo }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    println!("{:?}", tokens);
+    let parser = Parser::new(&tokens);
+    let ast = "(for (let x 1) (< x 10) 1 foo)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}

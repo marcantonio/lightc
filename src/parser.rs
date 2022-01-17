@@ -24,6 +24,13 @@ pub enum Expression {
         cons: Box<Expression>,
         alt: Option<Box<Expression>>,
     },
+    For {
+        var_name: String,
+        start: Box<Expression>,
+        cond: Box<Expression>,
+        step: Box<Expression>,
+        body: Vec<Expression>,
+    },
 }
 
 impl Display for Expression {
@@ -47,7 +54,21 @@ impl Display for Expression {
                     s += &format!(" {}", alt);
                 }
                 write!(f, "{})", s)
-            },
+            }
+            Expression::For {
+                var_name,
+                start,
+                cond,
+                step,
+                body,
+            } => {
+                let mut s = format!("(for (let {} {}) {} {}", var_name, start, cond, step);
+                s += &body.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+                write!(f, "{})", s)
+            }
         }
     }
 }
@@ -98,7 +119,7 @@ pub enum AstNode {
     Func(Function),
 }
 
-// Display functions allow us to convert to S-expressions for easier testing.
+// Display functions allow us to convert to S-expressions for easier testing
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -256,7 +277,7 @@ impl<'a> Parser<'a> {
 
         match self.tokens.next() {
             Some(t @ Token::OpenParen) => t,
-            Some(_) | None => return Err("Expecting '(' in prototype)".to_string()),
+            Some(_) | None => return Err("Expecting '(' in prototype".to_string()),
         };
 
         let mut args: Vec<String> = vec![];
@@ -267,7 +288,7 @@ impl<'a> Parser<'a> {
 
             let id = match self.tokens.next() {
                 Some(Token::Ident(t)) => t,
-                Some(_) | None => return Err("Expecting identifier in prototype)".to_string()),
+                Some(_) | None => return Err("Expecting identifier in prototype".to_string()),
             };
 
             args.push(id.to_string());
@@ -303,6 +324,7 @@ impl<'a> Parser<'a> {
                 Token::Ident(id) => self.parse_ident(id),
                 Token::OpenParen => self.parse_paren(),
                 Token::If => self.parse_cond(),
+                Token::For => self.parse_for(),
                 x => return Err(format!("Expecting primary expression. Got: {}", x)),
             }
         } else {
@@ -380,14 +402,14 @@ impl<'a> Parser<'a> {
         // todo: create a macro for these
         match self.tokens.next() {
             Some(t @ Token::OpenBrace) => t,
-            Some(_) | None => return Err("Expecting '{' after conditional)".to_string()),
+            Some(_) | None => return Err("Expecting '{' after conditional".to_string()),
         };
 
         let cons = self.parse_expression(0)?;
 
         match self.tokens.next() {
             Some(t @ Token::CloseBrace) => t,
-            Some(_) | None => return Err("Expecting '}' after consequent)".to_string()),
+            Some(_) | None => return Err("Expecting '}' after consequent".to_string()),
         };
 
         let alt = match self.tokens.peek() {
@@ -396,14 +418,14 @@ impl<'a> Parser<'a> {
 
                 match self.tokens.next() {
                     Some(t @ Token::OpenBrace) => t,
-                    Some(_) | None => return Err("Expecting '{' after conditional)".to_string()),
+                    Some(_) | None => return Err("Expecting '{' after conditional".to_string()),
                 };
 
                 let alt = Some(self.parse_expression(0)?);
 
                 match self.tokens.next() {
                     Some(t @ Token::CloseBrace) => t,
-                    Some(_) | None => return Err("Expecting '}' after consequent)".to_string()),
+                    Some(_) | None => return Err("Expecting '}' after consequent".to_string()),
                 };
 
                 alt
@@ -415,6 +437,60 @@ impl<'a> Parser<'a> {
             cond: Box::new(cond),
             cons: Box::new(cons),
             alt: alt.map(Box::new),
+        })
+    }
+
+    fn parse_for(&mut self) -> ExprParseResult {
+        match self.tokens.next() {
+            Some(t @ Token::Let) => t,
+            Some(_) | None => return Err("Expecting 'let' after for".to_string()),
+        };
+
+        let var_name = match self.tokens.next() {
+            Some(Token::Ident(t)) => t,
+            Some(_) | None => return Err("Expecting identifier after let".to_string()),
+        };
+
+        match self.tokens.next() {
+            Some(t @ Token::Assign) => t,
+            Some(_) | None => return Err("Expecting '=' after identifer".to_string()),
+        };
+
+        let start = self.parse_expression(0)?;
+        match self.tokens.next() {
+            Some(t @ Token::Semicolon) => t,
+            Some(_) | None => return Err("Expecting ';' after start".to_string()),
+        };
+
+        let cond = self.parse_expression(0)?;
+        match self.tokens.next() {
+            Some(t @ Token::Semicolon) => t,
+            Some(_) | None => return Err("Expecting ';' after condition".to_string()),
+        };
+
+        let step = self.parse_expression(0)?;
+        match self.tokens.next() {
+            Some(t @ Token::OpenBrace) => t,
+            Some(_) | None => return Err("Expecting '{' after step".to_string()),
+        };
+
+        let mut body: Vec<Expression> = vec![];
+        while let Some(t) = self.tokens.peek() {
+            match t {
+                Token::CloseBrace => {
+                    self.tokens.next();
+                    break;
+                }
+                _ => body.push(self.parse_expression(0)?),
+            }
+        }
+
+        Ok(Expression::For {
+            var_name: var_name.to_owned(),
+            start: Box::new(start),
+            cond: Box::new(cond),
+            step: Box::new(step),
+            body,
         })
     }
 }
