@@ -101,9 +101,13 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             .map(|_| f64_type.into())
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
+        // Create a function type depending on args types and return type
         let func_type = f64_type.fn_type(&args_type, false);
+        // Add function to current module's symbold table. Defaults to external
+        // linkage with None.
         let func = self.module.add_function(&proto.name, func_type, None);
 
+        // Name all args
         func.get_param_iter().enumerate().for_each(|(i, arg)| {
             arg.into_float_value().set_name(&proto.args[i]);
         });
@@ -113,14 +117,18 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
     fn gen_func_ir(&mut self, func: &Function) -> FuncIrResult<'ctx> {
         let function = self.gen_proto_ir(&func.proto)?;
+         // If body is None assume call is an extern
         let body = match func.body.as_ref() {
             Some(body) => body,
-            None => return Ok(function), // is extern
+            None => return Ok(function),
         };
 
+        // Create new block for function
         let bb = self.context.append_basic_block(function, "entry");
+        // Make sure the builder will insert new instructions at the end
         self.builder.position_at_end(bb);
 
+        // Allocate space for the function's arguments
         self.values.reserve(func.proto.args.len());
         for (i, arg) in function.get_param_iter().enumerate() {
             let arg_name = &func.proto.args[i];
@@ -129,12 +137,15 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             self.values.insert(arg_name.to_owned(), alloca);
         }
 
+        // Generate and add all expressions in the body. Save the last to
+        // one to use with the ret instruction.
         let mut last_expr: Option<Box<dyn BasicValue>> = None;
         for e in body {
             last_expr = Some(Box::new(self.gen_expr_ir(e)?));
         }
         self.builder.build_return(last_expr.as_deref());
 
+        // Make sure we didn't miss anything
         if function.verify(true) {
             self.fpm.run_on(&function);
             Ok(function)
@@ -172,21 +183,23 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         let lhs = self.gen_expr_ir(lhs)?;
         let rhs = self.gen_expr_ir(rhs)?;
 
+        // Generate the proper instruction for each op
         match op {
             '*' => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
             '/' => Ok(self.builder.build_float_div(lhs, rhs, "tmpdiv")),
             '+' => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
             '-' => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
             op @ ('>' | '<') => {
-                let res = if op == '>' {
+                let inst = if op == '>' {
                     self.builder
                         .build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp")
                 } else {
                     self.builder
                         .build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp")
                 };
+                // Convert the i1 to a double
                 Ok(self.builder.build_unsigned_int_to_float(
-                    res,
+                    inst,
                     self.context.f64_type(),
                     "tmpbool",
                 ))
@@ -261,8 +274,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         let mut alt_bb = self.context.append_basic_block(parent, "alt");
         let merge_bb = self.context.append_basic_block(parent, "merge");
 
-        // Emits the entry conditional branch instructions, although we don't
-        // need to capture it
+        // Emits the entry conditional branch instructions
         self.builder
             .build_conditional_branch(cond_bool, cons_bb, alt_bb);
 
