@@ -16,15 +16,18 @@ fn sum(x, y) {
 }
 
 fn cmp(x) {
-    if x > 3 {
-        cos(sum(3, 4))
-    } else {
+//    if x > 3 {
+//        cos(sum(3, 4))
+//    } else {
         for let y = 1; y < 10; 1 {
             sum(y, 1)
         }
-    }
+//    }
 }
 
 fn main() {
-   cmp(4)
+    for let y = 1; y < 10; 1 {
+        sum(y, 1)
+    }
+//   cmp(4)
 }
