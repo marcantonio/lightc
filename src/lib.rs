@@ -1,3 +1,31 @@
 pub mod ir_generator;
 pub mod lexer;
 pub mod parser;
+
+use std::{ffi::c_void, os::raw::c_char, io::Write};
+extern crate llvm_sys as llvm;
+
+pub extern fn printd(x: f64) -> f64 {
+    println!("{}", x);
+    x
+}
+
+pub extern fn putchard(x: f64) -> f64 {
+    print!("{}", x as u8 as char);
+    std::io::stdout().flush().expect("Could not flush to standard output.");
+    x
+}
+
+#[allow(clippy::missing_safety_doc)]
+pub unsafe fn add_symbol(name: &str, ptr: *const ()) {
+    let name = std::ffi::CString::new(name).unwrap();
+    let addr = ptr as *mut c_void;
+    llvm::support::LLVMAddSymbol(name.as_ptr() as *const c_char, addr)
+}
+
+pub fn load_externs() {
+    unsafe {
+        add_symbol("printd", printd as *const ());
+        add_symbol("putchard", putchard as *const ());
+    }
+}

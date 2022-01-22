@@ -9,25 +9,31 @@
 //     printf(a)
 // }
 
-extern cos(x)
+// extern cos(x)
 
-fn sum(x, y) {
-    x + y
-}
+// fn sum(x, y) {
+//     x + y
+// }
 
-fn cmp(x) {
-//    if x > 3 {
-//        cos(sum(3, 4))
-//    } else {
-        for let y = 1; y < 10; 1 {
-            sum(y, 1)
-        }
-//    }
-}
+// fn cmp(x) {
+// //    if x > 3 {
+// //        cos(sum(3, 4))
+// //    } else {
+//         for let y = 1; y < 10; 1 {
+//             sum(y, 1)
+//         }
+// //    }
+// }
+
+extern putchard(x)
+extern printd(c)
 
 fn main() {
-    for let y = 1; y < 10; 1 {
-        sum(y, 1)
-    }
-//   cmp(4)
+    putchard(46)
+//    printd(7)
 }
+
+    // for let y = 1; y < 10; 1 {
+    //     sum(y, 1)
+    // }
+    //   cmp(4)
