@@ -166,6 +166,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             Expression::Num { value } => self.gen_num_ir(*value),
             Expression::Var { name } => self.gen_var_ir(name),
             Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
+            Expression::UnaryOp { op: _op, rhs: _rhs } => todo!(),
             Expression::Call { name, args } => self.gen_call_ir(name, args),
             Expression::Cond { cond, cons, alt } => self.gen_cond_ir(cond, cons, alt),
             Expression::For {

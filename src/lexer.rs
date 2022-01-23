@@ -104,10 +104,10 @@ impl<'a> Lexer<'a> {
         }
 
         // Numbers
-        if cur.is_ascii_digit() {
+        if cur.is_ascii_digit() || cur == '-' {
             let mut num = String::from(cur);
             while let Some(&c) = self.stream.peek() {
-                if c.is_ascii_alphanumeric() {
+                if c.is_ascii_alphanumeric() || c == '-' {
                     num.push(c);
                     self.stream.next();
                 } else {
@@ -123,7 +123,7 @@ impl<'a> Lexer<'a> {
 
         // Everything else
         Ok(match cur {
-            '+' | '-' | '*' | '/' | '^' | '>' | '<' => Token::Op(cur),
+            '+' | '-' | '*' | '/' | '^' | '>' | '<' | '!' => Token::Op(cur),
             '=' => Token::Assign,
             '}' => Token::CloseBrace,
             ')' => Token::CloseParen,

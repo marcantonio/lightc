@@ -31,6 +31,10 @@ pub enum Expression {
         lhs: Box<Expression>,
         rhs: Box<Expression>,
     },
+    UnaryOp {
+        op: char,
+        rhs: Box<Expression>,
+    },
     Call {
         name: String,
         args: Vec<Expression>,
@@ -135,30 +139,26 @@ pub enum AstNode {
     Func(Function),
 }
 
-// Display functions allow us to convert to S-expressions for easier testing
-impl Display for AstNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AstNode::Expr(expr) => write!(f, "{}", expr),
-            AstNode::Proto(proto) => write!(f, "{}", proto),
-            AstNode::Func(func) => write!(f, "{}", func),
-        }
-    }
-}
-
 enum OpPrec {
     Left(u8),
     Right(u8),
 }
 
 impl OpPrec {
-    fn prec(op: char) -> Result<OpPrec, String> {
+    fn bin_prec(op: char) -> Result<OpPrec, String> {
         match op {
             '^' => Ok(OpPrec::Right(4)),
             '*' | '/' => Ok(OpPrec::Left(3)),
             '+' | '-' => Ok(OpPrec::Left(2)),
             '>' | '<' => Ok(OpPrec::Left(1)),
-            x => Err(format!("Unknown operator: {}", x)),
+            x => Err(format!("Unknown binary operator: {}", x)),
+        }
+    }
+
+    fn unary_prec(op: char) -> Result<u8, String> {
+        match op {
+            '!' => Ok(5),
+            x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
 }
@@ -197,7 +197,25 @@ impl<'a> Parser<'a> {
     // parsing.
     fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
         // Consume token and load up lhs.
-        let mut lhs = self.parse_primary()?;
+        let mut lhs = match self.tokens.next() {
+            Some(t) => {
+                match t {
+                    // Handle unary operators. Unused.
+                    Token::Op(op) => {
+                        let p = OpPrec::unary_prec(*op)?;
+                        let rhs = self.parse_expression(p)?;
+                        Expression::UnaryOp {
+                            op: *op,
+                            rhs: Box::new(rhs),
+                        }
+                    },
+                    t => self.parse_primary(Some(t))?,
+                }
+            },
+            None => todo!(),
+
+            //let mut lhs = self.parse_primary(next)?;
+        };
 
         // Peek at the next token, otherwise return current lhs.
         while let Some(next) = self.tokens.peek() {
@@ -212,7 +230,7 @@ impl<'a> Parser<'a> {
             // Stop eating and return the lhs if the current op:
             //   - is lower precedence than the last one (min_p), or:
             //   - is the same precedence and associates left
-            let p = match OpPrec::prec(*op)? {
+            let p = match OpPrec::bin_prec(*op)? {
                 OpPrec::Left(p) => {
                     if p <= min_p {
                         break;
@@ -318,8 +336,9 @@ impl<'a> Parser<'a> {
     }
 
     // Returns primary expression
-    fn parse_primary(&mut self) -> ExprParseResult {
-        let node = if let Some(t) = self.tokens.next() {
+    // XXX is this really needed?
+    fn parse_primary(&mut self, token: Option<&Token>) -> ExprParseResult {
+        let node = if let Some(t) = token {
             match t {
                 Token::Int(n) => self.parse_num(*n),
                 Token::Ident(id) => self.parse_ident(id),
@@ -329,6 +348,7 @@ impl<'a> Parser<'a> {
                 x => return Err(format!("Expecting primary expression. Got: {}", x)),
             }
         } else {
+            // XXX trailing double primary?
             unreachable!("parse_primary()");
         };
         node

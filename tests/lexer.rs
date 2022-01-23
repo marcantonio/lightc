@@ -120,7 +120,7 @@ let foo = 14
 #[test]
 fn test_lexer_if_else() {
     let input = "\
-if x > 3 {
+if x > -3 {
     print(x)
 } else {
     exit()
@@ -130,7 +130,7 @@ if x > 3 {
         If,
         Ident("x".to_string()),
         Op('>'),
-        Int(3.0),
+        Int(-3.0),
         OpenBrace,
         Ident("print".to_string()),
         OpenParen,

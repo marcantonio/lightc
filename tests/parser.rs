@@ -33,10 +33,10 @@ fn test_parser_two_num_expr() {
 
 #[test]
 fn test_parser_three_num_expr() {
-    let input = "19 + 21 + 40";
+    let input = "19 + 21 + -40";
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
     let parser = Parser::new(&tokens);
-    let ast = "(+ (+ 19 21) 40)";
+    let ast = "(+ (+ 19 21) -40)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 
