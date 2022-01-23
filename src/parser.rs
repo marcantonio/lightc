@@ -3,9 +3,9 @@ use std::{fmt::Display, iter::Peekable, slice::Iter};
 use crate::lexer::Token;
 
 macro_rules! expect_next_token {
-    ($ts:expr, $t:tt::$v:tt, $err:expr) => {
+    ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
         match $ts.next() {
-            Some(t @ $t::$v) => t,
+            $( Some(t @ $e::$v) => t, )+
             Some(_) | None => return Err($err.to_string()),
         }
     };
