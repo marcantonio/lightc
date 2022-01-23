@@ -104,10 +104,10 @@ impl<'a> Lexer<'a> {
         }
 
         // Numbers
-        if cur.is_ascii_digit() || cur == '-' {
+        if cur.is_ascii_digit() {
             let mut num = String::from(cur);
             while let Some(&c) = self.stream.peek() {
-                if c.is_ascii_alphanumeric() || c == '-' {
+                if c.is_ascii_alphanumeric() {
                     num.push(c);
                     self.stream.next();
                 } else {

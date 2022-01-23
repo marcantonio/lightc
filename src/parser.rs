@@ -31,7 +31,7 @@ pub enum Expression {
         lhs: Box<Expression>,
         rhs: Box<Expression>,
     },
-    UnaryOp {
+    UnOp {
         op: char,
         rhs: Box<Expression>,
     },
@@ -88,9 +88,10 @@ impl OpPrec {
         }
     }
 
-    fn unary_prec(op: char) -> Result<u8, String> {
+    fn un_prec(op: char) -> Result<u8, String> {
         match op {
-            '!' => Ok(5),
+            '!' => Ok(6),
+            '-' => Ok(5),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
@@ -113,7 +114,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Parse each token using recursive descent.
+    // Parse each token using recursive descent
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
         while let Some(t) = self.tokens.peek() {
             let node = match t {
@@ -129,15 +130,15 @@ impl<'a> Parser<'a> {
     // Parses arbitrary length binary expressions. Uses Pratt with op precedence
     // parsing.
     fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
-        // Consume token and load up lhs.
+        // Consume token and load up lhs
         let mut lhs = match self.tokens.next() {
             Some(t) => {
                 match t {
-                    // Handle unary operators. Unused.
+                    // Handle unary operators
                     Token::Op(op) => {
-                        let p = OpPrec::unary_prec(*op)?;
+                        let p = OpPrec::un_prec(*op)?;
                         let rhs = self.parse_expression(p)?;
-                        Expression::UnaryOp {
+                        Expression::UnOp {
                             op: *op,
                             rhs: Box::new(rhs),
                         }
@@ -146,8 +147,6 @@ impl<'a> Parser<'a> {
                 }
             },
             None => todo!(),
-
-            //let mut lhs = self.parse_primary(next)?;
         };
 
         // Peek at the next token, otherwise return current lhs.
@@ -155,7 +154,7 @@ impl<'a> Parser<'a> {
             // Should always be an operator after parse_primary().
             let op = match next {
                 Token::Op(op) => op,
-                // Start a new expression if we see two primaries in a row.
+                // Start a new expression if we see two primaries in a row
                 _ => break,
             };
 
@@ -178,12 +177,12 @@ impl<'a> Parser<'a> {
                 }
             };
 
-            // Advance past op.
+            // Advance past op
             self.tokens.next();
 
-            // Descend for rhs with the current precedence as min_p.
+            // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
-            // Make a lhs and continue loop.
+            // Make a lhs and continue loop
             lhs = self.parse_op(*op, lhs, rhs).unwrap();
         }
         Ok(lhs)
@@ -196,7 +195,7 @@ impl<'a> Parser<'a> {
         let proto = self.parse_proto()?;
         expect_next_token!(self.tokens, Token::OpenBrace, "Expecting '{' in function definition");
 
-        // If close brace, body is empty.
+        // If close brace, body is empty
         let mut body: Vec<Expression> = vec![];
         if self.tokens.peek().is_some() {
             // XXX
@@ -296,7 +295,7 @@ impl<'a> Parser<'a> {
             name: id.to_owned(),
         };
 
-        // If next is not a '(', the current token is just a simple var.
+        // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
             Some(t @ Token::OpenParen) => t,
             Some(_) | None => return Ok(node),
@@ -427,7 +426,7 @@ impl Display for Expression {
         match self {
             Expression::Num { value } => write!(f, "{}", value),
             Expression::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
-            Expression::UnaryOp { op, rhs } => write!(f, "({} {})", op, rhs),
+            Expression::UnOp { op, rhs } => write!(f, "({} {})", op, rhs),
             Expression::Var { name } => write!(f, "{}", name),
             Expression::Call { name, args } => {
                 let mut s = format!("({}", name);

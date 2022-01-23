@@ -166,7 +166,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             Expression::Num { value } => self.gen_num_ir(*value),
             Expression::Var { name } => self.gen_var_ir(name),
             Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
-            Expression::UnaryOp { op: _op, rhs: _rhs } => todo!(),
+            Expression::UnOp { op, rhs } => self.gen_unop_ir(*op, rhs),
             Expression::Call { name, args } => self.gen_call_ir(name, args),
             Expression::Cond { cond, cons, alt } => self.gen_cond_ir(cond, cons, alt),
             Expression::For {
@@ -407,5 +407,13 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
 
         Ok(self.context.f64_type().const_float(0.0))
+    }
+
+    fn gen_unop_ir(&self, op: char, rhs: &Expression) -> ExprIrResult<'ctx> {
+        let rhs = self.gen_expr_ir(rhs)?;
+        match op {
+            '-' => Ok(self.builder.build_float_neg(rhs, "neg")),
+            x => Err(format!("Unknown unary operator: {}", x)),
+        }
     }
 }

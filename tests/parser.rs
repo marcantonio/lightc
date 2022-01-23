@@ -36,7 +36,7 @@ fn test_parser_three_num_expr() {
     let input = "19 + 21 + -40";
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
     let parser = Parser::new(&tokens);
-    let ast = "(+ (+ 19 21) -40)";
+    let ast = "(+ (+ 19 21) (- 40))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 
@@ -259,29 +259,29 @@ fn test_parser_for() {
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 
-// #[test]
-// fn test_parser_unary() {
-//     let input = "-21";
-//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-//     let parser = Parser::new(&tokens);
-//     let ast = "(- 21)";
-//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+#[test]
+fn test_parser_unary() {
+    let input = "-21";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(- 21)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 
-//     let input = "-21 * 2";
-//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-//     let parser = Parser::new(&tokens);
-//     let ast = "(* (- 21) 2)";
-//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+    let input = "-a * 2";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(* (- a) 2)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 
-//     let input = "3 - -21";
-//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-//     let parser = Parser::new(&tokens);
-//     let ast = "(- 3 (- 21))";
-//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+    let input = "3 - -21";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(- 3 (- 21))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 
-//     let input = "--21";
-//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-//     let parser = Parser::new(&tokens);
-//     let ast = "(- (- 21))";
-//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
-// }
+    let input = "--21";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(- (- 21))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
