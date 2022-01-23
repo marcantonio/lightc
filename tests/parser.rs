@@ -258,3 +258,30 @@ fn test_parser_for() {
     let ast = "(for (let x 1) (< x 10) 1 foo)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+// #[test]
+// fn test_parser_unary() {
+//     let input = "-21";
+//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+//     let parser = Parser::new(&tokens);
+//     let ast = "(- 21)";
+//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+//     let input = "-21 * 2";
+//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+//     let parser = Parser::new(&tokens);
+//     let ast = "(* (- 21) 2)";
+//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+//     let input = "3 - -21";
+//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+//     let parser = Parser::new(&tokens);
+//     let ast = "(- 3 (- 21))";
+//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+//     let input = "--21";
+//     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+//     let parser = Parser::new(&tokens);
+//     let ast = "(- (- 21))";
+//     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+// }

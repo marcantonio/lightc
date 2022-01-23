@@ -53,83 +53,16 @@ pub enum Expression {
     },
 }
 
-impl Display for Expression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Expression::Num { value } => write!(f, "{}", value),
-            Expression::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
-            Expression::Var { name } => write!(f, "{}", name),
-            Expression::Call { name, args } => {
-                let mut s = format!("({}", name);
-                if !args.is_empty() {
-                    for arg in args {
-                        s += &format!(" {}", arg);
-                    }
-                }
-                write!(f, "{})", s)
-            }
-            Expression::Cond { cond, cons, alt } => {
-                let mut s = format!("(if {} {}", cond, cons);
-                if let Some(alt) = alt {
-                    s += &format!(" {}", alt);
-                }
-                write!(f, "{})", s)
-            }
-            Expression::For {
-                var_name,
-                start,
-                cond,
-                step,
-                body,
-            } => {
-                let mut s = format!("(for (let {} {}) {} {}", var_name, start, cond, step);
-                s += &body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-                write!(f, "{})", s)
-            }
-        }
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Prototype {
     pub name: String,
     pub args: Vec<String>,
 }
 
-impl Display for Prototype {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = format!("({}", self.name);
-        if !self.args.is_empty() {
-            for arg in &self.args {
-                s += &format!(" {}", arg);
-            }
-        }
-        write!(f, "{})", s)
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct Function {
     pub proto: Box<Prototype>,
     pub body: Option<Vec<Expression>>,
-}
-
-impl Display for Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.body {
-            Some(body) if !body.is_empty() => {
-                let s = body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-                write!(f, "(define {}{})", self.proto, s)
-            }
-            _ => write!(f, "(define {})", self.proto),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -475,5 +408,84 @@ impl<'a> Parser<'a> {
             step: Box::new(step),
             body,
         })
+    }
+}
+
+// Display functions allow us to convert to s-expressions for easier testing
+impl Display for AstNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AstNode::Expr(expr) => write!(f, "{}", expr),
+            AstNode::Proto(proto) => write!(f, "{}", proto),
+            AstNode::Func(func) => write!(f, "{}", func),
+        }
+    }
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::Num { value } => write!(f, "{}", value),
+            Expression::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
+            Expression::UnaryOp { op, rhs } => write!(f, "({} {})", op, rhs),
+            Expression::Var { name } => write!(f, "{}", name),
+            Expression::Call { name, args } => {
+                let mut s = format!("({}", name);
+                if !args.is_empty() {
+                    for arg in args {
+                        s += &format!(" {}", arg);
+                    }
+                }
+                write!(f, "{})", s)
+            }
+            Expression::Cond { cond, cons, alt } => {
+                let mut s = format!("(if {} {}", cond, cons);
+                if let Some(alt) = alt {
+                    s += &format!(" {}", alt);
+                }
+                write!(f, "{})", s)
+            }
+            Expression::For {
+                var_name,
+                start,
+                cond,
+                step,
+                body,
+            } => {
+                let mut s = format!("(for (let {} {}) {} {}", var_name, start, cond, step);
+                s += &body.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+                write!(f, "{})", s)
+            }
+        }
+    }
+}
+
+impl Display for Prototype {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = format!("({}", self.name);
+        if !self.args.is_empty() {
+            for arg in &self.args {
+                s += &format!(" {}", arg);
+            }
+        }
+        write!(f, "{})", s)
+    }
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.body {
+            Some(body) if !body.is_empty() => {
+                let s = body.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+                write!(f, "(define {}{})", self.proto, s)
+            }
+            _ => write!(f, "(define {})", self.proto),
+        }
     }
 }
