@@ -243,9 +243,14 @@ fn test_parser_if_only() {
 fn test_parser_if_else() {
     let input = "if a > b { foo } else { bar }";
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-    println!("{:?}", tokens);
     let parser = Parser::new(&tokens);
     let ast = "(if (> a b) foo bar)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "if a > b { foo } else if a < b { bar } else { baz }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(if (> a b) foo (if (< a b) bar baz))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
 

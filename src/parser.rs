@@ -142,10 +142,10 @@ impl<'a> Parser<'a> {
                             op: *op,
                             rhs: Box::new(rhs),
                         }
-                    },
+                    }
                     t => self.parse_primary(Some(t))?,
                 }
-            },
+            }
             None => todo!(),
         };
 
@@ -193,7 +193,11 @@ impl<'a> Parser<'a> {
         self.tokens.next();
 
         let proto = self.parse_proto()?;
-        expect_next_token!(self.tokens, Token::OpenBrace, "Expecting '{' in function definition");
+        expect_next_token!(
+            self.tokens,
+            Token::OpenBrace,
+            "Expecting '{' in function definition"
+        );
 
         // If close brace, body is empty
         let mut body: Vec<Expression> = vec![];
@@ -241,7 +245,11 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            let id = expect_next_token!(self.tokens, Token::Ident(_), "Expecting identifier in prototype");
+            let id = expect_next_token!(
+                self.tokens,
+                Token::Ident(_),
+                "Expecting identifier in prototype"
+            );
             args.push(id.to_string());
 
             let &next = self
@@ -351,18 +359,50 @@ impl<'a> Parser<'a> {
 
     fn parse_cond(&mut self) -> ExprParseResult {
         let cond = self.parse_expression(0)?;
-        expect_next_token!(self.tokens, Token::OpenBrace, "Expecting '{' after conditional");
+        expect_next_token!(
+            self.tokens,
+            Token::OpenBrace,
+            "Expecting '{' after conditional"
+        );
 
         let cons = self.parse_expression(0)?;
-        expect_next_token!(self.tokens, Token::CloseBrace, "Expecting '}' after consequent");
+        expect_next_token!(
+            self.tokens,
+            Token::CloseBrace,
+            "Expecting '}' after consequent"
+        );
 
         let alt = match self.tokens.peek() {
             Some(Token::Else) => {
                 self.tokens.next(); // Eat else
-                expect_next_token!(self.tokens, Token::OpenBrace, "Expecting '{' after conditional");
-                let alt = Some(self.parse_expression(0)?);
-                expect_next_token!(self.tokens, Token::CloseBrace, "Expecting '}' after consequent");
-                alt
+
+                // To support `else if`, peek to check for `{` or `if`
+                if let Some(&t) = self.tokens.peek() {
+                    if *t == Token::OpenBrace {
+                        self.tokens.next();
+                    } else if *t != Token::If {
+                        return Err("Expecting 'if' or '{' after else".to_string());
+                    }
+                } else {
+                    return Err("Expecting 'if' or '{' after else".to_string());
+                }
+
+                // Next token should either be the first statement in the else
+                // block or `if`.
+                let alt = self.parse_expression(0)?;
+
+                                println!(">>{:?}", self.tokens.peek());
+
+                // If alt isn't a conditional, make sure it closes the else
+                // block
+                if !matches!(alt, Expression::Cond { .. }) {
+                    expect_next_token!(
+                        self.tokens,
+                        Token::CloseBrace,
+                        "Expecting '}' after alternate"
+                    );
+                }
+                Some(alt)
             }
             _ => None,
         };
@@ -377,17 +417,29 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self) -> ExprParseResult {
         expect_next_token!(self.tokens, Token::Let, "Expecting 'let' after for");
 
-        let var_name = expect_next_token!(self.tokens, Token::Ident(_), "Expecting identifier after let");
+        let var_name = expect_next_token!(
+            self.tokens,
+            Token::Ident(_),
+            "Expecting identifier after let"
+        );
         expect_next_token!(self.tokens, Token::Assign, "Expecting '=' after identifer");
 
         let start = self.parse_expression(0)?;
         expect_next_token!(self.tokens, Token::Semicolon, "Expecting ';' after start");
 
         let cond = self.parse_expression(0)?;
-        expect_next_token!(self.tokens, Token::Semicolon, "Expecting ';' after condition");
+        expect_next_token!(
+            self.tokens,
+            Token::Semicolon,
+            "Expecting ';' after condition"
+        );
 
         let step = self.parse_expression(0)?;
-        expect_next_token!(self.tokens, Token::OpenBrace, "Expecting '{' after step".to_string());
+        expect_next_token!(
+            self.tokens,
+            Token::OpenBrace,
+            "Expecting '{' after step".to_string()
+        );
 
         let mut body: Vec<Expression> = vec![];
         while let Some(t) = self.tokens.peek() {

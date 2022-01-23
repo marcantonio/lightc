@@ -25,21 +25,21 @@
 // //    }
 // }
 
-// extern putchard(x)
-// extern printd(x)
-// extern cos(x)
+extern putchard(x)
+extern printd(x)
+extern cos(x)
 
 fn cmp(x) {
     -x
 }
 
 fn main() {
-    // if cos(7) > 1 {
-    //     putchard(46)
-    // } else if cos(8) > 1 {
-    //     putchard(45)
-    // } else {
-    //     putchard(61)
-    // }
+    if cos(7) > 1 {
+        putchard(46)
+    } else if cos(8) > 1 {
+        putchard(45)
+    } else {
+        putchard(61)
+    }
     cmp(1)
 }
