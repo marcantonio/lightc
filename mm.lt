@@ -34,12 +34,44 @@ fn cmp(x) {
 }
 
 fn main() {
-    if cos(7) > 1 {
-        putchard(46)
-    } else if cos(8) > 1 {
-        putchard(45)
-    } else {
-        putchard(61)
-    }
-    cmp(1)
+    putchard(76)
+    putchard(101)
+    putchard(116)
+    putchard(32)
+
+    putchard(116)
+    putchard(104)
+    putchard(101)
+    putchard(114)
+    putchard(101)
+    putchard(32)
+
+    putchard(98)
+    putchard(101)
+    putchard(32)
+
+    putchard(108)
+    putchard(105)
+    putchard(103)
+    putchard(104)
+    putchard(116)
+    putchard(33)
+    putchard(10)
+
+    putchard(71)
+    putchard(108)
+    putchard(111)
+    putchard(114)
+    putchard(121)
+    putchard(32)
+
+    putchard(116)
+    putchard(111)
+    putchard(32)
+
+    putchard(71)
+    putchard(111)
+    putchard(100)
+    putchard(33)
+    putchard(10)
 }
