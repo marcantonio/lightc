@@ -141,7 +141,7 @@ impl<'a> Lexer<'a> {
         if cur.is_ascii_digit() {
             let mut num = String::from(cur);
             while let Some(&c) = self.stream.peek() {
-                if c.is_ascii_alphanumeric() {
+                if c.is_ascii_alphanumeric() || c == '.' {
                     num.push(c);
                     self.stream.next();
                 } else {

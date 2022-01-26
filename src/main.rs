@@ -11,7 +11,8 @@ use std::fs;
 fn main() {
     lightc::load_externs();
 
-    let code = fs::read_to_string("/home/mas/Code/lightc/mm.lt").expect("Error opening file");
+    let code = fs::read_to_string("/home/mas/Code/lightc/mandelbrot.lt").expect("Error opening file");
+//    let code = fs::read_to_string("/home/mas/Code/lightc/mm.lt").expect("Error opening file");
 
     let lexer = Lexer::new(&code);
     let tokens = lexer.collect::<Result<Vec<_>, _>>().expect("Error lexing");
