@@ -16,7 +16,7 @@ pub enum Token {
     If,
     Int(f64),
     Let,
-    Op(char),
+    Op(Symbol),
     OpenBrace,
     OpenParen,
     Semicolon,
@@ -29,6 +29,40 @@ impl std::fmt::Display for Token {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum Symbol {
+    And,
+    Div,
+    Eq,
+    Gt,
+    Lt,
+    Minus,
+    Mult,
+    Not,
+    Or,
+    Plus,
+    Pow,
+}
+
+impl std::fmt::Display for Symbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Symbol::And => "&&",
+            Symbol::Div => "/",
+            Symbol::Eq => "==",
+            Symbol::Gt => ">",
+            Symbol::Lt => "<",
+            Symbol::Minus => "-",
+            Symbol::Mult => "*",
+            Symbol::Not => "!",
+            Symbol::Or => "||",
+            Symbol::Plus => "+",
+            Symbol::Pow => "^",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Type {
     F64,
@@ -37,7 +71,7 @@ pub enum Type {
 #[derive(Debug, PartialEq)]
 pub enum LexError {
     InvalidNum,
-    UnknownLexeme,
+    UnknownChar,
 }
 
 pub type LexResult = std::result::Result<Token, LexError>;
@@ -121,9 +155,35 @@ impl<'a> Lexer<'a> {
             };
         }
 
+        // Logical operators
+        if let Some(next) = self.stream.peek() {
+            match cur {
+                '=' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::Op(Symbol::Eq));
+                }
+                '&' if next == &'&' => {
+                    self.stream.next();
+                    return Ok(Token::Op(Symbol::And));
+                }
+                '|' if next == &'|' => {
+                    self.stream.next();
+                    return Ok(Token::Op(Symbol::Or));
+                }
+                _ => ()
+            }
+        }
+
         // Everything else
         Ok(match cur {
-            '+' | '-' | '*' | '/' | '^' | '>' | '<' | '!' => Token::Op(cur),
+            '+' => Token::Op(Symbol::Plus),
+            '-' => Token::Op(Symbol::Minus),
+            '*' => Token::Op(Symbol::Mult),
+            '/' => Token::Op(Symbol::Div),
+            '^' => Token::Op(Symbol::Pow),
+            '>' => Token::Op(Symbol::Gt),
+            '<' => Token::Op(Symbol::Lt),
+            '!' => Token::Op(Symbol::Not),
             '=' => Token::Assign,
             '}' => Token::CloseBrace,
             ')' => Token::CloseParen,
@@ -132,7 +192,7 @@ impl<'a> Lexer<'a> {
             '{' => Token::OpenBrace,
             '(' => Token::OpenParen,
             ';' => Token::Semicolon,
-            _ => return Err(LexError::UnknownLexeme),
+            _ => return Err(LexError::UnknownChar),
         })
     }
 }

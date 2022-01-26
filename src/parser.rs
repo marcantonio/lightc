@@ -1,6 +1,6 @@
 use std::{fmt::Display, iter::Peekable, slice::Iter};
 
-use crate::lexer::Token;
+use crate::lexer::{Symbol, Token};
 
 macro_rules! expect_next_token {
     ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
@@ -27,12 +27,12 @@ pub enum Expression {
         name: String,
     },
     BinOp {
-        op: char,
+        sym: Symbol,
         lhs: Box<Expression>,
         rhs: Box<Expression>,
     },
     UnOp {
-        op: char,
+        sym: Symbol,
         rhs: Box<Expression>,
     },
     Call {
@@ -78,20 +78,25 @@ enum OpPrec {
 }
 
 impl OpPrec {
-    fn bin_prec(op: char) -> Result<OpPrec, String> {
+    fn bin_prec(op: &Symbol) -> Result<OpPrec, String> {
+        use Symbol::*;
         match op {
-            '^' => Ok(OpPrec::Right(4)),
-            '*' | '/' => Ok(OpPrec::Left(3)),
-            '+' | '-' => Ok(OpPrec::Left(2)),
-            '>' | '<' => Ok(OpPrec::Left(1)),
+            Pow => Ok(OpPrec::Right(7)),
+            Mult | Div => Ok(OpPrec::Left(6)),
+            Plus | Minus => Ok(OpPrec::Left(5)),
+            Gt | Lt => Ok(OpPrec::Left(4)),
+            Eq => Ok(OpPrec::Left(3)),
+            And => Ok(OpPrec::Left(2)),
+            Or => Ok(OpPrec::Left(1)),
             x => Err(format!("Unknown binary operator: {}", x)),
         }
     }
 
-    fn un_prec(op: char) -> Result<u8, String> {
+    fn un_prec(op: &Symbol) -> Result<u8, String> {
+        use Symbol::*;
         match op {
-            '!' => Ok(6),
-            '-' => Ok(5),
+            Not => Ok(9),
+            Minus => Ok(8),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
@@ -135,11 +140,11 @@ impl<'a> Parser<'a> {
             Some(t) => {
                 match t {
                     // Handle unary operators
-                    Token::Op(op) => {
-                        let p = OpPrec::un_prec(*op)?;
+                    Token::Op(sym) => {
+                        let p = OpPrec::un_prec(sym)?;
                         let rhs = self.parse_expression(p)?;
                         Expression::UnOp {
-                            op: *op,
+                            sym: sym.clone(), // Can probably drop this clone once we remove options
                             rhs: Box::new(rhs),
                         }
                     }
@@ -152,8 +157,8 @@ impl<'a> Parser<'a> {
         // Peek at the next token, otherwise return current lhs.
         while let Some(next) = self.tokens.peek() {
             // Should always be an operator after parse_primary().
-            let op = match next {
-                Token::Op(op) => op,
+            let sym = match next {
+                Token::Op(s) => s,
                 // Start a new expression if we see two primaries in a row
                 _ => break,
             };
@@ -162,7 +167,7 @@ impl<'a> Parser<'a> {
             // Stop eating and return the lhs if the current op:
             //   - is lower precedence than the last one (min_p), or:
             //   - is the same precedence and associates left
-            let p = match OpPrec::bin_prec(*op)? {
+            let p = match OpPrec::bin_prec(sym)? {
                 OpPrec::Left(p) => {
                     if p <= min_p {
                         break;
@@ -183,7 +188,7 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
             // Make a lhs and continue loop
-            lhs = self.parse_op(*op, lhs, rhs).unwrap();
+            lhs = self.parse_op(sym, lhs, rhs).unwrap();
         }
         Ok(lhs)
     }
@@ -343,9 +348,9 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_op(&self, op: char, lhs: Expression, rhs: Expression) -> ExprParseResult {
+    fn parse_op(&self, sym: &Symbol, lhs: Expression, rhs: Expression) -> ExprParseResult {
         Ok(Expression::BinOp {
-            op,
+            sym: sym.clone(),
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
@@ -390,8 +395,6 @@ impl<'a> Parser<'a> {
                 // Next token should either be the first statement in the else
                 // block or `if`.
                 let alt = self.parse_expression(0)?;
-
-                                println!(">>{:?}", self.tokens.peek());
 
                 // If alt isn't a conditional, make sure it closes the else
                 // block
@@ -477,8 +480,8 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expression::Num { value } => write!(f, "{}", value),
-            Expression::BinOp { op, lhs, rhs } => write!(f, "({} {} {})", op, lhs, rhs),
-            Expression::UnOp { op, rhs } => write!(f, "({} {})", op, rhs),
+            Expression::BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
+            Expression::UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
             Expression::Var { name } => write!(f, "{}", name),
             Expression::Call { name, args } => {
                 let mut s = format!("({}", name);

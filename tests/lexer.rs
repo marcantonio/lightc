@@ -1,3 +1,4 @@
+use lightc::lexer::Symbol::*;
 use lightc::lexer::Token::*;
 use lightc::lexer::*;
 
@@ -38,15 +39,15 @@ fn main() {
         Assign,
         OpenParen,
         Ident("x".to_string()),
-        Op('+'),
+        Op(Plus),
         Ident("y".to_string()),
         CloseParen,
-        Op('*'),
+        Op(Mult),
         Int(4.0),
-        Op('/'),
+        Op(Div),
         Int(4.0),
         Ident("a".to_string()),
-        Op('>'),
+        Op(Gt),
         Ident("b".to_string()),
         Ident("result".to_string()),
         CloseBrace,
@@ -108,9 +109,9 @@ foo
 #[test]
 fn test_lexer_trailing_comment() {
     let input = "\
-let foo = 14
+let foo = 13.1
 // line2";
-    let output = [Let, Ident("foo".to_string()), Assign, Int(14.0)];
+    let output = [Let, Ident("foo".to_string()), Assign, Int(13.1)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
@@ -129,8 +130,8 @@ if x > -3 {
     let output = [
         If,
         Ident("x".to_string()),
-        Op('>'),
-        Op('-'),
+        Op(Gt),
+        Op(Minus),
         Int(3.0),
         OpenBrace,
         Ident("print".to_string()),
@@ -166,7 +167,7 @@ for let x = 1; x < 10; 1 {
         Int(1.0),
         Semicolon,
         Ident("x".to_string()),
-        Op('<'),
+        Op(Lt),
         Int(10.0),
         Semicolon,
         Int(1.0),
@@ -177,6 +178,30 @@ for let x = 1; x < 10; 1 {
         CloseParen,
         CloseBrace,
     ];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+}
+
+#[test]
+fn test_logical_ops() {
+    let input = "x == 1";
+    let output = [Ident("x".to_string()), Op(Eq), Int(1.0)];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+
+    let input = "x && 1";
+    let output = [Ident("x".to_string()), Op(And), Int(1.0)];
+    assert_eq!(
+        Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
+        &output
+    );
+
+    let input = "x || 1";
+    let output = [Ident("x".to_string()), Op(Or), Int(1.0)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output

@@ -8,6 +8,7 @@ use inkwell::FloatPredicate;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use crate::lexer::Symbol;
 use crate::parser::AstNode;
 use crate::parser::Expression;
 use crate::parser::Function;
@@ -165,8 +166,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         match expr {
             Expression::Num { value } => self.gen_num_ir(*value),
             Expression::Var { name } => self.gen_var_ir(name),
-            Expression::BinOp { op, lhs, rhs } => self.gen_binop_ir(*op, lhs, rhs),
-            Expression::UnOp { op, rhs } => self.gen_unop_ir(*op, rhs),
+            Expression::BinOp { sym, lhs, rhs } => self.gen_binop_ir(sym, lhs, rhs),
+            Expression::UnOp { sym, rhs } => self.gen_unop_ir(sym, rhs),
             Expression::Call { name, args } => self.gen_call_ir(name, args),
             Expression::Cond { cond, cons, alt } => self.gen_cond_ir(cond, cons, alt),
             Expression::For {
@@ -200,27 +201,52 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_binop_ir(&self, op: char, lhs: &Expression, rhs: &Expression) -> ExprIrResult<'ctx> {
+    fn gen_binop_ir(&self, op: &Symbol, lhs: &Expression, rhs: &Expression) -> ExprIrResult<'ctx> {
+        use Symbol::*;
+
         let lhs = self.gen_expr_ir(lhs)?;
         let rhs = self.gen_expr_ir(rhs)?;
 
         // Generate the proper instruction for each op
         match op {
-            '*' => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
-            '/' => Ok(self.builder.build_float_div(lhs, rhs, "tmpdiv")),
-            '+' => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
-            '-' => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
-            op @ ('>' | '<') => {
-                let inst = if op == '>' {
-                    self.builder
-                        .build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp")
-                } else {
-                    self.builder
-                        .build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp")
+            Mult => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
+            Div => Ok(self.builder.build_float_div(lhs, rhs, "tmpdiv")),
+            Plus => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
+            Minus => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
+            op @ (And | Or) => {
+                let lhs = self.builder.build_float_to_signed_int(
+                    lhs,
+                    self.context.i64_type(),
+                    "tmplhsint",
+                );
+                let rhs = self.builder.build_float_to_signed_int(
+                    rhs,
+                    self.context.i64_type(),
+                    "tmprhsint",
+                );
+                let cmp = match op {
+                    And => self.builder.build_and(lhs, rhs, "tmpand"),
+                    Or => self.builder.build_or(lhs, rhs, "tmpor"),
+                    _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
                 };
                 // Convert the i1 to a double
                 Ok(self.builder.build_unsigned_int_to_float(
-                    inst,
+                    cmp,
+                    self.context.f64_type(),
+                    "tmpbool",
+                ))
+            }
+            op @ (Gt | Lt | Eq) => {
+                let pred = match op {
+                    Gt => FloatPredicate::UGT,
+                    Lt => FloatPredicate::ULT,
+                    Eq => FloatPredicate::UEQ,
+                    _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
+                };
+                let cmp = self.builder.build_float_compare(pred, lhs, rhs, "tmpcmp");
+                // Convert the i1 to a double
+                Ok(self.builder.build_unsigned_int_to_float(
+                    cmp,
                     self.context.f64_type(),
                     "tmpbool",
                 ))
@@ -409,10 +435,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         Ok(self.context.f64_type().const_float(0.0))
     }
 
-    fn gen_unop_ir(&self, op: char, rhs: &Expression) -> ExprIrResult<'ctx> {
+    fn gen_unop_ir(&self, op: &Symbol, rhs: &Expression) -> ExprIrResult<'ctx> {
+        use Symbol::*;
+
         let rhs = self.gen_expr_ir(rhs)?;
         match op {
-            '-' => Ok(self.builder.build_float_neg(rhs, "neg")),
+            Minus => Ok(self.builder.build_float_neg(rhs, "neg")),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
