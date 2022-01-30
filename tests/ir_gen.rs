@@ -5,7 +5,7 @@ use lightc::parser::Parser;
 
 // I don't know if this test is worth the trouble...
 #[test]
-fn test_ir_gen() {
+fn test_ir_gen_basic() {
     let input = "fn main() { 19 + 21 + 40 }";
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
     let parser = Parser::new(&tokens);
@@ -48,4 +48,34 @@ fn test_ir_gen_cond() {
     assert_eq!(main.print_to_string().to_string(), expected);
 }
 
-//ready> def test(x) (1+2+x)*(x+(1+2));
+#[test]
+fn test_ir_gen_assign_unknown() {
+    let input = "fn main() { x = 1 }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = parser.parse().unwrap();
+
+    let context = Context::create();
+    let builder = context.create_builder();
+    let module = context.create_module("main_mod");
+    let fpm = PassManager::create(&module);
+    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
+
+    assert_eq!(ir_gen.generate(&ast), Err("Unknown variable in assignment: x".to_string()));
+}
+
+#[test]
+fn test_ir_gen_assign_bad_lval() {
+    let input = "fn main(x) { x + 1 = 1 }";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = parser.parse().unwrap();
+
+    let context = Context::create();
+    let builder = context.create_builder();
+    let module = context.create_module("main_mod");
+    let fpm = PassManager::create(&module);
+    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
+
+    assert_eq!(ir_gen.generate(&ast), Err("Expected LHS to be a variable for assignment".to_string()));
+}

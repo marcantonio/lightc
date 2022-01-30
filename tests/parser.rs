@@ -258,7 +258,6 @@ fn test_parser_if_else() {
 fn test_parser_for() {
     let input = "for let x = 1; x < 10; 1 { foo }";
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
-    println!("{:?}", tokens);
     let parser = Parser::new(&tokens);
     let ast = "(for (let x 1) (< x 10) 1 foo)";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
@@ -321,5 +320,14 @@ fn test_parser_logical_ops() {
     let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
     let parser = Parser::new(&tokens);
     let ast = "(&& (== x 1) (|| (== y 2) (== z 3)))";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+}
+
+#[test]
+fn test_parser_assignments() {
+    let input = "x = x + 1";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(= x (+ x 1))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }

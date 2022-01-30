@@ -32,6 +32,7 @@ impl std::fmt::Display for Token {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Symbol {
     And,
+    Assign,
     Div,
     Eq,
     Gt,
@@ -47,6 +48,7 @@ pub enum Symbol {
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
+            Symbol::Assign => "=",
             Symbol::And => "&&",
             Symbol::Div => "/",
             Symbol::Eq => "==",
@@ -117,7 +119,7 @@ impl<'a> Lexer<'a> {
         if cur.is_ascii_alphabetic() {
             let mut identifier = String::from(cur);
             while let Some(&c) = self.stream.peek() {
-                if c.is_ascii_alphanumeric() {
+                if c.is_ascii_alphanumeric() || c == '_' {
                     identifier.push(c);
                     self.stream.next();
                 } else {
@@ -184,7 +186,7 @@ impl<'a> Lexer<'a> {
             '>' => Token::Op(Symbol::Gt),
             '<' => Token::Op(Symbol::Lt),
             '!' => Token::Op(Symbol::Not),
-            '=' => Token::Assign,
+            '=' => Token::Op(Symbol::Assign),
             '}' => Token::CloseBrace,
             ')' => Token::CloseParen,
             ':' => Token::Colon,
@@ -214,6 +216,6 @@ fn test_lex_next() {
     let mut lexer = Lexer::new(input);
     assert_eq!(lexer.lex_one(), Ok(Token::Let));
     assert_eq!(lexer.lex_one(), Ok(Token::Ident("foo".to_string())));
-    assert_eq!(lexer.lex_one(), Ok(Token::Assign));
+    assert_eq!(lexer.lex_one(), Ok(Token::Op(Symbol::Assign)));
     assert_eq!(lexer.lex_one(), Ok(Token::Int(14.0)));
 }

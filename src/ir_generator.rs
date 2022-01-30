@@ -3,9 +3,8 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{AnyValueEnum, BasicValue, FloatValue, FunctionValue, PointerValue};
+use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
 use inkwell::FloatPredicate;
-use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::lexer::Symbol;
@@ -27,7 +26,8 @@ pub struct IrGenerator<'a, 'ctx> {
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
     fpm: &'a PassManager<FunctionValue<'ctx>>,
-    values: RefCell<HashMap<String, AnyValueEnum<'ctx>>>,
+    //    local_vars: RefCell<HashMap<String, AnyValueEnum<'ctx>>>,
+    local_vars: HashMap<String, PointerValue<'ctx>>,
 }
 
 impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
@@ -43,6 +43,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         fpm.add_reassociate_pass();
         fpm.add_gvn_pass();
         fpm.add_cfg_simplification_pass();
+        fpm.add_basic_alias_analysis_pass();
+        fpm.add_promote_memory_to_register_pass();
+        fpm.add_instruction_combining_pass();
+        fpm.add_reassociate_pass();
         fpm.initialize();
 
         IrGenerator {
@@ -50,22 +54,26 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             builder,
             module,
             fpm,
-            values: RefCell::new(values),
+            local_vars: values,
         }
     }
 
-    // taken from inkwell example
-    // todo: figure out what this is
+    // Helper to create an alloca in the entry block for local variables
     fn create_entry_block_alloca(&self, name: &str, func: &FunctionValue) -> PointerValue<'ctx> {
+        // Create a temporary builder
         let builder = self.context.create_builder();
 
+        // Get the first block of the current function
         let entry = func.get_first_basic_block().unwrap();
 
+        // Rewind to the first instruction and insert before it or at the end if
+        // empty
         match entry.get_first_instruction() {
-            Some(first_instr) => builder.position_before(&first_instr),
+            Some(inst) => builder.position_before(&inst),
             None => builder.position_at_end(entry),
         }
 
+        // Create alloca and return it
         builder.build_alloca(self.context.f64_type(), name)
     }
 
@@ -130,9 +138,13 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Make sure the builder will insert new instructions at the end
         self.builder.position_at_end(bb);
 
-        self.values.borrow_mut().clear();
+        // Allocate space for the function's arguments on the stack
+        self.local_vars.reserve(func.proto.args.len());
         for (i, arg) in function.get_param_iter().enumerate() {
-            self.values.borrow_mut().insert(func.proto.args[i].clone(), arg.into());
+            let alloca = self.create_entry_block_alloca(&func.proto.args[i], &function);
+            self.builder.build_store(alloca, arg);
+            self.local_vars
+                .insert(func.proto.args[i].to_owned(), alloca);
         }
 
         //todo: no redefining functions
@@ -158,7 +170,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_expr_ir(&self, expr: &Expression) -> ExprIrResult<'ctx> {
+    fn gen_expr_ir(&mut self, expr: &Expression) -> ExprIrResult<'ctx> {
         match expr {
             Expression::Num { value } => self.gen_num_ir(*value),
             Expression::Var { name } => self.gen_var_ir(name),
@@ -181,24 +193,39 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     }
 
     fn gen_var_ir(&self, name: &str) -> ExprIrResult<'ctx> {
-        match self.values.borrow().get(name) {
-            Some(var) => {
-                let var = match var {
-                    AnyValueEnum::FloatValue(f) => *f,
-                    AnyValueEnum::PhiValue(v) => v.as_basic_value().into_float_value(),
-                    AnyValueEnum::PointerValue(p) => {
-                        self.builder.build_load(*p, name).into_float_value()
-                    }
-                    _ => unimplemented!("Unknown variable type"),
-                };
-                Ok(var)
-            }
+        // Get the variable pointer and load from the stack
+        match self.local_vars.get(name) {
+            Some(var) => Ok(self.builder.build_load(*var, name).into_float_value()),
             None => Err(format!("Unknown variable: {}", name)),
         }
     }
 
-    fn gen_binop_ir(&self, op: &Symbol, lhs: &Expression, rhs: &Expression) -> ExprIrResult<'ctx> {
+    fn gen_binop_ir(
+        &mut self,
+        op: &Symbol,
+        lhs: &Expression,
+        rhs: &Expression,
+    ) -> ExprIrResult<'ctx> {
         use Symbol::*;
+
+        if *op == Assign {
+            let l_var = match lhs {
+                Expression::Var { name } => name,
+                _ => return Err("Expected LHS to be a variable for assignment".to_string()),
+            };
+
+            let r_val = self.gen_expr_ir(rhs)?;
+
+            let l_var = self
+                .local_vars
+                .get(l_var)
+                .ok_or(format!("Unknown variable in assignment: {}", l_var))?
+                .to_owned();
+
+            self.builder.build_store(l_var, r_val);
+
+            return Ok(r_val);
+        }
 
         let lhs = self.gen_expr_ir(lhs)?;
         let rhs = self.gen_expr_ir(rhs)?;
@@ -251,7 +278,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_call_ir(&self, name: &str, args: &[Expression]) -> ExprIrResult<'ctx> {
+    fn gen_call_ir(&mut self, name: &str, args: &[Expression]) -> ExprIrResult<'ctx> {
         let func = self
             .module
             .get_function(name)
@@ -287,7 +314,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
      *              |merge (phi)|
      */
     fn gen_cond_ir(
-        &self,
+        &mut self,
         cond: &Expression,
         cons: &Expression,
         alt: &Option<Box<Expression>>,
@@ -349,8 +376,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         Ok(phi.as_basic_value().into_float_value())
     }
 
+    // for start; cond; step { body }
+    // start == let var_name = x
     fn gen_for_ir(
-        &self,
+        &mut self,
         var_name: &str,
         start: &Expression,
         cond: &Expression,
@@ -363,75 +392,63 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             .and_then(|x| x.get_parent())
             .ok_or("Parent function not found when building loop")?;
 
+        // Create entry alloca, generate start expr IR, and store result
+        let start_alloca = self.create_entry_block_alloca(var_name, &parent);
         let start_ir = self.gen_expr_ir(start)?;
+        self.builder.build_store(start_alloca, start_ir);
 
-        // Get the block that will fall through to the loop
-        let pre_bb = self.builder.get_insert_block().unwrap();
-        // Create a block for the loop
+        // Create a block for the loop, a branch to it, and move the insertion
+        // to it
         let loop_bb = self.context.append_basic_block(parent, "loop");
-        // Create a branch to the loop
         self.builder.build_unconditional_branch(loop_bb);
-        // Move the insertion point
         self.builder.position_at_end(loop_bb);
-        // Create a phi node for the loop variable
-        let loop_var = self.builder.build_phi(self.context.f64_type(), var_name);
-        // Add the variable to the node. This means if we come from `pre_bb` set
-        // it to the start value.
-        loop_var.add_incoming(&[(&start_ir, pre_bb)]);
 
-        // Save the variable value if we are shadowing
-        let old_var = self.values.borrow_mut().remove(var_name);
-        // Insert the phi as a pointer value
-        self.values
-            .borrow_mut()
-            .insert(var_name.to_owned(), AnyValueEnum::PhiValue(loop_var));
+        // Save the variable value if we are shadowing and insert alloca into
+        // local map
+        let old_var = self.local_vars.remove(var_name);
+        self.local_vars.insert(var_name.to_owned(), start_alloca);
 
-        // Generate all body expression
+        // Generate all body expressions
         for expr in body {
             self.gen_expr_ir(expr)?;
         }
 
-        // Step value: loop_var + step
+        // Generate step value and end cond IR
         let step_ir = self.gen_expr_ir(step)?;
-        let next_var_ir = self.builder.build_float_add(
-            loop_var.as_basic_value().into_float_value(),
-            step_ir,
-            "nextvar",
-        );
-
-        // Loop end cond bool
         let cond_ir = self.gen_expr_ir(cond)?;
+
+        // Load the current induction variable from the stack, increment it by
+        // step, and store it again. Body could have mutated it.
+        let cur = self.builder.build_load(start_alloca, var_name);
+        let next = self
+            .builder
+            .build_float_add(cur.into_float_value(), step_ir, "incvar");
+        self.builder.build_store(start_alloca, next);
+
         let cond_bool = self.builder.build_float_compare(
             FloatPredicate::ONE,
             cond_ir,
             self.context.f64_type().const_float(0.0),
-            "loopcond",
+            "endcond",
         );
 
-        // Remember the last block for the phi node
-        let loop_end_bb = self.builder.get_insert_block().unwrap();
-        // Block for after the loop
+        // Append a block for after the loop and insert the loop conditional at
+        // the end
         let after_bb = self.context.append_basic_block(parent, "afterloop");
-        // Insert the loop conditional at the end
         self.builder
             .build_conditional_branch(cond_bool, loop_bb, after_bb);
-        // Advance to after after_bb
         self.builder.position_at_end(after_bb);
 
-        // Complete the phi node. This means if we come from `loop_end_bb` set
-        // it to the next loop value.
-        loop_var.add_incoming(&[(&next_var_ir, loop_end_bb)]);
-
         // Reset shadowed variable
-        self.values.borrow_mut().remove(var_name);
+        self.local_vars.remove(var_name);
         if let Some(v) = old_var {
-            self.values.borrow_mut().insert(var_name.to_owned(), v);
+            self.local_vars.insert(var_name.to_owned(), v);
         }
 
         Ok(self.context.f64_type().const_float(0.0))
     }
 
-    fn gen_unop_ir(&self, op: &Symbol, rhs: &Expression) -> ExprIrResult<'ctx> {
+    fn gen_unop_ir(&mut self, op: &Symbol, rhs: &Expression) -> ExprIrResult<'ctx> {
         use Symbol::*;
 
         let rhs = self.gen_expr_ir(rhs)?;

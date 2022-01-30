@@ -3,6 +3,7 @@ use std::{fmt::Display, iter::Peekable, slice::Iter};
 use crate::lexer::{Symbol, Token};
 
 macro_rules! expect_next_token {
+    // Matches Token::Let
     ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
         match $ts.next() {
             $( Some(t @ $e::$v) => t, )+
@@ -10,6 +11,15 @@ macro_rules! expect_next_token {
         }
     };
 
+    // Matches Token::Op(Symbol::Assign)
+    ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
+        match $ts.next() {
+            $( Some(t @ $e::$v(Symbol::$s)) => t, )+
+            Some(_) | None => return Err($err.to_string()),
+        }
+    };
+
+    // Matches Token::Ident(_) and used for return value
     ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
         match $ts.next() {
             Some($t::$v(t)) => t,
@@ -81,12 +91,13 @@ impl OpPrec {
     fn bin_prec(op: &Symbol) -> Result<OpPrec, String> {
         use Symbol::*;
         match op {
-            Pow => Ok(OpPrec::Right(7)),
-            Mult | Div => Ok(OpPrec::Left(6)),
-            Plus | Minus => Ok(OpPrec::Left(5)),
-            Gt | Lt => Ok(OpPrec::Left(4)),
-            Eq => Ok(OpPrec::Left(3)),
-            And => Ok(OpPrec::Left(2)),
+            Pow => Ok(OpPrec::Right(8)),
+            Mult | Div => Ok(OpPrec::Left(7)),
+            Plus | Minus => Ok(OpPrec::Left(6)),
+            Gt | Lt => Ok(OpPrec::Left(5)),
+            Eq => Ok(OpPrec::Left(4)),
+            And => Ok(OpPrec::Left(3)),
+            Assign => Ok(OpPrec::Left(2)),
             Or => Ok(OpPrec::Left(1)),
             x => Err(format!("Unknown binary operator: {}", x)),
         }
@@ -425,7 +436,7 @@ impl<'a> Parser<'a> {
             Token::Ident(_),
             "Expecting identifier after let"
         );
-        expect_next_token!(self.tokens, Token::Assign, "Expecting '=' after identifer");
+        expect_next_token!(self.tokens, Token::Op(Symbol::Assign), "Expecting '=' after identifer");
 
         let start = self.parse_expression(0)?;
         expect_next_token!(self.tokens, Token::Semicolon, "Expecting ';' after start");

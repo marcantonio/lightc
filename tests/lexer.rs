@@ -8,9 +8,9 @@ fn test_lexer_full() {
 extern cos(x)
 
 fn arith(x, y) {
-    let result = (x + y) * 4 / 4
+    let result_val = (x + y) * 4 / 4
     a > b
-    result
+    result_val
 }
 
 fn main() {
@@ -35,8 +35,8 @@ fn main() {
         CloseParen,
         OpenBrace,
         Let,
-        Ident("result".to_string()),
-        Assign,
+        Ident("result_val".to_string()),
+        Op(Symbol::Assign),
         OpenParen,
         Ident("x".to_string()),
         Op(Plus),
@@ -49,7 +49,7 @@ fn main() {
         Ident("a".to_string()),
         Op(Gt),
         Ident("b".to_string()),
-        Ident("result".to_string()),
+        Ident("result_val".to_string()),
         CloseBrace,
         Fn,
         Ident("main".to_string()),
@@ -58,7 +58,7 @@ fn main() {
         OpenBrace,
         Let,
         Ident("a".to_string()),
-        Assign,
+        Op(Symbol::Assign),
         Ident("arith".to_string()),
         OpenParen,
         Int(36.0),
@@ -96,7 +96,7 @@ foo
     let output = [
         Let,
         Ident("foo".to_string()),
-        Assign,
+        Op(Symbol::Assign),
         Int(14.0),
         Ident("foo".to_string()),
     ];
@@ -111,7 +111,7 @@ fn test_lexer_trailing_comment() {
     let input = "\
 let foo = 13.1
 // line2";
-    let output = [Let, Ident("foo".to_string()), Assign, Int(13.1)];
+    let output = [Let, Ident("foo".to_string()), Op(Symbol::Assign), Int(13.1)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
@@ -163,7 +163,7 @@ for let x = 1; x < 10; 1 {
         For,
         Let,
         Ident("x".to_string()),
-        Assign,
+        Op(Symbol::Assign),
         Int(1.0),
         Semicolon,
         Ident("x".to_string()),
