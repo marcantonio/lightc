@@ -29,14 +29,12 @@ extern putchard(x)
 extern printd(x)
 extern cos(x)
 
-fn cmp(x) {
-    -x
+fn printr(a, b) {
+    for let x = a; x < b; 1 {
+        printd(x)
+    }
 }
 
 fn main() {
-    if 1 && 0 {
-        printd(1)
-    } else {
-        printd(2)
-    }
+   printr(1, 10)
 }

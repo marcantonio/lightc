@@ -130,16 +130,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Make sure the builder will insert new instructions at the end
         self.builder.position_at_end(bb);
 
-        // Allocate space for the function's arguments
-        self.values.borrow_mut().reserve(func.proto.args.len());
+        self.values.borrow_mut().clear();
         for (i, arg) in function.get_param_iter().enumerate() {
-            let arg_name = &func.proto.args[i];
-            let alloca = self.create_entry_block_alloca(arg_name, &function);
-            self.builder.build_store(alloca, arg);
-            self.values
-                .borrow_mut()
-                .insert(arg_name.to_owned(), AnyValueEnum::PointerValue(alloca));
+            self.values.borrow_mut().insert(func.proto.args[i].clone(), arg.into());
         }
+
+        //todo: no redefining functions
 
         // Generate and add all expressions in the body. Save the last to
         // one to use with the ret instruction.
