@@ -61,6 +61,10 @@ pub enum Expression {
         step: Box<Expression>,
         body: Vec<Expression>,
     },
+    Let {
+        name: String,
+        init: Option<Box<Expression>>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -143,8 +147,8 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
-    // Parses arbitrary length binary expressions. Uses Pratt with op precedence
-    // parsing.
+    // Parses arbitrary length binary and unary expressions. Uses Pratt with op
+    // precedence parsing.
     fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
         // Consume token and load up lhs
         let mut lhs = match self.tokens.next() {
@@ -301,6 +305,7 @@ impl<'a> Parser<'a> {
                 Token::OpenParen => self.parse_paren(),
                 Token::If => self.parse_cond(),
                 Token::For => self.parse_for(),
+                Token::Let => self.parse_let(),
                 x => return Err(format!("Expecting primary expression. Got: {}", x)),
             }
         } else {
@@ -436,7 +441,11 @@ impl<'a> Parser<'a> {
             Token::Ident(_),
             "Expecting identifier after let"
         );
-        expect_next_token!(self.tokens, Token::Op(Symbol::Assign), "Expecting '=' after identifer");
+        expect_next_token!(
+            self.tokens,
+            Token::Op(Symbol::Assign),
+            "Expecting '=' after identifer"
+        );
 
         let start = self.parse_expression(0)?;
         expect_next_token!(self.tokens, Token::Semicolon, "Expecting ';' after start");
@@ -472,6 +481,27 @@ impl<'a> Parser<'a> {
             cond: Box::new(cond),
             step: Box::new(step),
             body,
+        })
+    }
+
+    fn parse_let(&mut self) -> ExprParseResult {
+        let var_name = expect_next_token!(
+            self.tokens,
+            Token::Ident(_),
+            "Expecting identifier after let"
+        );
+
+        let init = match self.tokens.peek() {
+            Some(Token::Op(Symbol::Assign)) => {
+                self.tokens.next();
+                Some(self.parse_expression(0)?)
+            }
+            Some(_) | None => None
+        };
+
+        Ok(Expression::Let {
+            name: var_name.to_owned(),
+            init: init.map(Box::new),
         })
     }
 }
@@ -522,6 +552,13 @@ impl Display for Expression {
                     acc += &format!(" {}", n);
                     acc
                 });
+                write!(f, "{})", s)
+            }
+            Expression::Let { name, init: body } => {
+                let mut s = format!("(let {}", name);
+                if let Some(body) = body {
+                    s += &format!(" {}", body);
+                }
                 write!(f, "{})", s)
             }
         }

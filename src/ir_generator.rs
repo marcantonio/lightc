@@ -185,6 +185,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 step,
                 body,
             } => self.gen_for_ir(var_name, start, cond, step, body),
+            Expression::Let { name, init } => self.gen_let_ir(name, init),
         }
     }
 
@@ -208,6 +209,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     ) -> ExprIrResult<'ctx> {
         use Symbol::*;
 
+        // If assignment, make sure lvalue is a variable and store rhs there
         if *op == Assign {
             let l_var = match lhs {
                 Expression::Var { name } => name,
@@ -215,7 +217,6 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             };
 
             let r_val = self.gen_expr_ir(rhs)?;
-
             let l_var = self
                 .local_vars
                 .get(l_var)
@@ -360,7 +361,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Point the builder at the end of the empty alt block
         self.builder.position_at_end(alt_bb);
-        // Gen IR for the cons block
+        // Gen IR for the alt block
         let alt_ir = self.gen_expr_ir(alt.as_ref().unwrap())?;
         // Make sure the alternative returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
@@ -456,5 +457,25 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             Minus => Ok(self.builder.build_float_neg(rhs, "neg")),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
+    }
+
+    fn gen_let_ir(&mut self, name: &str, init: &Option<Box<Expression>>) -> ExprIrResult<'ctx> {
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or("Parent function not found when building let expression")?;
+
+        let init_ir = match init {
+            Some(init) => self.gen_expr_ir(init)?,
+            None => self.context.f64_type().const_float(0.0),
+        };
+
+        let init_alloca = self.create_entry_block_alloca(name, &parent);
+        self.builder.build_store(init_alloca, init_ir);
+
+        self.local_vars.insert(name.to_owned(), init_alloca);
+
+        Ok(init_ir)
     }
 }

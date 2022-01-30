@@ -43,29 +43,20 @@ fn fib(x) {
     }
 }
 
-// fn fib_iter(x) {
-//     let a = 1
-//     let b = 1
-//     let c
-//     for let i = 3, i < x; 1 {
-//         c = a + b
-//         a = b
-//         b = c
-//     }
-//     b
-// }
-
-// fn main() {
-//    printd(fib(10))
-//    printd(fib_iter(10))
-// }
-
-fn test(x) {
-    printd(x)
-    x = 4
-    printd(x)
+fn fib_iter(x) {
+    let a = 1
+    let b = 1
+    let c
+    for let i = 3; i < x; 1 {
+        c = a + b
+        a = b
+        b = c
+    }
+    b
 }
 
 fn main() {
-    test(1)
+   printd(fib(10))
+   printd(fib_iter(10))
+   printr(1, 9)
 }

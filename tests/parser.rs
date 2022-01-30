@@ -331,3 +331,23 @@ fn test_parser_assignments() {
     let ast = "(= x (+ x 1))";
     assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
 }
+
+#[test]
+fn test_parser_let() {
+    let input = "let x";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(let x)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "let x = 1";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    let ast = "(let x 1)";
+    assert_eq!(ast_to_string(&parser.parse().unwrap()), ast);
+
+    let input = "let";
+    let tokens = Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap();
+    let parser = Parser::new(&tokens);
+    assert_eq!(parser.parse(), Err("Expecting identifier after let".to_string()));
+}

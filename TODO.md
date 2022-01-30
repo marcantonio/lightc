@@ -1,4 +1,5 @@
 - [ ] Remove token iterator
 - [ ] Remove optionals from lexer iterator
 - [ ] Make Symbol crate wide
-- [ ] better tests for IR
+- [ ] Better tests for IR
+- [ ] Make else blocks optional
