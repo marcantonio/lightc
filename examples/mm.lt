@@ -1,62 +1,6 @@
-// fn arith(x: u64, y: u64): u64 {
-//     let result = (x + y) * 4 / 4
-//     result
-// }
-
-// fn main() {
-//     // Call arith()
-//     let a = arith(36, 434)
-//     printf(a)
-// }
-
-// extern cos(x)
-
-// fn sum(x, y) {
-//     x + y
-// }
-
-// fn cmp(x) {
-// //    if x > 3 {
-// //        cos(sum(3, 4))
-// //    } else {
-//         for let y = 1; y < 10; 1 {
-//             sum(y, 1)
-//         }
-// //    }
-// }
-
-extern putchard(x)
-extern printd(x)
-extern cos(x)
-
-fn printr(a, b) {
-    for let x = a; x < b; 1 {
-        printd(x)
-    }
-}
-
-fn fib(x) {
-    if x < 3 {
-        1
-    } else {
-        fib(x-1) + fib(x-2)
-    }
-}
-
-fn fib_iter(x) {
-    let a = 1
-    let b = 1
-    let c
-    for let i = 3; i < x; 1 {
-        c = a + b
-        a = b
-        b = c
-    }
-    b
-}
+extern putchar(x)
 
 fn main() {
-   printd(fib(10))
-   printd(fib_iter(10))
-   printr(1, 9)
+    putchar(33)
+    putchar(10)
 }

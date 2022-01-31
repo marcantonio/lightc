@@ -26,7 +26,6 @@ pub struct IrGenerator<'a, 'ctx> {
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
     fpm: &'a PassManager<FunctionValue<'ctx>>,
-    //    local_vars: RefCell<HashMap<String, AnyValueEnum<'ctx>>>,
     local_vars: HashMap<String, PointerValue<'ctx>>,
 }
 

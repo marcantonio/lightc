@@ -1,4 +1,5 @@
-use inkwell::{context::Context, passes::PassManager, values::AnyValue};
+use inkwell::{context::Context, values::AnyValue};
+use inkwell::passes::PassManager;
 use lightc::ir_generator::IrGenerator;
 use lightc::lexer::Lexer;
 use lightc::parser::Parser;
