@@ -1,0 +1,17 @@
+---
+source: tests/lexer.rs
+assertion_line: 219
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+input_file: tests/inputs/l_ops.input
+
+---
+- Ident: x
+- Op: And
+- Ident: y
+- Ident: x
+- Op: Or
+- Ident: y
+- Ident: x
+- Op: Eq
+- Ident: y
+

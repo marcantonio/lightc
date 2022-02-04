@@ -1,6 +1,7 @@
+use serde::Serialize;
 use std::{iter::Peekable, str::Chars};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum Token {
     Assign,
     CloseBrace,
@@ -29,7 +30,7 @@ impl std::fmt::Display for Token {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Symbol {
     And,
     Assign,
@@ -65,7 +66,7 @@ impl std::fmt::Display for Symbol {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum Type {
     U64,
 }
@@ -172,7 +173,7 @@ impl<'a> Lexer<'a> {
                     self.stream.next();
                     return Ok(Token::Op(Symbol::Or));
                 }
-                _ => ()
+                _ => (),
             }
         }
 

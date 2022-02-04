@@ -1,0 +1,13 @@
+if x > -3 {
+    print(x)
+} else {
+    exit()
+}
+
+if x > 3 {
+    print(x)
+} else if y == 1 {
+    exit()
+} else {
+    z
+}

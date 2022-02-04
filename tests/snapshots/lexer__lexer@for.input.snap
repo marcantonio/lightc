@@ -1,0 +1,25 @@
+---
+source: tests/lexer.rs
+assertion_line: 121
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+input_file: tests/inputs/for.input
+
+---
+- For
+- Let
+- Ident: x
+- Op: Assign
+- Int: 1
+- Semicolon
+- Ident: x
+- Op: Lt
+- Int: 10
+- Semicolon
+- Int: 1
+- OpenBrace
+- Ident: print
+- OpenParen
+- Ident: x
+- CloseParen
+- CloseBrace
+

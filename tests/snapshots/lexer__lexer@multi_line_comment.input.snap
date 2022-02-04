@@ -1,0 +1,13 @@
+---
+source: tests/lexer.rs
+assertion_line: 121
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+input_file: tests/inputs/multi_line_comment.input
+
+---
+- Let
+- Ident: foo
+- Op: Assign
+- Int: 14
+- Ident: foo
+
