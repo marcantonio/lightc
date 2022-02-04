@@ -18,9 +18,6 @@ use std::{fs, path::PathBuf, process::Command};
 
 fn main() {
     let args = Args::parse();
-
-    lightc::load_externs();
-
     let source = fs::read_to_string(args.file).expect("Error opening file");
 
     // Lexer
@@ -101,6 +98,8 @@ fn set_target_machine(module: &Module) {
 }
 
 fn run_jit(module: &Module) {
+    lightc::jit_externs::load();
+
     let ee = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .unwrap();
