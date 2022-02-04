@@ -1,17 +1,18 @@
 ---
 source: tests/lexer.rs
-assertion_line: 121
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+assertion_line: 11
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/ops.input
 
 ---
-- OpenParen
-- Ident: x
-- Op: Plus
-- Ident: y
-- CloseParen
-- Op: Mult
-- Int: 4
-- Op: Div
-- Int: 4
+Ok:
+  - OpenParen
+  - Ident: x
+  - Op: Plus
+  - Ident: y
+  - CloseParen
+  - Op: Mult
+  - Int: 4
+  - Op: Div
+  - Int: 4
 

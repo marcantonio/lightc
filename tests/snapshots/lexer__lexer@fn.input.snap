@@ -1,25 +1,26 @@
 ---
 source: tests/lexer.rs
-assertion_line: 121
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+assertion_line: 11
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/fn.input
 
 ---
-- Fn
-- Ident: foo
-- OpenParen
-- Ident: a
-- Comma
-- Ident: b
-- Comma
-- Ident: c
-- CloseParen
-- OpenBrace
-- Ident: bar
-- OpenParen
-- Ident: a
-- CloseParen
-- Op: Plus
-- Int: 2
-- CloseBrace
+Ok:
+  - Fn
+  - Ident: foo
+  - OpenParen
+  - Ident: a
+  - Comma
+  - Ident: b
+  - Comma
+  - Ident: c
+  - CloseParen
+  - OpenBrace
+  - Ident: bar
+  - OpenParen
+  - Ident: a
+  - CloseParen
+  - Op: Plus
+  - Int: 2
+  - CloseBrace
 

@@ -8,7 +8,7 @@ use lightc::lexer::*;
 fn test_lexer() {
     glob!("inputs/*.input", |path| {
         let input = fs::read_to_string(path).unwrap();
-        assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap());
+        assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>());
     });
 }
 

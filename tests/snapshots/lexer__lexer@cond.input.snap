@@ -1,49 +1,50 @@
 ---
 source: tests/lexer.rs
-assertion_line: 121
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap()"
+assertion_line: 11
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/cond.input
 
 ---
-- If
-- Ident: x
-- Op: Gt
-- Op: Minus
-- Int: 3
-- OpenBrace
-- Ident: print
-- OpenParen
-- Ident: x
-- CloseParen
-- CloseBrace
-- Else
-- OpenBrace
-- Ident: exit
-- OpenParen
-- CloseParen
-- CloseBrace
-- If
-- Ident: x
-- Op: Gt
-- Int: 3
-- OpenBrace
-- Ident: print
-- OpenParen
-- Ident: x
-- CloseParen
-- CloseBrace
-- Else
-- If
-- Ident: y
-- Op: Eq
-- Int: 1
-- OpenBrace
-- Ident: exit
-- OpenParen
-- CloseParen
-- CloseBrace
-- Else
-- OpenBrace
-- Ident: z
-- CloseBrace
+Ok:
+  - If
+  - Ident: x
+  - Op: Gt
+  - Op: Minus
+  - Int: 3
+  - OpenBrace
+  - Ident: print
+  - OpenParen
+  - Ident: x
+  - CloseParen
+  - CloseBrace
+  - Else
+  - OpenBrace
+  - Ident: exit
+  - OpenParen
+  - CloseParen
+  - CloseBrace
+  - If
+  - Ident: x
+  - Op: Gt
+  - Int: 3
+  - OpenBrace
+  - Ident: print
+  - OpenParen
+  - Ident: x
+  - CloseParen
+  - CloseBrace
+  - Else
+  - If
+  - Ident: y
+  - Op: Eq
+  - Int: 1
+  - OpenBrace
+  - Ident: exit
+  - OpenParen
+  - CloseParen
+  - CloseBrace
+  - Else
+  - OpenBrace
+  - Ident: z
+  - CloseBrace
 

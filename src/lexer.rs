@@ -71,7 +71,7 @@ pub enum Type {
     U64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum LexError {
     InvalidNum,
     UnknownChar,
