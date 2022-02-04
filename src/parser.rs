@@ -386,12 +386,17 @@ impl<'a> Parser<'a> {
             "Expecting '{' after conditional"
         );
 
-        let cons = self.parse_expression(0)?;
-        expect_next_token!(
-            self.tokens,
-            Token::CloseBrace,
-            "Expecting '}' after consequent"
-        );
+        // todo: make a parse_block() for this
+        let mut cons: Vec<Expression> = vec![];
+        while let Some(t) = self.tokens.peek() {
+            match t {
+                Token::CloseBrace => {
+                    self.tokens.next();
+                    break;
+                }
+                _ => cons.push(self.parse_expression(0)?),
+            }
+        }
 
         let alt = match self.tokens.peek() {
             Some(Token::Else) => {
@@ -410,17 +415,27 @@ impl<'a> Parser<'a> {
 
                 // Next token should either be the first statement in the else
                 // block or `if`.
-                let alt = self.parse_expression(0)?;
+                let mut alt: Vec<Expression> = vec![];
+                while let Some(t) = self.tokens.peek() {
+                    match t {
+                        Token::CloseBrace => {
+                            self.tokens.next();
+                            break;
+                        }
+                        _ => alt.push(self.parse_expression(0)?),
+                    }
+                }
 
+                // todo: re-enable checking for }
                 // If alt isn't a conditional, make sure it closes the else
                 // block
-                if !matches!(alt, Expression::Cond { .. }) {
-                    expect_next_token!(
-                        self.tokens,
-                        Token::CloseBrace,
-                        "Expecting '}' after alternate"
-                    );
-                }
+                // if !matches!(alt, Expression::Cond { .. }) {
+                //     expect_next_token!(
+                //         self.tokens,
+                //         Token::CloseBrace,
+                //         "Expecting '}' after alternate"
+                //     );
+                // }
                 Some(alt)
             }
             _ => None,
@@ -428,8 +443,8 @@ impl<'a> Parser<'a> {
 
         Ok(Expression::Cond {
             cond: Box::new(cond),
-            cons: Box::new(cons),
-            alt: alt.map(Box::new),
+            cons,
+            alt,
         })
     }
 
@@ -534,9 +549,17 @@ impl Display for Expression {
                 write!(f, "{})", s)
             }
             Expression::Cond { cond, cons, alt } => {
-                let mut s = format!("(if {} {}", cond, cons);
+                let mut s = format!("(if {}", cond);
+                s += &cons.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+
                 if let Some(alt) = alt {
-                    s += &format!(" {}", alt);
+                    s += &alt.iter().fold(String::new(), |mut acc, n| {
+                        acc += &format!(" {}", n);
+                        acc
+                    });
                 }
                 write!(f, "{})", s)
             }

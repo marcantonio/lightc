@@ -348,7 +348,11 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Point the builder at the end of the empty cons block
         self.builder.position_at_end(cons_bb);
         // Gen IR for the cons block
-        let cons_ir = self.gen_expr_ir(cons)?;
+        let mut cons_ir: Option<IntValue> = None; // todo: this is aweful
+        for expr in cons {
+            cons_ir = Some(self.gen_expr_ir(expr)?);
+        };
+
         // Make sure the consequent returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
         // Update cons_bb in case the gen_expr_ir() moved it
@@ -357,7 +361,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Point the builder at the end of the empty alt block
         self.builder.position_at_end(alt_bb);
         // Gen IR for the alt block
-        let alt_ir = self.gen_expr_ir(alt.as_ref().unwrap())?;
+        let mut alt_ir: Option<IntValue> = None;
+        for expr in alt.as_ref().unwrap() { // todo: conditional
+            alt_ir = Some(self.gen_expr_ir(expr)?);
+        };
         // Make sure the alternative returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
         // Update alt_bb in case the gen_expr_ir() moved it
