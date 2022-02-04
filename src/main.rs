@@ -5,37 +5,83 @@ pub mod parser;
 use crate::ir_generator::IrGenerator;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+
+use clap::Parser as Clap;
 use inkwell::{
     context::Context,
+    module::Module,
     passes::PassManager,
     targets::{InitializationConfig, Target, TargetMachine},
     OptimizationLevel,
 };
-use std::{fs, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 fn main() {
+    let args = Args::parse();
+
     lightc::load_externs();
 
-    let code =
-        fs::read_to_string("/home/mas/Code/lightc/examples/mm.lt").expect("Error opening file");
+    let source = fs::read_to_string(args.file).expect("Error opening file");
 
-    let lexer = Lexer::new(&code);
+    // Lexer
+    let lexer = Lexer::new(&source);
     let tokens = lexer.collect::<Result<Vec<_>, _>>().expect("Error lexing");
-    println!("tokens: {:?}", tokens);
-    println!();
+    if args.tokens {
+        println!("Tokens: {:?}", tokens);
+        println!();
+    }
 
+    // Parser
     let parser = Parser::new(&tokens);
     let ast = parser.parse().expect("Error parsing");
-    println!("ast:");
-    for node in &ast {
-        println!("{}", node);
+    if args.ast {
+        println!("AST:");
+        for node in &ast {
+            println!("{}", node);
+        }
+        println!();
     }
-    println!();
 
+    // IR gen
     let context = Context::create();
     let builder = context.create_builder();
-    let module = context.create_module("main_mod");
+    let module = context.create_module("light_main");
+    set_target_machine(&module);
+    let fpm = PassManager::create(&module);
+    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
+    ir_gen.generate(&ast).expect("Compiler error");
 
+    let tmp_file = tempfile::Builder::new()
+        .prefix("lightc-")
+        .suffix(".ll")
+        .tempfile()
+        .expect("Error creating temp file")
+        .into_temp_path();
+
+    module
+        .print_to_file(&tmp_file)
+        .expect("Error writing tmp IR");
+
+    if args.ir {
+        println!("IR:");
+        println!("{}", module.print_to_string().to_string());
+    }
+
+    if args.jit {
+        run_jit(&module);
+    } else {
+        Command::new("clang")
+            .arg(&tmp_file)
+            .spawn()
+            .expect("Error compiling")
+            .wait()
+            .expect("Error waiting on clang");
+    }
+}
+
+// Optimizes for host CPU
+// TODO: Make more generic
+fn set_target_machine(module: &Module) {
     Target::initialize_x86(&InitializationConfig::default());
     let triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&triple).expect("Target error");
@@ -52,35 +98,48 @@ fn main() {
 
     module.set_data_layout(&target_machine.get_target_data().get_data_layout());
     module.set_triple(&triple);
+}
 
-    let fpm = PassManager::create(&module);
-    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
-    let main = ir_gen.generate(&ast).expect("Compiler error");
-
-    let path = std::path::Path::new("mm.ll");
-    module.print_to_file(path).expect("Error writing tmp IR");
-
-    Command::new("clang")
-        .arg("mm.ll")
-        .spawn()
-        .expect("Error compiling");
-
-    println!("main() IR:");
-    main.print_to_stderr();
-    println!();
-
+fn run_jit(module: &Module) {
     let ee = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .unwrap();
 
-    let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> f64>("main") };
+    let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> i64>("main") };
     match f {
         Ok(f) => unsafe {
             let ret = f.call();
-            println!("main: {:?}", ret);
+            eprintln!("main() return value: {:?}", ret);
         },
         Err(e) => {
-            println!("Execution error: {}", e);
+            eprintln!("Execution error: {}", e);
         }
     };
+}
+
+#[derive(Clap, Debug)]
+struct Args {
+    /// Display lexeme tokens
+    #[clap(short, long, parse(from_flag))]
+    tokens: bool,
+
+    /// Display AST
+    #[clap(short, long, parse(from_flag))]
+    ast: bool,
+
+    /// Display IR
+    #[clap(short, long, parse(from_flag))]
+    ir: bool,
+
+    /// Run jit rather than outputting a binary
+    #[clap(short, long, parse(from_flag))]
+    jit: bool,
+
+    /// Output to <file>
+    #[clap(short, long, value_name="file", default_value_t = String::from("./a.out"))]
+    output: String,
+
+    /// Input file
+    #[clap(parse(from_os_str))]
+    file: PathBuf,
 }
