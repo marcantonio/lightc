@@ -5,12 +5,12 @@ pub mod parser;
 use std::{ffi::c_void, os::raw::c_char, io::Write};
 extern crate llvm_sys as llvm;
 
-pub extern fn printd(x: f64) -> f64 {
+pub extern fn printd(x: u64) -> u64 {
     println!("{}", x);
     x
 }
 
-pub extern fn putchard(x: f64) -> f64 {
+pub extern fn putchard(x: u64) -> u64 {
     print!("{}", x as u8 as char);
     std::io::stdout().flush().expect("Could not flush to standard output.");
     x

@@ -31,7 +31,7 @@ macro_rules! expect_next_token {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Num {
-        value: f64,
+        value: u64,
     },
     Var {
         name: String,
@@ -51,8 +51,8 @@ pub enum Expression {
     },
     Cond {
         cond: Box<Expression>,
-        cons: Box<Expression>,
-        alt: Option<Box<Expression>>,
+        cons: Vec<Expression>,
+        alt: Option<Vec<Expression>>,
     },
     For {
         var_name: String,
@@ -315,7 +315,7 @@ impl<'a> Parser<'a> {
         node
     }
 
-    fn parse_num(&self, n: f64) -> ExprParseResult {
+    fn parse_num(&self, n: u64) -> ExprParseResult {
         Ok(Expression::Num { value: n })
     }
 

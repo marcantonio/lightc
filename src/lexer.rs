@@ -14,7 +14,7 @@ pub enum Token {
     For,
     Ident(String),
     If,
-    Int(f64),
+    Int(u64),
     Let,
     Op(Symbol),
     OpenBrace,
@@ -67,7 +67,7 @@ impl std::fmt::Display for Symbol {
 
 #[derive(Debug, PartialEq)]
 pub enum Type {
-    F64,
+    U64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -130,7 +130,7 @@ impl<'a> Lexer<'a> {
             return Ok(match identifier.as_str() {
                 "else" => Token::Else,
                 "extern" => Token::Extern,
-                "f64" => Token::VarType(Type::F64),
+                "u64" => Token::VarType(Type::U64),
                 "fn" => Token::Fn,
                 "for" => Token::For,
                 "if" => Token::If,
@@ -217,5 +217,5 @@ fn test_lex_next() {
     assert_eq!(lexer.lex_one(), Ok(Token::Let));
     assert_eq!(lexer.lex_one(), Ok(Token::Ident("foo".to_string())));
     assert_eq!(lexer.lex_one(), Ok(Token::Op(Symbol::Assign)));
-    assert_eq!(lexer.lex_one(), Ok(Token::Int(14.0)));
+    assert_eq!(lexer.lex_one(), Ok(Token::Int(14)));
 }

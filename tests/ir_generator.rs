@@ -4,7 +4,6 @@ use lightc::ir_generator::IrGenerator;
 use lightc::lexer::Lexer;
 use lightc::parser::Parser;
 
-// I don't know if this test is worth the trouble...
 #[test]
 fn test_ir_gen_basic() {
     let input = "fn main() { 19 + 21 + 40 }";
@@ -19,9 +18,9 @@ fn test_ir_gen_basic() {
     let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
     let main = ir_gen.generate(&ast).unwrap();
 
-    let expected = "define double @main() {
+    let expected = "define i64 @main() {
 entry:
-  ret double 8.000000e+01
+  ret i64 80
 }
 ";
 

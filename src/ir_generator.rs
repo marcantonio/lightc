@@ -3,8 +3,8 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{BasicValue, FloatValue, FunctionValue, PointerValue};
-use inkwell::FloatPredicate;
+use inkwell::values::{BasicValue, FunctionValue, IntValue, PointerValue};
+use inkwell::IntPredicate;
 use std::collections::HashMap;
 
 use crate::lexer::Symbol;
@@ -14,11 +14,11 @@ use crate::parser::Function;
 use crate::parser::Prototype;
 
 enum IrRetVal<'ctx> {
-    Expr(FloatValue<'ctx>),
+    Expr(IntValue<'ctx>),
     Func(FunctionValue<'ctx>),
 }
 
-type ExprIrResult<'ctx> = Result<FloatValue<'ctx>, String>;
+type ExprIrResult<'ctx> = Result<IntValue<'ctx>, String>;
 type FuncIrResult<'ctx> = Result<FunctionValue<'ctx>, String>;
 
 pub struct IrGenerator<'a, 'ctx> {
@@ -73,7 +73,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
 
         // Create alloca and return it
-        builder.build_alloca(self.context.f64_type(), name)
+        builder.build_alloca(self.context.i64_type(), name)
     }
 
     // Iterate over all nodes and generate IR. Optionally return a string (for
@@ -103,22 +103,22 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     }
 
     fn gen_proto_ir(&self, proto: &Prototype) -> FuncIrResult<'ctx> {
-        let f64_type = self.context.f64_type();
+        let i64_type = self.context.i64_type();
         let args_type = proto
             .args
             .iter()
-            .map(|_| f64_type.into())
+            .map(|_| i64_type.into())
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         // Create a function type depending on args types and return type
-        let func_type = f64_type.fn_type(&args_type, false);
+        let func_type = i64_type.fn_type(&args_type, false);
         // Add function to current module's symbold table. Defaults to external
         // linkage with None.
         let func = self.module.add_function(&proto.name, func_type, None);
 
         // Name all args
         func.get_param_iter().enumerate().for_each(|(i, arg)| {
-            arg.into_float_value().set_name(&proto.args[i]);
+            arg.into_int_value().set_name(&proto.args[i]);
         });
 
         Ok(func)
@@ -188,14 +188,14 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_num_ir(&self, num: f64) -> ExprIrResult<'ctx> {
-        Ok(self.context.f64_type().const_float(num))
+    fn gen_num_ir(&self, num: u64) -> ExprIrResult<'ctx> {
+        Ok(self.context.i64_type().const_int(num, false))
     }
 
     fn gen_var_ir(&self, name: &str) -> ExprIrResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
-            Some(var) => Ok(self.builder.build_load(*var, name).into_float_value()),
+            Some(var) => Ok(self.builder.build_load(*var, name).into_int_value()),
             None => Err(format!("Unknown variable: {}", name)),
         }
     }
@@ -232,45 +232,41 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Generate the proper instruction for each op
         match op {
-            Mult => Ok(self.builder.build_float_mul(lhs, rhs, "tmpmul")),
-            Div => Ok(self.builder.build_float_div(lhs, rhs, "tmpdiv")),
-            Plus => Ok(self.builder.build_float_add(lhs, rhs, "tmpadd")),
-            Minus => Ok(self.builder.build_float_sub(lhs, rhs, "tmpsub")),
+            Mult => Ok(self.builder.build_int_mul(lhs, rhs, "tmpmul")),
+            Div => Ok(self.builder.build_int_unsigned_div(lhs, rhs, "tmpdiv")),
+            Plus => Ok(self.builder.build_int_add(lhs, rhs, "tmpadd")),
+            Minus => Ok(self.builder.build_int_sub(lhs, rhs, "tmpsub")),
             op @ (And | Or) => {
-                let lhs = self.builder.build_float_to_signed_int(
-                    lhs,
-                    self.context.i64_type(),
-                    "tmplhsint",
-                );
-                let rhs = self.builder.build_float_to_signed_int(
-                    rhs,
-                    self.context.i64_type(),
-                    "tmprhsint",
-                );
+                // let lhs = self.builder.build_float_to_signed_int(
+                //     lhs,
+                //     self.context.i64_type(),
+                //     "tmplhsint",
+                // );
+                // let rhs = self.builder.build_float_to_signed_int(
+                //     rhs,
+                //     self.context.i64_type(),
+                //     "tmprhsint",
+                // );
                 let cmp = match op {
                     And => self.builder.build_and(lhs, rhs, "tmpand"),
                     Or => self.builder.build_or(lhs, rhs, "tmpor"),
                     _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
                 };
                 // Convert the i1 to a double
-                Ok(self.builder.build_unsigned_int_to_float(
-                    cmp,
-                    self.context.f64_type(),
-                    "tmpbool",
-                ))
+                Ok(cmp)
             }
             op @ (Gt | Lt | Eq) => {
                 let pred = match op {
-                    Gt => FloatPredicate::UGT,
-                    Lt => FloatPredicate::ULT,
-                    Eq => FloatPredicate::UEQ,
+                    Gt => IntPredicate::UGT,
+                    Lt => IntPredicate::ULT,
+                    Eq => IntPredicate::EQ,
                     _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
                 };
-                let cmp = self.builder.build_float_compare(pred, lhs, rhs, "tmpcmp");
+                let cmp = self.builder.build_int_compare(pred, lhs, rhs, "tmpcmp");
                 // Convert the i1 to a double
-                Ok(self.builder.build_unsigned_int_to_float(
+                Ok(self.builder.build_int_cast(
                     cmp,
-                    self.context.f64_type(),
+                    self.context.i64_type(),
                     "tmpbool",
                 ))
             }
@@ -295,7 +291,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             .try_as_basic_value()
             .left()
         {
-            Some(v) => Ok(v.into_float_value()),
+            Some(v) => Ok(v.into_int_value()),
             None => Err(String::from("Invalid call?")),
         }
     }
@@ -316,8 +312,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     fn gen_cond_ir(
         &mut self,
         cond: &Expression,
-        cons: &Expression,
-        alt: &Option<Box<Expression>>,
+        cons: &[Expression],
+        alt: &Option<Vec<Expression>>, // todo: can this be a slice?
     ) -> ExprIrResult<'ctx> {
         // Get the current function for insertion
         let parent = self
@@ -333,10 +329,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Gen IR to compare the cond_ir (0 or 1) to 0. Result will be a 1 bit
         // "bool".
-        let cond_bool = self.builder.build_float_compare(
-            FloatPredicate::ONE,
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
             cond_ir,
-            self.context.f64_type().const_float(0.0),
+            self.context.i64_type().const_zero(),
             "ifcond",
         );
 
@@ -370,10 +366,10 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Point the builder at the end of the empty merge block
         self.builder.position_at_end(merge_bb);
         // Create the phi node and insert code/value pairs
-        let phi = self.builder.build_phi(self.context.f64_type(), "condtmp");
-        phi.add_incoming(&[(&cons_ir, cons_bb), (&alt_ir, alt_bb)]);
+        let phi = self.builder.build_phi(self.context.i64_type(), "condtmp");
+        phi.add_incoming(&[(&cons_ir.unwrap(), cons_bb), (&alt_ir.unwrap(), alt_bb)]);
 
-        Ok(phi.as_basic_value().into_float_value())
+        Ok(phi.as_basic_value().into_int_value())
     }
 
     // for start; cond; step { body }
@@ -422,13 +418,13 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         let cur = self.builder.build_load(start_alloca, var_name);
         let next = self
             .builder
-            .build_float_add(cur.into_float_value(), step_ir, "incvar");
+            .build_int_add(cur.into_int_value(), step_ir, "incvar");
         self.builder.build_store(start_alloca, next);
 
-        let cond_bool = self.builder.build_float_compare(
-            FloatPredicate::ONE,
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
             cond_ir,
-            self.context.f64_type().const_float(0.0),
+            self.context.i64_type().const_zero(),
             "endcond",
         );
 
@@ -445,7 +441,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             self.local_vars.insert(var_name.to_owned(), v);
         }
 
-        Ok(self.context.f64_type().const_float(0.0))
+        Ok(self.context.i64_type().const_zero())
     }
 
     fn gen_unop_ir(&mut self, op: &Symbol, rhs: &Expression) -> ExprIrResult<'ctx> {
@@ -453,7 +449,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         let rhs = self.gen_expr_ir(rhs)?;
         match op {
-            Minus => Ok(self.builder.build_float_neg(rhs, "neg")),
+            Minus => Ok(self.builder.build_int_neg(rhs, "neg")),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
@@ -467,7 +463,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         let init_ir = match init {
             Some(init) => self.gen_expr_ir(init)?,
-            None => self.context.f64_type().const_float(0.0),
+            None => self.context.i64_type().const_zero(),
         };
 
         let init_alloca = self.create_entry_block_alloca(name, &parent);

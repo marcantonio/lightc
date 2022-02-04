@@ -43,9 +43,9 @@ fn main() {
         Ident("y".to_string()),
         CloseParen,
         Op(Mult),
-        Int(4.0),
+        Int(4),
         Op(Div),
-        Int(4.0),
+        Int(4),
         Ident("a".to_string()),
         Op(Gt),
         Ident("b".to_string()),
@@ -61,9 +61,9 @@ fn main() {
         Op(Symbol::Assign),
         Ident("arith".to_string()),
         OpenParen,
-        Int(36.0),
+        Int(36),
         Comma,
-        Int(434.0),
+        Int(434),
         CloseParen,
         Ident("printf".to_string()),
         OpenParen,
@@ -97,7 +97,7 @@ foo
         Let,
         Ident("foo".to_string()),
         Op(Symbol::Assign),
-        Int(14.0),
+        Int(14),
         Ident("foo".to_string()),
     ];
     assert_eq!(
@@ -109,9 +109,9 @@ foo
 #[test]
 fn test_lexer_trailing_comment() {
     let input = "\
-let foo = 13.1
+let foo = 13
 // line2";
-    let output = [Let, Ident("foo".to_string()), Op(Symbol::Assign), Int(13.1)];
+    let output = [Let, Ident("foo".to_string()), Op(Symbol::Assign), Int(13)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
@@ -132,7 +132,7 @@ if x > -3 {
         Ident("x".to_string()),
         Op(Gt),
         Op(Minus),
-        Int(3.0),
+        Int(3),
         OpenBrace,
         Ident("print".to_string()),
         OpenParen,
@@ -164,13 +164,13 @@ for let x = 1; x < 10; 1 {
         Let,
         Ident("x".to_string()),
         Op(Symbol::Assign),
-        Int(1.0),
+        Int(1),
         Semicolon,
         Ident("x".to_string()),
         Op(Lt),
-        Int(10.0),
+        Int(10),
         Semicolon,
-        Int(1.0),
+        Int(1),
         OpenBrace,
         Ident("print".to_string()),
         OpenParen,
@@ -187,21 +187,21 @@ for let x = 1; x < 10; 1 {
 #[test]
 fn test_logical_ops() {
     let input = "x == 1";
-    let output = [Ident("x".to_string()), Op(Eq), Int(1.0)];
+    let output = [Ident("x".to_string()), Op(Eq), Int(1)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
     );
 
     let input = "x && 1";
-    let output = [Ident("x".to_string()), Op(And), Int(1.0)];
+    let output = [Ident("x".to_string()), Op(And), Int(1)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
     );
 
     let input = "x || 1";
-    let output = [Ident("x".to_string()), Op(Or), Int(1.0)];
+    let output = [Ident("x".to_string()), Op(Or), Int(1)];
     assert_eq!(
         Lexer::new(input).collect::<Result<Vec<_>, _>>().unwrap(),
         &output
