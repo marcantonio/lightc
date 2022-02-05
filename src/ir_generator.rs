@@ -264,11 +264,9 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 };
                 let cmp = self.builder.build_int_compare(pred, lhs, rhs, "tmpcmp");
                 // Convert the i1 to a double
-                Ok(self.builder.build_int_cast(
-                    cmp,
-                    self.context.i64_type(),
-                    "tmpbool",
-                ))
+                Ok(self
+                    .builder
+                    .build_int_cast(cmp, self.context.i64_type(), "tmpbool"))
             }
             x => Err(format!("Unknown binary operator: {}", x)),
         }
@@ -351,7 +349,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         let mut cons_ir: Option<IntValue> = None; // todo: this is aweful
         for expr in cons {
             cons_ir = Some(self.gen_expr_ir(expr)?);
-        };
+        }
 
         // Make sure the consequent returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
@@ -364,7 +362,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         let mut alt_ir: Option<IntValue> = None;
         for expr in alt.as_ref().unwrap() { // todo: conditional
             alt_ir = Some(self.gen_expr_ir(expr)?);
-        };
+        }
         // Make sure the alternative returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
         // Update alt_bb in case the gen_expr_ir() moved it

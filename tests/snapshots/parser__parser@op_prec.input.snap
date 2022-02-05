@@ -1,0 +1,82 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/op_prec.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Plus
+            lhs:
+              Num:
+                value: 19
+            rhs:
+              BinOp:
+                sym: Mult
+                lhs:
+                  Num:
+                    value: 21
+                rhs:
+                  Num:
+                    value: 40
+  - (+ 19 (* 21 40))
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Minus
+            lhs:
+              BinOp:
+                sym: Mult
+                lhs:
+                  Num:
+                    value: 19
+                rhs:
+                  Num:
+                    value: 21
+            rhs:
+              Num:
+                value: 40
+  - (- (* 19 21) 40)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Plus
+            lhs:
+              BinOp:
+                sym: Minus
+                lhs:
+                  Num:
+                    value: 19
+                rhs:
+                  Num:
+                    value: 21
+            rhs:
+              Num:
+                value: 40
+  - (+ (- 19 21) 40)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Plus
+            lhs:
+              BinOp:
+                sym: Minus
+                lhs:
+                  Num:
+                    value: 19
+                rhs:
+                  BinOp:
+                    sym: Mult
+                    lhs:
+                      Num:
+                        value: 21
+                    rhs:
+                      Num:
+                        value: 20
+            rhs:
+              Num:
+                value: 40
+  - (+ (- 19 (* 21 20)) 40)
+

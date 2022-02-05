@@ -1,0 +1,69 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/unary_ops.input
+
+---
+- - Ok:
+      - Expr:
+          UnOp:
+            sym: Minus
+            rhs:
+              Num:
+                value: 21
+  - (- 21)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Mult
+            lhs:
+              UnOp:
+                sym: Minus
+                rhs:
+                  Var:
+                    name: a
+            rhs:
+              Num:
+                value: 2
+  - (* (- a) 2)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Minus
+            lhs:
+              Num:
+                value: 3
+            rhs:
+              UnOp:
+                sym: Minus
+                rhs:
+                  Num:
+                    value: 21
+  - (- 3 (- 21))
+- - Ok:
+      - Expr:
+          UnOp:
+            sym: Minus
+            rhs:
+              BinOp:
+                sym: Pow
+                lhs:
+                  Num:
+                    value: 4
+                rhs:
+                  Num:
+                    value: 2
+  - (- (^ 4 2))
+- - Ok:
+      - Expr:
+          UnOp:
+            sym: Minus
+            rhs:
+              UnOp:
+                sym: Minus
+                rhs:
+                  Num:
+                    value: 21
+  - (- (- 21))
+

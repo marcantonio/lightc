@@ -1,0 +1,25 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/ident_expr.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Plus
+            lhs:
+              BinOp:
+                sym: Plus
+                lhs:
+                  Num:
+                    value: 19
+                rhs:
+                  Var:
+                    name: a
+            rhs:
+              Num:
+                value: 40
+  - (+ (+ 19 a) 40)
+

@@ -1,0 +1,18 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/call_expr.input
+
+---
+- - Ok:
+      - Expr:
+          Call:
+            name: a
+            args:
+              - Var:
+                  name: b
+              - Var:
+                  name: c
+  - (a b c)
+

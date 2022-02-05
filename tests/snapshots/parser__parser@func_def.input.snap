@@ -1,0 +1,31 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/func_def.input
+
+---
+- - Ok:
+      - Func:
+          proto:
+            name: a
+            args:
+              - b
+              - c
+          body:
+            - BinOp:
+                sym: Plus
+                lhs:
+                  BinOp:
+                    sym: Plus
+                    lhs:
+                      Num:
+                        value: 19
+                    rhs:
+                      Var:
+                        name: a
+                rhs:
+                  Num:
+                    value: 40
+  - (define (a b c) (+ (+ 19 a) 40))
+

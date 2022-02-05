@@ -1,0 +1,9 @@
+---
+source: tests/ir_generator.rs
+assertion_line: 25
+expression: ir_gen.generate(&ast).unwrap().print_to_string().to_string()
+input_file: tests/inputs/ir_gen/cond.input
+
+---
+"define i64 @main() {\nentry:\n  %tmpcall = call i64 @plus_one(i64 6)\n  %tmpcmp = icmp eq i64 %tmpcall, 7\n  %. = select i1 %tmpcmp, i64 7, i64 6\n  ret i64 %.\n}\n"
+

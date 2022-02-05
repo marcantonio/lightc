@@ -1,0 +1,42 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/fgt_lt.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Gt
+            lhs:
+              BinOp:
+                sym: Plus
+                lhs:
+                  Var:
+                    name: a
+                rhs:
+                  Var:
+                    name: b
+            rhs:
+              Num:
+                value: 40
+  - (> (+ a b) 40)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Lt
+            lhs:
+              Var:
+                name: a
+            rhs:
+              BinOp:
+                sym: Div
+                lhs:
+                  Var:
+                    name: b
+                rhs:
+                  Num:
+                    value: 40
+  - (< a (/ b 40))
+

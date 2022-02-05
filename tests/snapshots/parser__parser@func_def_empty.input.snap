@@ -1,0 +1,15 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/func_def_empty.input
+
+---
+- - Ok:
+      - Func:
+          proto:
+            name: a
+            args: []
+          body: []
+  - (define (a))
+

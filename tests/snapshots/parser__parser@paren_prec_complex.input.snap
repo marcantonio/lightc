@@ -1,0 +1,37 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/paren_prec_complex.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Div
+            lhs:
+              BinOp:
+                sym: Mult
+                lhs:
+                  Num:
+                    value: 3
+                rhs:
+                  BinOp:
+                    sym: Minus
+                    lhs:
+                      BinOp:
+                        sym: Plus
+                        lhs:
+                          Num:
+                            value: 19
+                        rhs:
+                          Num:
+                            value: 21
+                    rhs:
+                      Num:
+                        value: 5
+            rhs:
+              Num:
+                value: 40
+  - (/ (* 3 (- (+ 19 21) 5)) 40)
+

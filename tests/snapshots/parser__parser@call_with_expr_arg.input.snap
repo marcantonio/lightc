@@ -1,0 +1,36 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/call_with_expr_arg.input
+
+---
+- - Ok:
+      - Expr:
+          Call:
+            name: a
+            args:
+              - BinOp:
+                  sym: Plus
+                  lhs:
+                    Var:
+                      name: b
+                  rhs:
+                    Num:
+                      value: 1
+              - BinOp:
+                  sym: Minus
+                  lhs:
+                    Var:
+                      name: c
+                  rhs:
+                    BinOp:
+                      sym: Div
+                      lhs:
+                        Num:
+                          value: 2
+                      rhs:
+                        Num:
+                          value: 4
+  - (a (+ b 1) (- c (/ 2 4)))
+

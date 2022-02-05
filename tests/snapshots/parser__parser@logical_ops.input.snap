@@ -1,0 +1,111 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/logical_ops.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Eq
+            lhs:
+              Var:
+                name: x
+            rhs:
+              Num:
+                value: 1
+  - (== x 1)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: And
+            lhs:
+              Var:
+                name: x
+            rhs:
+              Num:
+                value: 1
+  - (&& x 1)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Or
+            lhs:
+              Var:
+                name: x
+            rhs:
+              Num:
+                value: 1
+  - (|| x 1)
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Or
+            lhs:
+              BinOp:
+                sym: And
+                lhs:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Var:
+                        name: x
+                    rhs:
+                      Num:
+                        value: 1
+                rhs:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Var:
+                        name: y
+                    rhs:
+                      Num:
+                        value: 2
+            rhs:
+              BinOp:
+                sym: Eq
+                lhs:
+                  Var:
+                    name: z
+                rhs:
+                  Num:
+                    value: 3
+  - (|| (&& (== x 1) (== y 2)) (== z 3))
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: And
+            lhs:
+              BinOp:
+                sym: Eq
+                lhs:
+                  Var:
+                    name: x
+                rhs:
+                  Num:
+                    value: 1
+            rhs:
+              BinOp:
+                sym: Or
+                lhs:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Var:
+                        name: y
+                    rhs:
+                      Num:
+                        value: 2
+                rhs:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Var:
+                        name: z
+                    rhs:
+                      Num:
+                        value: 3
+  - (&& (== x 1) (|| (== y 2) (== z 3)))
+

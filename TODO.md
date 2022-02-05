@@ -3,3 +3,4 @@
 - [ ] Make Symbol crate wide
 - [ ] Better tests for IR
 - [ ] Make else blocks optional
+- [ ] Handle semicolons for multiple expressions

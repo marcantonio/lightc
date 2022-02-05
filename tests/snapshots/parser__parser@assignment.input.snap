@@ -1,0 +1,25 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/assignment.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Assign
+            lhs:
+              Var:
+                name: x
+            rhs:
+              BinOp:
+                sym: Plus
+                lhs:
+                  Var:
+                    name: x
+                rhs:
+                  Num:
+                    value: 1
+  - (= x (+ x 1))
+

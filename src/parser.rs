@@ -1,9 +1,10 @@
+use serde::Serialize;
 use std::{fmt::Display, iter::Peekable, slice::Iter};
 
 use crate::lexer::{Symbol, Token};
 
 macro_rules! expect_next_token {
-    // Matches Token::Let
+    // Matches patterns like Token::Let
     ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
         match $ts.next() {
             $( Some(t @ $e::$v) => t, )+
@@ -11,7 +12,7 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches Token::Op(Symbol::Assign)
+    // Matches patterns like Token::Op(Symbol::Assign)
     ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
         match $ts.next() {
             $( Some(t @ $e::$v(Symbol::$s)) => t, )+
@@ -19,7 +20,7 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches Token::Ident(_) and used for return value
+    // Matches patterns like Token::Ident(_) and used for return value
     ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
         match $ts.next() {
             Some($t::$v(t)) => t,
@@ -28,7 +29,7 @@ macro_rules! expect_next_token {
     };
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum Expression {
     Num {
         value: u64,
@@ -67,19 +68,19 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Prototype {
     pub name: String,
     pub args: Vec<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Function {
     pub proto: Box<Prototype>,
     pub body: Option<Vec<Expression>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum AstNode {
     Expr(Expression),
     Proto(Prototype),
@@ -511,7 +512,7 @@ impl<'a> Parser<'a> {
                 self.tokens.next();
                 Some(self.parse_expression(0)?)
             }
-            Some(_) | None => None
+            Some(_) | None => None,
         };
 
         Ok(Expression::Let {
@@ -522,6 +523,7 @@ impl<'a> Parser<'a> {
 }
 
 // Display functions allow us to convert to s-expressions for easier testing
+
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

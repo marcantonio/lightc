@@ -1,0 +1,31 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/for.input
+
+---
+- - Ok:
+      - Expr:
+          For:
+            var_name: x
+            start:
+              Num:
+                value: 1
+            cond:
+              BinOp:
+                sym: Lt
+                lhs:
+                  Var:
+                    name: x
+                rhs:
+                  Num:
+                    value: 10
+            step:
+              Num:
+                value: 1
+            body:
+              - Var:
+                  name: foo
+  - (for (let x 1) (< x 10) 1 foo)
+

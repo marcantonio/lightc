@@ -1,0 +1,27 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/if_else.input
+
+---
+- - Ok:
+      - Expr:
+          Cond:
+            cond:
+              BinOp:
+                sym: Gt
+                lhs:
+                  Var:
+                    name: a
+                rhs:
+                  Var:
+                    name: b
+            cons:
+              - Var:
+                  name: foo
+            alt:
+              - Var:
+                  name: bar
+  - (if (> a b) foo bar)
+

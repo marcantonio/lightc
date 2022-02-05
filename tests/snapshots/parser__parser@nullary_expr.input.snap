@@ -1,0 +1,14 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/nullary_expr.input
+
+---
+- - Ok:
+      - Expr:
+          Call:
+            name: a
+            args: []
+  - (a)
+

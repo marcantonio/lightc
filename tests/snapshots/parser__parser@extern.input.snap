@@ -1,0 +1,16 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/extern.input
+
+---
+- - Ok:
+      - Func:
+          proto:
+            name: cos
+            args:
+              - x
+          body: ~
+  - (define (cos x))
+

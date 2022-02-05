@@ -1,0 +1,24 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/let.input
+
+---
+- - Ok:
+      - Expr:
+          Let:
+            name: x
+            init: ~
+  - (let x)
+- - Ok:
+      - Expr:
+          Let:
+            name: x
+            init:
+              Num:
+                value: 1
+  - (let x 1)
+- - Err: Expecting identifier after let
+  - Expecting identifier after let
+

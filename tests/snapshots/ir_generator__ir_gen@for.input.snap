@@ -1,0 +1,9 @@
+---
+source: tests/ir_generator.rs
+assertion_line: 34
+expression: ir_to_string(ir_gen.generate(&ast))
+input_file: tests/inputs/ir_gen/for.input
+
+---
+"define i64 @main() {\nentry:\n  br label %loop\n\nloop:                                             ; preds = %loop, %entry\n  %y1 = phi i64 [ %incvar, %loop ], [ 0, %entry ]\n  %tmpcall = call i64 @putchar(i64 46)\n  %tmpcmp = icmp ult i64 %y1, 3\n  %incvar = add i64 %y1, 1\n  br i1 %tmpcmp, label %loop, label %afterloop\n\nafterloop:                                        ; preds = %loop\n  %tmpcall4 = call i64 @putchar(i64 10)\n  ret i64 %tmpcall4\n}\n"
+
