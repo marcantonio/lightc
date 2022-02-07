@@ -69,6 +69,7 @@ fn main() {
     } else {
         Command::new("clang")
             .arg(&tmp_file)
+            .arg("-lm")
             .spawn()
             .expect("Error compiling")
             .wait()

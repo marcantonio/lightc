@@ -294,6 +294,80 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
+    // if then optional else
+    fn gen_cond_ir(
+        &mut self,
+        cond_expr: &Expression,
+        then_expr: &[Expression],
+        else_expr: &Option<Vec<Expression>>, // todo: can this be a slice?
+    ) -> ExprIrResult<'ctx> {
+        // Get the current function for insertion
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or("Parent function not found when building conditional")?;
+
+        // Gen cond expression IR. Will be optimized to a 0 or 1 if comparing
+        // constants. Otherwise, the value will be IR to evaluate. Result will
+        // be a float 0 or 1.
+        let cond_val = self.gen_expr_ir(cond_expr)?;
+
+        // Gen IR to compare the cond_ir (0 or 1) to 0. Result will be a 1 bit
+        // "bool".
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
+            cond_val,
+            self.context.i64_type().const_zero(),
+            "if.cond",
+        );
+
+        // Create blocks for branches and after. The else block is just a
+        // pointer to end if there's no else expression.
+        let then_block = self.context.append_basic_block(parent, "if.then");
+        let end_block = self.context.append_basic_block(parent, "if.end");
+        let mut else_block = end_block;
+        if else_expr.is_some() {
+            else_block = self.context.append_basic_block(parent, "if.else");
+            else_block
+                .move_before(end_block)
+                .map_err(|_| String::from("LLVM error"))?;
+        }
+
+        // Emits the entry conditional branch instructions
+        self.builder
+            .build_conditional_branch(cond_bool, then_block, else_block);
+
+        // Point the builder at the end of the empty then block
+        self.builder.position_at_end(then_block);
+
+        // Gen IR for the then block
+        for expr in then_expr {
+            self.gen_expr_ir(expr)?;
+        }
+
+        // Make sure the consequent returns to the end block after execution
+        self.builder.build_unconditional_branch(end_block);
+
+        // Point the builder at the end of the empty else block
+        self.builder.position_at_end(else_block);
+
+        if else_expr.is_some() {
+            // Gen IR for the else block
+            for expr in else_expr.as_ref().unwrap() {
+                self.gen_expr_ir(expr)?;
+            }
+
+            // Make sure the alternative returns to the end block after execution
+            self.builder.build_unconditional_branch(end_block);
+
+            // Point the builder at the end of the empty end block
+            self.builder.position_at_end(end_block);
+        }
+
+        Ok(self.context.i64_type().const_zero())
+    }
+
     /* Generates IR for conditionals. IR roughly looks like:
      *              |condition|
      *                 |   |
@@ -307,7 +381,9 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
      *                 v   v
      *              |merge (phi)|
      */
-    fn gen_cond_ir(
+    // Keeping as an example of using phi
+    #[allow(dead_code)]
+    fn gen_cond_ir_phi(
         &mut self,
         cond: &Expression,
         cons: &[Expression],
@@ -360,7 +436,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         self.builder.position_at_end(alt_bb);
         // Gen IR for the alt block
         let mut alt_ir: Option<IntValue> = None;
-        for expr in alt.as_ref().unwrap() { // todo: conditional
+        for expr in alt.as_ref().unwrap() {
             alt_ir = Some(self.gen_expr_ir(expr)?);
         }
         // Make sure the alternative returns to the merge block after execution
