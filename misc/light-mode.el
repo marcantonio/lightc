@@ -34,8 +34,8 @@
     (if (bobp)
         (indent-line-to 0)
       (let ((not-indented t) indent)
-        (if (or (looking-at "}[ \t]*$")
-                (looking-at "}[ \t]*else[ \t]*{[ \t]*$"))
+        (if (or (looking-at "^[ \t]*}[ \t]*\\(?://\\)?.*$")
+                (looking-at "^[ \t]*}[ \t]*else[ \t]*{[ \t]*\\(?://\\)?.*$"))
             (progn
               (save-excursion
                 (forward-line -1)
