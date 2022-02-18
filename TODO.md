@@ -1,6 +1,6 @@
-- [ ] Remove token iterator
-- [ ] Remove optionals from lexer iterator
 - [ ] Make Symbol crate wide
 - [x] Better tests for IR
 - [x] Make else blocks optional
 - [ ] Handle semicolons for multiple expressions
+- [ ] Handle empty function bodies
+- [ ] Create parse_block() abstraction

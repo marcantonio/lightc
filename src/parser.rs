@@ -152,22 +152,18 @@ impl<'a> Parser<'a> {
     // precedence parsing.
     fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
         // Consume token and load up lhs
-        let mut lhs = match self.tokens.next() {
-            Some(t) => {
-                match t {
-                    // Handle unary operators
-                    Token::Op(sym) => {
-                        let p = OpPrec::un_prec(sym)?;
-                        let rhs = self.parse_expression(p)?;
-                        Expression::UnOp {
-                            sym: sym.clone(), // Can probably drop this clone once we remove options
-                            rhs: Box::new(rhs),
-                        }
-                    }
-                    t => self.parse_primary(Some(t))?,
+        let token = self.tokens.next().ok_or("No LHS in expression?")?;
+        let mut lhs = match token {
+            // Handle unary operators
+            Token::Op(sym) => {
+                let p = OpPrec::un_prec(sym)?;
+                let rhs = self.parse_expression(p)?;
+                Expression::UnOp {
+                    sym: *sym,
+                    rhs: Box::new(rhs),
                 }
             }
-            None => todo!(),
+            t => self.parse_primary(t)?,
         };
 
         // Peek at the next token, otherwise return current lhs.
@@ -220,29 +216,22 @@ impl<'a> Parser<'a> {
             "Expecting '{' in function definition"
         );
 
-        // If close brace, body is empty
+        // Parse function until '}'
         let mut body: Vec<Expression> = vec![];
-        if self.tokens.peek().is_some() {
-            // XXX
-            while let Some(t) = self.tokens.peek() {
-                match t {
-                    Token::CloseBrace => {
-                        self.tokens.next();
-                        break;
-                    }
-                    _ => body.push(self.parse_expression(0)?),
+        while let Some(t) = self.tokens.peek() {
+            match t {
+                Token::CloseBrace => {
+                    self.tokens.next();
+                    return Ok(Function {
+                        proto: Box::new(proto),
+                        body: Some(body),
+                    })
                 }
+                _ => body.push(self.parse_expression(0)?),
             }
-        } else {
-            return Err("Expecting '}' in function definition".to_string());
-        };
+        }
 
-        let node = Function {
-            proto: Box::new(proto),
-            body: Some(body),
-        };
-
-        Ok(node)
+        Err("Expecting '}' to terminate function definition".to_string())
     }
 
     fn parse_extern(&mut self) -> FuncParseResult {
@@ -298,22 +287,16 @@ impl<'a> Parser<'a> {
 
     // Returns primary expression
     // XXX is this really needed?
-    fn parse_primary(&mut self, token: Option<&Token>) -> ExprParseResult {
-        let node = if let Some(t) = token {
-            match t {
-                Token::Int(n) => self.parse_num(*n),
-                Token::Ident(id) => self.parse_ident(id),
-                Token::OpenParen => self.parse_paren(),
-                Token::If => self.parse_cond(),
-                Token::For => self.parse_for(),
-                Token::Let => self.parse_let(),
-                x => return Err(format!("Expecting primary expression. Got: {}", x)),
-            }
-        } else {
-            // XXX trailing double primary?
-            unreachable!("parse_primary()");
-        };
-        node
+    fn parse_primary(&mut self, token: &Token) -> ExprParseResult {
+        match token {
+            Token::Int(n) => self.parse_num(*n),
+            Token::Ident(id) => self.parse_ident(id),
+            Token::OpenParen => self.parse_paren(),
+            Token::If => self.parse_cond(),
+            Token::For => self.parse_for(),
+            Token::Let => self.parse_let(),
+            x => return Err(format!("Expecting primary expression. Got: {}", x)),
+        }
     }
 
     fn parse_num(&self, n: u64) -> ExprParseResult {
@@ -367,7 +350,7 @@ impl<'a> Parser<'a> {
 
     fn parse_op(&self, sym: &Symbol, lhs: Expression, rhs: Expression) -> ExprParseResult {
         Ok(Expression::BinOp {
-            sym: sym.clone(),
+            sym: *sym,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })

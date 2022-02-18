@@ -30,7 +30,7 @@ impl std::fmt::Display for Token {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub enum Symbol {
     And,
     Assign,

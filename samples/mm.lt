@@ -11,14 +11,11 @@ fn print_bang() {
     putchar(10)
 }
 
-fn out(x, y) {
-    if cos(x) < y {
-        print_dot()
-    }
-    putchar(34)
-    putchar(10)
+fn foo() {
+    1
+    2
 }
 
 fn main() {
-    out(1, 2)
+    foo()
 }
