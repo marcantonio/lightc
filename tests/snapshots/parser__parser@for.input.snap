@@ -28,4 +28,14 @@ input_file: tests/inputs/parser/for.input
               - Var:
                   name: foo
   - (for (let x 1) (< x 10) 1 foo)
+- - Err: "Expecting 'let' after for"
+  - "Expecting 'let' after for"
+- - Err: Expecting identifier after let
+  - Expecting identifier after let
+- - Err: "Expecting '=' after identifer"
+  - "Expecting '=' after identifer"
+- - Err: Invalid expression
+  - Invalid expression
+- - Err: "Expecting ';' after start"
+  - "Expecting ';' after start"
 

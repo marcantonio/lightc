@@ -151,11 +151,20 @@ impl<'a> Parser<'a> {
     // Parses arbitrary length binary and unary expressions. Uses Pratt with op
     // precedence parsing.
     fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
-        // Consume token and load up lhs
-        let token = self.tokens.next().ok_or("No LHS in expression?")?;
+        // Consume token and load up lhs. These are all considered primary
+        // expressions and are valid expression starters.
+        //
+        // TODO: for, let, if will likely become statements and need to be
+        // removed.
+        let token = self.tokens.next().ok_or("Invalid expression")?;
         let mut lhs = match token {
-            // Handle unary operators
-            Token::Op(sym) => {
+            Token::Int(n) => self.parse_num(*n)?,
+            Token::Ident(id) => self.parse_ident(id)?,
+            Token::OpenParen => self.parse_paren()?,
+            Token::If => self.parse_cond()?,
+            Token::For => self.parse_for()?,
+            Token::Let => self.parse_let()?,
+            Token::Op(sym) => { // Handle unary operators
                 let p = OpPrec::un_prec(sym)?;
                 let rhs = self.parse_expression(p)?;
                 Expression::UnOp {
@@ -163,12 +172,13 @@ impl<'a> Parser<'a> {
                     rhs: Box::new(rhs),
                 }
             }
-            t => self.parse_primary(t)?,
+            x => return Err(format!("Expecting primary expression. Got: {}", x)),
         };
 
-        // Peek at the next token, otherwise return current lhs.
+
+        // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
-            // Should always be an operator after parse_primary().
+            // Should always be an operator after a primary
             let sym = match next {
                 Token::Op(s) => s,
                 // Start a new expression if we see two primaries in a row
@@ -226,7 +236,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_proto(&mut self) -> ProtoParseResult {
-        let fn_name = expect_next_token!(self.tokens, Token::Ident(_), "Expecting function name");
+        let fn_name = expect_next_token!(self.tokens, Token::Ident(_), "Expecting function name in prototype");
         expect_next_token!(self.tokens, Token::OpenParen, "Expecting '(' in prototype");
 
         let mut args: Vec<String> = vec![];
@@ -245,7 +255,7 @@ impl<'a> Parser<'a> {
             let &next = self
                 .tokens
                 .peek()
-                .ok_or_else(|| "Premature end. Expecting ',' or ')'.".to_string())?;
+                .ok_or_else(|| "Expecting ',' or ')' in prototype".to_string())?;
 
             if *next == Token::CloseParen {
                 break;
@@ -257,7 +267,7 @@ impl<'a> Parser<'a> {
         }
 
         // Eat close paren
-        self.tokens.next();
+        expect_next_token!(self.tokens, Token::CloseParen, "Expecting ')' in prototype");
 
         Ok(Prototype {
             name: fn_name.to_string(),
@@ -265,24 +275,11 @@ impl<'a> Parser<'a> {
         })
     }
 
-    // Returns primary expression
-    // XXX is this really needed?
-    fn parse_primary(&mut self, token: &Token) -> ExprParseResult {
-        match token {
-            Token::Int(n) => self.parse_num(*n),
-            Token::Ident(id) => self.parse_ident(id),
-            Token::OpenParen => self.parse_paren(),
-            Token::If => self.parse_cond(),
-            Token::For => self.parse_for(),
-            Token::Let => self.parse_let(),
-            x => return Err(format!("Expecting primary expression. Got: {}", x)),
-        }
-    }
-
     fn parse_num(&self, n: u64) -> ExprParseResult {
         Ok(Expression::Num { value: n })
     }
 
+    // Variable or function call
     fn parse_ident(&mut self, id: &str) -> ExprParseResult {
         let node = Expression::Var {
             name: id.to_owned(),
@@ -308,7 +305,7 @@ impl<'a> Parser<'a> {
             let &next = self
                 .tokens
                 .peek()
-                .ok_or_else(|| "Premature end. Expecting ',' or ')'.".to_string())?;
+                .ok_or_else(|| "Expecting ',' or ')' in function call".to_string())?;
 
             if *next == Token::CloseParen {
                 break;
@@ -320,7 +317,7 @@ impl<'a> Parser<'a> {
         }
 
         // Eat close paren
-        self.tokens.next();
+        expect_next_token!(self.tokens, Token::CloseParen, "Expecting ')' in function call");
 
         Ok(Expression::Call {
             name: id.to_owned(),
@@ -352,7 +349,8 @@ impl<'a> Parser<'a> {
                 self.tokens.next(); // Eat else
 
                 // To support `else if`, peek to check for `{` or `if`
-                if matches!(self.tokens.peek(), Some(&t) if *t != Token::If && *t != Token::OpenBrace) {
+                if matches!(self.tokens.peek(), Some(&t) if *t != Token::If && *t != Token::OpenBrace)
+                {
                     return Err("Expecting 'if' or '{' after else".to_string());
                 }
 
@@ -371,6 +369,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_for(&mut self) -> ExprParseResult {
+        // TODO: call parse_let() here
         expect_next_token!(self.tokens, Token::Let, "Expecting 'let' after for");
 
         let var_name = expect_next_token!(

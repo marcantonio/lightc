@@ -24,4 +24,6 @@ input_file: tests/inputs/parser/if_else.input
               - Var:
                   name: bar
   - (if (> a b) foo bar)
+- - Err: "Expecting 'if' or '{' after else"
+  - "Expecting 'if' or '{' after else"
 

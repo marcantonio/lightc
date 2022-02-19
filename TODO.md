@@ -1,6 +1,15 @@
-- [ ] Make Symbol crate wide
 - [x] Better tests for IR
 - [x] Make else blocks optional
 - [ ] Handle semicolons for multiple expressions
 - [ ] Handle empty function bodies
-- [ ] Create parse_block() abstraction
+- [x] Create parse_block() abstraction
+- [ ] Reorganize
+- [ ] Test for all lexer errors
+- [x] Test for all parser errors
+- [ ] Test for all ir_gen errors
+- [ ] More context in parser errors
+- [ ] Add while and desugar for loops
+
+- [ ] Formalize grammar
+- [ ] Add primitive types
+- [ ] Add string type

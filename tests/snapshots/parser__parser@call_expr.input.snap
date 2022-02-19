@@ -15,4 +15,12 @@ input_file: tests/inputs/parser/call_expr.input
               - Var:
                   name: c
   - (a b c)
+- - Err: "Expecting ')' in function call"
+  - "Expecting ')' in function call"
+- - Err: "Expecting ',' or ')' in function call"
+  - "Expecting ',' or ')' in function call"
+- - Err: "Expecting ')' in function call"
+  - "Expecting ')' in function call"
+- - Err: "Expecting ','. Got: Ident(\"b\")"
+  - "Expecting ','. Got: Ident(\"b\")"
 

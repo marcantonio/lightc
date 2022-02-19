@@ -28,4 +28,22 @@ input_file: tests/inputs/parser/func_def.input
                   Num:
                     value: 40
   - (define (a b c) (+ (+ 19 a) 40))
+- - Err: Expecting function name in prototype
+  - Expecting function name in prototype
+- - Err: "Expecting '(' in prototype"
+  - "Expecting '(' in prototype"
+- - Err: Expecting identifier in prototype
+  - Expecting identifier in prototype
+- - Err: Expecting identifier in prototype
+  - Expecting identifier in prototype
+- - Err: "Expecting ','. Got: Ident(\"b\")"
+  - "Expecting ','. Got: Ident(\"b\")"
+- - Err: "Expecting ')' in prototype"
+  - "Expecting ')' in prototype"
+- - Err: Expecting identifier in prototype
+  - Expecting identifier in prototype
+- - Err: "Expecting ',' or ')' in prototype"
+  - "Expecting ',' or ')' in prototype"
+- - Err: "Expecting ')' in prototype"
+  - "Expecting ')' in prototype"
 

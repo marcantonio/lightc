@@ -2,7 +2,7 @@
 source: tests/parser.rs
 assertion_line: 36
 expression: asts
-input_file: tests/inputs/parser/ident_expr.input
+input_file: tests/inputs/parser/expr.input
 
 ---
 - - Ok:
@@ -22,4 +22,8 @@ input_file: tests/inputs/parser/ident_expr.input
               Num:
                 value: 40
   - (+ (+ 19 a) 40)
+- - Err: Invalid expression
+  - Invalid expression
+- - Err: "Expecting primary expression. Got: Else"
+  - "Expecting primary expression. Got: Else"
 

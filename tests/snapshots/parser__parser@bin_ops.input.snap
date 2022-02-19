@@ -1,0 +1,21 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/bin_ops.input
+
+---
+- - Ok:
+      - Expr:
+          BinOp:
+            sym: Minus
+            lhs:
+              Num:
+                value: 20
+            rhs:
+              Num:
+                value: 19
+  - (- 20 19)
+- - Err: "Unknown binary operator: !"
+  - "Unknown binary operator: !"
+

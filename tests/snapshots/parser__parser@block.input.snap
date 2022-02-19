@@ -1,0 +1,32 @@
+---
+source: tests/parser.rs
+assertion_line: 36
+expression: asts
+input_file: tests/inputs/parser/block.input
+
+---
+- - Ok:
+      - Expr:
+          Cond:
+            cond:
+              Var:
+                name: foo
+            cons:
+              - Var:
+                  name: bar
+            alt: ~
+  - (if foo bar)
+- - Ok:
+      - Expr:
+          Cond:
+            cond:
+              Var:
+                name: foo
+            cons: []
+            alt: ~
+  - (if foo)
+- - Err: "Expecting '{' to start block"
+  - "Expecting '{' to start block"
+- - Err: "Expecting '}' to terminate block"
+  - "Expecting '}' to terminate block"
+
