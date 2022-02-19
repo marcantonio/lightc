@@ -209,38 +209,18 @@ impl<'a> Parser<'a> {
         // Eat 'fn'
         self.tokens.next();
 
-        let proto = self.parse_proto()?;
-        expect_next_token!(
-            self.tokens,
-            Token::OpenBrace,
-            "Expecting '{' in function definition"
-        );
-
-        // Parse function until '}'
-        let mut body: Vec<Expression> = vec![];
-        while let Some(t) = self.tokens.peek() {
-            match t {
-                Token::CloseBrace => {
-                    self.tokens.next();
-                    return Ok(Function {
-                        proto: Box::new(proto),
-                        body: Some(body),
-                    })
-                }
-                _ => body.push(self.parse_expression(0)?),
-            }
-        }
-
-        Err("Expecting '}' to terminate function definition".to_string())
+        Ok(Function {
+            proto: Box::new(self.parse_proto()?),
+            body: Some(self.parse_block()?),
+        })
     }
 
     fn parse_extern(&mut self) -> FuncParseResult {
         // Eat 'extern'
         self.tokens.next();
 
-        let proto = self.parse_proto()?;
         Ok(Function {
-            proto: Box::new(proto),
+            proto: Box::new(self.parse_proto()?),
             body: None,
         })
     }
@@ -364,62 +344,20 @@ impl<'a> Parser<'a> {
 
     fn parse_cond(&mut self) -> ExprParseResult {
         let cond = self.parse_expression(0)?;
-        expect_next_token!(
-            self.tokens,
-            Token::OpenBrace,
-            "Expecting '{' after conditional"
-        );
 
-        // todo: make a parse_block() for this
-        let mut cons: Vec<Expression> = vec![];
-        while let Some(t) = self.tokens.peek() {
-            match t {
-                Token::CloseBrace => {
-                    self.tokens.next();
-                    break;
-                }
-                _ => cons.push(self.parse_expression(0)?),
-            }
-        }
+        let cons = self.parse_block()?;
 
         let alt = match self.tokens.peek() {
             Some(Token::Else) => {
                 self.tokens.next(); // Eat else
 
                 // To support `else if`, peek to check for `{` or `if`
-                if let Some(&t) = self.tokens.peek() {
-                    if *t == Token::OpenBrace {
-                        self.tokens.next();
-                    } else if *t != Token::If {
-                        return Err("Expecting 'if' or '{' after else".to_string());
-                    }
-                } else {
+                if matches!(self.tokens.peek(), Some(&t) if *t != Token::If && *t != Token::OpenBrace) {
                     return Err("Expecting 'if' or '{' after else".to_string());
                 }
 
-                // Next token should either be the first statement in the else
-                // block or `if`.
-                let mut alt: Vec<Expression> = vec![];
-                while let Some(t) = self.tokens.peek() {
-                    match t {
-                        Token::CloseBrace => {
-                            self.tokens.next();
-                            break;
-                        }
-                        _ => alt.push(self.parse_expression(0)?),
-                    }
-                }
+                let alt = self.parse_block()?;
 
-                // todo: re-enable checking for }
-                // If alt isn't a conditional, make sure it closes the else
-                // block
-                // if !matches!(alt, Expression::Cond { .. }) {
-                //     expect_next_token!(
-                //         self.tokens,
-                //         Token::CloseBrace,
-                //         "Expecting '}' after alternate"
-                //     );
-                // }
                 Some(alt)
             }
             _ => None,
@@ -457,29 +395,13 @@ impl<'a> Parser<'a> {
         );
 
         let step = self.parse_expression(0)?;
-        expect_next_token!(
-            self.tokens,
-            Token::OpenBrace,
-            "Expecting '{' after step".to_string()
-        );
-
-        let mut body: Vec<Expression> = vec![];
-        while let Some(t) = self.tokens.peek() {
-            match t {
-                Token::CloseBrace => {
-                    self.tokens.next();
-                    break;
-                }
-                _ => body.push(self.parse_expression(0)?),
-            }
-        }
 
         Ok(Expression::For {
             var_name: var_name.to_owned(),
             start: Box::new(start),
             cond: Box::new(cond),
             step: Box::new(step),
-            body,
+            body: self.parse_block()?,
         })
     }
 
@@ -502,6 +424,29 @@ impl<'a> Parser<'a> {
             name: var_name.to_owned(),
             init: init.map(Box::new),
         })
+    }
+
+    // Helper to collect a bunch of expressions enclosed by braces into a Vec<T>
+    fn parse_block(&mut self) -> Result<Vec<Expression>, String> {
+        let mut block: Vec<Expression> = vec![];
+
+        expect_next_token!(
+            self.tokens,
+            Token::OpenBrace,
+            "Expecting '{' to start block"
+        );
+
+        while let Some(t) = self.tokens.peek() {
+            match t {
+                Token::CloseBrace => {
+                    self.tokens.next();
+                    return Ok(block);
+                }
+                _ => block.push(self.parse_expression(0)?),
+            }
+        }
+
+        Err("Expecting '}' to terminate block".to_string())
     }
 }
 
