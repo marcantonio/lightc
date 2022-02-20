@@ -28,7 +28,6 @@ impl std::fmt::Debug for Token {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub enum TokenType {
-    Assign,
     CloseBrace,
     CloseParen,
     Colon,
@@ -101,6 +100,16 @@ pub struct LexError {
     message: String,
     line: usize,
     column: usize,
+}
+
+impl LexError {
+    fn new(message: String, line: usize, column: usize) -> Self {
+        LexError {
+            message,
+            line,
+            column,
+        }
+    }
 }
 
 impl std::fmt::Display for LexError {
@@ -194,11 +203,11 @@ impl Lexer {
 
             return match num.parse() {
                 Ok(n) => Ok(Token::new(TokenType::Int(n), cur.line, cur.column)),
-                Err(_) => Err(LexError {
-                    message: format!("Invalid number: {}", num),
-                    line: cur.line,
-                    column: cur.column,
-                }),
+                Err(_) => Err(LexError::new(
+                    format!("Invalid number: {}", num),
+                    cur.line,
+                    cur.column,
+                )),
             };
         }
 
@@ -240,11 +249,11 @@ impl Lexer {
             '(' => TokenType::OpenParen,
             ';' => TokenType::Semicolon,
             c => {
-                return Err(LexError {
-                    message: format!("Unknown character: {}", c),
-                    line: cur.line,
-                    column: cur.column,
-                })
+                return Err(LexError::new(
+                    format!("Unknown character: {}", c),
+                    cur.line,
+                    cur.column,
+                ));
             }
         };
 
@@ -370,7 +379,7 @@ baz
         let mut lexer = Lexer::new(input);
         assert_eq!(Ok(Token::new(Let, 1, 1)), lexer.lex());
         assert_eq!(Ok(Token::new(Ident("foo".to_string()), 1, 5)), lexer.lex());
-        assert_eq!(Ok(Token::new(Op(Symbol::Assign), 1, 9)), lexer.lex());
+        assert_eq!(Ok(Token::new(Op(Assign), 1, 9)), lexer.lex());
         assert_eq!(Ok(Token::new(Int(14), 1, 11)), lexer.lex());
         assert_eq!(Ok(Token::new(Op(Div), 3, 1)), lexer.lex());
         assert_eq!(
@@ -379,22 +388,5 @@ baz
         );
         assert_eq!(Ok(Token::new(Ident("baz".to_string()), 4, 1)), lexer.lex());
         assert_eq!(Ok(Token::new(Eof, 0, 0)), lexer.lex());
-    }
-
-    #[test]
-    fn test_lex_error() {
-        let input = "1c4";
-        let mut lexer = Lexer::new(input);
-        assert_eq!(
-            "Lexer error: Invalid number: 1c4 at 1:1",
-            lexer.lex().unwrap_err().to_string()
-        );
-
-        let input = " %";
-        let mut lexer = Lexer::new(input);
-        assert_eq!(
-            String::from("Lexer error: Unknown character: % at 1:2"),
-            lexer.lex().unwrap_err().to_string()
-        );
     }
 }
