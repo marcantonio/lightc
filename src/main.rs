@@ -14,7 +14,12 @@ use inkwell::{
     targets::{InitializationConfig, Target, TargetMachine},
     OptimizationLevel,
 };
-use std::{fs, path::PathBuf, process::Command};
+
+use std::{
+    fs,
+    path::PathBuf,
+    process::{exit, Command},
+};
 
 fn main() {
     let args = Args::parse();
@@ -22,7 +27,11 @@ fn main() {
 
     // Lexer
     let lexer = Lexer::new(&source);
-    let tokens = lexer.collect::<Result<Vec<_>, _>>().expect("Error lexing");
+    let tokens = lexer.collect::<Result<Vec<_>, _>>().unwrap_or_else(|e| {
+        eprint!("{}", e);
+        exit(1);
+    });
+
     if args.tokens {
         println!("Tokens: {:?}", tokens);
         println!();

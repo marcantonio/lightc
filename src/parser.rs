@@ -4,7 +4,7 @@ use std::{fmt::Display, iter::Peekable, slice::Iter};
 use crate::lexer::{Symbol, Token, TokenType};
 
 macro_rules! expect_next_token {
-    // Matches patterns like Token::Let
+    // Matches patterns like TokenType::Let
     ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
         match $ts.next() {
             $( Some(t @ Token { ty: $e::$v, .. }) => t, )+
@@ -12,7 +12,7 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches patterns like Token::Op(Symbol::Assign)
+    // Matches patterns like TokenType::Op(Symbol::Assign)
     ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
         match $ts.next() {
             $( Some(t @ Token { ty: $e::$v(Symbol::$s), ..}) => t, )+
@@ -20,7 +20,7 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches patterns like Token::Ident(_) and used for return value
+    // Matches patterns like TokenType::Ident(_) and used for return value
     ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
         match $ts.next() {
             Some(Token { ty: $t::$v(t), ..}) => t,
