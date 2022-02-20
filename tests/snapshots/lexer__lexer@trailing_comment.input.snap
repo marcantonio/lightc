@@ -2,12 +2,23 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/trailing_comment.input
+input_file: tests/inputs/lexer/trailing_comment.input
 
 ---
 Ok:
-  - Let
-  - Ident: foo
-  - Op: Assign
-  - Int: 13
+  - ty: Let
+    line: 1
+    column: 1
+  - ty:
+      Ident: foo
+    line: 1
+    column: 5
+  - ty:
+      Op: Assign
+    line: 1
+    column: 9
+  - ty:
+      Int: 13
+    line: 1
+    column: 11
 

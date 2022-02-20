@@ -2,13 +2,25 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/extern.input
+input_file: tests/inputs/lexer/extern.input
 
 ---
 Ok:
-  - Extern
-  - Ident: cos
-  - OpenParen
-  - Ident: x
-  - CloseParen
+  - ty: Extern
+    line: 1
+    column: 1
+  - ty:
+      Ident: cos
+    line: 1
+    column: 8
+  - ty: OpenParen
+    line: 1
+    column: 11
+  - ty:
+      Ident: x
+    line: 1
+    column: 12
+  - ty: CloseParen
+    line: 1
+    column: 13
 

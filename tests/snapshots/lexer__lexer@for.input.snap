@@ -2,25 +2,68 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/for.input
+input_file: tests/inputs/lexer/for.input
 
 ---
 Ok:
-  - For
-  - Let
-  - Ident: x
-  - Op: Assign
-  - Int: 1
-  - Semicolon
-  - Ident: x
-  - Op: Lt
-  - Int: 10
-  - Semicolon
-  - Int: 1
-  - OpenBrace
-  - Ident: print
-  - OpenParen
-  - Ident: x
-  - CloseParen
-  - CloseBrace
+  - ty: For
+    line: 1
+    column: 1
+  - ty: Let
+    line: 1
+    column: 5
+  - ty:
+      Ident: x
+    line: 1
+    column: 9
+  - ty:
+      Op: Assign
+    line: 1
+    column: 11
+  - ty:
+      Int: 1
+    line: 1
+    column: 13
+  - ty: Semicolon
+    line: 1
+    column: 14
+  - ty:
+      Ident: x
+    line: 1
+    column: 16
+  - ty:
+      Op: Lt
+    line: 1
+    column: 18
+  - ty:
+      Int: 10
+    line: 1
+    column: 20
+  - ty: Semicolon
+    line: 1
+    column: 22
+  - ty:
+      Int: 1
+    line: 1
+    column: 24
+  - ty: OpenBrace
+    line: 1
+    column: 26
+  - ty:
+      Ident: print
+    line: 2
+    column: 5
+  - ty: OpenParen
+    line: 2
+    column: 10
+  - ty:
+      Ident: x
+    line: 2
+    column: 11
+  - ty: CloseParen
+    line: 2
+    column: 12
+  - ty: CloseBrace
+    line: 3
+    column: 1
 

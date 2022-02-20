@@ -4,6 +4,7 @@ use std::fs;
 
 use lightc::lexer::*;
 
+#[cfg(test)]
 #[test]
 fn test_lexer() {
     glob!("inputs/lexer/*.input", |path| {

@@ -2,49 +2,148 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/cond.input
+input_file: tests/inputs/lexer/cond.input
 
 ---
 Ok:
-  - If
-  - Ident: x
-  - Op: Gt
-  - Op: Minus
-  - Int: 3
-  - OpenBrace
-  - Ident: print
-  - OpenParen
-  - Ident: x
-  - CloseParen
-  - CloseBrace
-  - Else
-  - OpenBrace
-  - Ident: exit
-  - OpenParen
-  - CloseParen
-  - CloseBrace
-  - If
-  - Ident: x
-  - Op: Gt
-  - Int: 3
-  - OpenBrace
-  - Ident: print
-  - OpenParen
-  - Ident: x
-  - CloseParen
-  - CloseBrace
-  - Else
-  - If
-  - Ident: y
-  - Op: Eq
-  - Int: 1
-  - OpenBrace
-  - Ident: exit
-  - OpenParen
-  - CloseParen
-  - CloseBrace
-  - Else
-  - OpenBrace
-  - Ident: z
-  - CloseBrace
+  - ty: If
+    line: 1
+    column: 1
+  - ty:
+      Ident: x
+    line: 1
+    column: 4
+  - ty:
+      Op: Gt
+    line: 1
+    column: 6
+  - ty:
+      Op: Minus
+    line: 1
+    column: 8
+  - ty:
+      Int: 3
+    line: 1
+    column: 9
+  - ty: OpenBrace
+    line: 1
+    column: 11
+  - ty:
+      Ident: print
+    line: 2
+    column: 5
+  - ty: OpenParen
+    line: 2
+    column: 10
+  - ty:
+      Ident: x
+    line: 2
+    column: 11
+  - ty: CloseParen
+    line: 2
+    column: 12
+  - ty: CloseBrace
+    line: 3
+    column: 1
+  - ty: Else
+    line: 3
+    column: 3
+  - ty: OpenBrace
+    line: 3
+    column: 8
+  - ty:
+      Ident: exit
+    line: 4
+    column: 5
+  - ty: OpenParen
+    line: 4
+    column: 9
+  - ty: CloseParen
+    line: 4
+    column: 10
+  - ty: CloseBrace
+    line: 5
+    column: 1
+  - ty: If
+    line: 7
+    column: 1
+  - ty:
+      Ident: x
+    line: 7
+    column: 4
+  - ty:
+      Op: Gt
+    line: 7
+    column: 6
+  - ty:
+      Int: 3
+    line: 7
+    column: 8
+  - ty: OpenBrace
+    line: 7
+    column: 10
+  - ty:
+      Ident: print
+    line: 8
+    column: 5
+  - ty: OpenParen
+    line: 8
+    column: 10
+  - ty:
+      Ident: x
+    line: 8
+    column: 11
+  - ty: CloseParen
+    line: 8
+    column: 12
+  - ty: CloseBrace
+    line: 9
+    column: 1
+  - ty: Else
+    line: 9
+    column: 3
+  - ty: If
+    line: 9
+    column: 8
+  - ty:
+      Ident: y
+    line: 9
+    column: 11
+  - ty:
+      Op: Eq
+    line: 9
+    column: 13
+  - ty:
+      Int: 1
+    line: 9
+    column: 16
+  - ty: OpenBrace
+    line: 9
+    column: 18
+  - ty:
+      Ident: exit
+    line: 10
+    column: 5
+  - ty: OpenParen
+    line: 10
+    column: 9
+  - ty: CloseParen
+    line: 10
+    column: 10
+  - ty: CloseBrace
+    line: 11
+    column: 1
+  - ty: Else
+    line: 11
+    column: 3
+  - ty: OpenBrace
+    line: 11
+    column: 8
+  - ty:
+      Ident: z
+    line: 12
+    column: 5
+  - ty: CloseBrace
+    line: 13
+    column: 1
 

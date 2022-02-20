@@ -2,25 +2,67 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/fn.input
+input_file: tests/inputs/lexer/fn.input
 
 ---
 Ok:
-  - Fn
-  - Ident: foo
-  - OpenParen
-  - Ident: a
-  - Comma
-  - Ident: b
-  - Comma
-  - Ident: c
-  - CloseParen
-  - OpenBrace
-  - Ident: bar
-  - OpenParen
-  - Ident: a
-  - CloseParen
-  - Op: Plus
-  - Int: 2
-  - CloseBrace
+  - ty: Fn
+    line: 1
+    column: 1
+  - ty:
+      Ident: foo
+    line: 1
+    column: 4
+  - ty: OpenParen
+    line: 1
+    column: 7
+  - ty:
+      Ident: a
+    line: 1
+    column: 8
+  - ty: Comma
+    line: 1
+    column: 9
+  - ty:
+      Ident: b
+    line: 1
+    column: 11
+  - ty: Comma
+    line: 1
+    column: 12
+  - ty:
+      Ident: c
+    line: 1
+    column: 14
+  - ty: CloseParen
+    line: 1
+    column: 15
+  - ty: OpenBrace
+    line: 1
+    column: 17
+  - ty:
+      Ident: bar
+    line: 2
+    column: 5
+  - ty: OpenParen
+    line: 2
+    column: 8
+  - ty:
+      Ident: a
+    line: 2
+    column: 9
+  - ty: CloseParen
+    line: 2
+    column: 10
+  - ty:
+      Op: Plus
+    line: 2
+    column: 12
+  - ty:
+      Int: 2
+    line: 2
+    column: 14
+  - ty: CloseBrace
+    line: 3
+    column: 1
 

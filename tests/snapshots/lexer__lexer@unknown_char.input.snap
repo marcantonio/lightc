@@ -2,8 +2,11 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/unknown_char.input
+input_file: tests/inputs/lexer/unknown_char.input
 
 ---
-Err: UnknownChar
+Err:
+  message: "Unknown character: `"
+  line: 1
+  column: 11
 

@@ -1,13 +1,13 @@
 use serde::Serialize;
 use std::{fmt::Display, iter::Peekable, slice::Iter};
 
-use crate::lexer::{Symbol, Token};
+use crate::lexer::{Symbol, Token, TokenType};
 
 macro_rules! expect_next_token {
     // Matches patterns like Token::Let
     ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
         match $ts.next() {
-            $( Some(t @ $e::$v) => t, )+
+            $( Some(t @ Token { ty: $e::$v, .. }) => t, )+
             Some(_) | None => return Err($err.to_string()),
         }
     };
@@ -15,7 +15,7 @@ macro_rules! expect_next_token {
     // Matches patterns like Token::Op(Symbol::Assign)
     ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
         match $ts.next() {
-            $( Some(t @ $e::$v(Symbol::$s)) => t, )+
+            $( Some(t @ Token { ty: $e::$v(Symbol::$s), ..}) => t, )+
             Some(_) | None => return Err($err.to_string()),
         }
     };
@@ -23,7 +23,7 @@ macro_rules! expect_next_token {
     // Matches patterns like Token::Ident(_) and used for return value
     ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
         match $ts.next() {
-            Some($t::$v(t)) => t,
+            Some(Token { ty: $t::$v(t), ..}) => t,
             Some(_) | None => return Err($err.to_string()),
         }
     };
@@ -93,7 +93,7 @@ enum OpPrec {
 }
 
 impl OpPrec {
-    fn bin_prec(op: &Symbol) -> Result<OpPrec, String> {
+    fn bin_prec(op: Symbol) -> Result<OpPrec, String> {
         use Symbol::*;
         match op {
             Pow => Ok(OpPrec::Right(8)),
@@ -108,7 +108,7 @@ impl OpPrec {
         }
     }
 
-    fn un_prec(op: &Symbol) -> Result<u8, String> {
+    fn un_prec(op: Symbol) -> Result<u8, String> {
         use Symbol::*;
         match op {
             Not => Ok(9),
@@ -138,9 +138,9 @@ impl<'a> Parser<'a> {
     // Parse each token using recursive descent
     pub fn parse(mut self) -> Result<Vec<AstNode>, String> {
         while let Some(t) = self.tokens.peek() {
-            let node = match t {
-                Token::Fn => AstNode::Func(self.parse_function()?),
-                Token::Extern => AstNode::Func(self.parse_extern()?),
+            let node = match t.ty {
+                TokenType::Fn => AstNode::Func(self.parse_function()?),
+                TokenType::Extern => AstNode::Func(self.parse_extern()?),
                 _ => AstNode::Expr(self.parse_expression(0)?),
             };
             self.ast.push(node);
@@ -157,15 +157,16 @@ impl<'a> Parser<'a> {
         // TODO: for, let, if will likely become statements and need to be
         // removed.
         let token = self.tokens.next().ok_or("Invalid expression")?;
-        let mut lhs = match token {
-            Token::Int(n) => self.parse_num(*n)?,
-            Token::Ident(id) => self.parse_ident(id)?,
-            Token::OpenParen => self.parse_paren()?,
-            Token::If => self.parse_cond()?,
-            Token::For => self.parse_for()?,
-            Token::Let => self.parse_let()?,
-            Token::Op(sym) => { // Handle unary operators
-                let p = OpPrec::un_prec(sym)?;
+        let mut lhs = match &token.ty {
+            TokenType::Int(n) => self.parse_num(*n)?,
+            TokenType::Ident(id) => self.parse_ident(id)?,
+            TokenType::OpenParen => self.parse_paren()?,
+            TokenType::If => self.parse_cond()?,
+            TokenType::For => self.parse_for()?,
+            TokenType::Let => self.parse_let()?,
+            TokenType::Op(sym) => {
+                // Handle unary operators
+                let p = OpPrec::un_prec(*sym)?;
                 let rhs = self.parse_expression(p)?;
                 Expression::UnOp {
                     sym: *sym,
@@ -175,12 +176,11 @@ impl<'a> Parser<'a> {
             x => return Err(format!("Expecting primary expression. Got: {}", x)),
         };
 
-
         // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
             // Should always be an operator after a primary
-            let sym = match next {
-                Token::Op(s) => s,
+            let sym = match next.ty {
+                TokenType::Op(s) => s,
                 // Start a new expression if we see two primaries in a row
                 _ => break,
             };
@@ -236,30 +236,38 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_proto(&mut self) -> ProtoParseResult {
-        let fn_name = expect_next_token!(self.tokens, Token::Ident(_), "Expecting function name in prototype");
-        expect_next_token!(self.tokens, Token::OpenParen, "Expecting '(' in prototype");
+        let fn_name = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting function name in prototype"
+        );
+        expect_next_token!(
+            self.tokens,
+            TokenType::OpenParen,
+            "Expecting '(' in prototype"
+        );
 
         let mut args: Vec<String> = vec![];
-        while let Some(&next) = self.tokens.peek() {
-            if *next == Token::CloseParen {
+        while let Some(next) = self.tokens.peek() {
+            if next.ty == TokenType::CloseParen {
                 break;
             }
 
             let id = expect_next_token!(
                 self.tokens,
-                Token::Ident(_),
+                TokenType::Ident(_),
                 "Expecting identifier in prototype"
             );
             args.push(id.to_string());
 
-            let &next = self
+            let next = self
                 .tokens
                 .peek()
                 .ok_or_else(|| "Expecting ',' or ')' in prototype".to_string())?;
 
-            if *next == Token::CloseParen {
+            if next.ty == TokenType::CloseParen {
                 break;
-            } else if *next != Token::Comma {
+            } else if next.ty != TokenType::Comma {
                 return Err(format!("Expecting ','. Got: {}", next));
             }
             // Eat comma
@@ -267,7 +275,11 @@ impl<'a> Parser<'a> {
         }
 
         // Eat close paren
-        expect_next_token!(self.tokens, Token::CloseParen, "Expecting ')' in prototype");
+        expect_next_token!(
+            self.tokens,
+            TokenType::CloseParen,
+            "Expecting ')' in prototype"
+        );
 
         Ok(Prototype {
             name: fn_name.to_string(),
@@ -287,7 +299,12 @@ impl<'a> Parser<'a> {
 
         // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
-            Some(t @ Token::OpenParen) => t,
+            Some(
+                t @ Token {
+                    ty: TokenType::OpenParen,
+                    ..
+                },
+            ) => t,
             Some(_) | None => return Ok(node),
         };
 
@@ -295,8 +312,8 @@ impl<'a> Parser<'a> {
         self.tokens.next();
 
         let mut args: Vec<Expression> = vec![];
-        while let Some(&next) = self.tokens.peek() {
-            if *next == Token::CloseParen {
+        while let Some(next) = self.tokens.peek() {
+            if next.ty == TokenType::CloseParen {
                 break;
             }
 
@@ -307,9 +324,9 @@ impl<'a> Parser<'a> {
                 .peek()
                 .ok_or_else(|| "Expecting ',' or ')' in function call".to_string())?;
 
-            if *next == Token::CloseParen {
+            if next.ty == TokenType::CloseParen {
                 break;
-            } else if *next != Token::Comma {
+            } else if next.ty != TokenType::Comma {
                 return Err(format!("Expecting ','. Got: {}", next));
             }
             // Eat comma
@@ -317,7 +334,11 @@ impl<'a> Parser<'a> {
         }
 
         // Eat close paren
-        expect_next_token!(self.tokens, Token::CloseParen, "Expecting ')' in function call");
+        expect_next_token!(
+            self.tokens,
+            TokenType::CloseParen,
+            "Expecting ')' in function call"
+        );
 
         Ok(Expression::Call {
             name: id.to_owned(),
@@ -325,9 +346,9 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_op(&self, sym: &Symbol, lhs: Expression, rhs: Expression) -> ExprParseResult {
+    fn parse_op(&self, sym: Symbol, lhs: Expression, rhs: Expression) -> ExprParseResult {
         Ok(Expression::BinOp {
-            sym: *sym,
+            sym,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
@@ -345,11 +366,14 @@ impl<'a> Parser<'a> {
         let cons = self.parse_block()?;
 
         let alt = match self.tokens.peek() {
-            Some(Token::Else) => {
+            Some(Token {
+                ty: TokenType::Else,
+                ..
+            }) => {
                 self.tokens.next(); // Eat else
 
                 // To support `else if`, peek to check for `{` or `if`
-                if matches!(self.tokens.peek(), Some(&t) if *t != Token::If && *t != Token::OpenBrace)
+                if matches!(self.tokens.peek(), Some(t) if t.ty != TokenType::If && t.ty != TokenType::OpenBrace)
                 {
                     return Err("Expecting 'if' or '{' after else".to_string());
                 }
@@ -370,26 +394,30 @@ impl<'a> Parser<'a> {
 
     fn parse_for(&mut self) -> ExprParseResult {
         // TODO: call parse_let() here
-        expect_next_token!(self.tokens, Token::Let, "Expecting 'let' after for");
+        expect_next_token!(self.tokens, TokenType::Let, "Expecting 'let' after for");
 
         let var_name = expect_next_token!(
             self.tokens,
-            Token::Ident(_),
+            TokenType::Ident(_),
             "Expecting identifier after let"
         );
         expect_next_token!(
             self.tokens,
-            Token::Op(Symbol::Assign),
+            TokenType::Op(Symbol::Assign),
             "Expecting '=' after identifer"
         );
 
         let start = self.parse_expression(0)?;
-        expect_next_token!(self.tokens, Token::Semicolon, "Expecting ';' after start");
+        expect_next_token!(
+            self.tokens,
+            TokenType::Semicolon,
+            "Expecting ';' after start"
+        );
 
         let cond = self.parse_expression(0)?;
         expect_next_token!(
             self.tokens,
-            Token::Semicolon,
+            TokenType::Semicolon,
             "Expecting ';' after condition"
         );
 
@@ -407,12 +435,15 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> ExprParseResult {
         let var_name = expect_next_token!(
             self.tokens,
-            Token::Ident(_),
+            TokenType::Ident(_),
             "Expecting identifier after let"
         );
 
         let init = match self.tokens.peek() {
-            Some(Token::Op(Symbol::Assign)) => {
+            Some(Token {
+                ty: TokenType::Op(Symbol::Assign),
+                ..
+            }) => {
                 self.tokens.next();
                 Some(self.parse_expression(0)?)
             }
@@ -431,13 +462,16 @@ impl<'a> Parser<'a> {
 
         expect_next_token!(
             self.tokens,
-            Token::OpenBrace,
+            TokenType::OpenBrace,
             "Expecting '{' to start block"
         );
 
         while let Some(t) = self.tokens.peek() {
             match t {
-                Token::CloseBrace => {
+                Token {
+                    ty: TokenType::CloseBrace,
+                    ..
+                } => {
                     self.tokens.next();
                     return Ok(block);
                 }

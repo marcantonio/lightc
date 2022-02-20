@@ -2,17 +2,42 @@
 source: tests/lexer.rs
 assertion_line: 11
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/ops.input
+input_file: tests/inputs/lexer/ops.input
 
 ---
 Ok:
-  - OpenParen
-  - Ident: x
-  - Op: Plus
-  - Ident: y
-  - CloseParen
-  - Op: Mult
-  - Int: 4
-  - Op: Div
-  - Int: 4
+  - ty: OpenParen
+    line: 1
+    column: 1
+  - ty:
+      Ident: x
+    line: 1
+    column: 2
+  - ty:
+      Op: Plus
+    line: 1
+    column: 4
+  - ty:
+      Ident: y
+    line: 1
+    column: 6
+  - ty: CloseParen
+    line: 1
+    column: 7
+  - ty:
+      Op: Mult
+    line: 1
+    column: 9
+  - ty:
+      Int: 4
+    line: 1
+    column: 11
+  - ty:
+      Op: Div
+    line: 1
+    column: 13
+  - ty:
+      Int: 4
+    line: 1
+    column: 15
 
