@@ -28,22 +28,49 @@ input_file: tests/inputs/parser/func_def.input
                   Num:
                     value: 40
   - (define (a b c) (+ (+ 19 a) 40))
-- - Err: Expecting function name in prototype
-  - Expecting function name in prototype
-- - Err: "Expecting '(' in prototype"
-  - "Expecting '(' in prototype"
-- - Err: Expecting identifier in prototype
-  - Expecting identifier in prototype
-- - Err: Expecting identifier in prototype
-  - Expecting identifier in prototype
-- - Err: "Expecting ','. Got: Ident(\"b\")"
-  - "Expecting ','. Got: Ident(\"b\")"
-- - Err: "Expecting ')' in prototype"
-  - "Expecting ')' in prototype"
-- - Err: Expecting identifier in prototype
-  - Expecting identifier in prototype
-- - Err: "Expecting ',' or ')' in prototype"
-  - "Expecting ',' or ')' in prototype"
-- - Err: "Expecting ')' in prototype"
-  - "Expecting ')' in prototype"
+- - Err:
+      message: Expecting function name in prototype. Got OpenParen
+      line: 1
+      column: 4
+  - "Parsing error: Expecting function name in prototype. Got OpenParen at 1:4"
+- - Err:
+      message: "Expecting '(' in prototype. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '(' in prototype. Got EOF"
+- - Err:
+      message: "Expecting ')' or identifier in prototype. Got OpenBrace"
+      line: 1
+      column: 7
+  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:7"
+- - Err:
+      message: "Expecting ')' or identifier in prototype. Got OpenBrace"
+      line: 1
+      column: 9
+  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:9"
+- - Err:
+      message: "Expecting ',' or ')' in prototype. Got identifier: b"
+      line: 1
+      column: 8
+  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:8"
+- - Err:
+      message: "Expecting '{' to start block. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '{' to start block. Got EOF"
+- - Err:
+      message: "Expecting ')' or identifier in prototype. Got OpenBrace"
+      line: 1
+      column: 9
+  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:9"
+- - Err:
+      message: "Parsing error: Expecting ',' or ')' in prototype at 1:6"
+      line: 0
+      column: 0
+  - "Parsing error: Parsing error: Expecting ',' or ')' in prototype at 1:6"
+- - Err:
+      message: "Expecting '{' to start block. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '{' to start block. Got EOF"
 

@@ -3,30 +3,46 @@ use std::iter::Peekable;
 
 #[derive(PartialEq, Serialize)]
 pub struct Token {
-    pub(crate) ty: TokenType,
-    line: usize,
-    column: usize,
+    pub(crate) tt: TokenType,
+    pub(crate) line: usize,
+    pub(crate) column: usize,
 }
 
 impl Token {
-    fn new(ty: TokenType, line: usize, column: usize) -> Self {
-        Token { ty, line, column }
+    pub fn new(ty: TokenType, line: usize, column: usize) -> Self {
+        Token { tt: ty, line, column }
     }
 }
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.ty)
+        write!(f, "{}", self.tt)
     }
 }
 
 impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.ty)
+        write!(f, "{}", self.tt)
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+impl Default for Token {
+    fn default() -> Self {
+        Token {
+            tt: TokenType::Eof,
+            line: 0,
+            column: 0,
+        }
+    }
+}
+
+impl<T> From<(TokenType, ContextPoint<T>)> for Token {
+    fn from((ty, ContextPoint { line, column, .. }): (TokenType, ContextPoint<T>)) -> Self {
+        Token { tt: ty, line, column }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum TokenType {
     CloseBrace,
     CloseParen,
@@ -50,7 +66,15 @@ pub enum TokenType {
 
 impl std::fmt::Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        use TokenType::*;
+
+        match self {
+            Eof => write!(f, "EOF"),
+            Op(s) => write!(f, "{}", s),
+            Ident(i) => write!(f, "identifier: {}", i),
+            Int(i) => write!(f, "integer: {}", i),
+            tt => write!(f, "{:?}", tt),
+        }
     }
 }
 
@@ -90,7 +114,7 @@ impl std::fmt::Display for Symbol {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Type {
     U64,
 }
@@ -102,21 +126,11 @@ pub struct LexError {
     column: usize,
 }
 
-impl LexError {
-    fn new(message: String, line: usize, column: usize) -> Self {
-        LexError {
-            message,
-            line,
-            column,
-        }
-    }
-}
-
 impl std::fmt::Display for LexError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Lexer error: {} at {}:{}",
+            "Lexing error: {} at {}:{}",
             self.message, self.line, self.column
         )
     }
@@ -125,6 +139,16 @@ impl std::fmt::Display for LexError {
 impl std::error::Error for LexError {}
 
 pub type LexResult = std::result::Result<Token, LexError>;
+
+impl<T> From<(String, ContextPoint<T>)> for LexError {
+    fn from((msg, cp): (String, ContextPoint<T>)) -> Self {
+        LexError {
+            message: msg,
+            line: cp.line,
+            column: cp.column,
+        }
+    }
+}
 
 pub struct Lexer {
     stream: Peekable<StreamIter<char>>,
@@ -140,7 +164,7 @@ impl Lexer {
     fn lex(&mut self) -> LexResult {
         let cur = match self.stream.next() {
             Some(cur) => cur,
-            None => return Ok(Token::new(TokenType::Eof, 0, 0)),
+            None => return Ok(Token::default()),
         };
 
         if cur.value.is_ascii_whitespace() {
@@ -186,7 +210,7 @@ impl Lexer {
                 _ => TokenType::Ident(identifier),
             };
 
-            return Ok(Token::new(tt, cur.line, cur.column));
+            return Ok(Token::from((tt, cur)));
         }
 
         // Numbers
@@ -202,12 +226,8 @@ impl Lexer {
             }
 
             return match num.parse() {
-                Ok(n) => Ok(Token::new(TokenType::Int(n), cur.line, cur.column)),
-                Err(_) => Err(LexError::new(
-                    format!("Invalid number: {}", num),
-                    cur.line,
-                    cur.column,
-                )),
+                Ok(n) => Ok(Token::from((TokenType::Int(n), cur))),
+                Err(_) => Err(LexError::from((format!("Invalid number: {}", num), cur))),
             };
         }
 
@@ -216,15 +236,15 @@ impl Lexer {
             match cur.value {
                 '=' if next == &'=' => {
                     self.stream.next();
-                    return Ok(Token::new(TokenType::Op(Symbol::Eq), cur.line, cur.column));
+                    return Ok(Token::from((TokenType::Op(Symbol::Eq), cur)));
                 }
                 '&' if next == &'&' => {
                     self.stream.next();
-                    return Ok(Token::new(TokenType::Op(Symbol::And), cur.line, cur.column));
+                    return Ok(Token::from((TokenType::Op(Symbol::And), cur)));
                 }
                 '|' if next == &'|' => {
                     self.stream.next();
-                    return Ok(Token::new(TokenType::Op(Symbol::Or), cur.line, cur.column));
+                    return Ok(Token::from((TokenType::Op(Symbol::Or), cur)));
                 }
                 _ => (),
             }
@@ -249,15 +269,11 @@ impl Lexer {
             '(' => TokenType::OpenParen,
             ';' => TokenType::Semicolon,
             c => {
-                return Err(LexError::new(
-                    format!("Unknown character: {}", c),
-                    cur.line,
-                    cur.column,
-                ));
+                return Err(LexError::from((format!("Unknown character: {}", c), cur)));
             }
         };
 
-        Ok(Token::new(tt, cur.line, cur.column))
+        Ok(Token::from((tt, cur)))
     }
 }
 
@@ -267,7 +283,7 @@ impl Iterator for Lexer {
     fn next(&mut self) -> Option<Self::Item> {
         match self.lex() {
             Ok(Token {
-                ty: TokenType::Eof, ..
+                tt: TokenType::Eof, ..
             }) => None,
             x => Some(x),
         }
@@ -387,6 +403,6 @@ baz
             lexer.lex()
         );
         assert_eq!(Ok(Token::new(Ident("baz".to_string()), 4, 1)), lexer.lex());
-        assert_eq!(Ok(Token::new(Eof, 0, 0)), lexer.lex());
+        assert_eq!(Ok(Token::default()), lexer.lex());
     }
 }

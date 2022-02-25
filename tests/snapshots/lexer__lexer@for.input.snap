@@ -1,69 +1,69 @@
 ---
 source: tests/lexer.rs
-assertion_line: 11
+assertion_line: 12
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/lexer/for.input
 
 ---
 Ok:
-  - ty: For
+  - tt: For
     line: 1
     column: 1
-  - ty: Let
+  - tt: Let
     line: 1
     column: 5
-  - ty:
+  - tt:
       Ident: x
     line: 1
     column: 9
-  - ty:
+  - tt:
       Op: Assign
     line: 1
     column: 11
-  - ty:
+  - tt:
       Int: 1
     line: 1
     column: 13
-  - ty: Semicolon
+  - tt: Semicolon
     line: 1
     column: 14
-  - ty:
+  - tt:
       Ident: x
     line: 1
     column: 16
-  - ty:
+  - tt:
       Op: Lt
     line: 1
     column: 18
-  - ty:
+  - tt:
       Int: 10
     line: 1
     column: 20
-  - ty: Semicolon
+  - tt: Semicolon
     line: 1
     column: 22
-  - ty:
+  - tt:
       Int: 1
     line: 1
     column: 24
-  - ty: OpenBrace
+  - tt: OpenBrace
     line: 1
     column: 26
-  - ty:
+  - tt:
       Ident: print
     line: 2
     column: 5
-  - ty: OpenParen
+  - tt: OpenParen
     line: 2
     column: 10
-  - ty:
+  - tt:
       Ident: x
     line: 2
     column: 11
-  - ty: CloseParen
+  - tt: CloseParen
     line: 2
     column: 12
-  - ty: CloseBrace
+  - tt: CloseBrace
     line: 3
     column: 1
 

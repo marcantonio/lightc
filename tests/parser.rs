@@ -7,7 +7,7 @@ use std::io::BufReader;
 use lightc::lexer::Lexer;
 use lightc::parser::*;
 
-fn ast_to_string(ast: Result<&[AstNode], &String>) -> String {
+fn ast_to_string(ast: Result<&[AstNode], &ParseError>) -> String {
     match ast {
         Ok(ast) => ast.iter().map(|x| x.to_string()).collect(),
         Err(err) => err.to_string(),

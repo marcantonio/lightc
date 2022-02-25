@@ -25,8 +25,14 @@ input_file: tests/inputs/parser/block.input
             cons: []
             alt: ~
   - (if foo)
-- - Err: "Expecting '{' to start block"
-  - "Expecting '{' to start block"
-- - Err: "Expecting '}' to terminate block"
-  - "Expecting '}' to terminate block"
+- - Err:
+      message: "Expecting '{' to start block. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '{' to start block. Got EOF"
+- - Err:
+      message: "Expecting '}' to terminate block"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '}' to terminate block"
 

@@ -28,14 +28,29 @@ input_file: tests/inputs/parser/for.input
               - Var:
                   name: foo
   - (for (let x 1) (< x 10) 1 foo)
-- - Err: "Expecting 'let' after for"
-  - "Expecting 'let' after for"
-- - Err: Expecting identifier after let
-  - Expecting identifier after let
-- - Err: "Expecting '=' after identifer"
-  - "Expecting '=' after identifer"
-- - Err: Invalid expression
-  - Invalid expression
-- - Err: "Expecting ';' after start"
-  - "Expecting ';' after start"
+- - Err:
+      message: "Expecting 'let' after for. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting 'let' after for. Got EOF"
+- - Err:
+      message: Expecting identifier after let. Got EOF
+      line: 0
+      column: 0
+  - "Parsing error: Expecting identifier after let. Got EOF"
+- - Err:
+      message: "Expecting '=' after identifer. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting '=' after identifer. Got EOF"
+- - Err:
+      message: Invalid expression
+      line: 0
+      column: 0
+  - "Parsing error: Invalid expression"
+- - Err:
+      message: "Expecting ';' after start. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting ';' after start. Got EOF"
 

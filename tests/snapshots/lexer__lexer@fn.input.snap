@@ -1,68 +1,68 @@
 ---
 source: tests/lexer.rs
-assertion_line: 11
+assertion_line: 12
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/lexer/fn.input
 
 ---
 Ok:
-  - ty: Fn
+  - tt: Fn
     line: 1
     column: 1
-  - ty:
+  - tt:
       Ident: foo
     line: 1
     column: 4
-  - ty: OpenParen
+  - tt: OpenParen
     line: 1
     column: 7
-  - ty:
+  - tt:
       Ident: a
     line: 1
     column: 8
-  - ty: Comma
+  - tt: Comma
     line: 1
     column: 9
-  - ty:
+  - tt:
       Ident: b
     line: 1
     column: 11
-  - ty: Comma
+  - tt: Comma
     line: 1
     column: 12
-  - ty:
+  - tt:
       Ident: c
     line: 1
     column: 14
-  - ty: CloseParen
+  - tt: CloseParen
     line: 1
     column: 15
-  - ty: OpenBrace
+  - tt: OpenBrace
     line: 1
     column: 17
-  - ty:
+  - tt:
       Ident: bar
     line: 2
     column: 5
-  - ty: OpenParen
+  - tt: OpenParen
     line: 2
     column: 8
-  - ty:
+  - tt:
       Ident: a
     line: 2
     column: 9
-  - ty: CloseParen
+  - tt: CloseParen
     line: 2
     column: 10
-  - ty:
+  - tt:
       Op: Plus
     line: 2
     column: 12
-  - ty:
+  - tt:
       Int: 2
     line: 2
     column: 14
-  - ty: CloseBrace
+  - tt: CloseBrace
     line: 3
     column: 1
 

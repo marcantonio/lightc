@@ -66,6 +66,9 @@ input_file: tests/inputs/parser/unary_ops.input
                   Num:
                     value: 21
   - (- (- 21))
-- - Err: "Unknown unary operator: *"
-  - "Unknown unary operator: *"
+- - Err:
+      message: "Unknown unary operator: *"
+      line: 0
+      column: 0
+  - "Parsing error: Unknown unary operator: *"
 

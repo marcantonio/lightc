@@ -22,8 +22,14 @@ input_file: tests/inputs/parser/expr.input
               Num:
                 value: 40
   - (+ (+ 19 a) 40)
-- - Err: Invalid expression
-  - Invalid expression
-- - Err: "Expecting primary expression. Got: Else"
-  - "Expecting primary expression. Got: Else"
+- - Err:
+      message: Invalid expression
+      line: 0
+      column: 0
+  - "Parsing error: Invalid expression"
+- - Err:
+      message: Expecting primary expression. Got Else
+      line: 1
+      column: 6
+  - "Parsing error: Expecting primary expression. Got Else at 1:6"
 

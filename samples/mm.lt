@@ -11,11 +11,13 @@ fn print_bang() {
     putchar(10)
 }
 
-fn foo() {
-    1
+fn foo(x) {
+    let xasdf = 1
     2
 }
 
 fn main() {
-    foo()`
+    let x = 1
+    x
+    foo(2)
 }

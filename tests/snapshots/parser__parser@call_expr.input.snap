@@ -15,12 +15,24 @@ input_file: tests/inputs/parser/call_expr.input
               - Var:
                   name: c
   - (a b c)
-- - Err: "Expecting ')' in function call"
-  - "Expecting ')' in function call"
-- - Err: "Expecting ',' or ')' in function call"
-  - "Expecting ',' or ')' in function call"
-- - Err: "Expecting ')' in function call"
-  - "Expecting ')' in function call"
-- - Err: "Expecting ','. Got: Ident(\"b\")"
-  - "Expecting ','. Got: Ident(\"b\")"
+- - Err:
+      message: "Expecting ')' in function call. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting ')' in function call. Got EOF"
+- - Err:
+      message: "Expecting ',' or ')' in function call"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting ',' or ')' in function call"
+- - Err:
+      message: "Expecting ')' in function call. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting ')' in function call. Got EOF"
+- - Err:
+      message: "Expecting ',' in function call. Got identifier: b"
+      line: 1
+      column: 5
+  - "Parsing error: Expecting ',' in function call. Got identifier: b at 1:5"
 

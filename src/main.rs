@@ -28,7 +28,7 @@ fn main() {
     // Lexer
     let lexer = Lexer::new(&source);
     let tokens = lexer.collect::<Result<Vec<_>, _>>().unwrap_or_else(|e| {
-        eprint!("{}", e);
+        eprintln!("{}", e);
         exit(1);
     });
 
@@ -39,7 +39,11 @@ fn main() {
 
     // Parser
     let parser = Parser::new(&tokens);
-    let ast = parser.parse().expect("Error parsing");
+    let ast = parser.parse().unwrap_or_else(|e| {
+        eprintln!("{}", e);
+        exit(1);
+    });
+
     if args.ast {
         println!("AST:");
         for node in &ast {

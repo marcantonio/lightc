@@ -1,26 +1,26 @@
 ---
 source: tests/lexer.rs
-assertion_line: 11
+assertion_line: 12
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: tests/inputs/lexer/extern.input
 
 ---
 Ok:
-  - ty: Extern
+  - tt: Extern
     line: 1
     column: 1
-  - ty:
+  - tt:
       Ident: cos
     line: 1
     column: 8
-  - ty: OpenParen
+  - tt: OpenParen
     line: 1
     column: 11
-  - ty:
+  - tt:
       Ident: x
     line: 1
     column: 12
-  - ty: CloseParen
+  - tt: CloseParen
     line: 1
     column: 13
 

@@ -16,6 +16,9 @@ input_file: tests/inputs/parser/bin_ops.input
               Num:
                 value: 19
   - (- 20 19)
-- - Err: "Unknown binary operator: !"
-  - "Unknown binary operator: !"
+- - Err:
+      message: "Unknown binary operator: !"
+      line: 0
+      column: 0
+  - "Parsing error: Unknown binary operator: !"
 

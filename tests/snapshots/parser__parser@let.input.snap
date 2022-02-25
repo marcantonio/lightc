@@ -19,6 +19,9 @@ input_file: tests/inputs/parser/let.input
               Num:
                 value: 1
   - (let x 1)
-- - Err: Expecting identifier after let
-  - Expecting identifier after let
+- - Err:
+      message: Expecting identifier after let. Got EOF
+      line: 0
+      column: 0
+  - "Parsing error: Expecting identifier after let. Got EOF"
 
