@@ -7,7 +7,8 @@
 - [x] Test for all lexer errors
 - [x] Test for all parser errors
 - [ ] Test for all ir_gen errors
-- [ ] More context in parser errors
+- [x] More context in parser errors
+- [x] More context in codegen errors
 - [ ] Include file name in error
 - [ ] Add while and desugar for loops
 - [ ] Stop using master for inkwell

@@ -157,15 +157,20 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         self.builder.build_return(last_expr.as_deref());
 
         // Make sure we didn't miss anything
+        // TODO: Should this allow llvm to print, or use a verbose flag, or are
+        // the errors not useful?
         if function.verify(true) {
             self.fpm.run_on(&function);
             Ok(function)
         } else {
-            unsafe {
-                // TODO: Do we care about this for AOT comiplation?
-                function.delete();
-            }
-            Err(String::from("Bad function generation"))
+            // unsafe {
+            //     // TODO: Do we care about this for AOT comiplation?
+            //     function.delete();
+            // }
+            Err(format!(
+                "Error compiling: {}",
+                function.get_name().to_str().unwrap()
+            ))
         }
     }
 
