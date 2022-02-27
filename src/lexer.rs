@@ -1,156 +1,11 @@
-use serde::Serialize;
 use std::iter::Peekable;
+use serde::Serialize;
 
-#[derive(PartialEq, Serialize)]
-pub struct Token {
-    pub(crate) tt: TokenType,
-    pub(crate) line: usize,
-    pub(crate) column: usize,
-}
+use crate::token::{Symbol, Token, TokenType};
 
-impl Token {
-    pub fn new(ty: TokenType, line: usize, column: usize) -> Self {
-        Token { tt: ty, line, column }
-    }
-}
+type LexResult = std::result::Result<Token, LexError>;
 
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.tt)
-    }
-}
-
-impl std::fmt::Debug for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.tt)
-    }
-}
-
-impl Default for Token {
-    fn default() -> Self {
-        Token {
-            tt: TokenType::Eof,
-            line: 0,
-            column: 0,
-        }
-    }
-}
-
-impl<T> From<(TokenType, ContextPoint<T>)> for Token {
-    fn from((ty, ContextPoint { line, column, .. }): (TokenType, ContextPoint<T>)) -> Self {
-        Token { tt: ty, line, column }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum TokenType {
-    CloseBrace,
-    CloseParen,
-    Colon,
-    Comma,
-    Else,
-    Eof,
-    Extern,
-    Fn,
-    For,
-    Ident(String),
-    If,
-    Int(u64),
-    Let,
-    Op(Symbol),
-    OpenBrace,
-    OpenParen,
-    Semicolon,
-    VarType(Type),
-}
-
-impl std::fmt::Display for TokenType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use TokenType::*;
-
-        match self {
-            Eof => write!(f, "EOF"),
-            Op(s) => write!(f, "{}", s),
-            Ident(i) => write!(f, "identifier: {}", i),
-            Int(i) => write!(f, "integer: {}", i),
-            tt => write!(f, "{:?}", tt),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
-pub enum Symbol {
-    And,
-    Assign,
-    Div,
-    Eq,
-    Gt,
-    Lt,
-    Minus,
-    Mult,
-    Not,
-    Or,
-    Plus,
-    Pow,
-}
-
-impl std::fmt::Display for Symbol {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Symbol::Assign => "=",
-            Symbol::And => "&&",
-            Symbol::Div => "/",
-            Symbol::Eq => "==",
-            Symbol::Gt => ">",
-            Symbol::Lt => "<",
-            Symbol::Minus => "-",
-            Symbol::Mult => "*",
-            Symbol::Not => "!",
-            Symbol::Or => "||",
-            Symbol::Plus => "+",
-            Symbol::Pow => "^",
-        };
-        write!(f, "{}", s)
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Type {
-    U64,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub struct LexError {
-    message: String,
-    line: usize,
-    column: usize,
-}
-
-impl std::fmt::Display for LexError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Lexing error: {} at {}:{}",
-            self.message, self.line, self.column
-        )
-    }
-}
-
-impl std::error::Error for LexError {}
-
-pub type LexResult = std::result::Result<Token, LexError>;
-
-impl<T> From<(String, ContextPoint<T>)> for LexError {
-    fn from((msg, cp): (String, ContextPoint<T>)) -> Self {
-        LexError {
-            message: msg,
-            line: cp.line,
-            column: cp.column,
-        }
-    }
-}
-
-pub struct Lexer {
+pub(crate) struct Lexer {
     stream: Peekable<StreamIter<char>>,
 }
 
@@ -202,7 +57,7 @@ impl Lexer {
             let tt = match identifier.as_str() {
                 "else" => TokenType::Else,
                 "extern" => TokenType::Extern,
-                "u64" => TokenType::VarType(Type::U64),
+                //"u64" => TokenTypeVarType(TokenTypeU64),
                 "fn" => TokenType::Fn,
                 "for" => TokenType::For,
                 "if" => TokenType::If,
@@ -290,6 +145,7 @@ impl Iterator for Lexer {
     }
 }
 
+// Provides additional context for each source character
 #[derive(Debug, PartialEq)]
 struct ContextPoint<T> {
     value: T,
@@ -298,7 +154,7 @@ struct ContextPoint<T> {
 }
 
 impl<T> ContextPoint<T> {
-    pub(crate) fn new(value: T, line: usize, column: usize) -> Self {
+    fn new(value: T, line: usize, column: usize) -> Self {
         ContextPoint {
             value,
             line: line + 1,
@@ -313,6 +169,17 @@ impl PartialEq<char> for ContextPoint<char> {
     }
 }
 
+impl<T> From<(TokenType, ContextPoint<T>)> for Token {
+    fn from((ty, ContextPoint { line, column, .. }): (TokenType, ContextPoint<T>)) -> Self {
+        Token {
+            tt: ty,
+            line,
+            column,
+        }
+    }
+}
+
+// Iterator for the source character stream. Supports line and column context.
 struct StreamIter<T> {
     lines: Vec<Vec<T>>,
     line: usize,
@@ -353,9 +220,51 @@ impl Iterator for StreamIter<char> {
     }
 }
 
+#[derive(Debug, PartialEq, Serialize)]
+pub(crate) struct LexError {
+    message: String,
+    line: usize,
+    column: usize,
+}
+
+impl std::fmt::Display for LexError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Lexing error: {} at {}:{}",
+            self.message, self.line, self.column
+        )
+    }
+}
+
+impl std::error::Error for LexError {}
+
+impl<T> From<(String, ContextPoint<T>)> for LexError {
+    fn from((msg, cp): (String, ContextPoint<T>)) -> Self {
+        LexError {
+            message: msg,
+            line: cp.line,
+            column: cp.column,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use insta::{assert_yaml_snapshot, glob, with_settings};
+    use std::fs;
+
     use super::*;
+
+    #[test]
+    fn test_lexer() {
+        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            glob!("tests/inputs/lexer/*.input", |path| {
+                let input = fs::read_to_string(path).unwrap();
+                assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>());
+            });
+        });
+    }
 
     #[test]
     fn test_stream_next() {

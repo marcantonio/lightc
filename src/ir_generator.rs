@@ -7,11 +7,11 @@ use inkwell::values::{BasicValue, FunctionValue, IntValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::lexer::Symbol;
-use crate::parser::AstNode;
-use crate::parser::Expression;
-use crate::parser::Function;
-use crate::parser::Prototype;
+use crate::ast::AstNode;
+use crate::ast::Expression;
+use crate::ast::Function;
+use crate::ast::Prototype;
+use crate::token::Symbol;
 
 enum IrRetVal<'ctx> {
     Expr(IntValue<'ctx>),
@@ -21,7 +21,7 @@ enum IrRetVal<'ctx> {
 type ExprIrResult<'ctx> = Result<IntValue<'ctx>, String>;
 type FuncIrResult<'ctx> = Result<FunctionValue<'ctx>, String>;
 
-pub struct IrGenerator<'a, 'ctx> {
+pub(crate) struct IrGenerator<'a, 'ctx> {
     context: &'ctx Context,
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
@@ -30,7 +30,7 @@ pub struct IrGenerator<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
-    pub fn new(
+    pub(crate) fn new(
         context: &'ctx Context,
         builder: &'a Builder<'ctx>,
         module: &'a Module<'ctx>,
@@ -57,6 +57,32 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
+    // Iterate over all nodes and generate IR. Optionally return a string (for
+    // testing).
+    pub(crate) fn generate(&mut self, ast: &[AstNode]) -> Result<FunctionValue, String> {
+        let mut main: Option<FunctionValue> = None;
+        for node in ast {
+            let ir = match node {
+                AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
+                //                AstNode::Proto(proto) => IrRetVal::Func(self.gen_proto_ir(proto)?),
+                AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
+            };
+
+            if let IrRetVal::Func(f) = ir {
+                if f.get_name().to_str().unwrap() == "main" {
+                    main = Some(f);
+                }
+            }
+        }
+
+        // Return main
+        if let Some(m) = main {
+            Ok(m)
+        } else {
+            Err(String::from("main() not found"))
+        }
+    }
+
     // Helper to create an alloca in the entry block for local variables
     fn create_entry_block_alloca(&self, name: &str, func: &FunctionValue) -> PointerValue<'ctx> {
         // Create a temporary builder
@@ -74,32 +100,6 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Create alloca and return it
         builder.build_alloca(self.context.i64_type(), name)
-    }
-
-    // Iterate over all nodes and generate IR. Optionally return a string (for
-    // testing).
-    pub fn generate(&mut self, ast: &[AstNode]) -> Result<FunctionValue, String> {
-        let mut main: Option<FunctionValue> = None;
-        for node in ast {
-            let ir = match node {
-                AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
-                AstNode::Proto(proto) => IrRetVal::Func(self.gen_proto_ir(proto)?),
-                AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
-            };
-
-            if let IrRetVal::Func(f) = ir {
-                if f.get_name().to_str().unwrap() == "main" {
-                    main = Some(f);
-                }
-            }
-        }
-
-        // Return main
-        if let Some(m) = main {
-            Ok(m)
-        } else {
-            Err(String::from("main() not found"))
-        }
     }
 
     fn gen_proto_ir(&self, proto: &Prototype) -> FuncIrResult<'ctx> {
@@ -211,7 +211,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         lhs: &Expression,
         rhs: &Expression,
     ) -> ExprIrResult<'ctx> {
-        use Symbol::*;
+        use super::token::Symbol::*;
 
         // If assignment, make sure lvalue is a variable and store rhs there
         if *op == Assign {
@@ -558,5 +558,46 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         self.local_vars.insert(name.to_owned(), init_alloca);
 
         Ok(init_ir)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use inkwell::passes::PassManager;
+    use inkwell::values::FunctionValue;
+    use inkwell::{context::Context, values::AnyValue};
+    use insta::{assert_yaml_snapshot, glob, with_settings};
+    use std::fs;
+
+    use super::*;
+    use crate::lexer::Lexer;
+    use crate::parser::Parser;
+
+    // This is how we "deserialize" FunctionValue to work with insta
+    fn ir_to_string(ir: Result<FunctionValue, String>) -> String {
+        match ir {
+            Ok(ir) => ir.print_to_string().to_string(),
+            Err(err) => err,
+        }
+    }
+
+    #[test]
+    fn test_ir_gen() {
+        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            glob!("tests/inputs/ir_gen/*.input", |path| {
+                let input = fs::read_to_string(path).unwrap();
+                let tokens = Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap();
+                let parser = Parser::new(&tokens);
+                let ast = parser.parse().unwrap();
+
+                let context = Context::create();
+                let builder = context.create_builder();
+                let module = context.create_module("main_mod");
+                let fpm = PassManager::create(&module);
+                let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
+
+                assert_yaml_snapshot!(ir_to_string(ir_gen.generate(&ast)));
+            });
+        });
     }
 }

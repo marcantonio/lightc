@@ -3,7 +3,7 @@
 - [ ] Handle semicolons for multiple expressions
 - [ ] Handle empty function bodies
 - [x] Create parse_block() abstraction
-- [ ] Reorganize
+- [x] Reorganize
 - [x] Test for all lexer errors
 - [x] Test for all parser errors
 - [ ] Test for all ir_gen errors

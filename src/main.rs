@@ -1,6 +1,9 @@
-pub mod ir_generator;
-pub mod lexer;
-pub mod parser;
+mod ast;
+mod ir_generator;
+mod jit_externs;
+mod lexer;
+mod parser;
+mod token;
 
 use crate::ir_generator::IrGenerator;
 use crate::lexer::Lexer;
@@ -112,7 +115,7 @@ fn set_target_machine(module: &Module) {
 }
 
 fn run_jit(module: &Module) {
-    lightc::jit_externs::load();
+    jit_externs::load();
 
     let ee = module
         .create_jit_execution_engine(OptimizationLevel::None)

@@ -1,216 +1,25 @@
-use serde::Serialize;
-use std::{fmt::Display, iter::Peekable, slice::Iter};
+use std::{iter::Peekable, slice::Iter};
 
-use crate::lexer::{Symbol, Token, TokenType};
+use self::{errors::ParseError, precedence::OpPrec};
+use crate::ast::{AstNode, Expression, Function, Prototype};
+use crate::token::{Symbol, Token, TokenType};
 
-macro_rules! expect_next_token {
-    // Matches patterns like TokenType::Let
-    ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
-        let t = $ts.next();
-        match t {
-            $( Some(Token { tt: $e::$v, .. }) => (), )+
-            _ => {
-                return Err(ParseError::from((
-                    format!(
-                        "{}. Got {}",
-                        $err.to_string(),
-                        t.map_or(TokenType::Eof, |x| x.tt.clone())
-                    ),
-                    t.unwrap_or(&Token::default())
-                )))
-            }
-        }
-    };
-
-    // Matches patterns like TokenType::Op(Symbol::Assign)
-    ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
-        let t = $ts.next();
-        match t {
-            $( Some(Token { tt: $e::$v(Symbol::$s), .. }) => (), )+
-            _ => {
-                return Err(ParseError::from((
-                    format!(
-                        "{}. Got {}",
-                        $err.to_string(),
-                        t.map_or(TokenType::Eof, |x| x.tt.clone())
-                    ),
-                    t.unwrap_or(&Token::default())
-                )))
-            }
-        }
-    };
-
-    // Matches patterns like TokenType::Ident(_) and used for return value
-    ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
-        {
-            let t = $ts.next();
-            match t {
-                Some(Token { tt: $t::$v(t), .. }) => t,
-                _ => {
-                    return Err(ParseError::from((
-                        format!(
-                            "{}. Got {}",
-                            $err.to_string(),
-                            t.map_or(TokenType::Eof, |x| x.tt.clone())
-                        ),
-                        t.unwrap_or(&Token::default())
-                    )))
-                }
-            }
-        }
-    };
-}
-
-// Matches token type and executes $and or returns None
-macro_rules! token_is_and_then {
-    ($to:expr, $tt:pat, $and:expr) => {
-        match $to {
-            Some(Token { tt: $tt, .. }) => $and,
-            _ => None,
-        }
-    };
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub enum Expression {
-    Num {
-        value: u64,
-    },
-    Var {
-        name: String,
-    },
-    BinOp {
-        sym: Symbol,
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    UnOp {
-        sym: Symbol,
-        rhs: Box<Expression>,
-    },
-    Call {
-        name: String,
-        args: Vec<Expression>,
-    },
-    Cond {
-        cond: Box<Expression>,
-        cons: Vec<Expression>,
-        alt: Option<Vec<Expression>>,
-    },
-    For {
-        var_name: String,
-        start: Box<Expression>,
-        cond: Box<Expression>,
-        step: Box<Expression>,
-        body: Vec<Expression>,
-    },
-    Let {
-        name: String,
-        init: Option<Box<Expression>>,
-    },
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub struct Prototype {
-    pub name: String,
-    pub args: Vec<String>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub struct Function {
-    pub proto: Box<Prototype>,
-    pub body: Option<Vec<Expression>>,
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub enum AstNode {
-    Expr(Expression),
-    Proto(Prototype),
-    Func(Function),
-}
-
-enum OpPrec {
-    Left(u8),
-    Right(u8),
-}
-
-impl OpPrec {
-    fn bin_prec(op: Symbol) -> Result<OpPrec, String> {
-        use Symbol::*;
-        match op {
-            Pow => Ok(OpPrec::Right(8)),
-            Mult | Div => Ok(OpPrec::Left(7)),
-            Plus | Minus => Ok(OpPrec::Left(6)),
-            Gt | Lt => Ok(OpPrec::Left(5)),
-            Eq => Ok(OpPrec::Left(4)),
-            And => Ok(OpPrec::Left(3)),
-            Assign => Ok(OpPrec::Left(2)),
-            Or => Ok(OpPrec::Left(1)),
-            x => Err(format!("Unknown binary operator: {}", x)),
-        }
-    }
-
-    fn un_prec(op: Symbol) -> Result<u8, String> {
-        use Symbol::*;
-        match op {
-            Not => Ok(9),
-            Minus => Ok(8),
-            x => Err(format!("Unknown unary operator: {}", x)),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Serialize)]
-pub struct ParseError {
-    message: String,
-    line: usize,
-    column: usize,
-}
-
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut msg = format!("Parsing error: {}", self.message);
-
-        if self.line != 0 && self.column != 0 {
-            msg += &format!(" at {}:{}", self.line, self.column);
-        }
-        write!(f, "{}", msg)
-    }
-}
-
-impl std::error::Error for ParseError {}
-
-impl From<(String, &Token)> for ParseError {
-    fn from((msg, t): (String, &Token)) -> Self {
-        ParseError {
-            message: msg,
-            line: t.line,
-            column: t.column,
-        }
-    }
-}
-
-impl From<String> for ParseError {
-    fn from(msg: String) -> Self {
-        ParseError {
-            message: msg,
-            line: 0,
-            column: 0,
-        }
-    }
-}
+#[macro_use]
+mod macros;
+mod errors;
+mod precedence;
 
 type ExprParseResult = Result<Expression, ParseError>;
 type ProtoParseResult = Result<Prototype, ParseError>;
 type FuncParseResult = Result<Function, ParseError>;
 
-pub struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     ast: Vec<AstNode>,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
+    pub(crate) fn new(tokens: &'a [Token]) -> Self {
         Parser {
             ast: vec![],
             tokens: tokens.iter().peekable(),
@@ -218,7 +27,7 @@ impl<'a> Parser<'a> {
     }
 
     // Parse each token using recursive descent
-    pub fn parse(mut self) -> Result<Vec<AstNode>, ParseError> {
+    pub(crate) fn parse(mut self) -> Result<Vec<AstNode>, ParseError> {
         while let Some(t) = self.tokens.peek() {
             let node = match t.tt {
                 TokenType::Fn => AstNode::Func(self.parse_function()?),
@@ -569,97 +378,48 @@ impl<'a> Parser<'a> {
     }
 }
 
-// Display functions allow us to convert to s-expressions for easier testing
+#[cfg(test)]
+mod test {
+    use insta::{assert_yaml_snapshot, glob, with_settings};
+    use std::{
+        fs::File,
+        io::{BufRead, BufReader},
+    };
 
-impl Display for AstNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AstNode::Expr(expr) => write!(f, "{}", expr),
-            AstNode::Proto(proto) => write!(f, "{}", proto),
-            AstNode::Func(func) => write!(f, "{}", func),
+    use crate::{
+        lexer::Lexer,
+        parser::{AstNode, ParseError, Parser},
+    };
+
+    fn ast_to_string(ast: Result<&[AstNode], &ParseError>) -> String {
+        match ast {
+            Ok(ast) => ast.iter().map(|x| x.to_string()).collect(),
+            Err(err) => err.to_string(),
         }
     }
-}
 
-impl Display for Expression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Expression::Num { value } => write!(f, "{}", value),
-            Expression::BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
-            Expression::UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
-            Expression::Var { name } => write!(f, "{}", name),
-            Expression::Call { name, args } => {
-                let mut s = format!("({}", name);
-                if !args.is_empty() {
-                    for arg in args {
-                        s += &format!(" {}", arg);
-                    }
-                }
-                write!(f, "{})", s)
-            }
-            Expression::Cond { cond, cons, alt } => {
-                let mut s = format!("(if {}", cond);
-                s += &cons.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
+    #[test]
+    fn test_parser() {
+        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            glob!("tests/inputs/*.input", |path| {
+                let file = File::open(path).expect("Error reading input file");
+                let reader = BufReader::new(file);
 
-                if let Some(alt) = alt {
-                    s += &alt.iter().fold(String::new(), |mut acc, n| {
-                        acc += &format!(" {}", n);
-                        acc
-                    });
-                }
-                write!(f, "{})", s)
-            }
-            Expression::For {
-                var_name,
-                start,
-                cond,
-                step,
-                body,
-            } => {
-                let mut s = format!("(for (let {} {}) {} {}", var_name, start, cond, step);
-                s += &body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-                write!(f, "{})", s)
-            }
-            Expression::Let { name, init: body } => {
-                let mut s = format!("(let {}", name);
-                if let Some(body) = body {
-                    s += &format!(" {}", body);
-                }
-                write!(f, "{})", s)
-            }
-        }
-    }
-}
-
-impl Display for Prototype {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = format!("({}", self.name);
-        if !self.args.is_empty() {
-            for arg in &self.args {
-                s += &format!(" {}", arg);
-            }
-        }
-        write!(f, "{})", s)
-    }
-}
-
-impl Display for Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.body {
-            Some(body) if !body.is_empty() => {
-                let s = body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-                write!(f, "(define {}{})", self.proto, s)
-            }
-            _ => write!(f, "(define {})", self.proto),
-        }
+                // Each line of the input files is meant to be a separate test
+                // case. Treat each as its own AST. Including `ast_string` in the
+                // output makes it more readable.
+                let asts = reader
+                    .lines()
+                    .map(|line| {
+                        let line = line.expect("Error reading input line");
+                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
+                        let ast = Parser::new(&tokens).parse();
+                        let ast_string = ast_to_string(ast.as_deref());
+                        (ast, ast_string)
+                    })
+                    .collect::<Vec<_>>();
+                assert_yaml_snapshot!(asts);
+            });
+        });
     }
 }
