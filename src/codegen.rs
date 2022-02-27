@@ -13,15 +13,15 @@ use crate::ast::Function;
 use crate::ast::Prototype;
 use crate::token::Symbol;
 
-enum IrRetVal<'ctx> {
+enum CgRetVal<'ctx> {
     Expr(IntValue<'ctx>),
     Func(FunctionValue<'ctx>),
 }
 
-type ExprIrResult<'ctx> = Result<IntValue<'ctx>, String>;
-type FuncIrResult<'ctx> = Result<FunctionValue<'ctx>, String>;
+type ExprCgResult<'ctx> = Result<IntValue<'ctx>, String>;
+type FuncCgResult<'ctx> = Result<FunctionValue<'ctx>, String>;
 
-pub(crate) struct IrGenerator<'a, 'ctx> {
+pub(crate) struct CodeGen<'a, 'ctx> {
     context: &'ctx Context,
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
@@ -29,7 +29,7 @@ pub(crate) struct IrGenerator<'a, 'ctx> {
     local_vars: HashMap<String, PointerValue<'ctx>>,
 }
 
-impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
+impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     pub(crate) fn new(
         context: &'ctx Context,
         builder: &'a Builder<'ctx>,
@@ -48,7 +48,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         fpm.add_reassociate_pass();
         fpm.initialize();
 
-        IrGenerator {
+        CodeGen {
             context,
             builder,
             module,
@@ -57,18 +57,17 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    // Iterate over all nodes and generate IR. Optionally return a string (for
+    // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub(crate) fn generate(&mut self, ast: &[AstNode]) -> Result<FunctionValue, String> {
+    pub(crate) fn run(&mut self, ast: &[AstNode]) -> Result<FunctionValue, String> {
         let mut main: Option<FunctionValue> = None;
         for node in ast {
-            let ir = match node {
-                AstNode::Expr(expr) => IrRetVal::Expr(self.gen_expr_ir(expr)?),
-                //                AstNode::Proto(proto) => IrRetVal::Func(self.gen_proto_ir(proto)?),
-                AstNode::Func(func) => IrRetVal::Func(self.gen_func_ir(func)?),
+            let code = match node {
+                AstNode::Expr(expr) => CgRetVal::Expr(self.expr_codegen(expr)?),
+                AstNode::Func(func) => CgRetVal::Func(self.func_codegen(func)?),
             };
 
-            if let IrRetVal::Func(f) = ir {
+            if let CgRetVal::Func(f) = code {
                 if f.get_name().to_str().unwrap() == "main" {
                     main = Some(f);
                 }
@@ -102,7 +101,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         builder.build_alloca(self.context.i64_type(), name)
     }
 
-    fn gen_proto_ir(&self, proto: &Prototype) -> FuncIrResult<'ctx> {
+    fn proto_codegen(&self, proto: &Prototype) -> FuncCgResult<'ctx> {
         let i64_type = self.context.i64_type();
         let args_type = proto
             .args
@@ -124,8 +123,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         Ok(func)
     }
 
-    fn gen_func_ir(&mut self, func: &Function) -> FuncIrResult<'ctx> {
-        let function = self.gen_proto_ir(&func.proto)?;
+    fn func_codegen(&mut self, func: &Function) -> FuncCgResult<'ctx> {
+        let function = self.proto_codegen(&func.proto)?;
         // If body is None assume call is an extern
         let body = match func.body.as_ref() {
             Some(body) => body,
@@ -152,7 +151,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // one to use with the ret instruction.
         let mut last_expr: Option<Box<dyn BasicValue>> = None;
         for e in body {
-            last_expr = Some(Box::new(self.gen_expr_ir(e)?));
+            last_expr = Some(Box::new(self.expr_codegen(e)?));
         }
         self.builder.build_return(last_expr.as_deref());
 
@@ -174,30 +173,30 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_expr_ir(&mut self, expr: &Expression) -> ExprIrResult<'ctx> {
+    fn expr_codegen(&mut self, expr: &Expression) -> ExprCgResult<'ctx> {
         match expr {
-            Expression::Num { value } => self.gen_num_ir(*value),
-            Expression::Var { name } => self.gen_var_ir(name),
-            Expression::BinOp { sym, lhs, rhs } => self.gen_binop_ir(sym, lhs, rhs),
-            Expression::UnOp { sym, rhs } => self.gen_unop_ir(sym, rhs),
-            Expression::Call { name, args } => self.gen_call_ir(name, args),
-            Expression::Cond { cond, cons, alt } => self.gen_cond_ir(cond, cons, alt),
+            Expression::Num { value } => self.num_codegen(*value),
+            Expression::Var { name } => self.var_codegen(name),
+            Expression::BinOp { sym, lhs, rhs } => self.binop_codegen(sym, lhs, rhs),
+            Expression::UnOp { sym, rhs } => self.unop_codegen(sym, rhs),
+            Expression::Call { name, args } => self.call_codegen(name, args),
+            Expression::Cond { cond, cons, alt } => self.cond_codegen(cond, cons, alt),
             Expression::For {
                 var_name,
                 start,
                 cond,
                 step,
                 body,
-            } => self.gen_for_ir(var_name, start, cond, step, body),
-            Expression::Let { name, init } => self.gen_let_ir(name, init),
+            } => self.for_codegen(var_name, start, cond, step, body),
+            Expression::Let { name, init } => self.let_codegen(name, init),
         }
     }
 
-    fn gen_num_ir(&self, num: u64) -> ExprIrResult<'ctx> {
+    fn num_codegen(&self, num: u64) -> ExprCgResult<'ctx> {
         Ok(self.context.i64_type().const_int(num, false))
     }
 
-    fn gen_var_ir(&self, name: &str) -> ExprIrResult<'ctx> {
+    fn var_codegen(&self, name: &str) -> ExprCgResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
             Some(var) => Ok(self.builder.build_load(*var, name).into_int_value()),
@@ -205,12 +204,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_binop_ir(
+    fn binop_codegen(
         &mut self,
         op: &Symbol,
         lhs: &Expression,
         rhs: &Expression,
-    ) -> ExprIrResult<'ctx> {
+    ) -> ExprCgResult<'ctx> {
         use super::token::Symbol::*;
 
         // If assignment, make sure lvalue is a variable and store rhs there
@@ -220,7 +219,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 _ => return Err("Expected LHS to be a variable for assignment".to_string()),
             };
 
-            let r_val = self.gen_expr_ir(rhs)?;
+            let r_val = self.expr_codegen(rhs)?;
             let l_var = self
                 .local_vars
                 .get(l_var)
@@ -232,8 +231,8 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             return Ok(r_val);
         }
 
-        let lhs = self.gen_expr_ir(lhs)?;
-        let rhs = self.gen_expr_ir(rhs)?;
+        let lhs = self.expr_codegen(lhs)?;
+        let rhs = self.expr_codegen(rhs)?;
 
         // Generate the proper instruction for each op
         match op {
@@ -255,7 +254,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                 let cmp = match op {
                     And => self.builder.build_and(lhs, rhs, "tmpand"),
                     Or => self.builder.build_or(lhs, rhs, "tmpor"),
-                    _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
+                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
                 };
                 // Convert the i1 to a double
                 Ok(cmp)
@@ -265,7 +264,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
                     Gt => IntPredicate::UGT,
                     Lt => IntPredicate::ULT,
                     Eq => IntPredicate::EQ,
-                    _ => return Err("Something went really wrong in gen_binop_ir()".to_string()),
+                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
                 };
                 let cmp = self.builder.build_int_compare(pred, lhs, rhs, "tmpcmp");
                 // Convert the i1 to a double
@@ -277,20 +276,20 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         }
     }
 
-    fn gen_call_ir(&mut self, name: &str, args: &[Expression]) -> ExprIrResult<'ctx> {
+    fn call_codegen(&mut self, name: &str, args: &[Expression]) -> ExprCgResult<'ctx> {
         let func = self
             .module
             .get_function(name)
             .ok_or(format!("Unknown function call: {}", name))?;
 
-        let mut args_ir = Vec::with_capacity(args.len());
+        let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
-            args_ir.push(self.gen_expr_ir(arg)?.into());
+            args_code.push(self.expr_codegen(arg)?.into());
         }
 
         match self
             .builder
-            .build_call(func, &args_ir, "tmpcall")
+            .build_call(func, &args_code, "tmpcall")
             .try_as_basic_value()
             .left()
         {
@@ -300,12 +299,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
     }
 
     // if then optional else
-    fn gen_cond_ir(
+    fn cond_codegen(
         &mut self,
         cond_expr: &Expression,
         then_expr: &[Expression],
         else_expr: &Option<Vec<Expression>>, // todo: can this be a slice?
-    ) -> ExprIrResult<'ctx> {
+    ) -> ExprCgResult<'ctx> {
         // Get the current function for insertion
         let parent = self
             .builder
@@ -313,12 +312,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             .and_then(|x| x.get_parent())
             .ok_or("Parent function not found when building conditional")?;
 
-        // Gen cond expression IR. Will be optimized to a 0 or 1 if comparing
+        // CodeGen expression. Will be optimized to a 0 or 1 if comparing
         // constants. Otherwise, the value will be IR to evaluate. Result will
         // be a float 0 or 1.
-        let cond_val = self.gen_expr_ir(cond_expr)?;
+        let cond_val = self.expr_codegen(cond_expr)?;
 
-        // Gen IR to compare the cond_ir (0 or 1) to 0. Result will be a 1 bit
+        // Codegen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
         // "bool".
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
@@ -346,9 +345,9 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         // Point the builder at the end of the empty then block
         self.builder.position_at_end(then_block);
 
-        // Gen IR for the then block
+        // CodeGen the then block
         for expr in then_expr {
-            self.gen_expr_ir(expr)?;
+            self.expr_codegen(expr)?;
         }
 
         // Make sure the consequent returns to the end block after execution
@@ -358,9 +357,9 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         self.builder.position_at_end(else_block);
 
         if else_expr.is_some() {
-            // Gen IR for the else block
+            // CodeGen the else block
             for expr in else_expr.as_ref().unwrap() {
-                self.gen_expr_ir(expr)?;
+                self.expr_codegen(expr)?;
             }
 
             // Make sure the alternative returns to the end block after execution
@@ -373,7 +372,7 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         Ok(self.context.i64_type().const_zero())
     }
 
-    /* Generates IR for conditionals. IR roughly looks like:
+    /* CodeGen for conditionals. IR roughly looks like:
      *              |condition|
      *                 |   |
      *       ----------     ----------
@@ -388,12 +387,12 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
      */
     // Keeping as an example of using phi
     #[allow(dead_code)]
-    fn gen_cond_ir_phi(
+    fn cond_codegen_phi(
         &mut self,
         cond: &Expression,
         cons: &[Expression],
         alt: &Option<Vec<Expression>>, // todo: can this be a slice?
-    ) -> ExprIrResult<'ctx> {
+    ) -> ExprCgResult<'ctx> {
         // Get the current function for insertion
         let parent = self
             .builder
@@ -401,16 +400,16 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
             .and_then(|x| x.get_parent())
             .ok_or("Parent function not found when building conditional")?;
 
-        // Gen cond expression IR. Will be optimized to a 0 or 1 if comparing
+        // CodeGen cond expression. Will be optimized to a 0 or 1 if comparing
         // constants. Otherwise, the value will be IR to evaluate. Result will
         // be a float 0.0 or 1.0.
-        let cond_ir = self.gen_expr_ir(cond)?;
+        let cond_code = self.expr_codegen(cond)?;
 
-        // Gen IR to compare the cond_ir (0 or 1) to 0. Result will be a 1 bit
+        // CodeGen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
         // "bool".
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
-            cond_ir,
+            cond_code,
             self.context.i64_type().const_zero(),
             "ifcond",
         );
@@ -426,58 +425,58 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Point the builder at the end of the empty cons block
         self.builder.position_at_end(cons_bb);
-        // Gen IR for the cons block
-        let mut cons_ir: Option<IntValue> = None; // todo: this is aweful
+        // CodeGen the cons block
+        let mut cons_code: Option<IntValue> = None; // todo: this is aweful
         for expr in cons {
-            cons_ir = Some(self.gen_expr_ir(expr)?);
+            cons_code = Some(self.expr_codegen(expr)?);
         }
 
         // Make sure the consequent returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
-        // Update cons_bb in case the gen_expr_ir() moved it
+        // Update cons_bb in case the expr_codegen() moved it
         cons_bb = self.builder.get_insert_block().unwrap();
 
         // Point the builder at the end of the empty alt block
         self.builder.position_at_end(alt_bb);
-        // Gen IR for the alt block
-        let mut alt_ir: Option<IntValue> = None;
+        // CodeGen for the alt block
+        let mut alt_code: Option<IntValue> = None;
         for expr in alt.as_ref().unwrap() {
-            alt_ir = Some(self.gen_expr_ir(expr)?);
+            alt_code = Some(self.expr_codegen(expr)?);
         }
         // Make sure the alternative returns to the merge block after execution
         self.builder.build_unconditional_branch(merge_bb);
-        // Update alt_bb in case the gen_expr_ir() moved it
+        // Update alt_bb in case the expr_codegen() moved it
         alt_bb = self.builder.get_insert_block().unwrap();
 
         // Point the builder at the end of the empty merge block
         self.builder.position_at_end(merge_bb);
         // Create the phi node and insert code/value pairs
         let phi = self.builder.build_phi(self.context.i64_type(), "condtmp");
-        phi.add_incoming(&[(&cons_ir.unwrap(), cons_bb), (&alt_ir.unwrap(), alt_bb)]);
+        phi.add_incoming(&[(&cons_code.unwrap(), cons_bb), (&alt_code.unwrap(), alt_bb)]);
 
         Ok(phi.as_basic_value().into_int_value())
     }
 
     // for start; cond; step { body }
     // start == let var_name = x
-    fn gen_for_ir(
+    fn for_codegen(
         &mut self,
         var_name: &str,
         start: &Expression,
         cond: &Expression,
         step: &Expression,
         body: &[Expression],
-    ) -> ExprIrResult<'ctx> {
+    ) -> ExprCgResult<'ctx> {
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
             .ok_or("Parent function not found when building loop")?;
 
-        // Create entry alloca, generate start expr IR, and store result
+        // Create entry alloca, codegen start expr, and store result
         let start_alloca = self.create_entry_block_alloca(var_name, &parent);
-        let start_ir = self.gen_expr_ir(start)?;
-        self.builder.build_store(start_alloca, start_ir);
+        let start_code = self.expr_codegen(start)?;
+        self.builder.build_store(start_alloca, start_code);
 
         // Create a block for the loop, a branch to it, and move the insertion
         // to it
@@ -492,24 +491,24 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
 
         // Generate all body expressions
         for expr in body {
-            self.gen_expr_ir(expr)?;
+            self.expr_codegen(expr)?;
         }
 
-        // Generate step value and end cond IR
-        let step_ir = self.gen_expr_ir(step)?;
-        let cond_ir = self.gen_expr_ir(cond)?;
+        // Codegen step value and end cond
+        let step_code = self.expr_codegen(step)?;
+        let cond_code = self.expr_codegen(cond)?;
 
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
         let cur = self.builder.build_load(start_alloca, var_name);
         let next = self
             .builder
-            .build_int_add(cur.into_int_value(), step_ir, "incvar");
+            .build_int_add(cur.into_int_value(), step_code, "incvar");
         self.builder.build_store(start_alloca, next);
 
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
-            cond_ir,
+            cond_code,
             self.context.i64_type().const_zero(),
             "endcond",
         );
@@ -530,34 +529,34 @@ impl<'a, 'ctx> IrGenerator<'a, 'ctx> {
         Ok(self.context.i64_type().const_zero())
     }
 
-    fn gen_unop_ir(&mut self, op: &Symbol, rhs: &Expression) -> ExprIrResult<'ctx> {
+    fn unop_codegen(&mut self, op: &Symbol, rhs: &Expression) -> ExprCgResult<'ctx> {
         use Symbol::*;
 
-        let rhs = self.gen_expr_ir(rhs)?;
+        let rhs = self.expr_codegen(rhs)?;
         match op {
             Minus => Ok(self.builder.build_int_neg(rhs, "neg")),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
 
-    fn gen_let_ir(&mut self, name: &str, init: &Option<Box<Expression>>) -> ExprIrResult<'ctx> {
+    fn let_codegen(&mut self, name: &str, init: &Option<Box<Expression>>) -> ExprCgResult<'ctx> {
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
             .ok_or("Parent function not found when building let expression")?;
 
-        let init_ir = match init {
-            Some(init) => self.gen_expr_ir(init)?,
+        let init_code = match init {
+            Some(init) => self.expr_codegen(init)?,
             None => self.context.i64_type().const_zero(),
         };
 
         let init_alloca = self.create_entry_block_alloca(name, &parent);
-        self.builder.build_store(init_alloca, init_ir);
+        self.builder.build_store(init_alloca, init_code);
 
         self.local_vars.insert(name.to_owned(), init_alloca);
 
-        Ok(init_ir)
+        Ok(init_code)
     }
 }
 
@@ -574,17 +573,17 @@ mod test {
     use crate::parser::Parser;
 
     // This is how we "deserialize" FunctionValue to work with insta
-    fn ir_to_string(ir: Result<FunctionValue, String>) -> String {
-        match ir {
-            Ok(ir) => ir.print_to_string().to_string(),
+    fn code_to_string(code: Result<FunctionValue, String>) -> String {
+        match code {
+            Ok(code) => code.print_to_string().to_string(),
             Err(err) => err,
         }
     }
 
     #[test]
-    fn test_ir_gen() {
+    fn test_codegen() {
         with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            glob!("tests/inputs/ir_gen/*.input", |path| {
+            glob!("tests/inputs/codegen/*.input", |path| {
                 let input = fs::read_to_string(path).unwrap();
                 let tokens = Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap();
                 let parser = Parser::new(&tokens);
@@ -594,9 +593,9 @@ mod test {
                 let builder = context.create_builder();
                 let module = context.create_module("main_mod");
                 let fpm = PassManager::create(&module);
-                let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
+                let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
 
-                assert_yaml_snapshot!(ir_to_string(ir_gen.generate(&ast)));
+                assert_yaml_snapshot!(code_to_string(codegen.run(&ast)));
             });
         });
     }

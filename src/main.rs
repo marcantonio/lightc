@@ -1,11 +1,11 @@
 mod ast;
-mod ir_generator;
+mod codegen;
 mod jit_externs;
 mod lexer;
 mod parser;
 mod token;
 
-use crate::ir_generator::IrGenerator;
+use crate::codegen::CodeGen;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
@@ -55,14 +55,14 @@ fn main() {
         println!();
     }
 
-    // IR gen
+    // CodeGen
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("light_main");
     set_target_machine(&module);
     let fpm = PassManager::create(&module);
-    let mut ir_gen = IrGenerator::new(&context, &builder, &module, &fpm);
-    ir_gen.generate(&ast).expect("Compiler error");
+    let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
+    codegen.run(&ast).expect("Compiler error");
 
     let tmp_file = tempfile::Builder::new()
         .prefix("lightc-")
