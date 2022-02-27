@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use serde::Serialize;
+use std::fmt::Display;
 
 use crate::token::Symbol;
 
@@ -8,7 +8,6 @@ pub(crate) enum AstNode {
     Expr(Expression),
     Func(Function),
 }
-
 
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -1,5 +1,5 @@
-use std::iter::Peekable;
 use serde::Serialize;
+use std::iter::Peekable;
 
 use crate::token::{Symbol, Token, TokenType};
 

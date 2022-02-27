@@ -12,7 +12,11 @@ impl Token {
     // bug
     #[allow(dead_code)]
     pub(crate) fn new(ty: TokenType, line: usize, column: usize) -> Self {
-        Token { tt: ty, line, column }
+        Token {
+            tt: ty,
+            line,
+            column,
+        }
     }
 }
 
@@ -57,7 +61,7 @@ pub enum TokenType {
     OpenBrace,
     OpenParen,
     Semicolon,
-//    VarType(Type),
+    //VarType(Type),
 }
 
 impl std::fmt::Display for TokenType {
