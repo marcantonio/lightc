@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 440
 expression: asts
-input_file: tests/inputs/parser/func_def.input
+input_file: src/parser/tests/inputs/func_def.input
 
 ---
 - - Ok:
@@ -51,8 +51,8 @@ input_file: tests/inputs/parser/func_def.input
 - - Err:
       message: "Expecting ',' or ')' in prototype. Got identifier: b"
       line: 1
-      column: 8
-  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:8"
+      column: 6
+  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:6"
 - - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
@@ -64,10 +64,10 @@ input_file: tests/inputs/parser/func_def.input
       column: 9
   - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:9"
 - - Err:
-      message: "Parsing error: Expecting ',' or ')' in prototype at 1:6"
-      line: 0
-      column: 0
-  - "Parsing error: Parsing error: Expecting ',' or ')' in prototype at 1:6"
+      message: "Expecting ',' or ')' in prototype. Got identifier: a"
+      line: 1
+      column: 6
+  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: a at 1:6"
 - - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0

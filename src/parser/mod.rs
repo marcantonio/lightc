@@ -149,6 +149,7 @@ impl<'a> Parser<'a> {
 
         let mut args: Vec<String> = vec![];
         while let Some(&next) = self.tokens.peek() {
+            // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
                 break;
             }
@@ -160,23 +161,22 @@ impl<'a> Parser<'a> {
             );
             args.push(id.to_string());
 
-            // XXX merge with below error?
-            let next = self.tokens.peek().ok_or_else(|| {
-                ParseError::from(("Expecting ',' or ')' in prototype".to_string(), next))
-                    .to_string()
-            })?;
-
-            // XXX after all of the error refactoring, can we delete the if? (not if else)
-            if next.tt == TokenType::CloseParen {
-                break;
-            } else if next.tt != TokenType::Comma {
-                return Err(ParseError::from((
-                    format!("Expecting ',' or ')' in prototype. Got {}", next),
-                    *next,
-                )));
-            }
-            // Eat comma
-            self.tokens.next();
+            match self.tokens.peek() {
+                Some(Token {
+                    tt: TokenType::CloseParen,
+                    ..
+                }) => break,
+                Some(Token {
+                    tt: TokenType::Comma,
+                    ..
+                }) => self.tokens.next(), // Eat comma
+                _ => {
+                    return Err(ParseError::from((
+                        format!("Expecting ',' or ')' in prototype. Got {}", next),
+                        next,
+                    )))
+                }
+            };
         }
 
         // Eat close paren
@@ -210,31 +210,31 @@ impl<'a> Parser<'a> {
         // Eat open paren
         self.tokens.next();
 
-        // XXX is this the same as parse_proto?
         let mut args: Vec<Expression> = vec![];
-        while let Some(next) = self.tokens.peek() {
+        while let Some(&next) = self.tokens.peek() {
+            // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
                 break;
             }
 
             args.push(self.parse_expression(0)?);
 
-            // XXX merge with below error?
-            let &next = self
-                .tokens
-                .peek()
-                .ok_or_else(|| "Expecting ',' or ')' in function call".to_string())?;
-
-            if next.tt == TokenType::CloseParen {
-                break;
-            } else if next.tt != TokenType::Comma {
-                return Err(ParseError::from((
-                    format!("Expecting ',' in function call. Got {}", next),
-                    next,
-                )));
-            }
-            // Eat comma
-            self.tokens.next();
+            match self.tokens.peek() {
+                Some(Token {
+                    tt: TokenType::CloseParen,
+                    ..
+                }) => break,
+                Some(Token {
+                    tt: TokenType::Comma,
+                    ..
+                }) => self.tokens.next(), // Eat comma
+                _ => {
+                    return Err(ParseError::from((
+                        format!("Expecting ',' or ')' in function call. Got {}", next),
+                        next,
+                    )))
+                }
+            };
         }
 
         // Eat close paren

@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/call_expr.input
+input_file: src/parser/tests/inputs/call_expr.input
 
 ---
 - - Ok:
@@ -21,18 +21,18 @@ input_file: tests/inputs/parser/call_expr.input
       column: 0
   - "Parsing error: Expecting ')' in function call. Got EOF"
 - - Err:
-      message: "Expecting ',' or ')' in function call"
-      line: 0
-      column: 0
-  - "Parsing error: Expecting ',' or ')' in function call"
+      message: "Expecting ',' or ')' in function call. Got identifier: a"
+      line: 1
+      column: 3
+  - "Parsing error: Expecting ',' or ')' in function call. Got identifier: a at 1:3"
 - - Err:
       message: "Expecting ')' in function call. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting ')' in function call. Got EOF"
 - - Err:
-      message: "Expecting ',' in function call. Got identifier: b"
+      message: "Expecting ',' or ')' in function call. Got identifier: b"
       line: 1
-      column: 5
-  - "Parsing error: Expecting ',' in function call. Got identifier: b at 1:5"
+      column: 3
+  - "Parsing error: Expecting ',' or ')' in function call. Got identifier: b at 1:3"
 

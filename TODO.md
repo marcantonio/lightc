@@ -11,6 +11,7 @@
 - [x] More context in codegen errors
 - [ ] Include file name in error
 - [ ] Add while and desugar for loops
+- [ ] Fix main exit code
 
 # Roadmap
 - [ ] Formalize grammar
