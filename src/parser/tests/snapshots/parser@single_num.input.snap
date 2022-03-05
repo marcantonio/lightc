@@ -1,13 +1,12 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/single_num.input
+input_file: src/parser/tests/inputs/single_num.input
 
 ---
 - - Ok:
       - Expr:
-          Num:
-            value: 19
+          I64: 19
   - "19"
 

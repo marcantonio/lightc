@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/gt_lt.input
+input_file: src/parser/tests/inputs/gt_lt.input
 
 ---
 - - Ok:
@@ -19,8 +19,7 @@ input_file: tests/inputs/parser/gt_lt.input
                   Var:
                     name: b
             rhs:
-              Num:
-                value: 40
+              I64: 40
   - (> (+ a b) 40)
 - - Ok:
       - Expr:
@@ -36,7 +35,6 @@ input_file: tests/inputs/parser/gt_lt.input
                   Var:
                     name: b
                 rhs:
-                  Num:
-                    value: 40
+                  I64: 40
   - (< a (/ b 40))
 

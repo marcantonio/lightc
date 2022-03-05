@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/paren_prec.input
+input_file: src/parser/tests/inputs/paren_prec.input
 
 ---
 - - Ok:
@@ -13,13 +13,10 @@ input_file: tests/inputs/parser/paren_prec.input
               BinOp:
                 sym: Plus
                 lhs:
-                  Num:
-                    value: 19
+                  I64: 19
                 rhs:
-                  Num:
-                    value: 21
+                  I64: 21
             rhs:
-              Num:
-                value: 40
+              I64: 40
   - (/ (+ 19 21) 40)
 

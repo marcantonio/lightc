@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/unary_ops.input
+input_file: src/parser/tests/inputs/unary_ops.input
 
 ---
 - - Ok:
@@ -10,8 +10,7 @@ input_file: tests/inputs/parser/unary_ops.input
           UnOp:
             sym: Minus
             rhs:
-              Num:
-                value: 21
+              I64: 21
   - (- 21)
 - - Ok:
       - Expr:
@@ -24,22 +23,19 @@ input_file: tests/inputs/parser/unary_ops.input
                   Var:
                     name: a
             rhs:
-              Num:
-                value: 2
+              I64: 2
   - (* (- a) 2)
 - - Ok:
       - Expr:
           BinOp:
             sym: Minus
             lhs:
-              Num:
-                value: 3
+              I64: 3
             rhs:
               UnOp:
                 sym: Minus
                 rhs:
-                  Num:
-                    value: 21
+                  I64: 21
   - (- 3 (- 21))
 - - Ok:
       - Expr:
@@ -49,11 +45,9 @@ input_file: tests/inputs/parser/unary_ops.input
               BinOp:
                 sym: Pow
                 lhs:
-                  Num:
-                    value: 4
+                  I64: 4
                 rhs:
-                  Num:
-                    value: 2
+                  I64: 2
   - (- (^ 4 2))
 - - Ok:
       - Expr:
@@ -63,8 +57,7 @@ input_file: tests/inputs/parser/unary_ops.input
               UnOp:
                 sym: Minus
                 rhs:
-                  Num:
-                    value: 21
+                  I64: 21
   - (- (- 21))
 - - Err:
       message: "Unknown unary operator: *"

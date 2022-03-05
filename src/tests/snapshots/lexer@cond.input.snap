@@ -1,8 +1,8 @@
 ---
-source: tests/lexer.rs
-assertion_line: 12
+source: src/lexer.rs
+assertion_line: 262
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/lexer/cond.input
+input_file: src/tests/inputs/lexer/cond.input
 
 ---
 Ok:
@@ -22,7 +22,7 @@ Ok:
     line: 1
     column: 8
   - tt:
-      Int: 3
+      Num: "3"
     line: 1
     column: 9
   - tt: OpenBrace
@@ -76,7 +76,7 @@ Ok:
     line: 7
     column: 6
   - tt:
-      Int: 3
+      Num: "3"
     line: 7
     column: 8
   - tt: OpenBrace
@@ -114,7 +114,7 @@ Ok:
     line: 9
     column: 13
   - tt:
-      Int: 1
+      Num: "1"
     line: 9
     column: 16
   - tt: OpenBrace

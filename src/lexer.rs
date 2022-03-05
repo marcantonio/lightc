@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::iter::Peekable;
 
-use crate::token::{Symbol, Token, TokenType};
+use crate::token::{Symbol, Token, TokenType, Type};
 
 type LexResult = std::result::Result<Token, LexError>;
 
@@ -16,6 +16,7 @@ impl Lexer {
         }
     }
 
+    // Recursively process enough characters to produce one token
     fn lex(&mut self) -> LexResult {
         let cur = match self.stream.next() {
             Some(cur) => cur,
@@ -57,33 +58,32 @@ impl Lexer {
             let tt = match identifier.as_str() {
                 "else" => TokenType::Else,
                 "extern" => TokenType::Extern,
-                //"u64" => TokenTypeVarType(TokenTypeU64),
+                "f64" => TokenType::VarType(Type::F64),
                 "fn" => TokenType::Fn,
                 "for" => TokenType::For,
+                "i64" => TokenType::VarType(Type::I64),
                 "if" => TokenType::If,
                 "let" => TokenType::Let,
+                "u64" => TokenType::VarType(Type::U64),
                 _ => TokenType::Ident(identifier),
             };
 
             return Ok(Token::from((tt, cur)));
         }
 
-        // Numbers
+        // Literal numbers
         if cur.value.is_ascii_digit() {
-            let mut num = String::from(cur.value);
+            let mut n = String::from(cur.value);
             while let Some(c) = self.stream.peek() {
                 if c.value.is_ascii_alphanumeric() || *c == '.' {
-                    num.push(c.value);
+                    n.push(c.value);
                     self.stream.next();
                 } else {
                     break;
                 }
             }
 
-            return match num.parse() {
-                Ok(n) => Ok(Token::from((TokenType::Int(n), cur))),
-                Err(_) => Err(LexError::from((format!("Invalid number: {}", num), cur))),
-            };
+            return Ok(Token::from((TokenType::Num(n), cur)));
         }
 
         // Logical operators
@@ -146,7 +146,7 @@ impl Iterator for Lexer {
 }
 
 // Provides additional context for each source character
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct ContextPoint<T> {
     value: T,
     line: usize,
@@ -296,16 +296,16 @@ ghi
         use TokenType::*;
 
         let input = "\
-let foo = 14
+foo + bar
 // bar
 / not_a_comment
 baz
 ";
         let mut lexer = Lexer::new(input);
-        assert_eq!(Ok(Token::new(Let, 1, 1)), lexer.lex());
-        assert_eq!(Ok(Token::new(Ident("foo".to_string()), 1, 5)), lexer.lex());
-        assert_eq!(Ok(Token::new(Op(Assign), 1, 9)), lexer.lex());
-        assert_eq!(Ok(Token::new(Int(14), 1, 11)), lexer.lex());
+
+        assert_eq!(Ok(Token::new(Ident("foo".to_string()), 1, 1)), lexer.lex());
+        assert_eq!(Ok(Token::new(Op(Plus), 1, 5)), lexer.lex());
+        assert_eq!(Ok(Token::new(Ident("bar".to_string()), 1, 7)), lexer.lex());
         assert_eq!(Ok(Token::new(Op(Div), 3, 1)), lexer.lex());
         assert_eq!(
             Ok(Token::new(Ident("not_a_comment".to_string()), 3, 3)),

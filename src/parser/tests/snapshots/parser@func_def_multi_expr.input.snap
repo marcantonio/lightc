@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/func_def_multi_expr.input
+input_file: src/parser/tests/inputs/func_def_multi_expr.input
 
 ---
 - - Ok:
@@ -19,14 +19,12 @@ input_file: tests/inputs/parser/func_def_multi_expr.input
                   BinOp:
                     sym: Plus
                     lhs:
-                      Num:
-                        value: 19
+                      I64: 19
                     rhs:
                       Var:
                         name: a
                 rhs:
-                  Num:
-                    value: 40
+                  I64: 40
             - BinOp:
                 sym: Plus
                 lhs:

@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/call_with_expr_arg.input
+input_file: src/parser/tests/inputs/call_with_expr_arg.input
 
 ---
 - - Ok:
@@ -16,8 +16,7 @@ input_file: tests/inputs/parser/call_with_expr_arg.input
                     Var:
                       name: b
                   rhs:
-                    Num:
-                      value: 1
+                    I64: 1
               - BinOp:
                   sym: Minus
                   lhs:
@@ -27,10 +26,8 @@ input_file: tests/inputs/parser/call_with_expr_arg.input
                     BinOp:
                       sym: Div
                       lhs:
-                        Num:
-                          value: 2
+                        I64: 2
                       rhs:
-                        Num:
-                          value: 4
+                        I64: 4
   - (a (+ b 1) (- c (/ 2 4)))
 

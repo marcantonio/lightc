@@ -1,8 +1,8 @@
 ---
-source: tests/lexer.rs
-assertion_line: 12
+source: src/lexer.rs
+assertion_line: 262
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/lexer/trailing_comment.input
+input_file: src/tests/inputs/lexer/trailing_comment.input
 
 ---
 Ok:
@@ -18,7 +18,7 @@ Ok:
     line: 1
     column: 9
   - tt:
-      Int: 13
+      Num: "13"
     line: 1
     column: 11
 

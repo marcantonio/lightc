@@ -11,9 +11,9 @@ impl Token {
     // I believe the need for pub here, and also the warning, is a rust-analyzer
     // bug
     #[allow(dead_code)]
-    pub(crate) fn new(ty: TokenType, line: usize, column: usize) -> Self {
+    pub(crate) fn new(tt: TokenType, line: usize, column: usize) -> Self {
         Token {
-            tt: ty,
+            tt,
             line,
             column,
         }
@@ -43,7 +43,7 @@ impl Default for Token {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum TokenType {
+pub(crate) enum TokenType {
     CloseBrace,
     CloseParen,
     Colon,
@@ -55,13 +55,13 @@ pub enum TokenType {
     For,
     Ident(String),
     If,
-    Int(u64),
     Let,
+    Num(String),
     Op(Symbol),
     OpenBrace,
     OpenParen,
     Semicolon,
-    //VarType(Type),
+    VarType(Type),
 }
 
 impl std::fmt::Display for TokenType {
@@ -72,14 +72,16 @@ impl std::fmt::Display for TokenType {
             Eof => write!(f, "EOF"),
             Op(s) => write!(f, "{}", s),
             Ident(i) => write!(f, "identifier: {}", i),
-            Int(i) => write!(f, "integer: {}", i),
+            Num(i) => write!(f, "number: {}", i),
             tt => write!(f, "{:?}", tt),
         }
     }
 }
 
+// A Symbol is an extra layer of abstraction between TokenType::Op() and the
+// actual character. Convenient in Rust to help constrain matching.
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
-pub enum Symbol {
+pub(crate) enum Symbol {
     And,
     Assign,
     Div,
@@ -114,7 +116,16 @@ impl std::fmt::Display for Symbol {
     }
 }
 
-// #[derive(Debug, PartialEq, Clone, Serialize)]
-// pub enum Type {
-//     U64,
-// }
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+pub(crate) enum Type {
+    U64,
+    I64,
+    F64,
+}
+
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = format!("{:?}", self).to_ascii_lowercase();
+        write!(f, "{}", s)
+    }
+}

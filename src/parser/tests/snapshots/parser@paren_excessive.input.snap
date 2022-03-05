@@ -1,13 +1,12 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/paren_excessive.input
+input_file: src/parser/tests/inputs/paren_excessive.input
 
 ---
 - - Ok:
       - Expr:
-          Num:
-            value: 0
+          I64: 0
   - "0"
 

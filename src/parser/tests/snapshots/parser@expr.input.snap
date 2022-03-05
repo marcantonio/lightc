@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 452
 expression: asts
-input_file: tests/inputs/parser/expr.input
+input_file: src/parser/tests/inputs/expr.input
 
 ---
 - - Ok:
@@ -13,20 +13,18 @@ input_file: tests/inputs/parser/expr.input
               BinOp:
                 sym: Plus
                 lhs:
-                  Num:
-                    value: 19
+                  I64: 19
                 rhs:
                   Var:
                     name: a
             rhs:
-              Num:
-                value: 40
+              I64: 40
   - (+ (+ 19 a) 40)
 - - Err:
-      message: Invalid expression
+      message: Premature end of expression
       line: 0
       column: 0
-  - "Parsing error: Invalid expression"
+  - "Parsing error: Premature end of expression"
 - - Err:
       message: Expecting primary expression. Got Else
       line: 1

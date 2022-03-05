@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::fmt::Display;
 
-use crate::token::Symbol;
+use crate::token::{Symbol, Type};
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum AstNode {
@@ -20,9 +20,9 @@ impl Display for AstNode {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Expression {
-    Num {
-        value: u64,
-    },
+    I64(u64),
+    U64(u64),
+    F64(f64),
     Var {
         name: String,
     },
@@ -53,18 +53,22 @@ pub(crate) enum Expression {
     },
     Let {
         name: String,
+        ty: Type,
         init: Option<Box<Expression>>,
     },
 }
 
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Expression::*;
         match self {
-            Expression::Num { value } => write!(f, "{}", value),
-            Expression::BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
-            Expression::UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
-            Expression::Var { name } => write!(f, "{}", name),
-            Expression::Call { name, args } => {
+            U64(v) => write!(f, "{}", v),
+            I64(v) => write!(f, "{}", v),
+            F64(v) => write!(f, "{}", v),
+            BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
+            UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
+            Var { name } => write!(f, "{}", name),
+            Call { name, args } => {
                 let mut s = format!("({}", name);
                 if !args.is_empty() {
                     for arg in args {
@@ -73,7 +77,7 @@ impl Display for Expression {
                 }
                 write!(f, "{})", s)
             }
-            Expression::Cond { cond, cons, alt } => {
+            Cond { cond, cons, alt } => {
                 let mut s = format!("(if {}", cond);
                 s += &cons.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!(" {}", n);
@@ -88,7 +92,7 @@ impl Display for Expression {
                 }
                 write!(f, "{})", s)
             }
-            Expression::For {
+            For {
                 var_name,
                 start,
                 cond,
@@ -102,9 +106,9 @@ impl Display for Expression {
                 });
                 write!(f, "{})", s)
             }
-            Expression::Let { name, init: body } => {
-                let mut s = format!("(let {}", name);
-                if let Some(body) = body {
+            Let { name, ty, init } => {
+                let mut s = format!("(let {}:{}", name, ty);
+                if let Some(body) = init {
                     s += &format!(" {}", body);
                 }
                 write!(f, "{})", s)

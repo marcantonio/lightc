@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 452
 expression: asts
-input_file: tests/inputs/parser/for.input
+input_file: src/parser/tests/inputs/for.input
 
 ---
 - - Ok:
@@ -10,8 +10,7 @@ input_file: tests/inputs/parser/for.input
           For:
             var_name: x
             start:
-              Num:
-                value: 1
+              I64: 1
             cond:
               BinOp:
                 sym: Lt
@@ -19,11 +18,9 @@ input_file: tests/inputs/parser/for.input
                   Var:
                     name: x
                 rhs:
-                  Num:
-                    value: 10
+                  I64: 10
             step:
-              Num:
-                value: 1
+              I64: 1
             body:
               - Var:
                   name: foo
@@ -44,10 +41,10 @@ input_file: tests/inputs/parser/for.input
       column: 0
   - "Parsing error: Expecting '=' after identifer. Got EOF"
 - - Err:
-      message: Invalid expression
+      message: Premature end of expression
       line: 0
       column: 0
-  - "Parsing error: Invalid expression"
+  - "Parsing error: Premature end of expression"
 - - Err:
       message: "Expecting ';' after start. Got EOF"
       line: 0

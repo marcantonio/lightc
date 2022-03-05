@@ -12,12 +12,14 @@ fn print_bang() {
 }
 
 fn foo(x) {
-    let xasdf = 1
+    let xasdf: u64 = 1
     2
 }
 
 fn main() {
-    let x = 1
-    x
-    foo(2)
+    let x: u64 = 1
+    let y: f64 = 1.0
+    foo(2 + x)
+    print_dot()
+    print_bang()
 }

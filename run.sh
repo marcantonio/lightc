@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cargo run $@ && ./a.out
+cargo run -- $@ && ./a.out

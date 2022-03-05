@@ -62,7 +62,7 @@ fn main() {
     set_target_machine(&module);
     let fpm = PassManager::create(&module);
     let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
-    codegen.run(&ast).expect("Compiler error");
+    codegen.walk(&ast).expect("Compiler error");
 
     let tmp_file = tempfile::Builder::new()
         .prefix("lightc-")

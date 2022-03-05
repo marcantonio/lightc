@@ -1,0 +1,75 @@
+---
+source: src/lexer.rs
+assertion_line: 264
+expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+input_file: src/tests/inputs/lexer/let.input
+
+---
+Ok:
+  - tt: Let
+    line: 1
+    column: 1
+  - tt:
+      Ident: a
+    line: 1
+    column: 5
+  - tt: Colon
+    line: 1
+    column: 6
+  - tt:
+      VarType: U64
+    line: 1
+    column: 8
+  - tt:
+      Op: Assign
+    line: 1
+    column: 12
+  - tt:
+      Num: "1"
+    line: 1
+    column: 14
+  - tt: Let
+    line: 2
+    column: 1
+  - tt:
+      Ident: b
+    line: 2
+    column: 5
+  - tt: Colon
+    line: 2
+    column: 6
+  - tt:
+      VarType: I64
+    line: 2
+    column: 8
+  - tt:
+      Op: Assign
+    line: 2
+    column: 12
+  - tt:
+      Num: "2"
+    line: 2
+    column: 14
+  - tt: Let
+    line: 3
+    column: 1
+  - tt:
+      Ident: c
+    line: 3
+    column: 5
+  - tt: Colon
+    line: 3
+    column: 6
+  - tt:
+      Ident: f32
+    line: 3
+    column: 8
+  - tt:
+      Op: Assign
+    line: 3
+    column: 12
+  - tt:
+      Num: "3.0"
+    line: 3
+    column: 14
+

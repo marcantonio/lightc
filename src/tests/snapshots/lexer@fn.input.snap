@@ -1,8 +1,8 @@
 ---
-source: tests/lexer.rs
-assertion_line: 12
+source: src/lexer.rs
+assertion_line: 262
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
-input_file: tests/inputs/lexer/fn.input
+input_file: src/tests/inputs/lexer/fn.input
 
 ---
 Ok:
@@ -59,7 +59,7 @@ Ok:
     line: 2
     column: 12
   - tt:
-      Int: 2
+      Num: "2"
     line: 2
     column: 14
   - tt: CloseBrace

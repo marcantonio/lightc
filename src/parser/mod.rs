@@ -50,9 +50,9 @@ impl<'a> Parser<'a> {
         let token = self
             .tokens
             .next()
-            .ok_or_else(|| "Invalid expression".to_string())?;
+            .ok_or_else(|| "Premature end of expression".to_string())?;
         let mut lhs = match &token.tt {
-            TokenType::Int(n) => self.parse_num(*n)?,
+            TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
             TokenType::OpenParen => self.parse_paren()?,
             TokenType::If => self.parse_cond()?,
@@ -188,9 +188,27 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_num(&self, n: u64) -> ExprParseResult {
-        Ok(Expression::Num { value: n })
+    fn parse_num(&self, num: &str, token: &Token) -> ExprParseResult {
+        if let Ok(n) = num.parse::<i64>() {
+            Ok(Expression::I64(n))
+        } else if let Ok(n) = num.parse::<u64>() {
+            Ok(Expression::U64(n))
+        } else if let Ok(n) = num.parse::<f64>() {
+            Ok(Expression::F64(n))
+        } else {
+            Err(ParseError::from((
+                format!("Invalid number literal: {}", token),
+                token,
+            )))
+        }
     }
+
+    // pub(crate) fn bool(s: &str) -> Option<Value> {
+    //     match s.parse::<bool>() {
+    //         Ok(b) => Some(Value::Bool(b)),
+    //         Err(_) => None,
+    //     }
+    // }        Ok(Expression::Num { value: n })
 
     // Variable or function call
     fn parse_ident(&mut self, id: &str) -> ExprParseResult {
@@ -340,6 +358,18 @@ impl<'a> Parser<'a> {
             "Expecting identifier after let"
         );
 
+        expect_next_token!(
+            self.tokens,
+            TokenType::Colon,
+            "Expecting colon in let statement"
+        );
+
+        let ty = expect_next_token!(
+            self.tokens,
+            TokenType::VarType(_),
+            "Type annotation required in let statement"
+        );
+
         let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
             self.tokens.next();
             Some(self.parse_expression(0)?)
@@ -347,6 +377,7 @@ impl<'a> Parser<'a> {
 
         Ok(Expression::Let {
             name: var_name.to_owned(),
+            ty: *ty,
             init: init.map(Box::new),
         })
     }

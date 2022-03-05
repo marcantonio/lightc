@@ -1,24 +1,40 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 452
 expression: asts
-input_file: tests/inputs/parser/let.input
+input_file: src/parser/tests/inputs/let.input
 
 ---
 - - Ok:
       - Expr:
           Let:
             name: x
-            init: ~
-  - (let x)
+            ty: U64
+            init:
+              I64: 1
+  - "(let x:u64 1)"
+- - Err:
+      message: Premature end of expression
+      line: 0
+      column: 0
+  - "Parsing error: Premature end of expression"
 - - Ok:
       - Expr:
           Let:
             name: x
-            init:
-              Num:
-                value: 1
-  - (let x 1)
+            ty: U64
+            init: ~
+  - "(let x:u64)"
+- - Err:
+      message: Type annotation required in let statement. Got EOF
+      line: 0
+      column: 0
+  - "Parsing error: Type annotation required in let statement. Got EOF"
+- - Err:
+      message: Expecting colon in let statement. Got EOF
+      line: 0
+      column: 0
+  - "Parsing error: Expecting colon in let statement. Got EOF"
 - - Err:
       message: Expecting identifier after let. Got EOF
       line: 0

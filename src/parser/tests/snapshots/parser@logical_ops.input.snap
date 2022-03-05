@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 439
 expression: asts
-input_file: tests/inputs/parser/logical_ops.input
+input_file: src/parser/tests/inputs/logical_ops.input
 
 ---
 - - Ok:
@@ -13,8 +13,7 @@ input_file: tests/inputs/parser/logical_ops.input
               Var:
                 name: x
             rhs:
-              Num:
-                value: 1
+              I64: 1
   - (== x 1)
 - - Ok:
       - Expr:
@@ -24,8 +23,7 @@ input_file: tests/inputs/parser/logical_ops.input
               Var:
                 name: x
             rhs:
-              Num:
-                value: 1
+              I64: 1
   - (&& x 1)
 - - Ok:
       - Expr:
@@ -35,8 +33,7 @@ input_file: tests/inputs/parser/logical_ops.input
               Var:
                 name: x
             rhs:
-              Num:
-                value: 1
+              I64: 1
   - (|| x 1)
 - - Ok:
       - Expr:
@@ -52,8 +49,7 @@ input_file: tests/inputs/parser/logical_ops.input
                       Var:
                         name: x
                     rhs:
-                      Num:
-                        value: 1
+                      I64: 1
                 rhs:
                   BinOp:
                     sym: Eq
@@ -61,8 +57,7 @@ input_file: tests/inputs/parser/logical_ops.input
                       Var:
                         name: y
                     rhs:
-                      Num:
-                        value: 2
+                      I64: 2
             rhs:
               BinOp:
                 sym: Eq
@@ -70,8 +65,7 @@ input_file: tests/inputs/parser/logical_ops.input
                   Var:
                     name: z
                 rhs:
-                  Num:
-                    value: 3
+                  I64: 3
   - (|| (&& (== x 1) (== y 2)) (== z 3))
 - - Ok:
       - Expr:
@@ -84,8 +78,7 @@ input_file: tests/inputs/parser/logical_ops.input
                   Var:
                     name: x
                 rhs:
-                  Num:
-                    value: 1
+                  I64: 1
             rhs:
               BinOp:
                 sym: Or
@@ -96,8 +89,7 @@ input_file: tests/inputs/parser/logical_ops.input
                       Var:
                         name: y
                     rhs:
-                      Num:
-                        value: 2
+                      I64: 2
                 rhs:
                   BinOp:
                     sym: Eq
@@ -105,7 +97,6 @@ input_file: tests/inputs/parser/logical_ops.input
                       Var:
                         name: z
                     rhs:
-                      Num:
-                        value: 3
+                      I64: 3
   - (&& (== x 1) (|| (== y 2) (== z 3)))
 
