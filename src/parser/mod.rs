@@ -39,41 +39,39 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
-    // Parses arbitrary length binary and unary expressions. Uses Pratt with op
-    // precedence parsing.
-    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
-        // Consume token and load up lhs. These are all considered primary
-        // expressions and are valid expression starters.
-        //
-        // TODO: for, let, if will likely become statements and need to be
-        // removed.
+    // Consume token and dispatch. These are all considered primary
+    // expressions and are valid expression starters.
+    //
+    // TODO: for, let, if will likely become statements and need to be
+    // removed.
+    fn parse_primary(&mut self) -> ExprParseResult {
         let token = self
             .tokens
             .next()
             .ok_or_else(|| "Premature end of expression".to_string())?;
-        let mut lhs = match &token.tt {
-            TokenType::Num(num) => self.parse_num(num, token)?,
-            TokenType::Ident(id) => self.parse_ident(id)?,
-            TokenType::OpenParen => self.parse_paren()?,
-            TokenType::If => self.parse_cond()?,
-            TokenType::For => self.parse_for()?,
-            TokenType::Let => self.parse_let()?,
-            TokenType::Op(sym) => {
-                // Handle unary operators
-                let p = OpPrec::un_prec(*sym)?;
-                let rhs = self.parse_expression(p)?;
-                Expression::UnOp {
-                    sym: *sym,
-                    rhs: Box::new(rhs),
-                }
-            }
+
+        match &token.tt {
+            TokenType::Num(num) => self.parse_num(num, token),
+            TokenType::Ident(id) => self.parse_ident(id),
+            TokenType::OpenParen => self.parse_paren(),
+            TokenType::If => self.parse_cond(),
+            TokenType::For => self.parse_for(),
+            TokenType::Let => self.parse_let(),
+            TokenType::Op(sym) => self.parse_unop(*sym),
             x => {
                 return Err(ParseError::from((
                     format!("Expecting primary expression. Got {}", x),
                     token,
                 )))
             }
-        };
+        }
+    }
+
+    // Parses arbitrary length binary expressions. Uses Pratt with op
+    // precedence parsing.
+    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
+        // Load up lhs with a primary
+        let mut lhs = self.parse_primary()?;
 
         // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
@@ -109,9 +107,22 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
             // Make a lhs and continue loop
-            lhs = self.parse_binop(sym, lhs, rhs).unwrap();
+            lhs = Expression::BinOp {
+                sym,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            };
         }
         Ok(lhs)
+    }
+
+    fn parse_unop(&mut self, sym: Symbol) -> ExprParseResult {
+        let p = OpPrec::un_prec(sym)?;
+        let rhs = self.parse_expression(p)?;
+        Ok(Expression::UnOp {
+            sym,
+            rhs: Box::new(rhs),
+        })
     }
 
     fn parse_function(&mut self) -> FuncParseResult {
@@ -283,14 +294,6 @@ impl<'a> Parser<'a> {
         Ok(Expression::Call {
             name: id.to_owned(),
             args,
-        })
-    }
-
-    fn parse_binop(&self, sym: Symbol, lhs: Expression, rhs: Expression) -> ExprParseResult {
-        Ok(Expression::BinOp {
-            sym,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
         })
     }
 
