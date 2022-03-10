@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/func_def_multi_expr.input
 
@@ -10,8 +10,10 @@ input_file: src/parser/tests/inputs/func_def_multi_expr.input
           proto:
             name: a
             args:
-              - b
-              - c
+              - - b
+                - I64
+              - - c
+                - I64
           body:
             - BinOp:
                 sym: Plus
@@ -19,12 +21,12 @@ input_file: src/parser/tests/inputs/func_def_multi_expr.input
                   BinOp:
                     sym: Plus
                     lhs:
-                      I64: 19
+                      U64: 19
                     rhs:
                       Var:
                         name: a
                 rhs:
-                  I64: 40
+                  U64: 40
             - BinOp:
                 sym: Plus
                 lhs:
@@ -33,5 +35,5 @@ input_file: src/parser/tests/inputs/func_def_multi_expr.input
                 rhs:
                   Var:
                     name: a
-  - (define (a b c) (+ (+ 19 a) 40) (+ b a))
+  - "(define (a b:i64 c:i64) (+ (+ 19 a) 40) (+ b a))"
 

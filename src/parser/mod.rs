@@ -2,7 +2,7 @@ use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
 use crate::ast::{AstNode, Expression, Function, Prototype};
-use crate::token::{Symbol, Token, TokenType};
+use crate::token::{Symbol, Token, TokenType, Type};
 
 #[macro_use]
 mod macros;
@@ -147,7 +147,7 @@ impl<'a> Parser<'a> {
             "Expecting '(' in prototype"
         );
 
-        let mut args: Vec<String> = vec![];
+        let mut args: Vec<(String, Type)> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
@@ -159,7 +159,20 @@ impl<'a> Parser<'a> {
                 TokenType::Ident(_),
                 "Expecting ')' or identifier in prototype"
             );
-            args.push(id.to_string());
+
+            expect_next_token!(
+                self.tokens,
+                TokenType::Colon,
+                "Expecting ':' in prototype"
+            );
+
+            let ty = expect_next_token!(
+                self.tokens,
+                TokenType::VarType(_),
+                "Expecting vartype in prototype"
+            );
+
+            args.push((id.to_string(), *ty));
 
             match self.tokens.peek() {
                 Some(Token {
@@ -170,10 +183,15 @@ impl<'a> Parser<'a> {
                     tt: TokenType::Comma,
                     ..
                 }) => self.tokens.next(), // Eat comma
-                _ => {
+                Some(x) => {
                     return Err(ParseError::from((
-                        format!("Expecting ',' or ')' in prototype. Got {}", next),
-                        next,
+                        format!("Expecting ',' or ')' in prototype. Got {}", x),
+                        *x,
+                    )))
+                }
+                None => {
+                    return Err(ParseError::from(String::from(
+                        "Expecting one of [',', ')', ':']. Got EOF",
                     )))
                 }
             };
@@ -189,9 +207,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_num(&self, num: &str, token: &Token) -> ExprParseResult {
-        if let Ok(n) = num.parse::<i64>() {
-            Ok(Expression::I64(n))
-        } else if let Ok(n) = num.parse::<u64>() {
+        // if let Ok(n) = num.parse::<i64>() {
+        //     Ok(Expression::I64(n))
+        if let Ok(n) = num.parse::<u64>() {
             Ok(Expression::U64(n))
         } else if let Ok(n) = num.parse::<f64>() {
             Ok(Expression::F64(n))

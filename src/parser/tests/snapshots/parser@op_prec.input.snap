@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/op_prec.input
 
@@ -10,14 +10,14 @@ input_file: src/parser/tests/inputs/op_prec.input
           BinOp:
             sym: Plus
             lhs:
-              I64: 19
+              U64: 19
             rhs:
               BinOp:
                 sym: Mult
                 lhs:
-                  I64: 21
+                  U64: 21
                 rhs:
-                  I64: 40
+                  U64: 40
   - (+ 19 (* 21 40))
 - - Ok:
       - Expr:
@@ -27,11 +27,11 @@ input_file: src/parser/tests/inputs/op_prec.input
               BinOp:
                 sym: Mult
                 lhs:
-                  I64: 19
+                  U64: 19
                 rhs:
-                  I64: 21
+                  U64: 21
             rhs:
-              I64: 40
+              U64: 40
   - (- (* 19 21) 40)
 - - Ok:
       - Expr:
@@ -41,11 +41,11 @@ input_file: src/parser/tests/inputs/op_prec.input
               BinOp:
                 sym: Minus
                 lhs:
-                  I64: 19
+                  U64: 19
                 rhs:
-                  I64: 21
+                  U64: 21
             rhs:
-              I64: 40
+              U64: 40
   - (+ (- 19 21) 40)
 - - Ok:
       - Expr:
@@ -55,15 +55,15 @@ input_file: src/parser/tests/inputs/op_prec.input
               BinOp:
                 sym: Minus
                 lhs:
-                  I64: 19
+                  U64: 19
                 rhs:
                   BinOp:
                     sym: Mult
                     lhs:
-                      I64: 21
+                      U64: 21
                     rhs:
-                      I64: 20
+                      U64: 20
             rhs:
-              I64: 40
+              U64: 40
   - (+ (- 19 (* 21 20)) 40)
 

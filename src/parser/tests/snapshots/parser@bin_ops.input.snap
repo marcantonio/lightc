@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/bin_ops.input
 
@@ -10,9 +10,9 @@ input_file: src/parser/tests/inputs/bin_ops.input
           BinOp:
             sym: Minus
             lhs:
-              I64: 20
+              U64: 20
             rhs:
-              I64: 19
+              U64: 19
   - (- 20 19)
 - - Err:
       message: "Unknown binary operator: !"

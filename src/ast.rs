@@ -120,7 +120,7 @@ impl Display for Expression {
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct Prototype {
     pub(crate) name: String,
-    pub(crate) args: Vec<String>,
+    pub(crate) args: Vec<(String, Type)>,
 }
 
 impl Display for Prototype {
@@ -128,7 +128,7 @@ impl Display for Prototype {
         let mut s = format!("({}", self.name);
         if !self.args.is_empty() {
             for arg in &self.args {
-                s += &format!(" {}", arg);
+                s += &format!(" {}:{}", arg.0, arg.1);
             }
         }
         write!(f, "{})", s)

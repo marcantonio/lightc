@@ -1,1 +1,1 @@
-extern cos(x)
+extern cos(x: f64)

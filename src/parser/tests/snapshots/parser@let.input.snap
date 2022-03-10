@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 452
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/let.input
 
@@ -11,7 +11,7 @@ input_file: src/parser/tests/inputs/let.input
             name: x
             ty: U64
             init:
-              I64: 1
+              U64: 1
   - "(let x:u64 1)"
 - - Err:
       message: Premature end of expression

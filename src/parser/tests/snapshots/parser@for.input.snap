@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 452
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 
@@ -10,7 +10,7 @@ input_file: src/parser/tests/inputs/for.input
           For:
             var_name: x
             start:
-              I64: 1
+              U64: 1
             cond:
               BinOp:
                 sym: Lt
@@ -18,9 +18,9 @@ input_file: src/parser/tests/inputs/for.input
                   Var:
                     name: x
                 rhs:
-                  I64: 10
+                  U64: 10
             step:
-              I64: 1
+              U64: 1
             body:
               - Var:
                   name: foo

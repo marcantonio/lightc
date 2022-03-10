@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 
@@ -10,8 +10,10 @@ input_file: src/parser/tests/inputs/func_def.input
           proto:
             name: a
             args:
-              - b
-              - c
+              - - b
+                - I64
+              - - c
+                - I64
           body:
             - BinOp:
                 sym: Plus
@@ -19,13 +21,13 @@ input_file: src/parser/tests/inputs/func_def.input
                   BinOp:
                     sym: Plus
                     lhs:
-                      I64: 19
+                      U64: 19
                     rhs:
                       Var:
                         name: a
                 rhs:
-                  I64: 40
-  - (define (a b c) (+ (+ 19 a) 40))
+                  U64: 40
+  - "(define (a b:i64 c:i64) (+ (+ 19 a) 40))"
 - - Err:
       message: Expecting function name in prototype. Got OpenParen
       line: 1
@@ -44,13 +46,13 @@ input_file: src/parser/tests/inputs/func_def.input
 - - Err:
       message: "Expecting ')' or identifier in prototype. Got OpenBrace"
       line: 1
-      column: 9
-  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:9"
+      column: 14
+  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:14"
 - - Err:
       message: "Expecting ',' or ')' in prototype. Got identifier: b"
       line: 1
-      column: 6
-  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:6"
+      column: 13
+  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:13"
 - - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
@@ -59,16 +61,26 @@ input_file: src/parser/tests/inputs/func_def.input
 - - Err:
       message: "Expecting ')' or identifier in prototype. Got OpenBrace"
       line: 1
-      column: 9
-  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:9"
+      column: 14
+  - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:14"
 - - Err:
-      message: "Expecting ',' or ')' in prototype. Got identifier: a"
-      line: 1
-      column: 6
-  - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: a at 1:6"
+      message: "Expecting one of [',', ')', ':']. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting one of [',', ')', ':']. Got EOF"
 - - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '{' to start block. Got EOF"
+- - Err:
+      message: Expecting vartype in prototype. Got CloseParen
+      line: 1
+      column: 8
+  - "Parsing error: Expecting vartype in prototype. Got CloseParen at 1:8"
+- - Err:
+      message: "Expecting ':' in prototype. Got CloseParen"
+      line: 1
+      column: 7
+  - "Parsing error: Expecting ':' in prototype. Got CloseParen at 1:7"
 

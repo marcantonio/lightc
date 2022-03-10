@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 472
 expression: asts
-input_file: tests/inputs/parser/extern.input
+input_file: src/parser/tests/inputs/extern.input
 
 ---
 - - Ok:
@@ -10,7 +10,8 @@ input_file: tests/inputs/parser/extern.input
           proto:
             name: cos
             args:
-              - x
+              - - x
+                - F64
           body: ~
-  - (define (cos x))
+  - "(define (cos x:f64))"
 

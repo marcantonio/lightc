@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 472
 expression: asts
 input_file: src/parser/tests/inputs/assignment.input
 
@@ -19,6 +19,6 @@ input_file: src/parser/tests/inputs/assignment.input
                   Var:
                     name: x
                 rhs:
-                  I64: 1
+                  U64: 1
   - (= x (+ x 1))
 
