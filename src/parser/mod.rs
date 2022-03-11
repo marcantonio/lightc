@@ -39,40 +39,38 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
-    // Consume token and dispatch. These are all considered primary
-    // expressions and are valid expression starters.
+    // Consume token and dispatch. These are all considered primary expressions.
     //
-    // TODO: for, let, if will likely become statements and need to be
-    // removed.
-    fn parse_primary(&mut self) -> ExprParseResult {
+    // TODO: for, let, if will likely become statements and need to be removed.
+    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
         let token = self
             .tokens
             .next()
             .ok_or_else(|| "Premature end of expression".to_string())?;
 
-        match &token.tt {
-            TokenType::Num(num) => self.parse_num(num, token),
-            TokenType::Ident(id) => self.parse_ident(id),
-            TokenType::OpenParen => self.parse_paren(),
-            TokenType::If => self.parse_cond(),
-            TokenType::For => self.parse_for(),
-            TokenType::Let => self.parse_let(),
-            TokenType::Op(sym) => self.parse_unop(*sym),
+        let expr = match &token.tt {
+            TokenType::Num(num) => self.parse_num(num, token)?,
+            TokenType::Ident(id) => self.parse_ident(id)?,
+            TokenType::OpenParen => self.parse_paren()?,
+            TokenType::If => self.parse_cond()?,
+            TokenType::For => self.parse_for()?,
+            TokenType::Let => self.parse_let()?,
+            TokenType::Op(sym) => self.parse_unop(*sym)?,
             x => {
                 return Err(ParseError::from((
                     format!("Expecting primary expression. Got {}", x),
                     token,
                 )))
             }
-        }
+        };
+
+        // Check for binop and process or return
+        self.parse_binop(expr, min_p)
     }
 
     // Parses arbitrary length binary expressions. Uses Pratt with op
     // precedence parsing.
-    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
-        // Load up lhs with a primary
-        let mut lhs = self.parse_primary()?;
-
+    fn parse_binop(&mut self, mut lhs: Expression, min_p: u8) -> ExprParseResult {
         // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
             // Should always be an operator after a primary
@@ -106,7 +104,7 @@ impl<'a> Parser<'a> {
 
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
-            // Make a lhs and continue loop
+            // Make a new lhs and continue loop
             lhs = Expression::BinOp {
                 sym,
                 lhs: Box::new(lhs),
@@ -171,11 +169,7 @@ impl<'a> Parser<'a> {
                 "Expecting ')' or identifier in prototype"
             );
 
-            expect_next_token!(
-                self.tokens,
-                TokenType::Colon,
-                "Expecting ':' in prototype"
-            );
+            expect_next_token!(self.tokens, TokenType::Colon, "Expecting ':' in prototype");
 
             let ty = expect_next_token!(
                 self.tokens,

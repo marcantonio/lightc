@@ -30,4 +30,14 @@ input_file: src/parser/tests/inputs/expr.input
       line: 1
       column: 6
   - "Parsing error: Expecting primary expression. Got Else at 1:6"
+- - Err:
+      message: Expecting primary expression. Got CloseParen
+      line: 1
+      column: 2
+  - "Parsing error: Expecting primary expression. Got CloseParen at 1:2"
+- - Err:
+      message: Premature end of expression
+      line: 0
+      column: 0
+  - "Parsing error: Premature end of expression"
 
