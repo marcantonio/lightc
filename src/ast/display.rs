@@ -1,35 +1,20 @@
 use std::fmt::Display;
 
-use super::{AstNode, Expression, Prototype, Function};
+use super::{Node, Expression, Prototype, Statement};
 
-impl Display for AstNode {
+impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AstNode::Expr(expr) => write!(f, "{}", expr),
-            AstNode::Func(func) => write!(f, "{}", func),
+            Node::Stmt(stmt) => write!(f, "{}", stmt),
+            Node::Expr(expr) => write!(f, "{}", expr),
         }
     }
 }
 
-impl Display for Expression {
+impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Expression::*;
+        use Statement::*;
         match self {
-            U64(v) => write!(f, "{}", v),
-            I64(v) => write!(f, "{}", v),
-            F64(v) => write!(f, "{}", v),
-            BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
-            UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
-            Var { name } => write!(f, "{}", name),
-            Call { name, args } => {
-                let mut s = format!("({}", name);
-                if !args.is_empty() {
-                    for arg in args {
-                        s += &format!(" {}", arg);
-                    }
-                }
-                write!(f, "{})", s)
-            }
             Cond { cond, cons, alt } => {
                 let mut s = format!("(if {}", cond);
                 s += &cons.iter().fold(String::new(), |mut acc, n| {
@@ -66,6 +51,41 @@ impl Display for Expression {
                 }
                 write!(f, "{})", s)
             }
+            Fn { proto, body } => {
+                match body {
+                    Some(body) if !body.is_empty() => {
+                        let s = body.iter().fold(String::new(), |mut acc, n| {
+                            acc += &format!(" {}", n);
+                            acc
+                        });
+                        write!(f, "(define {}{})", proto, s)
+                    }
+                    _ => write!(f, "(define {})", proto),
+                }
+            }
+        }
+    }
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Expression::*;
+        match self {
+            U64(v) => write!(f, "{}", v),
+            I64(v) => write!(f, "{}", v),
+            F64(v) => write!(f, "{}", v),
+            BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
+            UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
+            Var { name } => write!(f, "{}", name),
+            Call { name, args } => {
+                let mut s = format!("({}", name);
+                if !args.is_empty() {
+                    for arg in args {
+                        s += &format!(" {}", arg);
+                    }
+                }
+                write!(f, "{})", s)
+            }
         }
     }
 }
@@ -79,20 +99,5 @@ impl Display for Prototype {
             }
         }
         write!(f, "{})", s)
-    }
-}
-
-impl Display for Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.body {
-            Some(body) if !body.is_empty() => {
-                let s = body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-                write!(f, "(define {}{})", self.proto, s)
-            }
-            _ => write!(f, "(define {})", self.proto),
-        }
     }
 }

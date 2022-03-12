@@ -1,32 +1,38 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 
 ---
 - - Ok:
-      - Func:
-          proto:
-            name: a
-            args:
-              - - b
-                - I64
-              - - c
-                - I64
-          body:
-            - BinOp:
-                sym: Plus
-                lhs:
+      - Stmt:
+          Fn:
+            proto:
+              name: a
+              args:
+                - - b
+                  - I64
+                - - c
+                  - I64
+            body:
+              - Expr:
                   BinOp:
                     sym: Plus
                     lhs:
-                      U64: 19
+                      Expr:
+                        BinOp:
+                          sym: Plus
+                          lhs:
+                            Expr:
+                              U64: 19
+                          rhs:
+                            Expr:
+                              Var:
+                                name: a
                     rhs:
-                      Var:
-                        name: a
-                rhs:
-                  U64: 40
+                      Expr:
+                        U64: 40
   - "(define (a b:i64 c:i64) (+ (+ 19 a) 40))"
 - - Err:
       message: Expecting function name in prototype. Got OpenParen

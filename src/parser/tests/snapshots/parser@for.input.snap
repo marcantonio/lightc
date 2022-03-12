@@ -1,29 +1,35 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 491
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 
 ---
 - - Ok:
-      - Expr:
+      - Stmt:
           For:
             var_name: x
             start:
-              U64: 1
+              Expr:
+                U64: 1
             cond:
-              BinOp:
-                sym: Lt
-                lhs:
-                  Var:
-                    name: x
-                rhs:
-                  U64: 10
+              Expr:
+                BinOp:
+                  sym: Lt
+                  lhs:
+                    Expr:
+                      Var:
+                        name: x
+                  rhs:
+                    Expr:
+                      U64: 10
             step:
-              U64: 1
+              Expr:
+                U64: 1
             body:
-              - Var:
-                  name: foo
+              - Expr:
+                  Var:
+                    name: foo
   - (for (let x 1) (< x 10) 1 foo)
 - - Err:
       message: "Expecting 'let' after for. Got EOF"

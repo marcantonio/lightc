@@ -1,27 +1,30 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 491
 expression: asts
-input_file: tests/inputs/parser/block.input
+input_file: src/parser/tests/inputs/block.input
 
 ---
 - - Ok:
-      - Expr:
+      - Stmt:
           Cond:
             cond:
-              Var:
-                name: foo
+              Expr:
+                Var:
+                  name: foo
             cons:
-              - Var:
-                  name: bar
+              - Expr:
+                  Var:
+                    name: bar
             alt: ~
   - (if foo bar)
 - - Ok:
-      - Expr:
+      - Stmt:
           Cond:
             cond:
-              Var:
-                name: foo
+              Expr:
+                Var:
+                  name: foo
             cons: []
             alt: ~
   - (if foo)

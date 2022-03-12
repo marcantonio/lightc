@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 488
 expression: asts
 input_file: src/parser/tests/inputs/paren_prec_complex.input
 
@@ -10,23 +10,31 @@ input_file: src/parser/tests/inputs/paren_prec_complex.input
           BinOp:
             sym: Div
             lhs:
-              BinOp:
-                sym: Mult
-                lhs:
-                  U64: 3
-                rhs:
-                  BinOp:
-                    sym: Minus
-                    lhs:
+              Expr:
+                BinOp:
+                  sym: Mult
+                  lhs:
+                    Expr:
+                      U64: 3
+                  rhs:
+                    Expr:
                       BinOp:
-                        sym: Plus
+                        sym: Minus
                         lhs:
-                          U64: 19
+                          Expr:
+                            BinOp:
+                              sym: Plus
+                              lhs:
+                                Expr:
+                                  U64: 19
+                              rhs:
+                                Expr:
+                                  U64: 21
                         rhs:
-                          U64: 21
-                    rhs:
-                      U64: 5
+                          Expr:
+                            U64: 5
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (/ (* 3 (- (+ 19 21) 5)) 40)
 

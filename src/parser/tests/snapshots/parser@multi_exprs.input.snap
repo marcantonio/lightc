@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 488
 expression: asts
 input_file: src/parser/tests/inputs/multi_exprs.input
 
@@ -10,30 +10,40 @@ input_file: src/parser/tests/inputs/multi_exprs.input
           BinOp:
             sym: Pow
             lhs:
-              U64: 19
+              Expr:
+                U64: 19
             rhs:
-              BinOp:
-                sym: Pow
-                lhs:
-                  U64: 21
-                rhs:
-                  U64: 40
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      U64: 21
+                  rhs:
+                    Expr:
+                      U64: 40
       - Expr:
           BinOp:
             sym: Plus
             lhs:
-              BinOp:
-                sym: Minus
-                lhs:
-                  U64: 19
-                rhs:
-                  BinOp:
-                    sym: Mult
-                    lhs:
-                      U64: 21
-                    rhs:
-                      U64: 20
+              Expr:
+                BinOp:
+                  sym: Minus
+                  lhs:
+                    Expr:
+                      U64: 19
+                  rhs:
+                    Expr:
+                      BinOp:
+                        sym: Mult
+                        lhs:
+                          Expr:
+                            U64: 21
+                        rhs:
+                          Expr:
+                            U64: 20
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (^ 19 (^ 21 40))(+ (- 19 (* 21 20)) 40)
 

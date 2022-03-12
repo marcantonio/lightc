@@ -1,25 +1,29 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 491
 expression: asts
-input_file: tests/inputs/parser/if_only.input
+input_file: src/parser/tests/inputs/if_only.input
 
 ---
 - - Ok:
-      - Expr:
+      - Stmt:
           Cond:
             cond:
-              BinOp:
-                sym: Gt
-                lhs:
-                  Var:
-                    name: a
-                rhs:
-                  Var:
-                    name: b
+              Expr:
+                BinOp:
+                  sym: Gt
+                  lhs:
+                    Expr:
+                      Var:
+                        name: a
+                  rhs:
+                    Expr:
+                      Var:
+                        name: b
             cons:
-              - Var:
-                  name: foo
+              - Expr:
+                  Var:
+                    name: foo
             alt: ~
   - (if (> a b) foo)
 

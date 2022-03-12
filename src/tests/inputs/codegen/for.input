@@ -1,8 +1,8 @@
-extern putchar(x)
+extern putchar(x: u64)
 
 fn main() {
-    let x = 3
-    for let y = 0; y < x; 1 {
+    let x: u64 = 3
+    for let y: u64 = 0; y < x; 1 {
         putchar(46)
     }
     putchar(10)

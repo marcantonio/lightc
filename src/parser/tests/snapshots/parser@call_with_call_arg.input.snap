@@ -1,8 +1,8 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 488
 expression: asts
-input_file: tests/inputs/parser/call_with_call_arg.input
+input_file: src/parser/tests/inputs/call_with_call_arg.input
 
 ---
 - - Ok:
@@ -10,10 +10,12 @@ input_file: tests/inputs/parser/call_with_call_arg.input
           Call:
             name: a
             args:
-              - Call:
-                  name: b
-                  args:
-                    - Var:
-                        name: c
+              - Expr:
+                  Call:
+                    name: b
+                    args:
+                      - Expr:
+                          Var:
+                            name: c
   - (a (b c))
 

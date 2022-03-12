@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
-use crate::ast::{AstNode, Expression, Function, Prototype};
+use crate::ast::{Node, Expression, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
 #[macro_use]
@@ -9,12 +9,10 @@ mod macros;
 mod errors;
 mod precedence;
 
-type ExprParseResult = Result<Expression, ParseError>;
-type ProtoParseResult = Result<Prototype, ParseError>;
-type FuncParseResult = Result<Function, ParseError>;
+type ParseResult = Result<Node, ParseError>;
 
 pub(crate) struct Parser<'a> {
-    ast: Vec<AstNode>,
+    ast: Vec<Node>,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
@@ -27,22 +25,38 @@ impl<'a> Parser<'a> {
     }
 
     // Parse each token using recursive descent
-    pub(crate) fn parse(mut self) -> Result<Vec<AstNode>, ParseError> {
+    pub(crate) fn parse(mut self) -> Result<Vec<Node>, ParseError> {
         while let Some(t) = self.tokens.peek() {
             let node = match t.tt {
-                TokenType::Fn => AstNode::Func(self.parse_function()?),
-                TokenType::Extern => AstNode::Func(self.parse_extern()?),
-                _ => AstNode::Expr(self.parse_expression(0)?),
+                //_ => AstNode::Expr(self.parse_expression(0)?),
+                _ => self.parse_statement()?,
             };
             self.ast.push(node);
         }
         Ok(self.ast)
     }
 
+    fn parse_statement(&mut self) -> ParseResult {
+        let token = self
+            .tokens
+            .peek()
+            .ok_or_else(|| "Premature end of statement".to_string())?;
+
+        let expr = match &token.tt {
+            TokenType::If => self.parse_cond()?,
+            TokenType::For => self.parse_for()?,
+            TokenType::Let => self.parse_let()?,
+            TokenType::Fn => self.parse_function()?,
+            TokenType::Extern => self.parse_extern()?,
+            _ => self.parse_expression(0)?,
+        };
+        Ok(expr)
+    }
+
     // Consume token and dispatch. These are all considered primary expressions.
     //
     // TODO: for, let, if will likely become statements and need to be removed.
-    fn parse_expression(&mut self, min_p: u8) -> ExprParseResult {
+    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
         let token = self
             .tokens
             .next()
@@ -52,9 +66,6 @@ impl<'a> Parser<'a> {
             TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
             TokenType::OpenParen => self.parse_paren()?,
-            TokenType::If => self.parse_cond()?,
-            TokenType::For => self.parse_for()?,
-            TokenType::Let => self.parse_let()?,
             TokenType::Op(sym) => self.parse_unop(*sym)?,
             x => {
                 return Err(ParseError::from((
@@ -70,7 +81,7 @@ impl<'a> Parser<'a> {
 
     // Parses arbitrary length binary expressions. Uses Pratt with op
     // precedence parsing.
-    fn parse_binop(&mut self, mut lhs: Expression, min_p: u8) -> ExprParseResult {
+    fn parse_binop(&mut self, mut lhs: Node, min_p: u8) -> ParseResult {
         // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
             // Should always be an operator after a primary
@@ -105,45 +116,45 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
             // Make a new lhs and continue loop
-            lhs = Expression::BinOp {
+            lhs = Node::Expr(Expression::BinOp {
                 sym,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
-            };
+            });
         }
         Ok(lhs)
     }
 
-    fn parse_unop(&mut self, sym: Symbol) -> ExprParseResult {
+    fn parse_unop(&mut self, sym: Symbol) -> ParseResult {
         let p = OpPrec::un_prec(sym)?;
         let rhs = self.parse_expression(p)?;
-        Ok(Expression::UnOp {
+        Ok(Node::Expr(Expression::UnOp {
             sym,
             rhs: Box::new(rhs),
-        })
+        }))
     }
 
-    fn parse_function(&mut self) -> FuncParseResult {
+    fn parse_function(&mut self) -> ParseResult {
         // Eat 'fn'
         self.tokens.next();
 
-        Ok(Function {
+        Ok(Node::Stmt(Statement::Fn {
             proto: Box::new(self.parse_proto()?),
             body: Some(self.parse_block()?),
-        })
+        }))
     }
 
-    fn parse_extern(&mut self) -> FuncParseResult {
+    fn parse_extern(&mut self) -> ParseResult {
         // Eat 'extern'
         self.tokens.next();
 
-        Ok(Function {
+        Ok(Node::Stmt(Statement::Fn {
             proto: Box::new(self.parse_proto()?),
             body: None,
-        })
+        }))
     }
 
-    fn parse_proto(&mut self) -> ProtoParseResult {
+    fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
         let fn_name = expect_next_token!(
             self.tokens,
             TokenType::Ident(_),
@@ -211,13 +222,13 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_num(&self, num: &str, token: &Token) -> ExprParseResult {
+    fn parse_num(&self, num: &str, token: &Token) -> ParseResult {
         // if let Ok(n) = num.parse::<i64>() {
         //     Ok(Expression::I64(n))
         if let Ok(n) = num.parse::<u64>() {
-            Ok(Expression::U64(n))
+            Ok(Node::Expr(Expression::U64(n)))
         } else if let Ok(n) = num.parse::<f64>() {
-            Ok(Expression::F64(n))
+            Ok(Node::Expr(Expression::F64(n)))
         } else {
             Err(ParseError::from((
                 format!("Invalid number literal: {}", token),
@@ -234,7 +245,7 @@ impl<'a> Parser<'a> {
     // }        Ok(Expression::Num { value: n })
 
     // Variable or function call
-    fn parse_ident(&mut self, id: &str) -> ExprParseResult {
+    fn parse_ident(&mut self, id: &str) -> ParseResult {
         let node = Expression::Var {
             name: id.to_owned(),
         };
@@ -245,13 +256,13 @@ impl<'a> Parser<'a> {
                 tt: TokenType::OpenParen,
                 ..
             }) => (),
-            _ => return Ok(node),
+            _ => return Ok(Node::Expr(node)),
         };
 
         // Eat open paren
         self.tokens.next();
 
-        let mut args: Vec<Expression> = vec![];
+        let mut args: Vec<Node> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
@@ -285,21 +296,22 @@ impl<'a> Parser<'a> {
             "Expecting ')' in function call"
         );
 
-        Ok(Expression::Call {
+        Ok(Node::Expr(Expression::Call {
             name: id.to_owned(),
             args,
-        })
+        }))
     }
 
-    fn parse_paren(&mut self) -> ExprParseResult {
+    fn parse_paren(&mut self) -> ParseResult {
         let lhs = self.parse_expression(0);
         self.tokens.next(); // Eat ')'
         lhs
     }
 
-    fn parse_cond(&mut self) -> ExprParseResult {
-        let cond = self.parse_expression(0)?;
+    fn parse_cond(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat if
 
+        let cond = self.parse_expression(0)?;
         let cons = self.parse_block()?;
 
         let alt = token_is_and_then!(self.tokens.peek(), TokenType::Else, {
@@ -319,14 +331,16 @@ impl<'a> Parser<'a> {
             Some(alt)
         });
 
-        Ok(Expression::Cond {
+        Ok(Node::Stmt(Statement::Cond {
             cond: Box::new(cond),
             cons,
             alt,
-        })
+        }))
     }
 
-    fn parse_for(&mut self) -> ExprParseResult {
+    fn parse_for(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat for
+
         // TODO: call parse_let() here
         expect_next_token!(self.tokens, TokenType::Let, "Expecting 'let' after for");
 
@@ -357,16 +371,18 @@ impl<'a> Parser<'a> {
 
         let step = self.parse_expression(0)?;
 
-        Ok(Expression::For {
+        Ok(Node::Stmt(Statement::For {
             var_name: var_name.to_owned(),
             start: Box::new(start),
             cond: Box::new(cond),
             step: Box::new(step),
             body: self.parse_block()?,
-        })
+        }))
     }
 
-    fn parse_let(&mut self) -> ExprParseResult {
+    fn parse_let(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat let
+
         let var_name = expect_next_token!(
             self.tokens,
             TokenType::Ident(_),
@@ -390,16 +406,16 @@ impl<'a> Parser<'a> {
             Some(self.parse_expression(0)?)
         });
 
-        Ok(Expression::Let {
+        Ok(Node::Stmt(Statement::Let {
             name: var_name.to_owned(),
             ty: *ty,
             init: init.map(Box::new),
-        })
+        }))
     }
 
     // Helper to collect a bunch of expressions enclosed by braces into a Vec<T>
-    fn parse_block(&mut self) -> Result<Vec<Expression>, ParseError> {
-        let mut block: Vec<Expression> = vec![];
+    fn parse_block(&mut self) -> Result<Vec<Node>, ParseError> {
+        let mut block: Vec<Node> = vec![];
 
         expect_next_token!(
             self.tokens,
@@ -413,7 +429,7 @@ impl<'a> Parser<'a> {
                     self.tokens.next();
                     return Ok(block);
                 }
-                _ => block.push(self.parse_expression(0)?),
+                _ => block.push(self.parse_statement()?),
             }
         }
 
@@ -434,14 +450,22 @@ mod test {
 
     use crate::{
         lexer::Lexer,
-        parser::{AstNode, ParseError, Parser},
+        parser::{Node, ParseError, Parser},
     };
 
-    fn ast_to_string(ast: Result<&[AstNode], &ParseError>) -> String {
+    fn ast_to_string(ast: Result<&[Node], &ParseError>) -> String {
         match ast {
             Ok(ast) => ast.iter().map(|x| x.to_string()).collect(),
             Err(err) => err.to_string(),
         }
+    }
+
+    #[test]
+    fn test_parser_wtf() {
+        let tokens = Lexer::new("let x: u64 = 1").collect::<Result<Vec<_>, _>>().unwrap();
+        let ast = Parser::new(&tokens).parse();
+        let ast_string = ast_to_string(ast.as_deref());
+        assert_eq!(ast_string, "(let x:u64 1)")
     }
 
     #[test]

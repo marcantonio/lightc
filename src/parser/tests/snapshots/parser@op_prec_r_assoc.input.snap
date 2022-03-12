@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 488
 expression: asts
 input_file: src/parser/tests/inputs/op_prec_r_assoc.input
 
@@ -10,46 +10,60 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
           BinOp:
             sym: Pow
             lhs:
-              U64: 19
+              Expr:
+                U64: 19
             rhs:
-              BinOp:
-                sym: Pow
-                lhs:
-                  U64: 21
-                rhs:
-                  U64: 40
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      U64: 21
+                  rhs:
+                    Expr:
+                      U64: 40
   - (^ 19 (^ 21 40))
 - - Ok:
       - Expr:
           BinOp:
             sym: Plus
             lhs:
-              BinOp:
-                sym: Pow
-                lhs:
-                  U64: 19
-                rhs:
-                  U64: 21
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      U64: 19
+                  rhs:
+                    Expr:
+                      U64: 21
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (+ (^ 19 21) 40)
 - - Ok:
       - Expr:
           BinOp:
             sym: Div
             lhs:
-              BinOp:
-                sym: Pow
-                lhs:
-                  U64: 19
-                rhs:
-                  BinOp:
-                    sym: Pow
-                    lhs:
-                      U64: 21
-                    rhs:
-                      U64: 40
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      U64: 19
+                  rhs:
+                    Expr:
+                      BinOp:
+                        sym: Pow
+                        lhs:
+                          Expr:
+                            U64: 21
+                        rhs:
+                          Expr:
+                            U64: 40
             rhs:
-              U64: 2
+              Expr:
+                U64: 2
   - (/ (^ 19 (^ 21 40)) 2)
 

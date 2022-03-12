@@ -1,25 +1,33 @@
-extern putchar(x)
-extern cos(x)
+extern putchar(x: u64)
 
 fn print_dot() {
     putchar(46)
     putchar(10)
 }
 
-fn print_bang() {
-    putchar(33)
+fn print_int(x: u64) {
+    putchar(x + 48)
     putchar(10)
 }
 
-fn foo(x) {
-    let xasdf: u64 = 1
-    2
-}
+// fn print_bang() {
+//     putchar(33)
+//     putchar(10)
+// }
+
+// fn foo(x) {
+//     let xasdf: u64 = 1
+//     2
+// }
 
 fn main() {
-    let x: u64 = 1
-    let y: f64 = 1.0
-    foo(2 + x)
+    //let x: f64 = 1
+    //let y: f64 = 2
+    //let y: f64 = 1.0
+    print_int(1 + 2)
     print_dot()
-    print_bang()
+    //print_bang()
+    if 1 {
+        2
+    }
 }

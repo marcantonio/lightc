@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/assignment.input
 
@@ -10,15 +10,19 @@ input_file: src/parser/tests/inputs/assignment.input
           BinOp:
             sym: Assign
             lhs:
-              Var:
-                name: x
+              Expr:
+                Var:
+                  name: x
             rhs:
-              BinOp:
-                sym: Plus
-                lhs:
-                  Var:
-                    name: x
-                rhs:
-                  U64: 1
+              Expr:
+                BinOp:
+                  sym: Plus
+                  lhs:
+                    Expr:
+                      Var:
+                        name: x
+                  rhs:
+                    Expr:
+                      U64: 1
   - (= x (+ x 1))
 

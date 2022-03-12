@@ -1,15 +1,16 @@
 ---
-source: tests/parser.rs
-assertion_line: 36
+source: src/parser/mod.rs
+assertion_line: 486
 expression: asts
-input_file: tests/inputs/parser/func_def_empty.input
+input_file: src/parser/tests/inputs/func_def_empty.input
 
 ---
 - - Ok:
-      - Func:
-          proto:
-            name: a
-            args: []
-          body: []
+      - Stmt:
+          Fn:
+            proto:
+              name: a
+              args: []
+            body: []
   - (define (a))
 

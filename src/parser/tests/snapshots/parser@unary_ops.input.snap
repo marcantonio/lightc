@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/unary_ops.input
 
@@ -10,54 +10,66 @@ input_file: src/parser/tests/inputs/unary_ops.input
           UnOp:
             sym: Minus
             rhs:
-              U64: 21
+              Expr:
+                U64: 21
   - (- 21)
 - - Ok:
       - Expr:
           BinOp:
             sym: Mult
             lhs:
-              UnOp:
-                sym: Minus
-                rhs:
-                  Var:
-                    name: a
+              Expr:
+                UnOp:
+                  sym: Minus
+                  rhs:
+                    Expr:
+                      Var:
+                        name: a
             rhs:
-              U64: 2
+              Expr:
+                U64: 2
   - (* (- a) 2)
 - - Ok:
       - Expr:
           BinOp:
             sym: Minus
             lhs:
-              U64: 3
+              Expr:
+                U64: 3
             rhs:
-              UnOp:
-                sym: Minus
-                rhs:
-                  U64: 21
+              Expr:
+                UnOp:
+                  sym: Minus
+                  rhs:
+                    Expr:
+                      U64: 21
   - (- 3 (- 21))
 - - Ok:
       - Expr:
           UnOp:
             sym: Minus
             rhs:
-              BinOp:
-                sym: Pow
-                lhs:
-                  U64: 4
-                rhs:
-                  U64: 2
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      U64: 4
+                  rhs:
+                    Expr:
+                      U64: 2
   - (- (^ 4 2))
 - - Ok:
       - Expr:
           UnOp:
             sym: Minus
             rhs:
-              UnOp:
-                sym: Minus
-                rhs:
-                  U64: 21
+              Expr:
+                UnOp:
+                  sym: Minus
+                  rhs:
+                    Expr:
+                      U64: 21
   - (- (- 21))
 - - Err:
       message: "Unknown unary operator: *"

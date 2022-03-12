@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/expr.input
 
@@ -10,15 +10,19 @@ input_file: src/parser/tests/inputs/expr.input
           BinOp:
             sym: Plus
             lhs:
-              BinOp:
-                sym: Plus
-                lhs:
-                  U64: 19
-                rhs:
-                  Var:
-                    name: a
+              Expr:
+                BinOp:
+                  sym: Plus
+                  lhs:
+                    Expr:
+                      U64: 19
+                  rhs:
+                    Expr:
+                      Var:
+                        name: a
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (+ (+ 19 a) 40)
 - - Err:
       message: Premature end of expression

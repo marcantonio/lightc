@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 488
 expression: asts
 input_file: src/parser/tests/inputs/paren_prec.input
 
@@ -10,13 +10,17 @@ input_file: src/parser/tests/inputs/paren_prec.input
           BinOp:
             sym: Div
             lhs:
-              BinOp:
-                sym: Plus
-                lhs:
-                  U64: 19
-                rhs:
-                  U64: 21
+              Expr:
+                BinOp:
+                  sym: Plus
+                  lhs:
+                    Expr:
+                      U64: 19
+                  rhs:
+                    Expr:
+                      U64: 21
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (/ (+ 19 21) 40)
 

@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 472
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/gt_lt.input
 
@@ -10,31 +10,39 @@ input_file: src/parser/tests/inputs/gt_lt.input
           BinOp:
             sym: Gt
             lhs:
-              BinOp:
-                sym: Plus
-                lhs:
-                  Var:
-                    name: a
-                rhs:
-                  Var:
-                    name: b
+              Expr:
+                BinOp:
+                  sym: Plus
+                  lhs:
+                    Expr:
+                      Var:
+                        name: a
+                  rhs:
+                    Expr:
+                      Var:
+                        name: b
             rhs:
-              U64: 40
+              Expr:
+                U64: 40
   - (> (+ a b) 40)
 - - Ok:
       - Expr:
           BinOp:
             sym: Lt
             lhs:
-              Var:
-                name: a
+              Expr:
+                Var:
+                  name: a
             rhs:
-              BinOp:
-                sym: Div
-                lhs:
-                  Var:
-                    name: b
-                rhs:
-                  U64: 40
+              Expr:
+                BinOp:
+                  sym: Div
+                  lhs:
+                    Expr:
+                      Var:
+                        name: b
+                  rhs:
+                    Expr:
+                      U64: 40
   - (< a (/ b 40))
 

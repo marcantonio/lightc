@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 439
+assertion_line: 486
 expression: asts
 input_file: src/parser/tests/inputs/call_expr.input
 
@@ -10,10 +10,12 @@ input_file: src/parser/tests/inputs/call_expr.input
           Call:
             name: a
             args:
-              - Var:
-                  name: b
-              - Var:
-                  name: c
+              - Expr:
+                  Var:
+                    name: b
+              - Expr:
+                  Var:
+                    name: c
   - (a b c)
 - - Err:
       message: "Expecting ')' in function call. Got EOF"
