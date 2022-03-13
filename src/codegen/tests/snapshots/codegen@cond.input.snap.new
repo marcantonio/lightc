@@ -1,0 +1,9 @@
+---
+source: src/codegen/mod.rs
+assertion_line: 618
+expression: code_to_string(codegen.walk(ast))
+input_file: src/codegen/tests/inputs/cond.input
+
+---
+"Error compiling: main"
+

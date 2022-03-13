@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
-use crate::ast::{Node, Expression, Prototype, Statement};
+use crate::ast::{Expression, Node, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
 #[macro_use]
@@ -458,14 +458,6 @@ mod test {
             Ok(ast) => ast.iter().map(|x| x.to_string()).collect(),
             Err(err) => err.to_string(),
         }
-    }
-
-    #[test]
-    fn test_parser_wtf() {
-        let tokens = Lexer::new("let x: u64 = 1").collect::<Result<Vec<_>, _>>().unwrap();
-        let ast = Parser::new(&tokens).parse();
-        let ast_string = ast_to_string(ast.as_deref());
-        assert_eq!(ast_string, "(let x:u64 1)")
     }
 
     #[test]

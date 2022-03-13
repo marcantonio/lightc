@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use serde::Serialize;
 
 use crate::token::{Symbol, Type};
@@ -10,70 +8,6 @@ mod display;
 pub(crate) enum Node {
     Stmt(Statement),
     Expr(Expression),
-}
-
-impl<'a> From<&'a Node> for &'a Expression {
-    fn from(val: &'a Node) -> Self {
-        match val {
-            Node::Stmt(_) => todo!(),
-            Node::Expr(e) => e,
-        }
-    }
-}
-
-impl From<Node> for Expression {
-    fn from(val: Node) -> Self {
-        match val {
-            Node::Stmt(_) => todo!(),
-            Node::Expr(e) => e,
-        }
-    }
-}
-
-fn foo() {
-    let n = &Node::Expr(Expression::I64(1));
-    let _e: &Expression = n.into();
-}
-
-// fn bar(v: Vec<Node>) -> Vec<Expression> {
-//     v.into()
-// }
-
-// impl Node {
-//     pub(crate) fn as_expr(&self) -> &Expression {
-//         match self {
-//             Node::Stmt(_) => panic!("Expecting wrapped expression"),
-//             Node::Expr(e) => e,
-//         }
-//     }
-// }
-
-impl Deref for Node {
-    type Target = Expression;
-
-    fn deref(&self) -> &Self::Target {
-        self.into()
-    }
-}
-
-pub(crate) trait AsExpr {
-    fn as_expr(&self) -> Vec<&Expression>;
-}
-
-pub(crate) trait AsExprOption {
-    fn as_expr(&self) -> Option<Vec<&Expression>>;
-}
-
-impl AsExpr for Vec<Node> {
-    fn as_expr(&self) -> Vec<&Expression> {
-        self.iter().map(|n| n.into()).collect()
-    }
-}
-
-impl AsExprOption for Option<Vec<Node>> {
-    fn as_expr(&self) -> Option<Vec<&Expression>> {
-        self.as_ref().map(|v| v.as_expr())
-    }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -98,7 +32,7 @@ pub(crate) enum Statement {
     Fn {
         proto: Box<Prototype>,
         body: Option<Vec<Node>>,
-    }
+    },
 }
 
 #[derive(Debug, PartialEq, Serialize)]

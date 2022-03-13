@@ -12,11 +12,7 @@ impl Token {
     // bug
     #[allow(dead_code)]
     pub(crate) fn new(tt: TokenType, line: usize, column: usize) -> Self {
-        Token {
-            tt,
-            line,
-            column,
-        }
+        Token { tt, line, column }
     }
 }
 

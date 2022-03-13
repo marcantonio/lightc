@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Node, Expression, Prototype, Statement};
+use super::{Expression, Node, Prototype, Statement};
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -51,18 +51,16 @@ impl Display for Statement {
                 }
                 write!(f, "{})", s)
             }
-            Fn { proto, body } => {
-                match body {
-                    Some(body) if !body.is_empty() => {
-                        let s = body.iter().fold(String::new(), |mut acc, n| {
-                            acc += &format!(" {}", n);
-                            acc
-                        });
-                        write!(f, "(define {}{})", proto, s)
-                    }
-                    _ => write!(f, "(define {})", proto),
+            Fn { proto, body } => match body {
+                Some(body) if !body.is_empty() => {
+                    let s = body.iter().fold(String::new(), |mut acc, n| {
+                        acc += &format!(" {}", n);
+                        acc
+                    });
+                    write!(f, "(define {}{})", proto, s)
                 }
-            }
+                _ => write!(f, "(define {})", proto),
+            },
         }
     }
 }
