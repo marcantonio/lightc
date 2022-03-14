@@ -7,8 +7,8 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::{Expression, Ast};
 use crate::ast::Prototype;
+use crate::ast::{Ast, Expression};
 use crate::ast::{Node, Statement};
 use crate::codegen::convert::AsExpr;
 use crate::token::{Symbol, Type};
@@ -74,7 +74,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub(crate) fn walk(&mut self, ast: &Ast) -> Result<FunctionValue, String> { // XXX
+    pub(crate) fn walk(&mut self, ast: &Ast) -> Result<FunctionValue, String> {
         for node in ast.nodes() {
             match node {
                 Node::Stmt(stmt) => CgRetVal::Stmt(self.stmt_codegen(stmt)?),
@@ -243,7 +243,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 .i64_type()
                 .const_int(*n, true)
                 .as_basic_value_enum(),
-            Expression::F64(n) => self.context.f64_type().const_float(*n).as_basic_value_enum(),
+            Expression::F64(n) => self
+                .context
+                .f64_type()
+                .const_float(*n)
+                .as_basic_value_enum(),
             _ => todo!("num"),
         })
     }
@@ -259,7 +263,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn var_codegen(&self, name: &str) -> ExprCgResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
-            Some(var) => Ok(self.builder.build_load(*var, name)), // XXX
+            Some(var) => Ok(self.builder.build_load(*var, name)),
             None => Err(format!("Unknown variable: {}", name)),
         }
     }
@@ -381,15 +385,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             args_code.push(self.expr_codegen(arg)?.into());
         }
 
-        match self
-            .builder
+        self.builder
             .build_call(func, &args_code, "tmpcall")
             .try_as_basic_value()
             .left()
-        {
-            Some(v) => Ok(v), // XXX
-            None => Err(String::from("Invalid call?")),
-        }
+            .ok_or_else(|| "Invalid call?".to_string())
     }
 
     // if then optional else
@@ -545,8 +545,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         match op {
             Minus => Ok(self
                 .builder
-                .build_int_neg(rhs.into_int_value(), "neg")
-                .as_basic_value_enum()), // XXX
+                .build_int_neg(rhs.into_int_value(), "neg") // XXX
+                .as_basic_value_enum()),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
