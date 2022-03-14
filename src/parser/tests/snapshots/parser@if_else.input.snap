@@ -1,33 +1,34 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 491
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/if_else.input
 
 ---
 - - Ok:
-      - Stmt:
-          Cond:
-            cond:
-              Expr:
-                BinOp:
-                  sym: Gt
-                  lhs:
-                    Expr:
-                      Var:
-                        name: a
-                  rhs:
-                    Expr:
-                      Var:
-                        name: b
-            cons:
-              - Expr:
-                  Var:
-                    name: foo
-            alt:
-              - Expr:
-                  Var:
-                    name: bar
+      nodes:
+        - Stmt:
+            Cond:
+              cond:
+                Expr:
+                  BinOp:
+                    sym: Gt
+                    lhs:
+                      Expr:
+                        Var:
+                          name: a
+                    rhs:
+                      Expr:
+                        Var:
+                          name: b
+              cons:
+                - Expr:
+                    Var:
+                      name: foo
+              alt:
+                - Expr:
+                    Var:
+                      name: bar
   - (if (> a b) foo bar)
 - - Err:
       message: "Expecting 'if' or '{' after else"

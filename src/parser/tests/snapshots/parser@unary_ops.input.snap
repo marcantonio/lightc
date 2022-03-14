@@ -1,75 +1,80 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 486
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/unary_ops.input
 
 ---
 - - Ok:
-      - Expr:
-          UnOp:
-            sym: Minus
-            rhs:
-              Expr:
-                U64: 21
+      nodes:
+        - Expr:
+            UnOp:
+              sym: Minus
+              rhs:
+                Expr:
+                  U64: 21
   - (- 21)
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Mult
-            lhs:
-              Expr:
-                UnOp:
-                  sym: Minus
-                  rhs:
-                    Expr:
-                      Var:
-                        name: a
-            rhs:
-              Expr:
-                U64: 2
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Mult
+              lhs:
+                Expr:
+                  UnOp:
+                    sym: Minus
+                    rhs:
+                      Expr:
+                        Var:
+                          name: a
+              rhs:
+                Expr:
+                  U64: 2
   - (* (- a) 2)
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Minus
-            lhs:
-              Expr:
-                U64: 3
-            rhs:
-              Expr:
-                UnOp:
-                  sym: Minus
-                  rhs:
-                    Expr:
-                      U64: 21
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Minus
+              lhs:
+                Expr:
+                  U64: 3
+              rhs:
+                Expr:
+                  UnOp:
+                    sym: Minus
+                    rhs:
+                      Expr:
+                        U64: 21
   - (- 3 (- 21))
 - - Ok:
-      - Expr:
-          UnOp:
-            sym: Minus
-            rhs:
-              Expr:
-                BinOp:
-                  sym: Pow
-                  lhs:
-                    Expr:
-                      U64: 4
-                  rhs:
-                    Expr:
-                      U64: 2
+      nodes:
+        - Expr:
+            UnOp:
+              sym: Minus
+              rhs:
+                Expr:
+                  BinOp:
+                    sym: Pow
+                    lhs:
+                      Expr:
+                        U64: 4
+                    rhs:
+                      Expr:
+                        U64: 2
   - (- (^ 4 2))
 - - Ok:
-      - Expr:
-          UnOp:
-            sym: Minus
-            rhs:
-              Expr:
-                UnOp:
-                  sym: Minus
-                  rhs:
-                    Expr:
-                      U64: 21
+      nodes:
+        - Expr:
+            UnOp:
+              sym: Minus
+              rhs:
+                Expr:
+                  UnOp:
+                    sym: Minus
+                    rhs:
+                      Expr:
+                        U64: 21
   - (- (- 21))
 - - Err:
       message: "Unknown unary operator: *"

@@ -1,28 +1,29 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 486
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/assignment.input
 
 ---
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Assign
-            lhs:
-              Expr:
-                Var:
-                  name: x
-            rhs:
-              Expr:
-                BinOp:
-                  sym: Plus
-                  lhs:
-                    Expr:
-                      Var:
-                        name: x
-                  rhs:
-                    Expr:
-                      U64: 1
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Assign
+              lhs:
+                Expr:
+                  Var:
+                    name: x
+              rhs:
+                Expr:
+                  BinOp:
+                    sym: Plus
+                    lhs:
+                      Expr:
+                        Var:
+                          name: x
+                    rhs:
+                      Expr:
+                        U64: 1
   - (= x (+ x 1))
 

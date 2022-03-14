@@ -1,21 +1,22 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 486
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/call_expr.input
 
 ---
 - - Ok:
-      - Expr:
-          Call:
-            name: a
-            args:
-              - Expr:
-                  Var:
-                    name: b
-              - Expr:
-                  Var:
-                    name: c
+      nodes:
+        - Expr:
+            Call:
+              name: a
+              args:
+                - Expr:
+                    Var:
+                      name: b
+                - Expr:
+                    Var:
+                      name: c
   - (a b c)
 - - Err:
       message: "Expecting ')' in function call. Got EOF"

@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
-use crate::ast::{Expression, Node, Prototype, Statement};
+use crate::ast::{Ast, Expression, Node, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
 #[macro_use]
@@ -12,26 +12,26 @@ mod precedence;
 type ParseResult = Result<Node, ParseError>;
 
 pub(crate) struct Parser<'a> {
-    ast: Vec<Node>,
+    ast: Ast,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
     pub(crate) fn new(tokens: &'a [Token]) -> Self {
         Parser {
-            ast: vec![],
+            ast: Ast::new(),
             tokens: tokens.iter().peekable(),
         }
     }
 
     // Parse each token using recursive descent
-    pub(crate) fn parse(mut self) -> Result<Vec<Node>, ParseError> {
+    pub(crate) fn parse(mut self) -> Result<Ast, ParseError> {
         while let Some(t) = self.tokens.peek() {
             let node = match t.tt {
                 //_ => AstNode::Expr(self.parse_expression(0)?),
                 _ => self.parse_statement()?,
             };
-            self.ast.push(node);
+            self.ast.add(node);
         }
         Ok(self.ast)
     }
@@ -449,13 +449,14 @@ mod test {
     };
 
     use crate::{
+        ast::Ast,
         lexer::Lexer,
-        parser::{Node, ParseError, Parser},
+        parser::{ParseError, Parser},
     };
 
-    fn ast_to_string(ast: Result<&[Node], &ParseError>) -> String {
+    fn ast_to_string(ast: Result<&Ast, &ParseError>) -> String {
         match ast {
-            Ok(ast) => ast.iter().map(|x| x.to_string()).collect(),
+            Ok(ast) => ast.nodes().iter().map(|x| x.to_string()).collect(),
             Err(err) => err.to_string(),
         }
     }
@@ -476,7 +477,7 @@ mod test {
                         let line = line.expect("Error reading input line");
                         let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
                         let ast = Parser::new(&tokens).parse();
-                        let ast_string = ast_to_string(ast.as_deref());
+                        let ast_string = ast_to_string(ast.as_ref());
                         (ast, ast_string)
                     })
                     .collect::<Vec<_>>();

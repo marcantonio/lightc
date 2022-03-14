@@ -1,86 +1,62 @@
 use crate::codegen::Expression;
 use crate::codegen::Node;
 
-impl TryFrom<Node> for Expression {
-    type Error = String;
+// impl TryFrom<Node> for Expression {
+//     type Error = String;
 
-    fn try_from(value: Node) -> Result<Self, Self::Error> {
-        match value {
+//     fn try_from(value: Node) -> Result<Self, Self::Error> {
+//         match value {
+//             Node::Stmt(_) => Err("Expected expresion in node. Found statement.".to_string()),
+//             Node::Expr(e) => Ok(e),
+//         }
+//     }
+// }
+
+pub(crate) trait AsExpr<'a> {
+    type Item;
+
+    fn as_expr(&'a self) -> Result<Self::Item, String>;
+}
+
+impl<'a> AsExpr<'a> for Node {
+    type Item = &'a Expression;
+
+    fn as_expr(&'a self) -> Result<Self::Item, String> {
+        match self {
             Node::Stmt(_) => Err("Expected expresion in node. Found statement.".to_string()),
             Node::Expr(e) => Ok(e),
         }
     }
 }
 
-// impl TryFrom<Box<Node>> for Expression {
-//     type Error = String;
+impl<'a> AsExpr<'a> for Box<Node> {
+    type Item = &'a Expression;
 
-//     fn try_from(value: Box<Node>) -> Result<Self, Self::Error> {
-//         (*value).try_into()
-//     }
-// }
-
-// impl TryFrom<Box<Node>> for Box<Expression> {
-//     type Error = String;
-
-//     fn try_from(value: Box<Node>) -> Result<Self, Self::Error> {
-//         value.try_into()
-//     }
-// }
-
-// impl TryFrom<Option<Box<Node>>> for Expression {
-//     type Error = String;
-
-//     fn try_from(value: Option<Box<Node>>) -> Result<Self, Self::Error> {
-//         match value {
-//             Some(node) => node.try_into(),
-//             None => Err("Expected expression. Found empty node.".to_string()),
-//         }
-//     }
-// }
-
-pub(crate) trait ToExpr {
-    type Item;
-
-    fn to_expr(self) -> Result<Self::Item, String>;
-}
-
-impl ToExpr for Node {
-    type Item = Expression;
-
-    fn to_expr(self) -> Result<Self::Item, String> {
-        self.try_into()
+    fn as_expr(&'a self) -> Result<Self::Item, String> {
+        (**self).as_expr()
     }
 }
 
-impl ToExpr for Box<Node> {
-    type Item = Expression;
+impl<'a> AsExpr<'a> for Option<Box<Node>> {
+    type Item = Option<&'a Expression>;
 
-    fn to_expr(self) -> Result<Self::Item, String> {
-        (*self).try_into()
+    fn as_expr(&'a self) -> Result<Self::Item, String> {
+        self.as_deref().map(Node::as_expr).transpose()
     }
 }
 
-impl ToExpr for Option<Box<Node>> {
-    type Item = Option<Expression>;
+impl<'a> AsExpr<'a> for Vec<Node> {
+    type Item = Vec<&'a Expression>;
 
-    fn to_expr(self) -> Result<Self::Item, String> {
-        self.map(Box::to_expr).transpose()
+    fn as_expr(&'a self) -> Result<Self::Item, String> {
+        self.iter().map(|n| n.as_expr()).collect()
     }
 }
 
-impl ToExpr for Vec<Node> {
-    type Item = Vec<Expression>;
+impl<'a> AsExpr<'a> for Option<Vec<Node>> {
+    type Item = Option<Vec<&'a Expression>>;
 
-    fn to_expr(self) -> Result<Self::Item, String> {
-        self.into_iter().map(|n| n.try_into()).collect()
-    }
-}
-
-impl ToExpr for Option<Vec<Node>> {
-    type Item = Option<Vec<Expression>>;
-
-    fn to_expr(self) -> Result<Self::Item, String> {
-        self.map(Vec::to_expr).transpose()
+    fn as_expr(&'a self) -> Result<Self::Item, String> {
+        self.as_ref().map(|o| o.as_expr()).transpose()
     }
 }

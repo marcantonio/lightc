@@ -1,20 +1,21 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 486
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/bin_ops.input
 
 ---
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Minus
-            lhs:
-              Expr:
-                U64: 20
-            rhs:
-              Expr:
-                U64: 19
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Minus
+              lhs:
+                Expr:
+                  U64: 20
+              rhs:
+                Expr:
+                  U64: 19
   - (- 20 19)
 - - Err:
       message: "Unknown binary operator: !"

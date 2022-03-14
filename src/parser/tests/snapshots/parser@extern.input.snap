@@ -1,18 +1,19 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 488
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/extern.input
 
 ---
 - - Ok:
-      - Stmt:
-          Fn:
-            proto:
-              name: cos
-              args:
-                - - x
-                  - F64
-            body: ~
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: cos
+                args:
+                  - - x
+                    - F64
+              body: ~
   - "(define (cos x:f64))"
 

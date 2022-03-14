@@ -1,128 +1,133 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 488
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/logical_ops.input
 
 ---
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Eq
-            lhs:
-              Expr:
-                Var:
-                  name: x
-            rhs:
-              Expr:
-                U64: 1
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Eq
+              lhs:
+                Expr:
+                  Var:
+                    name: x
+              rhs:
+                Expr:
+                  U64: 1
   - (== x 1)
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: And
-            lhs:
-              Expr:
-                Var:
-                  name: x
-            rhs:
-              Expr:
-                U64: 1
+      nodes:
+        - Expr:
+            BinOp:
+              sym: And
+              lhs:
+                Expr:
+                  Var:
+                    name: x
+              rhs:
+                Expr:
+                  U64: 1
   - (&& x 1)
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Or
-            lhs:
-              Expr:
-                Var:
-                  name: x
-            rhs:
-              Expr:
-                U64: 1
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Or
+              lhs:
+                Expr:
+                  Var:
+                    name: x
+              rhs:
+                Expr:
+                  U64: 1
   - (|| x 1)
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Or
-            lhs:
-              Expr:
-                BinOp:
-                  sym: And
-                  lhs:
-                    Expr:
-                      BinOp:
-                        sym: Eq
-                        lhs:
-                          Expr:
-                            Var:
-                              name: x
-                        rhs:
-                          Expr:
-                            U64: 1
-                  rhs:
-                    Expr:
-                      BinOp:
-                        sym: Eq
-                        lhs:
-                          Expr:
-                            Var:
-                              name: y
-                        rhs:
-                          Expr:
-                            U64: 2
-            rhs:
-              Expr:
-                BinOp:
-                  sym: Eq
-                  lhs:
-                    Expr:
-                      Var:
-                        name: z
-                  rhs:
-                    Expr:
-                      U64: 3
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Or
+              lhs:
+                Expr:
+                  BinOp:
+                    sym: And
+                    lhs:
+                      Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Var:
+                                name: x
+                          rhs:
+                            Expr:
+                              U64: 1
+                    rhs:
+                      Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Var:
+                                name: y
+                          rhs:
+                            Expr:
+                              U64: 2
+              rhs:
+                Expr:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Expr:
+                        Var:
+                          name: z
+                    rhs:
+                      Expr:
+                        U64: 3
   - (|| (&& (== x 1) (== y 2)) (== z 3))
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: And
-            lhs:
-              Expr:
-                BinOp:
-                  sym: Eq
-                  lhs:
-                    Expr:
-                      Var:
-                        name: x
-                  rhs:
-                    Expr:
-                      U64: 1
-            rhs:
-              Expr:
-                BinOp:
-                  sym: Or
-                  lhs:
-                    Expr:
-                      BinOp:
-                        sym: Eq
-                        lhs:
-                          Expr:
-                            Var:
-                              name: y
-                        rhs:
-                          Expr:
-                            U64: 2
-                  rhs:
-                    Expr:
-                      BinOp:
-                        sym: Eq
-                        lhs:
-                          Expr:
-                            Var:
-                              name: z
-                        rhs:
-                          Expr:
-                            U64: 3
+      nodes:
+        - Expr:
+            BinOp:
+              sym: And
+              lhs:
+                Expr:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Expr:
+                        Var:
+                          name: x
+                    rhs:
+                      Expr:
+                        U64: 1
+              rhs:
+                Expr:
+                  BinOp:
+                    sym: Or
+                    lhs:
+                      Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Var:
+                                name: y
+                          rhs:
+                            Expr:
+                              U64: 2
+                    rhs:
+                      Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Var:
+                                name: z
+                          rhs:
+                            Expr:
+                              U64: 3
   - (&& (== x 1) (|| (== y 2) (== z 3)))
 

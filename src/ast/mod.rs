@@ -5,6 +5,25 @@ use crate::token::{Symbol, Type};
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
+pub(crate) struct Ast {
+    nodes: Vec<Node>,
+}
+
+impl Ast {
+    pub(crate) fn new() -> Self {
+        Ast { nodes: vec![] }
+    }
+
+    pub(crate) fn add(&mut self, node: Node) {
+        self.nodes.push(node)
+    }
+
+    pub(crate) fn nodes(&self) -> &Vec<Node> {
+        &self.nodes
+    }
+}
+
+#[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Node {
     Stmt(Statement),
     Expr(Expression),

@@ -1,16 +1,17 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 486
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/func_def_empty.input
 
 ---
 - - Ok:
-      - Stmt:
-          Fn:
-            proto:
-              name: a
-              args: []
-            body: []
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: a
+                args: []
+              body: []
   - (define (a))
 

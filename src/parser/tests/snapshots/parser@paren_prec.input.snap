@@ -1,26 +1,27 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 488
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/paren_prec.input
 
 ---
 - - Ok:
-      - Expr:
-          BinOp:
-            sym: Div
-            lhs:
-              Expr:
-                BinOp:
-                  sym: Plus
-                  lhs:
-                    Expr:
-                      U64: 19
-                  rhs:
-                    Expr:
-                      U64: 21
-            rhs:
-              Expr:
-                U64: 40
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Div
+              lhs:
+                Expr:
+                  BinOp:
+                    sym: Plus
+                    lhs:
+                      Expr:
+                        U64: 19
+                    rhs:
+                      Expr:
+                        U64: 21
+              rhs:
+                Expr:
+                  U64: 40
   - (/ (+ 19 21) 40)
 

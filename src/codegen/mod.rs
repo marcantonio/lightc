@@ -7,10 +7,10 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::Expression;
+use crate::ast::{Expression, Ast};
 use crate::ast::Prototype;
 use crate::ast::{Node, Statement};
-use crate::codegen::convert::ToExpr;
+use crate::codegen::convert::AsExpr;
 use crate::token::{Symbol, Type};
 
 mod convert;
@@ -74,8 +74,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub(crate) fn walk(&mut self, mut ast: Vec<Node>) -> Result<FunctionValue, String> { // XXX
-        for node in ast.drain(..) {
+    pub(crate) fn walk(&mut self, ast: &Ast) -> Result<FunctionValue, String> { // XXX
+        for node in ast.nodes() {
             match node {
                 Node::Stmt(stmt) => CgRetVal::Stmt(self.stmt_codegen(stmt)?),
                 Node::Expr(expr) => CgRetVal::Expr(self.expr_codegen(expr)?),
@@ -111,11 +111,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn stmt_codegen(&mut self, expr: Statement) -> StmtCgResult<'ctx> {
+    fn stmt_codegen(&mut self, expr: &Statement) -> StmtCgResult<'ctx> {
         use Statement::*;
         match expr {
             Cond { cond, cons, alt } => {
-                self.cond_codegen(cond.to_expr()?, cons.to_expr()?, alt.to_expr()?)
+                self.cond_codegen(cond.as_expr()?, &*cons.as_expr()?, &alt.as_expr()?)
             }
             For {
                 var_name,
@@ -123,9 +123,9 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 cond,
                 step,
                 body,
-            } => self.for_codegen(&var_name, *start, *cond, *step, body),
-            Let { name, ty, init } => self.let_codegen(&name, ty, init.to_expr()?),
-            Fn { proto, body } => self.func_codegen(*proto, body),
+            } => self.for_codegen(var_name, start, cond, step, body),
+            Let { name, ty, init } => self.let_codegen(name, *ty, &init.as_expr()?),
+            Fn { proto, body } => self.func_codegen(proto, body),
         }
     }
 
@@ -160,8 +160,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         Ok(func)
     }
 
-    fn func_codegen(&mut self, proto: Prototype, body: Option<Vec<Node>>) -> StmtCgResult<'ctx> {
-        let function = self.proto_codegen(&proto)?;
+    fn func_codegen(&mut self, proto: &Prototype, body: &Option<Vec<Node>>) -> StmtCgResult<'ctx> {
+        let function = self.proto_codegen(proto)?;
         // If body is None assume call is an extern
         let body = match body {
             Some(body) => body,
@@ -187,7 +187,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         // Generate and add all expressions in the body. Save the last to
         // one to use with the ret instruction.
         //let mut last_expr: Option<Box<dyn BasicValue>> = None;
-        let mut last_expr: Option<Node> = None;
+        let mut last_expr: Option<&Node> = None;
         for e in body {
             println!(">>>{:?}", e);
             //last_expr = Some(Box::new(self.expr_codegen(e)?));
@@ -223,27 +223,27 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn expr_codegen(&mut self, expr: Expression) -> ExprCgResult<'ctx> {
+    fn expr_codegen(&mut self, expr: &Expression) -> ExprCgResult<'ctx> {
         match expr {
             Expression::U64(_) | Expression::F64(_) => self.num_codegen(expr),
-            Expression::Var { name } => self.var_codegen(&name),
+            Expression::Var { name } => self.var_codegen(name),
             Expression::BinOp { sym, lhs, rhs } => {
-                self.binop_codegen(sym, lhs.to_expr()?, rhs.to_expr()?)
+                self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?)
             }
-            Expression::UnOp { sym, rhs } => self.unop_codegen(sym, rhs.to_expr()?),
-            Expression::Call { name, args } => self.call_codegen(&name, args.to_expr()?),
+            Expression::UnOp { sym, rhs } => self.unop_codegen(*sym, rhs.as_expr()?),
+            Expression::Call { name, args } => self.call_codegen(name, &args.as_expr()?),
             x => todo!("8<>>>{}", x),
         }
     }
 
-    fn num_codegen(&self, num: Expression) -> ExprCgResult<'ctx> {
+    fn num_codegen(&self, num: &Expression) -> ExprCgResult<'ctx> {
         Ok(match num {
             Expression::U64(n) => self
                 .context
                 .i64_type()
-                .const_int(n, true)
+                .const_int(*n, true)
                 .as_basic_value_enum(),
-            Expression::F64(n) => self.context.f64_type().const_float(n).as_basic_value_enum(),
+            Expression::F64(n) => self.context.f64_type().const_float(*n).as_basic_value_enum(),
             _ => todo!("num"),
         })
     }
@@ -267,8 +267,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn binop_codegen(
         &mut self,
         op: Symbol,
-        lhs: Expression,
-        rhs: Expression,
+        lhs: &Expression,
+        rhs: &Expression,
     ) -> ExprCgResult<'ctx> {
         use super::token::Symbol::*;
 
@@ -282,7 +282,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             let r_val = self.expr_codegen(rhs)?;
             let l_var = self
                 .local_vars
-                .get(&l_var)
+                .get(l_var)
                 .ok_or(format!("Unknown variable in assignment: {}", l_var))?
                 .to_owned();
 
@@ -370,7 +370,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn call_codegen(&mut self, name: &str, args: Vec<Expression>) -> ExprCgResult<'ctx> {
+    fn call_codegen(&mut self, name: &str, args: &[&Expression]) -> ExprCgResult<'ctx> {
         let func = self
             .module
             .get_function(name)
@@ -395,9 +395,9 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     // if then optional else
     fn cond_codegen(
         &mut self,
-        cond_expr: Expression,
-        then_expr: Vec<Expression>,
-        else_expr: Option<Vec<Expression>>, // todo: can this be a slice?
+        cond_expr: &Expression,
+        then_expr: &[&Expression],
+        else_expr: &Option<Vec<&Expression>>, // todo: can this be a slice?
     ) -> StmtCgResult<'ctx> {
         // Get the current function for insertion
         let parent = self
@@ -471,10 +471,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn for_codegen(
         &mut self,
         var_name: &str,
-        start: Node,
-        cond: Node,
-        step: Node,
-        body: Vec<Node>,
+        start: &Node,
+        cond: &Node,
+        step: &Node,
+        body: &[Node],
     ) -> StmtCgResult<'ctx> {
         let parent = self
             .builder
@@ -484,7 +484,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Create entry alloca, codegen start expr, and store result
         let start_alloca = self.create_entry_block_alloca((var_name, Type::U64), &parent); // XXX
-        let start_code = self.expr_codegen(start.to_expr()?)?;
+        let start_code = self.expr_codegen(start.as_expr()?)?;
         self.builder.build_store(start_alloca, start_code);
 
         // Create a block for the loop, a branch to it, and move the insertion
@@ -500,12 +500,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Generate all body expressions
         for expr in body {
-            self.expr_codegen(expr.to_expr()?)?;
+            self.expr_codegen(expr.as_expr()?)?;
         }
 
         // Codegen step value and end cond
-        let step_code = self.expr_codegen(step.to_expr()?)?;
-        let cond_code = self.expr_codegen(cond.to_expr()?)?.into_int_value(); // XXX
+        let step_code = self.expr_codegen(step.as_expr()?)?;
+        let cond_code = self.expr_codegen(cond.as_expr()?)?.into_int_value(); // XXX
 
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
@@ -538,7 +538,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         Ok(())
     }
 
-    fn unop_codegen(&mut self, op: Symbol, rhs: Expression) -> ExprCgResult<'ctx> {
+    fn unop_codegen(&mut self, op: Symbol, rhs: &Expression) -> ExprCgResult<'ctx> {
         use Symbol::*;
 
         let rhs = self.expr_codegen(rhs)?;
@@ -555,7 +555,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         &mut self,
         name: &str,
         ty: Type,
-        init: Option<Expression>,
+        init: &Option<&Expression>,
     ) -> StmtCgResult<'ctx> {
         let parent = self
             .builder
@@ -618,7 +618,7 @@ mod test {
                 let fpm = PassManager::create(&module);
                 let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
 
-                assert_yaml_snapshot!(code_to_string(codegen.walk(ast)));
+                assert_yaml_snapshot!(code_to_string(codegen.walk(&ast)));
             });
         });
     }

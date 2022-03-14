@@ -1,41 +1,42 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 491
+assertion_line: 484
 expression: asts
 input_file: src/parser/tests/inputs/call_with_expr_arg.input
 
 ---
 - - Ok:
-      - Expr:
-          Call:
-            name: a
-            args:
-              - Expr:
-                  BinOp:
-                    sym: Plus
-                    lhs:
-                      Expr:
-                        Var:
-                          name: b
-                    rhs:
-                      Expr:
-                        U64: 1
-              - Expr:
-                  BinOp:
-                    sym: Minus
-                    lhs:
-                      Expr:
-                        Var:
-                          name: c
-                    rhs:
-                      Expr:
-                        BinOp:
-                          sym: Div
-                          lhs:
-                            Expr:
-                              U64: 2
-                          rhs:
-                            Expr:
-                              U64: 4
+      nodes:
+        - Expr:
+            Call:
+              name: a
+              args:
+                - Expr:
+                    BinOp:
+                      sym: Plus
+                      lhs:
+                        Expr:
+                          Var:
+                            name: b
+                      rhs:
+                        Expr:
+                          U64: 1
+                - Expr:
+                    BinOp:
+                      sym: Minus
+                      lhs:
+                        Expr:
+                          Var:
+                            name: c
+                      rhs:
+                        Expr:
+                          BinOp:
+                            sym: Div
+                            lhs:
+                              Expr:
+                                U64: 2
+                            rhs:
+                              Expr:
+                                U64: 4
   - (a (+ b 1) (- c (/ 2 4)))
 

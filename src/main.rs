@@ -49,7 +49,7 @@ fn main() {
 
     if args.ast {
         println!("AST:");
-        for node in &ast {
+        for node in ast.nodes() {
             println!("{}", node);
         }
         println!();
@@ -62,7 +62,7 @@ fn main() {
     set_target_machine(&module);
     let fpm = PassManager::create(&module);
     let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
-    codegen.walk(ast).expect("Compiler error");
+    codegen.walk(&ast).expect("Compiler error");
 
     let tmp_file = tempfile::Builder::new()
         .prefix("lightc-")
