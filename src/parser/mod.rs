@@ -12,7 +12,7 @@ mod precedence;
 type ParseResult = Result<Node, ParseError>;
 
 pub(crate) struct Parser<'a> {
-    ast: Ast,
+    ast: Ast<Node>,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
@@ -25,7 +25,7 @@ impl<'a> Parser<'a> {
     }
 
     // Parse each token using recursive descent
-    pub(crate) fn parse(mut self) -> Result<Ast, ParseError> {
+    pub(crate) fn parse(mut self) -> Result<Ast<Node>, ParseError> {
         while let Some(t) = self.tokens.peek() {
             let node = match t.tt {
                 //_ => AstNode::Expr(self.parse_expression(0)?),
@@ -449,12 +449,12 @@ mod test {
     };
 
     use crate::{
-        ast::Ast,
+        ast::{Ast, Node},
         lexer::Lexer,
         parser::{ParseError, Parser},
     };
 
-    fn ast_to_string(ast: Result<&Ast, &ParseError>) -> String {
+    fn ast_to_string(ast: Result<&Ast<Node>, &ParseError>) -> String {
         match ast {
             Ok(ast) => ast.nodes().iter().map(|x| x.to_string()).collect(),
             Err(err) => err.to_string(),

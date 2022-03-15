@@ -7,18 +7,13 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::Prototype;
+use crate::ast::{Prototype, AstVisitor, Visitable};
 use crate::ast::{Ast, Expression};
 use crate::ast::{Node, Statement};
 use crate::codegen::convert::AsExpr;
 use crate::token::{Symbol, Type};
 
 mod convert;
-
-enum CgRetVal<'ctx> {
-    Stmt(()),
-    Expr(BasicValueEnum<'ctx>),
-}
 
 type StmtCgResult<'ctx> = Result<(), String>;
 type ExprCgResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
@@ -41,6 +36,19 @@ pub(crate) struct CodeGen<'a, 'ctx> {
     fpm: &'a PassManager<FunctionValue<'ctx>>,
     local_vars: HashMap<String, PointerValue<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
+}
+
+impl<'a, 'ctx> AstVisitor for CodeGen<'a, 'ctx> {
+    type Result = Result<(), String>;
+
+    fn visit_stmt(&mut self, s: &Statement) -> Self::Result {
+        self.stmt_codegen(s)
+    }
+
+    fn visit_expr(&mut self, e: &Expression) -> Self::Result {
+        self.expr_codegen(e)?;
+        Ok(())
+    }
 }
 
 impl<'a, 'ctx> CodeGen<'a, 'ctx> {
@@ -74,12 +82,9 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub(crate) fn walk(&mut self, ast: &Ast) -> Result<FunctionValue, String> {
+    pub(crate) fn walk(&mut self, ast: &Ast<Node>) -> Result<FunctionValue, String> {
         for node in ast.nodes() {
-            match node {
-                Node::Stmt(stmt) => CgRetVal::Stmt(self.stmt_codegen(stmt)?),
-                Node::Expr(expr) => CgRetVal::Expr(self.expr_codegen(expr)?),
-            };
+            node.accept(self)?;
         }
         self.main.ok_or_else(|| "main() not found".to_string())
     }

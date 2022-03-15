@@ -1,17 +1,6 @@
 use crate::codegen::Expression;
 use crate::codegen::Node;
 
-// impl TryFrom<Node> for Expression {
-//     type Error = String;
-
-//     fn try_from(value: Node) -> Result<Self, Self::Error> {
-//         match value {
-//             Node::Stmt(_) => Err("Expected expresion in node. Found statement.".to_string()),
-//             Node::Expr(e) => Ok(e),
-//         }
-//     }
-// }
-
 pub(crate) trait AsExpr<'a> {
     type Item;
 

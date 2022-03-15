@@ -5,20 +5,20 @@ use crate::token::{Symbol, Type};
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct Ast {
-    nodes: Vec<Node>,
+pub(crate) struct Ast<T: Visitable> {
+    nodes: Vec<T>,
 }
 
-impl Ast {
+impl<T: Visitable> Ast<T> {
     pub(crate) fn new() -> Self {
         Ast { nodes: vec![] }
     }
 
-    pub(crate) fn add(&mut self, node: Node) {
+    pub(crate) fn add(&mut self, node: T) {
         self.nodes.push(node)
     }
 
-    pub(crate) fn nodes(&self) -> &Vec<Node> {
+    pub(crate) fn nodes(&self) -> &Vec<T> {
         &self.nodes
     }
 }
@@ -81,4 +81,36 @@ pub(crate) enum Expression {
 pub(crate) struct Prototype {
     pub(crate) name: String,
     pub(crate) args: Vec<(String, Type)>,
+}
+
+pub(crate) trait AstVisitor {
+    type Result;
+
+    fn visit_stmt(&mut self, s: &Statement) -> Self::Result;
+    fn visit_expr(&mut self, e: &Expression) -> Self::Result;
+}
+
+pub(crate) trait Visitable {
+    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result;
+}
+
+impl Visitable for Node {
+    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
+        match self {
+            Node::Stmt(s) => v.visit_stmt(s),
+            Node::Expr(e) => v.visit_expr(e),
+        }
+    }
+}
+
+impl Visitable for Expression {
+    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
+        v.visit_expr(self)
+    }
+}
+
+impl Visitable for Statement {
+    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
+        v.visit_stmt(self)
+    }
 }
