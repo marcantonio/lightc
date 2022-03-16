@@ -11,11 +11,11 @@ input_file: src/parser/tests/inputs/block.input
             Cond:
               cond:
                 Expr:
-                  Var:
+                  Ident:
                     name: foo
               cons:
                 - Expr:
-                    Var:
+                    Ident:
                       name: bar
               alt: ~
   - (if foo bar)
@@ -25,7 +25,7 @@ input_file: src/parser/tests/inputs/block.input
             Cond:
               cond:
                 Expr:
-                  Var:
+                  Ident:
                     name: foo
               cons: []
               alt: ~

@@ -12,7 +12,7 @@ input_file: src/parser/tests/inputs/assignment.input
               sym: Assign
               lhs:
                 Expr:
-                  Var:
+                  Ident:
                     name: x
               rhs:
                 Expr:
@@ -20,7 +20,7 @@ input_file: src/parser/tests/inputs/assignment.input
                     sym: Plus
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: x
                     rhs:
                       Expr:

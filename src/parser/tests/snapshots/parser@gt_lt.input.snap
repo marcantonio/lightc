@@ -16,11 +16,11 @@ input_file: src/parser/tests/inputs/gt_lt.input
                     sym: Plus
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: a
                     rhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: b
               rhs:
                 Expr:
@@ -33,7 +33,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
               sym: Lt
               lhs:
                 Expr:
-                  Var:
+                  Ident:
                     name: a
               rhs:
                 Expr:
@@ -41,7 +41,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                     sym: Div
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: b
                     rhs:
                       Expr:

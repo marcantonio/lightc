@@ -29,7 +29,7 @@ input_file: src/parser/tests/inputs/func_def.input
                                 U64: 19
                             rhs:
                               Expr:
-                                Var:
+                                Ident:
                                   name: a
                       rhs:
                         Expr:

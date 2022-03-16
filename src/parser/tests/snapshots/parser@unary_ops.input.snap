@@ -25,7 +25,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     sym: Minus
                     rhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: a
               rhs:
                 Expr:

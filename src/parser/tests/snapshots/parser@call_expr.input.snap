@@ -12,10 +12,10 @@ input_file: src/parser/tests/inputs/call_expr.input
               name: a
               args:
                 - Expr:
-                    Var:
+                    Ident:
                       name: b
                 - Expr:
-                    Var:
+                    Ident:
                       name: c
   - (a b c)
 - - Err:

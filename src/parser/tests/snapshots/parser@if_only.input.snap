@@ -15,15 +15,15 @@ input_file: src/parser/tests/inputs/if_only.input
                     sym: Gt
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: a
                     rhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: b
               cons:
                 - Expr:
-                    Var:
+                    Ident:
                       name: foo
               alt: ~
   - (if (> a b) foo)

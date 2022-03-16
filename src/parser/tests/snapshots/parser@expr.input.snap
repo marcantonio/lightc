@@ -19,7 +19,7 @@ input_file: src/parser/tests/inputs/expr.input
                         U64: 19
                     rhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: a
               rhs:
                 Expr:

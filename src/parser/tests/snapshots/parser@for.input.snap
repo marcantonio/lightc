@@ -19,7 +19,7 @@ input_file: src/parser/tests/inputs/for.input
                     sym: Lt
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: x
                     rhs:
                       Expr:
@@ -29,7 +29,7 @@ input_file: src/parser/tests/inputs/for.input
                   U64: 1
               body:
                 - Expr:
-                    Var:
+                    Ident:
                       name: foo
   - (for (let x 1) (< x 10) 1 foo)
 - - Err:

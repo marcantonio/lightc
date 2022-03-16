@@ -16,7 +16,7 @@ input_file: src/parser/tests/inputs/call_with_call_arg.input
                       name: b
                       args:
                         - Expr:
-                            Var:
+                            Ident:
                               name: c
   - (a (b c))
 

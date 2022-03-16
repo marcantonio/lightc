@@ -12,7 +12,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
               sym: Eq
               lhs:
                 Expr:
-                  Var:
+                  Ident:
                     name: x
               rhs:
                 Expr:
@@ -25,7 +25,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
               sym: And
               lhs:
                 Expr:
-                  Var:
+                  Ident:
                     name: x
               rhs:
                 Expr:
@@ -38,7 +38,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
               sym: Or
               lhs:
                 Expr:
-                  Var:
+                  Ident:
                     name: x
               rhs:
                 Expr:
@@ -59,7 +59,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                           sym: Eq
                           lhs:
                             Expr:
-                              Var:
+                              Ident:
                                 name: x
                           rhs:
                             Expr:
@@ -70,7 +70,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                           sym: Eq
                           lhs:
                             Expr:
-                              Var:
+                              Ident:
                                 name: y
                           rhs:
                             Expr:
@@ -81,7 +81,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     sym: Eq
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: z
                     rhs:
                       Expr:
@@ -98,7 +98,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     sym: Eq
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: x
                     rhs:
                       Expr:
@@ -113,7 +113,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                           sym: Eq
                           lhs:
                             Expr:
-                              Var:
+                              Ident:
                                 name: y
                           rhs:
                             Expr:
@@ -124,7 +124,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                           sym: Eq
                           lhs:
                             Expr:
-                              Var:
+                              Ident:
                                 name: z
                           rhs:
                             Expr:

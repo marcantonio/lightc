@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
 
     // Variable or function call
     fn parse_ident(&mut self, id: &str) -> ParseResult {
-        let node = Expression::Var {
+        let node = Expression::Ident {
             name: id.to_owned(),
         };
 

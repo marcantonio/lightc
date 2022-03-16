@@ -74,7 +74,7 @@ impl Display for Expression {
             F64(v) => write!(f, "{}", v),
             BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
             UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
-            Var { name } => write!(f, "{}", name),
+            Ident { name } => write!(f, "{}", name),
             Call { name, args } => {
                 let mut s = format!("({}", name);
                 if !args.is_empty() {

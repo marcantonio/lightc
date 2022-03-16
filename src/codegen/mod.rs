@@ -7,8 +7,8 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::{Prototype, AstVisitor, Visitable};
 use crate::ast::{Ast, Expression};
+use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
 use crate::codegen::convert::AsExpr;
 use crate::token::{Symbol, Type};
@@ -231,7 +231,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn expr_codegen(&mut self, expr: &Expression) -> ExprCgResult<'ctx> {
         match expr {
             Expression::U64(_) | Expression::F64(_) => self.num_codegen(expr),
-            Expression::Var { name } => self.var_codegen(name),
+            Expression::Ident { name } => self.ident_codegen(name),
             Expression::BinOp { sym, lhs, rhs } => {
                 self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?)
             }
@@ -265,7 +265,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     //     Ok(self.context.f64_type().const_float(num).as_basic_value_enum())
     // }
 
-    fn var_codegen(&self, name: &str) -> ExprCgResult<'ctx> {
+    fn ident_codegen(&self, name: &str) -> ExprCgResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
             Some(var) => Ok(self.builder.build_load(*var, name)),
@@ -284,7 +284,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         // If assignment, make sure lvalue is a variable and store rhs there
         if op == Assign {
             let l_var = match lhs {
-                Expression::Var { name } => name,
+                Expression::Ident { name } => name,
                 _ => return Err("Expected LHS to be a variable for assignment".to_string()),
             };
 

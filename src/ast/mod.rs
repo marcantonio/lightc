@@ -59,7 +59,7 @@ pub(crate) enum Expression {
     I64(u64),
     U64(u64),
     F64(f64),
-    Var {
+    Ident {
         name: String,
     },
     BinOp {

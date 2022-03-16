@@ -15,19 +15,19 @@ input_file: src/parser/tests/inputs/if_else.input
                     sym: Gt
                     lhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: a
                     rhs:
                       Expr:
-                        Var:
+                        Ident:
                           name: b
               cons:
                 - Expr:
-                    Var:
+                    Ident:
                       name: foo
               alt:
                 - Expr:
-                    Var:
+                    Ident:
                       name: bar
   - (if (> a b) foo bar)
 - - Err:
