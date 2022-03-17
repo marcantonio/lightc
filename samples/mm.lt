@@ -1,4 +1,4 @@
-extern putchar(x: u64)
+extern putchar(x: u64) -> u64
 
 fn print_dot() {
     putchar(46)
@@ -8,6 +8,10 @@ fn print_dot() {
 fn print_int(x: u64) {
     putchar(x + 48)
     putchar(10)
+}
+
+fn plus_one(x: u64) -> u64 {
+    x + 1
 }
 
 // fn print_bang() {
@@ -24,10 +28,8 @@ fn main() {
     //let x: f64 = 1
     //let y: f64 = 2
     //let y: f64 = 1.0
-    print_int(1 + 2)
+    //print_int(plus_one(2))
+    print_int(1)
     print_dot()
     //print_bang()
-    if 1 {
-        2
-    }
 }

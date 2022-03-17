@@ -90,23 +90,26 @@ pub(crate) enum Symbol {
     Or,
     Plus,
     Pow,
+    RetType,
 }
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Symbol::*;
         let s = match self {
-            Symbol::Assign => "=",
-            Symbol::And => "&&",
-            Symbol::Div => "/",
-            Symbol::Eq => "==",
-            Symbol::Gt => ">",
-            Symbol::Lt => "<",
-            Symbol::Minus => "-",
-            Symbol::Mult => "*",
-            Symbol::Not => "!",
-            Symbol::Or => "||",
-            Symbol::Plus => "+",
-            Symbol::Pow => "^",
+            Assign => "=",
+            And => "&&",
+            Div => "/",
+            Eq => "==",
+            Gt => ">",
+            Lt => "<",
+            Minus => "-",
+            Mult => "*",
+            Not => "!",
+            Or => "||",
+            Plus => "+",
+            Pow => "^",
+            RetType => "->",
         };
         write!(f, "{}", s)
     }

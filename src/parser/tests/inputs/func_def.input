@@ -1,4 +1,10 @@
-fn a(b: i64, c: i64) { 19 + a + 40 }
+fn a(b: i64, c: i64) -> i64 { 19 + a + 40 }
+fn a(b: i64, c: i64) -> i64 { 19 + a + 40 b + a }
+fn a(b: i64) { b }
+fn a(b: i64) - { b }
+fn a(b: i64) -> { b }
+fn a(b: i64) -> a { b }
+fn a() {}
 fn (a: i64, c: i64) { 1 + 2 }
 fn a
 fn a( {}

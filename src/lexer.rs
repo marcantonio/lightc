@@ -86,7 +86,7 @@ impl Lexer {
             return Ok(Token::from((TokenType::Num(n), cur)));
         }
 
-        // Logical operators
+        // Multi-character operators
         if let Some(next) = self.stream.peek() {
             match cur.value {
                 '=' if next == &'=' => {
@@ -100,6 +100,10 @@ impl Lexer {
                 '|' if next == &'|' => {
                     self.stream.next();
                     return Ok(Token::from((TokenType::Op(Symbol::Or), cur)));
+                }
+                '-' if next == &'>' => {
+                    self.stream.next();
+                    return Ok(Token::from((TokenType::Op(Symbol::RetType), cur)));
                 }
                 _ => (),
             }

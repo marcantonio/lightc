@@ -1,9 +1,8 @@
 ---
-source: tests/ir_generator.rs
-assertion_line: 34
-expression: ir_to_string(ir_gen.generate(&ast))
-input_file: tests/inputs/ir_gen/cond.input
-
+source: src/codegen/mod.rs
+assertion_line: 674
+expression: code_to_string(codegen.walk(&ast))
+input_file: src/codegen/tests/inputs/cond.input
 ---
-"define i64 @main() {\nentry:\n  %tmpcall = call i64 @plus_one(i64 6)\n  ret i64 0\n}\n"
+"define void @main() {\nentry:\n  %call_plus_one = call i64 @plus_one(i64 6)\n  ret void\n}\n"
 

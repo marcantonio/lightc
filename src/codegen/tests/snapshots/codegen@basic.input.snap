@@ -1,9 +1,8 @@
 ---
-source: tests/ir_generator.rs
-assertion_line: 25
-expression: ir_gen.generate(&ast).unwrap().print_to_string().to_string()
-input_file: tests/inputs/ir_gen/basic.input
-
+source: src/codegen/mod.rs
+assertion_line: 674
+expression: code_to_string(codegen.walk(&ast))
+input_file: src/codegen/tests/inputs/basic.input
 ---
 "define i64 @main() {\nentry:\n  ret i64 80\n}\n"
 

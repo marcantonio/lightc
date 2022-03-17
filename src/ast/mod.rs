@@ -81,6 +81,7 @@ pub(crate) enum Expression {
 pub(crate) struct Prototype {
     pub(crate) name: String,
     pub(crate) args: Vec<(String, Type)>,
+    pub(crate) ret_type: Option<Type>,
 }
 
 pub(crate) trait AstVisitor {

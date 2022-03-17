@@ -167,6 +167,7 @@ impl<'a> Parser<'a> {
             "Expecting '(' in prototype"
         );
 
+        // Parse args list
         let mut args: Vec<(String, Type)> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
@@ -216,9 +217,27 @@ impl<'a> Parser<'a> {
         // Eat close paren
         self.tokens.next();
 
+        // Parse return type
+        let mut ret_type = None;
+        if let Some(next) = self.tokens.peek() {
+            ret_type = match next.tt {
+                TokenType::Op(Symbol::RetType) => {
+                    self.tokens.next();
+                    let t = expect_next_token!(
+                        self.tokens,
+                        TokenType::VarType(_),
+                        "Expecting vartype as return after ->"
+                    );
+                    Some(*t)
+                }
+                _ => None,
+            };
+        }
+
         Ok(Prototype {
             name: fn_name.to_string(),
             args,
+            ret_type,
         })
     }
 

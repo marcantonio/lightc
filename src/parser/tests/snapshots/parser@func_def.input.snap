@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 504
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 
@@ -16,6 +16,7 @@ input_file: src/parser/tests/inputs/func_def.input
                     - I64
                   - - c
                     - I64
+                ret_type: I64
               body:
                 - Expr:
                     BinOp:
@@ -35,6 +36,88 @@ input_file: src/parser/tests/inputs/func_def.input
                         Expr:
                           U64: 40
   - "(define (a b:i64 c:i64) (+ (+ 19 a) 40))"
+- - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: a
+                args:
+                  - - b
+                    - I64
+                  - - c
+                    - I64
+                ret_type: I64
+              body:
+                - Expr:
+                    BinOp:
+                      sym: Plus
+                      lhs:
+                        Expr:
+                          BinOp:
+                            sym: Plus
+                            lhs:
+                              Expr:
+                                U64: 19
+                            rhs:
+                              Expr:
+                                Ident:
+                                  name: a
+                      rhs:
+                        Expr:
+                          U64: 40
+                - Expr:
+                    BinOp:
+                      sym: Plus
+                      lhs:
+                        Expr:
+                          Ident:
+                            name: b
+                      rhs:
+                        Expr:
+                          Ident:
+                            name: a
+  - "(define (a b:i64 c:i64) (+ (+ 19 a) 40) (+ b a))"
+- - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: a
+                args:
+                  - - b
+                    - I64
+                ret_type: ~
+              body:
+                - Expr:
+                    Ident:
+                      name: b
+  - "(define (a b:i64) b)"
+- - Err:
+      message: "Expecting '{' to start block. Got -"
+      line: 1
+      column: 14
+  - "Parsing error: Expecting '{' to start block. Got - at 1:14"
+- - Err:
+      message: Expecting vartype as return after ->. Got OpenBrace
+      line: 1
+      column: 17
+  - "Parsing error: Expecting vartype as return after ->. Got OpenBrace at 1:17"
+- - Err:
+      message: "Expecting vartype as return after ->. Got identifier: a"
+      line: 1
+      column: 17
+  - "Parsing error: Expecting vartype as return after ->. Got identifier: a at 1:17"
+- - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: a
+                args: []
+                ret_type: ~
+              body: []
+  - (define (a))
 - - Err:
       message: Expecting function name in prototype. Got OpenParen
       line: 1
