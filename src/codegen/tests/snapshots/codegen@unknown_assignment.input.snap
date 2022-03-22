@@ -1,9 +1,8 @@
 ---
-source: tests/ir_generator.rs
-assertion_line: 33
-expression: ir_to_string(ir_gen.generate(&ast))
-input_file: tests/inputs/ir_gen/unknown_assignment.input
-
+source: src/codegen/mod.rs
+assertion_line: 712
+expression: ir
+input_file: src/codegen/tests/inputs/unknown_assignment.input
 ---
-"Unknown variable in assignment: x"
+- "Unknown variable in assignment: x"
 

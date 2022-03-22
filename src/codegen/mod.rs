@@ -615,22 +615,27 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building let expression".to_string())?;
+            .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
 
-        // match ty {
-        //     Type::U64 => todo!(),
-        //     Type::I64 => todo!("i64 let"),
-        //     Type::F64 => todo!("f64 let"),
-        // };
-
-        let init_code = match init {
-            Some(init) => self.expr_codegen(init)?,
-            None => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+        let init_code = match (ty, init) {
+            (_, Some(i)) => {
+                if i.is_type(ty) {
+                    self.expr_codegen(i)?
+                } else {
+                    return Err(format!(
+                        "Types don't match in let statement. Annotated with {} but value is {}",
+                        ty,
+                        i.as_type()
+                    ));
+                }
+            }
+            (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+            (Type::I64, None) => todo!(),
+            (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
         };
 
         let init_alloca = self.create_entry_block_alloca((name, ty), &parent);
         self.builder.build_store(init_alloca, *init_code.ret_val()?);
-
         self.local_vars.insert(name.to_owned(), init_alloca);
 
         Ok(())
@@ -643,7 +648,9 @@ mod test {
     use inkwell::values::FunctionValue;
     use inkwell::{context::Context, values::AnyValue};
     use insta::{assert_yaml_snapshot, glob, with_settings};
-    use std::fs;
+    use std::fs::File;
+    use std::io::BufRead;
+    use std::io::BufReader;
 
     use super::*;
     use crate::lexer::Lexer;
@@ -661,18 +668,27 @@ mod test {
     fn test_codegen() {
         with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             glob!("tests/inputs/*.input", |path| {
-                let input = fs::read_to_string(path).unwrap();
-                let tokens = Lexer::new(&input).collect::<Result<Vec<_>, _>>().unwrap();
-                let parser = Parser::new(&tokens);
-                let ast = parser.parse().unwrap();
+                let file = File::open(path).expect("Error reading input file");
+                let reader = BufReader::new(file);
 
-                let context = Context::create();
-                let builder = context.create_builder();
-                let module = context.create_module("main_mod");
-                let fpm = PassManager::create(&module);
-                let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
-
-                assert_yaml_snapshot!(code_to_string(codegen.walk(&ast)));
+                // Each line of the input files is meant to be a separate test
+                // case. Treat each as its own AST. Including `ast_string` in the
+                // output makes it more readable.
+                let ir = reader
+                    .lines()
+                    .map(|line| {
+                        let line = line.expect("Error reading input line");
+                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
+                        let ast = Parser::new(&tokens).parse().unwrap();
+                        let context = Context::create();
+                        let builder = context.create_builder();
+                        let module = context.create_module("main_mod");
+                        let fpm = PassManager::create(&module);
+                        let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
+                        code_to_string(codegen.walk(&ast))
+                    })
+                    .collect::<Vec<_>>();
+                assert_yaml_snapshot!(ir);
             });
         });
     }

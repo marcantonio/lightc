@@ -1,9 +1,8 @@
 ---
-source: tests/ir_generator.rs
-assertion_line: 34
-expression: ir_to_string(ir_gen.generate(&ast))
-input_file: tests/inputs/ir_gen/bad_l_value.input
-
+source: src/codegen/mod.rs
+assertion_line: 712
+expression: ir
+input_file: src/codegen/tests/inputs/bad_l_value.input
 ---
-Expected LHS to be a variable for assignment
+- Expected LHS to be a variable for assignment
 

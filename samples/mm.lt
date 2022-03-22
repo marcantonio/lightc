@@ -10,8 +10,8 @@ fn print_int(x: u64) {
     putchar(10)
 }
 
-fn plus_one(x: u64) -> u64 {
-    x + 1
+fn plus_one(x: f64) -> f64 {
+    x + 1.0
 }
 
 // fn print_bang() {
@@ -27,9 +27,10 @@ fn plus_one(x: u64) -> u64 {
 fn main() {
     //let x: f64 = 1
     //let y: f64 = 2
-    //let y: f64 = 1.0
-    print_int(plus_one(2))
-    print_int(1)
-    print_dot()
+    let y: f64 = 1.0
+    plus_one(y)
+// //    print_int(plus_one(1))
+//     print_int(1)
+//     print_dot()
     //print_bang()
 }

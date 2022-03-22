@@ -1,8 +1,8 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 674
-expression: code_to_string(codegen.walk(&ast))
+assertion_line: 712
+expression: ir
 input_file: src/codegen/tests/inputs/cond.input
 ---
-"define void @main() {\nentry:\n  %call_plus_one = call i64 @plus_one(i64 6)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i64 @plus_one(i64 6)\n  ret void\n}\n"
 

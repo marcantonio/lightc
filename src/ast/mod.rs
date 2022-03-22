@@ -77,6 +77,26 @@ pub(crate) enum Expression {
     },
 }
 
+impl Expression {
+    pub(crate) fn is_type(&self, ty: Type) -> bool {
+        matches!(
+            (self, ty),
+            (Expression::U64(_), Type::U64)
+                | (Expression::I64(_), Type::I64)
+                | (Expression::F64(_), Type::F64)
+        )
+    }
+
+    pub(crate) fn as_type(&self) -> Type {
+        match self {
+            Expression::I64(_) => Type::I64,
+            Expression::U64(_) => Type::U64,
+            Expression::F64(_) => Type::F64,
+            _ => todo!(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct Prototype {
     pub(crate) name: String,
