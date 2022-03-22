@@ -30,7 +30,7 @@ fn main() {
 
     // Lexer
     let lexer = Lexer::new(&source);
-    let tokens = lexer.collect::<Result<Vec<_>, _>>().unwrap_or_else(|e| {
+    let tokens =  lexer.collect::<Result<Vec<_>, _>>().unwrap_or_else(|e| {
         eprintln!("{}", e);
         exit(1);
     });

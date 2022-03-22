@@ -16,8 +16,40 @@ use crate::token::{Symbol, Type};
 
 mod convert;
 
-type StmtCgResult<'ctx> = Result<(), String>;
-type ExprCgResult<'ctx> = Result<Option<BasicValueEnum<'ctx>>, String>;
+type StmtCgResult<'ctx> = Result<(), Error>;
+type ExprCgResult<'ctx> = Result<BasicValueEnum<'ctx>, Error>;
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Error::Err(value)
+    }
+}
+
+// This is a hack until RFC3058 (try_trait_v2) is stablized.
+// (https://rust-lang.github.io/rfcs/3058-try-trait-v2.html)
+//
+// We need to communicate that call_codegen can return a non-error. The most
+// straightforward way to do this is by wrapping the return in an Option. We
+// could also wrap BasicValueEnum in an enum. However, both of these methods
+// mean several changes throughout codegen. Instead we smuggle the non-error
+// case out through the Error enum and we only need to construct that variant
+// once.
+#[derive(Debug)]
+pub(crate) enum Error {
+    Err(String),
+    Continue,
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Err(s) => write!(f, "{}", s),
+            Error::Continue => write!(f, "Continue"),
+        }
+    }
+}
 
 macro_rules! extract_type {
     ($ctx:expr, $var:expr) => {{
@@ -31,13 +63,31 @@ macro_rules! extract_type {
 }
 
 // unwrap_or
-macro_rules! extract_value {
-    ($var:expr) => {
-        match $var {
-            Some(v) => v,
-            None => return Err("Expected value here".to_string()),
+// macro_rules! extract_value {
+//     ($var:expr) => {
+//         match $var {
+//             Some(v) => v,
+//             None => return Err("Expected value here".to_string()),
+//         }
+//     };
+// }
+
+
+trait Valuable<T> {
+    type Result;
+
+    fn value(&self) -> Result<&T, Self::Result>;
+}
+
+impl<T> Valuable<T> for Option<T> {
+    type Result = String;
+
+    fn value(&self) -> Result<&T, Self::Result> {
+        match self {
+            Some(v) => Ok(v),
+            None => Err("Expected value, found void".to_string()),
         }
-    };
+    }
 }
 
 pub(crate) struct CodeGen<'a, 'ctx> {
@@ -50,7 +100,7 @@ pub(crate) struct CodeGen<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> AstVisitor for CodeGen<'a, 'ctx> {
-    type Result = Result<(), String>;
+    type Result = Result<(), Error>;
 
     fn visit_stmt(&mut self, s: &Statement) -> Self::Result {
         self.stmt_codegen(s)
@@ -93,11 +143,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub(crate) fn walk(&mut self, ast: &Ast<Node>) -> Result<FunctionValue, String> {
+    pub(crate) fn walk(&mut self, ast: &Ast<Node>) -> Result<FunctionValue, Error> {
         for node in ast.nodes() {
             node.accept(self)?;
         }
-        self.main.ok_or_else(|| "main() not found".to_string())
+        self.main.ok_or_else(|| Error::Err("main() not found".to_string()))
     }
 
     // Helper to create an alloca in the entry block for local variables
@@ -204,7 +254,15 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     self.stmt_codegen(s)?;
                     None
                 }
-                Node::Expr(e) => self.expr_codegen(e)?,
+                Node::Expr(e) => {
+                    match self.expr_codegen(e) {
+                        Ok(v) => Some(v),
+                        Err(e) => match e {
+                            Error::Err(_) => return Err(e),
+                            Error::Continue => None,
+                        }
+                    }
+                }
             }
         }
 
@@ -214,7 +272,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 self.builder.build_return(Some(&v))
             }
             (Some(_), None) => {
-                return Err("Function should return {} but last statement is void".to_string())
+                return Err(Error::Err("Function should return {} but last statement is void".to_string()))
             }
             _ => self.builder.build_return(None),
         };
@@ -234,10 +292,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             //     // TODO: Do we care about this for AOT comiplation?
             //     function.delete();
             // }
-            Err(format!(
+            Err(Error::Err(format!(
                 "Error compiling: {}",
                 function.get_name().to_str().unwrap()
-            ))
+            )))
         }
     }
 
@@ -255,7 +313,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     }
 
     fn num_codegen(&self, num: &Expression) -> ExprCgResult<'ctx> {
-        let rv = match num {
+        let n = match num {
             Expression::U64(n) => self
                 .context
                 .i64_type()
@@ -268,7 +326,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 .as_basic_value_enum(),
             _ => todo!("num"),
         };
-        Ok(Some(rv))
+        Ok(n)
     }
 
     // fn num_codegen_i64(&self, num: u64) -> ExprCgResult<'ctx> {
@@ -282,8 +340,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn ident_codegen(&self, name: &str) -> ExprCgResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
-            Some(var) => Ok(Some(self.builder.build_load(*var, name))),
-            None => Err(format!("Unknown variable: {}", name)),
+            Some(var) => Ok(self.builder.build_load(*var, name)),
+            None => Err(Error::Err(format!("Unknown variable: {}", name))),
         }
     }
 
@@ -299,7 +357,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         if op == Assign {
             let l_var = match lhs {
                 Expression::Ident { name } => name,
-                _ => return Err("Expected LHS to be a variable for assignment".to_string()),
+                _ => return Err(Error::Err("Expected LHS to be a variable for assignment".to_string())),
             };
 
             let r_val = self.expr_codegen(rhs)?;
@@ -309,7 +367,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 .ok_or(format!("Unknown variable in assignment: {}", l_var))?
                 .to_owned();
 
-            self.builder.build_store(l_var, extract_value!(r_val));
+//            self.builder.build_store(l_var, extract_value!(r_val));
+            self.builder.build_store(l_var, r_val);
 
             return Ok(r_val);
         }
@@ -319,55 +378,55 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Generate the proper instruction for each op
         match op {
-            Mult => Ok(Some(
+            Mult => Ok(
                 self.builder
                     .build_int_mul(
-                        extract_value!(lhs).into_int_value(),
-                        extract_value!(rhs).into_int_value(),
+                        lhs.into_int_value(),
+                        rhs.into_int_value(),
                         "tmpmul",
                     )
                     .as_basic_value_enum(),
-            )),
-            Div => Ok(Some(
+            ),
+            Div => Ok(
                 self.builder
                     .build_int_unsigned_div(
-                        extract_value!(lhs).into_int_value(),
-                        extract_value!(rhs).into_int_value(),
+                        lhs.into_int_value(),
+                        rhs.into_int_value(),
                         "tmpdiv",
                     )
                     .as_basic_value_enum(),
-            )),
-            Plus => Ok(Some(match extract_value!(lhs).get_type() {
+            ),
+            Plus => Ok(match lhs.get_type() {
                 BasicTypeEnum::ArrayType(_) => todo!("math"),
                 BasicTypeEnum::FloatType(_) => self
                     .builder
                     .build_float_add(
-                        extract_value!(lhs).into_float_value(),
-                        extract_value!(rhs).into_float_value(),
+                        lhs.into_float_value(),
+                        rhs.into_float_value(),
                         "floatadd",
                     )
                     .as_basic_value_enum(),
                 BasicTypeEnum::IntType(_) => self
                     .builder
                     .build_int_add(
-                        extract_value!(lhs).into_int_value(),
-                        extract_value!(rhs).into_int_value(),
+                        lhs.into_int_value(),
+                        rhs.into_int_value(),
                         "intadd",
                     )
                     .as_basic_value_enum(),
                 BasicTypeEnum::PointerType(_) => todo!("math"),
                 BasicTypeEnum::StructType(_) => todo!("math"),
                 BasicTypeEnum::VectorType(_) => todo!("math"),
-            })),
-            Minus => Ok(Some(
+            }),
+            Minus => Ok(
                 self.builder
                     .build_int_sub(
-                        extract_value!(lhs).into_int_value(),
-                        extract_value!(rhs).into_int_value(),
+                        lhs.into_int_value(),
+                        rhs.into_int_value(),
                         "tmpsub",
                     )
                     .as_basic_value_enum(),
-            )),
+            ),
             op @ (And | Or) => {
                 // let lhs = self.builder.build_float_to_signed_int(
                 //     lhs,
@@ -383,49 +442,49 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     And => self
                         .builder
                         .build_and(
-                            extract_value!(lhs).into_int_value(),
-                            extract_value!(rhs).into_int_value(),
+                            lhs.into_int_value(),
+                            rhs.into_int_value(),
                             "tmpand",
                         )
                         .as_basic_value_enum(),
                     Or => self
                         .builder
                         .build_or(
-                            extract_value!(lhs).into_int_value(),
-                            extract_value!(rhs).into_int_value(),
+                            lhs.into_int_value(),
+                            rhs.into_int_value(),
                             "tmpor",
                         )
                         .as_basic_value_enum(),
-                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
+                    _ => return Err(Error::Err("Something went really wrong in binop_codegen()".to_string())),
                 };
                 // Convert the i1 to a double
-                Ok(Some(cmp))
+                Ok(cmp)
             }
             op @ (Gt | Lt | Eq) => {
                 let pred = match op {
                     Gt => IntPredicate::UGT,
                     Lt => IntPredicate::ULT,
                     Eq => IntPredicate::EQ,
-                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
+                    _ => return Err(Error::Err("Something went really wrong in binop_codegen()".to_string())),
                 };
                 let cmp = self.builder.build_int_compare(
                     pred,
-                    extract_value!(lhs).into_int_value(),
-                    extract_value!(rhs).into_int_value(),
+                    lhs.into_int_value(),
+                    rhs.into_int_value(),
                     "tmpcmp",
                 );
                 // Convert the i1 to a double
-                Ok(Some(
+                Ok(
                     self.builder
                         .build_int_cast(cmp, self.context.i64_type(), "tmpbool")
                         .as_basic_value_enum(),
-                ))
+                )
             }
-            x => Err(format!("Unknown binary operator: {}", x)),
+            x => Err(Error::Err(format!("Unknown binary operator: {}", x))),
         }
     }
 
-    fn call_codegen(&mut self, name: &str, args: &[&Expression]) -> ExprCgResult<'ctx> {
+    fn call_codegen(&mut self, name: &str, args: &[&Expression]) -> ExprCgResult<'ctx> { // XXX change to Result
         let func = self
             .module
             .get_function(name)
@@ -433,15 +492,15 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
-            args_code.push(extract_value!(self.expr_codegen(arg)?).into());
+            args_code.push(self.expr_codegen(arg)?.into());
         }
 
         let call_val = self.builder
             .build_call(func, &args_code, &("call_".to_owned() + name));
 
         Ok(match call_val.try_as_basic_value() {
-            Either::Left(v) => Some(v),
-            Either::Right(_) => None,
+            Either::Left(v) => v,
+            Either::Right(_) => return Err(Error::Continue),
         })
     }
 
@@ -457,12 +516,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or("Parent function not found when building conditional")?;
+            .ok_or_else(|| "Parent function not found when building conditional".to_string())?; // XXX for &str
 
         // CodeGen expression. Will be optimized to a 0 or 1 if comparing
         // constants. Otherwise, the value will be IR to evaluate. Result will
         // be a float 0 or 1.
-        let cond_val = extract_value!(self.expr_codegen(cond_expr)?).into_int_value(); // XXX
+        let cond_val = self.expr_codegen(cond_expr)?.into_int_value(); // XXX
 
         // Codegen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
         // "bool".
@@ -533,12 +592,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or("Parent function not found when building loop")?;
+            .ok_or_else(|| "Parent function not found when building loop".to_string())?;
 
         // Create entry alloca, codegen start expr, and store result
         let start_alloca = self.create_entry_block_alloca((var_name, Type::U64), &parent); // XXX
         let start_code = self.expr_codegen(start.as_expr()?)?;
-        self.builder.build_store(start_alloca, extract_value!(start_code));
+        self.builder.build_store(start_alloca, start_code);
 
         // Create a block for the loop, a branch to it, and move the insertion
         // to it
@@ -558,14 +617,14 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Codegen step value and end cond
         let step_code = self.expr_codegen(step.as_expr()?)?;
-        let cond_code = extract_value!(self.expr_codegen(cond.as_expr()?)?).into_int_value(); // XXX
+        let cond_code = self.expr_codegen(cond.as_expr()?)?.into_int_value(); // XXX
 
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
         let cur = self.builder.build_load(start_alloca, var_name);
         let next =
             self.builder
-                .build_int_add(cur.into_int_value(), extract_value!(step_code).into_int_value(), "incvar"); // XXX
+                .build_int_add(cur.into_int_value(), step_code.into_int_value(), "incvar"); // XXX
         self.builder.build_store(start_alloca, next);
 
         let cond_bool = self.builder.build_int_compare(
@@ -596,11 +655,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         let rhs = self.expr_codegen(rhs)?;
         match op {
-            Minus => Ok(Some(self
+            Minus => Ok(self
                 .builder
-                .build_int_neg(extract_value!(rhs).into_int_value(), "neg") // XXX
-                .as_basic_value_enum())),
-            x => Err(format!("Unknown unary operator: {}", x)),
+                .build_int_neg(rhs.into_int_value(), "neg") // XXX
+                .as_basic_value_enum()),
+            x => Err(Error::Err(format!("Unknown unary operator: {}", x))),
         }
     }
 
@@ -614,7 +673,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or("Parent function not found when building let expression")?;
+            .ok_or_else(|| "Parent function not found when building let expression".to_string())?;
 
         // match ty {
         //     Type::U64 => todo!(),
@@ -623,7 +682,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         // };
 
         let init_code = match init {
-            Some(init) => extract_value!(self.expr_codegen(init)?),
+            Some(init) => self.expr_codegen(init)?,
             None => self.context.i64_type().const_zero().as_basic_value_enum(),
         };
 
@@ -649,10 +708,10 @@ mod test {
     use crate::parser::Parser;
 
     // This is how we "deserialize" FunctionValue to work with insta
-    fn code_to_string(code: Result<FunctionValue, String>) -> String {
+    fn code_to_string(code: Result<FunctionValue, Error>) -> String {
         match code {
             Ok(code) => code.print_to_string().to_string(),
-            Err(err) => err,
+            Err(err) => err.to_string(),
         }
     }
 
