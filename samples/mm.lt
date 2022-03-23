@@ -28,9 +28,9 @@ fn main() {
     //let x: f64 = 1
     //let y: f64 = 2
     let y: f64 = 1.0
-    plus_one(y)
+    plus_one(-y)
 // //    print_int(plus_one(1))
-//     print_int(1)
-//     print_dot()
+     print_int(1)
+     print_dot()
     //print_bang()
 }

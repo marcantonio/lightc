@@ -23,9 +23,8 @@ macro_rules! extract_type {
     ($ctx:expr, $var:expr) => {{
         let (_, ty) = $var;
         match ty {
-            Type::U64 => BasicMetadataTypeEnum::IntType($ctx.i64_type()),
+            Type::U64 | Type::I64 => BasicMetadataTypeEnum::IntType($ctx.i64_type()),
             Type::F64 => BasicMetadataTypeEnum::FloatType($ctx.f64_type()),
-            Type::I64 => todo!("proto var"),
         }
     }};
 }
@@ -111,8 +110,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Create alloca and return it
         match ty {
-            Type::I64 => todo!("alloca"),
-            Type::U64 => builder.build_alloca(self.context.i64_type(), name),
+            Type::U64 | Type::I64 => builder.build_alloca(self.context.i64_type(), name),
             Type::F64 => builder.build_alloca(self.context.f64_type(), name),
         }
     }
@@ -206,8 +204,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             (Some(Type::F64 | Type::I64 | Type::U64), Some(v)) => {
                 self.builder.build_return(Some(&v))
             }
-            (Some(_), None) => {
-                return Err("Function should return {} but last statement is void".to_string())
+            (Some(rt), None) => {
+                return Err(format!(
+                    "Function should return {} but last statement is void",
+                    rt
+                ))
             }
             _ => self.builder.build_return(None),
         };
@@ -236,17 +237,18 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     fn expr_codegen(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         match expr {
-            Expression::U64(_) | Expression::F64(_) => Some(self.num_codegen(expr)).transpose(),
-            Expression::Ident { name } => Some(self.ident_codegen(name)).transpose(),
+            Expression::U64(_) | Expression::F64(_) => Some(self.num_codegen(expr)),
+            Expression::Ident { name } => Some(self.ident_codegen(name)),
             Expression::BinOp { sym, lhs, rhs } => {
-                Some(self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?)).transpose()
+                Some(self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?))
             }
-            Expression::UnOp { sym, rhs } => {
-                Some(self.unop_codegen(*sym, rhs.as_expr()?)).transpose()
+            Expression::UnOp { sym, rhs } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
+            Expression::Call { name, args } => {
+                self.call_codegen(name, &args.as_expr()?).transpose()
             }
-            Expression::Call { name, args } => self.call_codegen(name, &args.as_expr()?),
             x => todo!("8<>>>{}", x),
         }
+        .transpose()
     }
 
     fn num_codegen(&self, num: &Expression) -> ExprResult<'ctx> {
@@ -297,7 +299,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 _ => return Err("Expected LHS to be a variable for assignment".to_string()),
             };
 
-            let r_val = *self.expr_codegen(rhs)?.ret_val()?;
+            let r_val = self.expr_codegen(rhs)?.ret_val()?;
             let l_var = self
                 .local_vars
                 .get(l_var)
@@ -428,7 +430,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
-            args_code.push((*self.expr_codegen(arg)?.ret_val()?).into());
+            args_code.push((self.expr_codegen(arg)?.ret_val()?).into());
         }
 
         let call_val = self
@@ -533,7 +535,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Create entry alloca, codegen start expr, and store result
         let start_alloca = self.create_entry_block_alloca((var_name, Type::U64), &parent); // XXX
-        let start_code = *self.expr_codegen(start.as_expr()?)?.ret_val()?;
+        let start_code = self.expr_codegen(start.as_expr()?)?.ret_val()?;
         self.builder.build_store(start_alloca, start_code);
 
         // Create a block for the loop, a branch to it, and move the insertion
@@ -595,12 +597,19 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn unop_codegen(&mut self, op: Symbol, rhs: &Expression) -> ExprResult<'ctx> {
         use Symbol::*;
 
-        let rhs = self.expr_codegen(rhs)?;
+        let rhs = self.expr_codegen(rhs)?.ret_val()?;
         match op {
-            Minus => Ok(self
-                .builder
-                .build_int_neg(rhs.ret_val()?.into_int_value(), "neg") // XXX
-                .as_basic_value_enum()),
+            Minus => Ok(match rhs.get_type() {
+                BasicTypeEnum::FloatType(_) => self
+                    .builder
+                    .build_float_neg(rhs.into_float_value(), "neg")
+                    .as_basic_value_enum(),
+                BasicTypeEnum::IntType(_) => self
+                    .builder
+                    .build_int_neg(rhs.into_int_value(), "neg")
+                    .as_basic_value_enum(),
+                _ => todo!(),
+            }),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
@@ -635,7 +644,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         };
 
         let init_alloca = self.create_entry_block_alloca((name, ty), &parent);
-        self.builder.build_store(init_alloca, *init_code.ret_val()?);
+        self.builder.build_store(init_alloca, init_code.ret_val()?);
         self.local_vars.insert(name.to_owned(), init_alloca);
 
         Ok(())
@@ -699,13 +708,13 @@ mod test {
 trait AsRetVal<T> {
     type Result;
 
-    fn ret_val(&self) -> Result<&T, Self::Result>;
+    fn ret_val(self) -> Result<T, Self::Result>;
 }
 
 impl<T> AsRetVal<T> for Option<T> {
     type Result = String;
 
-    fn ret_val(&self) -> Result<&T, Self::Result> {
+    fn ret_val(self) -> Result<T, Self::Result> {
         match self {
             Some(v) => Ok(v),
             None => Err("Expected value, found void".to_string()),
