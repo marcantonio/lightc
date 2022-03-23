@@ -1,0 +1,8 @@
+---
+source: src/codegen/mod.rs
+assertion_line: 689
+expression: ir
+input_file: src/codegen/tests/inputs/unop.input
+---
+- "define i64 @main() {\nentry:\n  %call_test = call i64 @test(i64 -40)\n  ret i64 %call_test\n}\n"
+
