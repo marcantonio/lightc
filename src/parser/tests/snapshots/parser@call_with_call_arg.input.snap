@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/call_with_call_arg.input
-
 ---
 - - Ok:
       nodes:
@@ -18,5 +17,8 @@ input_file: src/parser/tests/inputs/call_with_call_arg.input
                         - Expr:
                             Ident:
                               name: c
+                              ty: ~
+                      ty: ~
+              ty: ~
   - (a (b c))
 

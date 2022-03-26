@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 262
+assertion_line: 268
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/cond.input
-
 ---
 Ok:
   - tt: If
@@ -18,7 +17,7 @@ Ok:
     line: 1
     column: 6
   - tt:
-      Op: Minus
+      Op: Sub
     line: 1
     column: 8
   - tt:

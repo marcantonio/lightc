@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/logical_ops.input
-
 ---
 - - Ok:
       nodes:
@@ -14,9 +13,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Ident:
                     name: x
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
+              ty: ~
   - (== x 1)
 - - Ok:
       nodes:
@@ -27,9 +31,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Ident:
                     name: x
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
+              ty: ~
   - (&& x 1)
 - - Ok:
       nodes:
@@ -40,9 +49,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Ident:
                     name: x
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
+              ty: ~
   - (|| x 1)
 - - Ok:
       nodes:
@@ -61,9 +75,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Ident:
                                 name: x
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 1
+                              Lit:
+                                value:
+                                  U64: 1
+                                ty: ~
+                          ty: ~
                     rhs:
                       Expr:
                         BinOp:
@@ -72,9 +91,15 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Ident:
                                 name: y
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 2
+                              Lit:
+                                value:
+                                  U64: 2
+                                ty: ~
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
                   BinOp:
@@ -83,9 +108,15 @@ input_file: src/parser/tests/inputs/logical_ops.input
                       Expr:
                         Ident:
                           name: z
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 3
+                        Lit:
+                          value:
+                            U64: 3
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (|| (&& (== x 1) (== y 2)) (== z 3))
 - - Ok:
       nodes:
@@ -100,9 +131,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                       Expr:
                         Ident:
                           name: x
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 1
+                        Lit:
+                          value:
+                            U64: 1
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
                   BinOp:
@@ -115,9 +151,14 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Ident:
                                 name: y
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 2
+                              Lit:
+                                value:
+                                  U64: 2
+                                ty: ~
+                          ty: ~
                     rhs:
                       Expr:
                         BinOp:
@@ -126,8 +167,15 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Ident:
                                 name: z
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 3
+                              Lit:
+                                value:
+                                  U64: 3
+                                ty: ~
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (&& (== x 1) (|| (== y 2) (== z 3)))
 

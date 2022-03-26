@@ -11,8 +11,8 @@ impl OpPrec {
         use Symbol::*;
         match op {
             Pow => Ok(OpPrec::Right(8)),
-            Mult | Div => Ok(OpPrec::Left(7)),
-            Plus | Minus => Ok(OpPrec::Left(6)),
+            Mul | Div => Ok(OpPrec::Left(7)),
+            Add | Sub => Ok(OpPrec::Left(6)),
             Gt | Lt => Ok(OpPrec::Left(5)),
             Eq => Ok(OpPrec::Left(4)),
             And => Ok(OpPrec::Left(3)),
@@ -26,7 +26,7 @@ impl OpPrec {
         use Symbol::*;
         match op {
             Not => Ok(9),
-            Minus => Ok(8),
+            Sub => Ok(8),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }

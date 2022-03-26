@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Expression, Node, Prototype, Statement};
+use super::{Expression, Node, Prototype, Statement, Literal};
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -32,12 +32,13 @@ impl Display for Statement {
             }
             For {
                 var_name,
+                var_type,
                 start,
                 cond,
                 step,
                 body,
             } => {
-                let mut s = format!("(for (let {} {}) {} {}", var_name, start, cond, step);
+                let mut s = format!("(for ({}: {} {}) {} {}", var_name, var_type, start, cond, step);
                 s += &body.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!(" {}", n);
                     acc
@@ -69,13 +70,11 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Expression::*;
         match self {
-            U64(v) => write!(f, "{}", v),
-            I64(v) => write!(f, "{}", v),
-            F64(v) => write!(f, "{}", v),
-            BinOp { sym, lhs, rhs } => write!(f, "({} {} {})", sym, lhs, rhs),
-            UnOp { sym, rhs } => write!(f, "({} {})", sym, rhs),
-            Ident { name } => write!(f, "{}", name),
-            Call { name, args } => {
+            Lit { value, .. } => write!(f, "{}", value),
+            BinOp { sym, lhs, rhs, .. } => write!(f, "({} {} {})", sym, lhs, rhs),
+            UnOp { sym, rhs, .. } => write!(f, "({} {})", sym, rhs),
+            Ident { name, .. } => write!(f, "{}", name),
+            Call { name, args, .. } => {
                 let mut s = format!("({}", name);
                 if !args.is_empty() {
                     for arg in args {
@@ -97,5 +96,15 @@ impl Display for Prototype {
             }
         }
         write!(f, "{})", s)
+    }
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::I64(v) => write!(f, "{}", v),
+            Literal::U64(v) => write!(f, "{}", v),
+            Literal::F64(v) => write!(f, "{}", v),
+        }
     }
 }

@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/if_only.input
-
 ---
 - - Ok:
       nodes:
@@ -17,14 +16,18 @@ input_file: src/parser/tests/inputs/if_only.input
                       Expr:
                         Ident:
                           name: a
+                          ty: ~
                     rhs:
                       Expr:
                         Ident:
                           name: b
+                          ty: ~
+                    ty: ~
               cons:
                 - Expr:
                     Ident:
                       name: foo
+                      ty: ~
               alt: ~
   - (if (> a b) foo)
 

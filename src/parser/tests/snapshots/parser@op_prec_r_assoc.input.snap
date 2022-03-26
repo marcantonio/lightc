@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/op_prec_r_assoc.input
-
 ---
 - - Ok:
       nodes:
@@ -12,36 +11,58 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
               sym: Pow
               lhs:
                 Expr:
-                  U64: 19
+                  Lit:
+                    value:
+                      U64: 19
+                    ty: ~
               rhs:
                 Expr:
                   BinOp:
                     sym: Pow
                     lhs:
                       Expr:
-                        U64: 21
+                        Lit:
+                          value:
+                            U64: 21
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 40
+                        Lit:
+                          value:
+                            U64: 40
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (^ 19 (^ 21 40))
 - - Ok:
       nodes:
         - Expr:
             BinOp:
-              sym: Plus
+              sym: Add
               lhs:
                 Expr:
                   BinOp:
                     sym: Pow
                     lhs:
                       Expr:
-                        U64: 19
+                        Lit:
+                          value:
+                            U64: 19
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 21
+                        Lit:
+                          value:
+                            U64: 21
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 40
+                  Lit:
+                    value:
+                      U64: 40
+                    ty: ~
+              ty: ~
   - (+ (^ 19 21) 40)
 - - Ok:
       nodes:
@@ -54,19 +75,34 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                     sym: Pow
                     lhs:
                       Expr:
-                        U64: 19
+                        Lit:
+                          value:
+                            U64: 19
+                          ty: ~
                     rhs:
                       Expr:
                         BinOp:
                           sym: Pow
                           lhs:
                             Expr:
-                              U64: 21
+                              Lit:
+                                value:
+                                  U64: 21
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 40
+                              Lit:
+                                value:
+                                  U64: 40
+                                ty: ~
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 2
+                  Lit:
+                    value:
+                      U64: 2
+                    ty: ~
+              ty: ~
   - (/ (^ 19 (^ 21 40)) 2)
 

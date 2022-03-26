@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/block.input
-
 ---
 - - Ok:
       nodes:
@@ -13,10 +12,12 @@ input_file: src/parser/tests/inputs/block.input
                 Expr:
                   Ident:
                     name: foo
+                    ty: ~
               cons:
                 - Expr:
                     Ident:
                       name: bar
+                      ty: ~
               alt: ~
   - (if foo bar)
 - - Ok:
@@ -27,6 +28,7 @@ input_file: src/parser/tests/inputs/block.input
                 Expr:
                   Ident:
                     name: foo
+                    ty: ~
               cons: []
               alt: ~
   - (if foo)

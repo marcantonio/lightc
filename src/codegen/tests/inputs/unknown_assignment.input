@@ -1,1 +1,1 @@
-fn main() { x = 1 }
+fn main() { unknown = 1 }

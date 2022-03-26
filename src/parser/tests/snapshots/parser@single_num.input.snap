@@ -1,13 +1,15 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/single_num.input
-
 ---
 - - Ok:
       nodes:
         - Expr:
-            U64: 19
+            Lit:
+              value:
+                U64: 19
+              ty: ~
   - "19"
 

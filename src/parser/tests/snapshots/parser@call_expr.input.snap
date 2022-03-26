@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/call_expr.input
-
 ---
 - - Ok:
       nodes:
@@ -14,9 +13,12 @@ input_file: src/parser/tests/inputs/call_expr.input
                 - Expr:
                     Ident:
                       name: b
+                      ty: ~
                 - Expr:
                     Ident:
                       name: c
+                      ty: ~
+              ty: ~
   - (a b c)
 - - Err:
       message: "Expecting ')' in function call. Got EOF"

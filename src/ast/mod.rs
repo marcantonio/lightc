@@ -2,6 +2,9 @@ use serde::Serialize;
 
 use crate::token::{Symbol, Type};
 
+use self::as_expr::AsExpr;
+
+pub mod as_expr;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -29,6 +32,12 @@ pub(crate) enum Node {
     Expr(Expression),
 }
 
+impl Node {
+    pub(crate) fn ty(&self) -> Result<Option<Type>, String> {
+        self.as_expr().map(|e| e.ty())
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Statement {
     Cond {
@@ -38,6 +47,7 @@ pub(crate) enum Statement {
     },
     For {
         var_name: String,
+        var_type: Type,
         start: Box<Node>,
         cond: Box<Node>,
         step: Box<Node>,
@@ -56,45 +66,49 @@ pub(crate) enum Statement {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Expression {
-    I64(u64),
-    U64(u64),
-    F64(f64),
+    Lit {
+        value: Literal,
+        ty: Option<Type>,
+    },
     Ident {
         name: String,
+        ty: Option<Type>,
     },
     BinOp {
         sym: Symbol,
         lhs: Box<Node>,
         rhs: Box<Node>,
+        ty: Option<Type>,
     },
     UnOp {
         sym: Symbol,
         rhs: Box<Node>,
+        ty: Option<Type>,
     },
     Call {
         name: String,
         args: Vec<Node>,
+        ty: Option<Type>,
     },
 }
 
 impl Expression {
-    pub(crate) fn is_type(&self, ty: Type) -> bool {
-        matches!(
-            (self, ty),
-            (Expression::U64(_), Type::U64)
-                | (Expression::I64(_), Type::I64)
-                | (Expression::F64(_), Type::F64)
-        )
-    }
-
-    pub(crate) fn as_type(&self) -> Type {
+    pub(crate) fn ty(&self) -> Option<Type> {
         match self {
-            Expression::I64(_) => Type::I64,
-            Expression::U64(_) => Type::U64,
-            Expression::F64(_) => Type::F64,
-            _ => todo!(),
+            Expression::Lit { ty, .. } => *ty,
+            Expression::Ident { ty, .. } => *ty,
+            Expression::BinOp { ty, .. } => *ty,
+            Expression::UnOp { ty, .. } => *ty,
+            Expression::Call { ty, .. } => *ty,
         }
     }
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub(crate) enum Literal {
+    I64(i64),
+    U64(u64),
+    F64(f64),
 }
 
 #[derive(Debug, PartialEq, Serialize)]

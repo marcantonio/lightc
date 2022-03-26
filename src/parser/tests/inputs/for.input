@@ -1,6 +1,7 @@
-for let x = 1; x < 10; 1 { foo }
+for x: u64 = 1; x < 10; 1 { foo }
 for
-for let
-for let a
-for let a =
-for let a = 1
+for a
+for a:
+for a: u64
+for a: u64 =
+for a: u64 = 1

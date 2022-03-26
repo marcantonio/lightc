@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/gt_lt.input
-
 ---
 - - Ok:
       nodes:
@@ -13,18 +12,25 @@ input_file: src/parser/tests/inputs/gt_lt.input
               lhs:
                 Expr:
                   BinOp:
-                    sym: Plus
+                    sym: Add
                     lhs:
                       Expr:
                         Ident:
                           name: a
+                          ty: ~
                     rhs:
                       Expr:
                         Ident:
                           name: b
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 40
+                  Lit:
+                    value:
+                      U64: 40
+                    ty: ~
+              ty: ~
   - (> (+ a b) 40)
 - - Ok:
       nodes:
@@ -35,6 +41,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                 Expr:
                   Ident:
                     name: a
+                    ty: ~
               rhs:
                 Expr:
                   BinOp:
@@ -43,8 +50,14 @@ input_file: src/parser/tests/inputs/gt_lt.input
                       Expr:
                         Ident:
                           name: b
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 40
+                        Lit:
+                          value:
+                            U64: 40
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (< a (/ b 40))
 

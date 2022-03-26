@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/multi_exprs.input
-
 ---
 - - Ok:
       nodes:
@@ -12,39 +11,65 @@ input_file: src/parser/tests/inputs/multi_exprs.input
               sym: Pow
               lhs:
                 Expr:
-                  U64: 19
+                  Lit:
+                    value:
+                      U64: 19
+                    ty: ~
               rhs:
                 Expr:
                   BinOp:
                     sym: Pow
                     lhs:
                       Expr:
-                        U64: 21
+                        Lit:
+                          value:
+                            U64: 21
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 40
+                        Lit:
+                          value:
+                            U64: 40
+                          ty: ~
+                    ty: ~
+              ty: ~
         - Expr:
             BinOp:
-              sym: Plus
+              sym: Add
               lhs:
                 Expr:
                   BinOp:
-                    sym: Minus
+                    sym: Sub
                     lhs:
                       Expr:
-                        U64: 19
+                        Lit:
+                          value:
+                            U64: 19
+                          ty: ~
                     rhs:
                       Expr:
                         BinOp:
-                          sym: Mult
+                          sym: Mul
                           lhs:
                             Expr:
-                              U64: 21
+                              Lit:
+                                value:
+                                  U64: 21
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 20
+                              Lit:
+                                value:
+                                  U64: 20
+                                ty: ~
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 40
+                  Lit:
+                    value:
+                      U64: 40
+                    ty: ~
+              ty: ~
   - (^ 19 (^ 21 40))(+ (- 19 (* 21 20)) 40)
 

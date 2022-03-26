@@ -1,4 +1,5 @@
 let x: u64 = 1
+let x: u64 = 1.0
 let x: u64 =
 let x: u64
 let x:

@@ -1,18 +1,21 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/for.input
-
 ---
 - - Ok:
       nodes:
         - Stmt:
             For:
               var_name: x
+              var_type: U64
               start:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
               cond:
                 Expr:
                   BinOp:
@@ -21,27 +24,41 @@ input_file: src/parser/tests/inputs/for.input
                       Expr:
                         Ident:
                           name: x
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 10
+                        Lit:
+                          value:
+                            U64: 10
+                          ty: ~
+                    ty: ~
               step:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
               body:
                 - Expr:
                     Ident:
                       name: foo
-  - (for (let x 1) (< x 10) 1 foo)
+                      ty: ~
+  - "(for (x: u64 1) (< x 10) 1 foo)"
 - - Err:
-      message: "Expecting 'let' after for. Got EOF"
+      message: Expecting identifier after for. Got EOF
       line: 0
       column: 0
-  - "Parsing error: Expecting 'let' after for. Got EOF"
+  - "Parsing error: Expecting identifier after for. Got EOF"
 - - Err:
-      message: Expecting identifier after let. Got EOF
+      message: Expecting colon in initial statement. Got EOF
       line: 0
       column: 0
-  - "Parsing error: Expecting identifier after let. Got EOF"
+  - "Parsing error: Expecting colon in initial statement. Got EOF"
+- - Err:
+      message: Type annotation required in intial statement. Got EOF
+      line: 0
+      column: 0
+  - "Parsing error: Type annotation required in intial statement. Got EOF"
 - - Err:
       message: "Expecting '=' after identifer. Got EOF"
       line: 0

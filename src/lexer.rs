@@ -111,9 +111,9 @@ impl Lexer {
 
         // Everything else
         let tt = match cur.value {
-            '+' => TokenType::Op(Symbol::Plus),
-            '-' => TokenType::Op(Symbol::Minus),
-            '*' => TokenType::Op(Symbol::Mult),
+            '+' => TokenType::Op(Symbol::Add),
+            '-' => TokenType::Op(Symbol::Sub),
+            '*' => TokenType::Op(Symbol::Mul),
             '/' => TokenType::Op(Symbol::Div),
             '^' => TokenType::Op(Symbol::Pow),
             '>' => TokenType::Op(Symbol::Gt),
@@ -308,7 +308,7 @@ baz
         let mut lexer = Lexer::new(input);
 
         assert_eq!(Ok(Token::new(Ident("foo".to_string()), 1, 1)), lexer.lex());
-        assert_eq!(Ok(Token::new(Op(Plus), 1, 5)), lexer.lex());
+        assert_eq!(Ok(Token::new(Op(Add), 1, 5)), lexer.lex());
         assert_eq!(Ok(Token::new(Ident("bar".to_string()), 1, 7)), lexer.lex());
         assert_eq!(Ok(Token::new(Op(Div), 3, 1)), lexer.lex());
         assert_eq!(

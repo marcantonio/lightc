@@ -1,5 +1,4 @@
-use crate::codegen::Expression;
-use crate::codegen::Node;
+use super::*;
 
 pub(crate) trait AsExpr<'a> {
     type Item;

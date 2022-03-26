@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 262
+assertion_line: 268
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/ops.input
-
 ---
 Ok:
   - tt: OpenParen
@@ -14,7 +13,7 @@ Ok:
     line: 1
     column: 2
   - tt:
-      Op: Plus
+      Op: Add
     line: 1
     column: 4
   - tt:
@@ -25,7 +24,7 @@ Ok:
     line: 1
     column: 7
   - tt:
-      Op: Mult
+      Op: Mul
     line: 1
     column: 9
   - tt:

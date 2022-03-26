@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
-use crate::ast::{Ast, Expression, Node, Prototype, Statement};
+use crate::ast::{Ast, Expression, Literal, Node, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
 #[macro_use]
@@ -54,8 +54,6 @@ impl<'a> Parser<'a> {
     }
 
     // Consume token and dispatch. These are all considered primary expressions.
-    //
-    // TODO: for, let, if will likely become statements and need to be removed.
     fn parse_expression(&mut self, min_p: u8) -> ParseResult {
         let token = self
             .tokens
@@ -115,11 +113,26 @@ impl<'a> Parser<'a> {
 
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
+
+            // // Make sure types match
+            // // TODO: provide context
+            // let lhs_ty = lhs.ty()?;
+            // let rhs_ty = rhs.ty()?;
+            // if lhs_ty != rhs_ty {
+            //     return Err(ParseError::from(format!(
+            //         "Type mismatch: {} {} {}",
+            //         lhs_ty,
+            //         sym,
+            //         rhs_ty,
+            //     )));
+            // }
+
             // Make a new lhs and continue loop
             lhs = Node::Expr(Expression::BinOp {
                 sym,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
+                ty: None,
             });
         }
         Ok(lhs)
@@ -128,9 +141,11 @@ impl<'a> Parser<'a> {
     fn parse_unop(&mut self, sym: Symbol) -> ParseResult {
         let p = OpPrec::un_prec(sym)?;
         let rhs = self.parse_expression(p)?;
+        let ty = rhs.ty()?;
         Ok(Node::Expr(Expression::UnOp {
             sym,
             rhs: Box::new(rhs),
+            ty,
         }))
     }
 
@@ -245,9 +260,15 @@ impl<'a> Parser<'a> {
         // if let Ok(n) = num.parse::<i64>() {
         //     Ok(Expression::I64(n))
         if let Ok(n) = num.parse::<u64>() {
-            Ok(Node::Expr(Expression::U64(n)))
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::U64(n),
+                ty: None,
+            }))
         } else if let Ok(n) = num.parse::<f64>() {
-            Ok(Node::Expr(Expression::F64(n)))
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::F64(n),
+                ty: None,
+            }))
         } else {
             Err(ParseError::from((
                 format!("Invalid number literal: {}", token),
@@ -267,6 +288,7 @@ impl<'a> Parser<'a> {
     fn parse_ident(&mut self, id: &str) -> ParseResult {
         let node = Expression::Ident {
             name: id.to_owned(),
+            ty: None,
         };
 
         // If next is not a '(', the current token is just a simple var
@@ -318,6 +340,7 @@ impl<'a> Parser<'a> {
         Ok(Node::Expr(Expression::Call {
             name: id.to_owned(),
             args,
+            ty: None,
         }))
     }
 
@@ -345,9 +368,7 @@ impl<'a> Parser<'a> {
                 )));
             }
 
-            let alt = self.parse_block()?;
-
-            Some(alt)
+            self.parse_block()?
         });
 
         Ok(Node::Stmt(Statement::Cond {
@@ -360,14 +381,24 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self) -> ParseResult {
         self.tokens.next(); // Eat for
 
-        // TODO: call parse_let() here
-        expect_next_token!(self.tokens, TokenType::Let, "Expecting 'let' after for");
-
         let var_name = expect_next_token!(
             self.tokens,
             TokenType::Ident(_),
-            "Expecting identifier after let"
+            "Expecting identifier after for"
         );
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::Colon,
+            "Expecting colon in initial statement"
+        );
+
+        let ty = expect_next_token!(
+            self.tokens,
+            TokenType::VarType(_),
+            "Type annotation required in intial statement"
+        );
+
         expect_next_token!(
             self.tokens,
             TokenType::Op(Symbol::Assign),
@@ -392,6 +423,7 @@ impl<'a> Parser<'a> {
 
         Ok(Node::Stmt(Statement::For {
             var_name: var_name.to_owned(),
+            var_type: *ty,
             start: Box::new(start),
             cond: Box::new(cond),
             step: Box::new(step),
@@ -420,9 +452,16 @@ impl<'a> Parser<'a> {
             "Type annotation required in let statement"
         );
 
+        // XXX: why not
+        // expect_next_token!(
+        //     self.tokens,
+        //     TokenType::Op(Symbol::Assign),
+        //     "Expecting '=' after identifer"
+        // );
+
         let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
             self.tokens.next();
-            Some(self.parse_expression(0)?)
+            self.parse_expression(0)?
         });
 
         Ok(Node::Stmt(Statement::Let {

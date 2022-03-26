@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/paren_prec_complex.input
-
 ---
 - - Ok:
       nodes:
@@ -13,29 +12,48 @@ input_file: src/parser/tests/inputs/paren_prec_complex.input
               lhs:
                 Expr:
                   BinOp:
-                    sym: Mult
+                    sym: Mul
                     lhs:
                       Expr:
-                        U64: 3
+                        Lit:
+                          value:
+                            U64: 3
+                          ty: ~
                     rhs:
                       Expr:
                         BinOp:
-                          sym: Minus
+                          sym: Sub
                           lhs:
                             Expr:
                               BinOp:
-                                sym: Plus
+                                sym: Add
                                 lhs:
                                   Expr:
-                                    U64: 19
+                                    Lit:
+                                      value:
+                                        U64: 19
+                                      ty: ~
                                 rhs:
                                   Expr:
-                                    U64: 21
+                                    Lit:
+                                      value:
+                                        U64: 21
+                                      ty: ~
+                                ty: ~
                           rhs:
                             Expr:
-                              U64: 5
+                              Lit:
+                                value:
+                                  U64: 5
+                                ty: ~
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 40
+                  Lit:
+                    value:
+                      U64: 40
+                    ty: ~
+              ty: ~
   - (/ (* 3 (- (+ 19 21) 5)) 40)
 

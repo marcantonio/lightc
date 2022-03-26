@@ -1,80 +1,110 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 542
 expression: asts
 input_file: src/parser/tests/inputs/unary_ops.input
-
 ---
 - - Ok:
       nodes:
         - Expr:
             UnOp:
-              sym: Minus
+              sym: Sub
               rhs:
                 Expr:
-                  U64: 21
+                  Lit:
+                    value:
+                      U64: 21
+                    ty: ~
+              ty: ~
   - (- 21)
 - - Ok:
       nodes:
         - Expr:
             BinOp:
-              sym: Mult
+              sym: Mul
               lhs:
                 Expr:
                   UnOp:
-                    sym: Minus
+                    sym: Sub
                     rhs:
                       Expr:
                         Ident:
                           name: a
+                          ty: ~
+                    ty: ~
               rhs:
                 Expr:
-                  U64: 2
+                  Lit:
+                    value:
+                      U64: 2
+                    ty: ~
+              ty: ~
   - (* (- a) 2)
 - - Ok:
       nodes:
         - Expr:
             BinOp:
-              sym: Minus
+              sym: Sub
               lhs:
                 Expr:
-                  U64: 3
+                  Lit:
+                    value:
+                      U64: 3
+                    ty: ~
               rhs:
                 Expr:
                   UnOp:
-                    sym: Minus
+                    sym: Sub
                     rhs:
                       Expr:
-                        U64: 21
+                        Lit:
+                          value:
+                            U64: 21
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (- 3 (- 21))
 - - Ok:
       nodes:
         - Expr:
             UnOp:
-              sym: Minus
+              sym: Sub
               rhs:
                 Expr:
                   BinOp:
                     sym: Pow
                     lhs:
                       Expr:
-                        U64: 4
+                        Lit:
+                          value:
+                            U64: 4
+                          ty: ~
                     rhs:
                       Expr:
-                        U64: 2
+                        Lit:
+                          value:
+                            U64: 2
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (- (^ 4 2))
 - - Ok:
       nodes:
         - Expr:
             UnOp:
-              sym: Minus
+              sym: Sub
               rhs:
                 Expr:
                   UnOp:
-                    sym: Minus
+                    sym: Sub
                     rhs:
                       Expr:
-                        U64: 21
+                        Lit:
+                          value:
+                            U64: 21
+                          ty: ~
+                    ty: ~
+              ty: ~
   - (- (- 21))
 - - Err:
       message: "Unknown unary operator: *"

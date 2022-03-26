@@ -3,7 +3,6 @@ source: src/lexer.rs
 assertion_line: 268
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/fn.input
-
 ---
 Ok:
   - tt: Fn
@@ -63,7 +62,7 @@ Ok:
     line: 2
     column: 10
   - tt:
-      Op: Plus
+      Op: Add
     line: 2
     column: 12
   - tt:

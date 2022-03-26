@@ -8,13 +8,11 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::{Ast, Expression};
+use crate::ast::as_expr::AsExpr;
+use crate::ast::{Ast, Expression, Literal};
 use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
-use crate::codegen::convert::AsExpr;
 use crate::token::{Symbol, Type};
-
-mod convert;
 
 type StmtResult<'ctx> = Result<(), String>;
 type ExprResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
@@ -92,7 +90,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     // Helper to create an alloca in the entry block for local variables
     fn create_entry_block_alloca(
         &self,
-        (name, ty): (&str, Type),
+        name: &str,
+        ty: Type,
         func: &FunctionValue,
     ) -> PointerValue<'ctx> {
         // Create a temporary builder
@@ -123,11 +122,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             }
             For {
                 var_name,
+                var_type,
                 start,
                 cond,
                 step,
                 body,
-            } => self.for_codegen(var_name, start, cond, step, body),
+            } => self.for_codegen(var_name, *var_type, start, cond, step, body),
             Let { name, ty, init } => self.let_codegen(name, *ty, &init.as_expr()?),
             Fn { proto, body } => self.func_codegen(proto, body),
         }
@@ -176,7 +176,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         self.local_vars.reserve(proto.args.len());
         for (i, arg) in function.get_param_iter().enumerate() {
             let (x, y) = &proto.args[i];
-            let alloca = self.create_entry_block_alloca((x, *y), &function);
+            let alloca = self.create_entry_block_alloca(x, *y, &function);
             self.builder.build_store(alloca, arg);
             self.local_vars.insert(proto.args[i].0.to_owned(), alloca);
         }
@@ -237,35 +237,37 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
     fn expr_codegen(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         match expr {
-            Expression::U64(_) | Expression::F64(_) => Some(self.num_codegen(expr)),
-            Expression::Ident { name } => Some(self.ident_codegen(name)),
-            Expression::BinOp { sym, lhs, rhs } => {
+            Expression::Lit { value, .. } => Some(self.num_codegen(value)),
+            Expression::Ident { name, .. } => Some(self.ident_codegen(name)),
+            Expression::BinOp { sym, lhs, rhs, .. } => {
                 Some(self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?))
             }
-            Expression::UnOp { sym, rhs } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
-            Expression::Call { name, args } => {
+            Expression::UnOp { sym, rhs, .. } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
+            Expression::Call { name, args, .. } => {
                 self.call_codegen(name, &args.as_expr()?).transpose()
             }
-            x => todo!("8<>>>{}", x),
         }
         .transpose()
     }
 
-    fn num_codegen(&self, num: &Expression) -> ExprResult<'ctx> {
-        let n = match num {
-            Expression::U64(n) => self
+    fn num_codegen(&self, num: &Literal) -> ExprResult<'ctx> {
+        Ok(match num {
+            Literal::I64(n) => self
                 .context
                 .i64_type()
-                .const_int(*n, true)
+                .const_int(*n as u64, true)
                 .as_basic_value_enum(),
-            Expression::F64(n) => self
+            Literal::U64(n) => self
+                .context
+                .i64_type()
+                .const_int(*n, false)
+                .as_basic_value_enum(),
+            Literal::F64(n) => self
                 .context
                 .f64_type()
                 .const_float(*n)
                 .as_basic_value_enum(),
-            _ => todo!("num"),
-        };
-        Ok(n)
+        })
     }
 
     // fn num_codegen_i64(&self, num: u64) -> ExprCgResult<'ctx> {
@@ -295,7 +297,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         // If assignment, make sure lvalue is a variable and store rhs there
         if op == Assign {
             let l_var = match lhs {
-                Expression::Ident { name } => name,
+                Expression::Ident { name, .. } => name,
                 _ => return Err("Expected LHS to be a variable for assignment".to_string()),
             };
 
@@ -311,57 +313,18 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             return Ok(r_val);
         }
 
-        let lhs = self.expr_codegen(lhs)?;
-        let rhs = self.expr_codegen(rhs)?;
+        let lhs = self.expr_codegen(lhs)?.ret_val()?;
+        let rhs = self.expr_codegen(rhs)?.ret_val()?;
 
         // Generate the proper instruction for each op
         match op {
-            Mult => Ok(self
-                .builder
-                .build_int_mul(
-                    lhs.ret_val()?.into_int_value(),
-                    rhs.ret_val()?.into_int_value(),
-                    "tmpmul",
-                )
-                .as_basic_value_enum()),
+            Add => self.add(lhs, rhs),
             Div => Ok(self
                 .builder
-                .build_int_unsigned_div(
-                    lhs.ret_val()?.into_int_value(),
-                    rhs.ret_val()?.into_int_value(),
-                    "tmpdiv",
-                )
+                .build_int_unsigned_div(lhs.into_int_value(), rhs.into_int_value(), "tmpdiv")
                 .as_basic_value_enum()),
-            Plus => Ok(match lhs.ret_val()?.get_type() {
-                BasicTypeEnum::ArrayType(_) => todo!("math"),
-                BasicTypeEnum::FloatType(_) => self
-                    .builder
-                    .build_float_add(
-                        lhs.ret_val()?.into_float_value(),
-                        rhs.ret_val()?.into_float_value(),
-                        "floatadd",
-                    )
-                    .as_basic_value_enum(),
-                BasicTypeEnum::IntType(_) => self
-                    .builder
-                    .build_int_add(
-                        lhs.ret_val()?.into_int_value(),
-                        rhs.ret_val()?.into_int_value(),
-                        "intadd",
-                    )
-                    .as_basic_value_enum(),
-                BasicTypeEnum::PointerType(_) => todo!("math"),
-                BasicTypeEnum::StructType(_) => todo!("math"),
-                BasicTypeEnum::VectorType(_) => todo!("math"),
-            }),
-            Minus => Ok(self
-                .builder
-                .build_int_sub(
-                    lhs.ret_val()?.into_int_value(),
-                    rhs.ret_val()?.into_int_value(),
-                    "tmpsub",
-                )
-                .as_basic_value_enum()),
+            Mul => self.mul(lhs, rhs),
+            Sub => self.sub(lhs, rhs),
             op @ (And | Or) => {
                 // let lhs = self.builder.build_float_to_signed_int(
                 //     lhs,
@@ -376,19 +339,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 let cmp = match op {
                     And => self
                         .builder
-                        .build_and(
-                            lhs.ret_val()?.into_int_value(),
-                            rhs.ret_val()?.into_int_value(),
-                            "tmpand",
-                        )
+                        .build_and(lhs.into_int_value(), rhs.into_int_value(), "tmpand")
                         .as_basic_value_enum(),
                     Or => self
                         .builder
-                        .build_or(
-                            lhs.ret_val()?.into_int_value(),
-                            rhs.ret_val()?.into_int_value(),
-                            "tmpor",
-                        )
+                        .build_or(lhs.into_int_value(), rhs.into_int_value(), "tmpor")
                         .as_basic_value_enum(),
                     _ => return Err("Something went really wrong in binop_codegen()".to_string()),
                 };
@@ -404,8 +359,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 };
                 let cmp = self.builder.build_int_compare(
                     pred,
-                    lhs.ret_val()?.into_int_value(),
-                    rhs.ret_val()?.into_int_value(),
+                    lhs.into_int_value(),
+                    rhs.into_int_value(),
                     "tmpcmp",
                 );
                 // Convert the i1 to a double
@@ -522,6 +477,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn for_codegen(
         &mut self,
         var_name: &str,
+        var_type: Type,
         start: &Node,
         cond: &Node,
         step: &Node,
@@ -534,7 +490,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .ok_or_else(|| "Parent function not found when building loop".to_string())?;
 
         // Create entry alloca, codegen start expr, and store result
-        let start_alloca = self.create_entry_block_alloca((var_name, Type::U64), &parent); // XXX
+        let start_alloca = self.create_entry_block_alloca(var_name, var_type, &parent);
         let start_code = self.expr_codegen(start.as_expr()?)?.ret_val()?;
         self.builder.build_store(start_alloca, start_code);
 
@@ -599,7 +555,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         let rhs = self.expr_codegen(rhs)?.ret_val()?;
         match op {
-            Minus => Ok(match rhs.get_type() {
+            Sub => Ok(match rhs.get_type() {
                 BasicTypeEnum::FloatType(_) => self
                     .builder
                     .build_float_neg(rhs.into_float_value(), "neg")
@@ -628,28 +584,95 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         let init_code = match (ty, init) {
             (_, Some(i)) => {
-                if i.is_type(ty) {
+                if i.ty() == Some(ty) {
                     self.expr_codegen(i)?
                 } else {
                     return Err(format!(
                         "Types don't match in let statement. Annotated with {} but value is {}",
                         ty,
-                        i.as_type()
+                        i.ty().unwrap_or(Type::U64) // XXX
                     ));
                 }
             }
             (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
-            (Type::I64, None) => todo!(),
+            (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
             (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
         };
 
-        let init_alloca = self.create_entry_block_alloca((name, ty), &parent);
+        let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
         self.builder.build_store(init_alloca, init_code.ret_val()?);
         self.local_vars.insert(name.to_owned(), init_alloca);
 
         Ok(())
     }
+
+    fn add(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+        match lhs.get_type() {
+            BasicTypeEnum::IntType(_) => Ok(self
+                .builder
+                .build_int_add(lhs.into_int_value(), rhs.into_int_value(), "intadd")
+                .as_basic_value_enum()),
+            BasicTypeEnum::FloatType(_) => Ok(self
+                .builder
+                .build_float_add(lhs.into_float_value(), rhs.into_float_value(), "floatadd")
+                .as_basic_value_enum()),
+            _ => Err("Unsupported types in add operation".to_string()),
+        }
+    }
+
+    fn sub(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+        match lhs.get_type() {
+            BasicTypeEnum::IntType(_) => Ok(self
+                .builder
+                .build_int_sub(lhs.into_int_value(), rhs.into_int_value(), "intsub")
+                .as_basic_value_enum()),
+            BasicTypeEnum::FloatType(_) => Ok(self
+                .builder
+                .build_float_sub(lhs.into_float_value(), rhs.into_float_value(), "floatsub")
+                .as_basic_value_enum()),
+            _ => Err("Unsupported types in subtract operation".to_string()),
+        }
+    }
+
+    fn mul(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+        match lhs.get_type() {
+            BasicTypeEnum::IntType(_) => Ok(self
+                .builder
+                .build_int_mul(lhs.into_int_value(), rhs.into_int_value(), "intmul")
+                .as_basic_value_enum()),
+            BasicTypeEnum::FloatType(_) => Ok(self
+                .builder
+                .build_float_mul(lhs.into_float_value(), rhs.into_float_value(), "floatmul")
+                .as_basic_value_enum()),
+            _ => Err("Unsupported types in multiply operation".to_string()),
+        }
+    }
 }
+
+// trait DoMath<T> {
+//     type Result;
+//     fn sub(&self, lhs: T, rhs: T) -> Self::Result;
+// }
+
+// impl<'a, 'ctx> DoMath<FloatValue<'ctx>> for CodeGen<'a, 'ctx> {
+//     type Result = BasicValueEnum<'ctx>;
+
+//     fn sub(&self, lhs: FloatValue<'ctx>, rhs: FloatValue<'ctx>) -> Self::Result {
+//         self.builder
+//             .build_float_sub(lhs, rhs, "floatsub")
+//             .as_basic_value_enum()
+//     }
+// }
+
+// impl<'a, 'ctx> DoMath<IntValue<'ctx>> for CodeGen<'a, 'ctx> {
+//     type Result = BasicValueEnum<'ctx>;
+
+//     fn sub(&self, lhs: IntValue<'ctx>, rhs: IntValue<'ctx>) -> Self::Result {
+//         self.builder
+//             .build_int_sub(lhs, rhs, "floatsub")
+//             .as_basic_value_enum()
+//     }
+// }
 
 #[cfg(test)]
 mod test {
@@ -688,7 +711,7 @@ mod test {
                     .map(|line| {
                         let line = line.expect("Error reading input line");
                         let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
-                        let ast = Parser::new(&tokens).parse().unwrap();
+                        let ast = Parser::new(&tokens).parse().unwrap_or_else(|_| panic!("file: {:?}", path)); // XXX
                         let context = Context::create();
                         let builder = context.create_builder();
                         let module = context.create_module("main_mod");

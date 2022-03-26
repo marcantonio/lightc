@@ -78,37 +78,37 @@ impl std::fmt::Display for TokenType {
 // actual character. Convenient in Rust to help constrain matching.
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub(crate) enum Symbol {
+    Add,
     And,
     Assign,
     Div,
     Eq,
     Gt,
     Lt,
-    Minus,
-    Mult,
+    Mul,
     Not,
     Or,
-    Plus,
     Pow,
     RetType,
+    Sub,
 }
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Symbol::*;
         let s = match self {
+            Add => "+",
             Assign => "=",
             And => "&&",
             Div => "/",
             Eq => "==",
             Gt => ">",
             Lt => "<",
-            Minus => "-",
-            Mult => "*",
+            Mul => "*",
             Not => "!",
             Or => "||",
-            Plus => "+",
             Pow => "^",
+            Sub => "-",
             RetType => "->",
         };
         write!(f, "{}", s)

@@ -62,7 +62,7 @@ macro_rules! expect_next_token {
 macro_rules! token_is_and_then {
     ($to:expr, $tt:pat, $and:expr) => {
         match $to {
-            Some(Token { tt: $tt, .. }) => $and,
+            Some(Token { tt: $tt, .. }) => Some($and),
             _ => None,
         }
     };
