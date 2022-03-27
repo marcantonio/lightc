@@ -85,3 +85,29 @@ impl<'a> AsExprMut<'a> for Vec<Node> {
         self.iter_mut().map(|n| n.as_expr_mut()).collect()
     }
 }
+
+impl<'a> AsExprMut<'a> for Option<Vec<Node>> {
+    type Item = Option<Vec<&'a mut Expression>>;
+
+    fn as_expr_mut(&'a mut self) -> Result<Self::Item, String> {
+        self.as_mut().map(|o| o.as_expr_mut()).transpose()
+    }
+}
+
+
+pub(crate) trait ToExpr {
+    type Item;
+
+    fn to_expr(self) -> Result<Self::Item, String>;
+}
+
+impl ToExpr for Node {
+    type Item = Expression;
+
+    fn to_expr(self) -> Result<Self::Item, String> {
+        match self {
+            Node::Stmt(_) => Err("Expected expresion in node. Found statement.".to_string()),
+            Node::Expr(e) => Ok(e),
+        }
+    }
+}

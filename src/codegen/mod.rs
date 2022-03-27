@@ -119,17 +119,24 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     fn stmt_codegen(&mut self, stmt: &Statement) -> StmtResult<'ctx> {
         use Statement::*;
         match stmt {
-            Cond { cond, cons, alt } => {
-                self.cond_codegen(cond.as_expr()?, &*cons.as_expr()?, &alt.as_expr()?)
+            Cond { cond_expr, then_block, else_block } => {
+                self.cond_codegen(cond_expr, &*then_block.as_expr()?, &else_block.as_expr()?)
             }
             For {
-                var_name,
-                var_type,
-                start,
-                cond,
-                step,
+                start_name,
+                start_antn,
+                start_expr,
+                cond_expr,
+                step_expr,
                 body,
-            } => self.for_codegen(var_name, *var_type, start, cond, step, body),
+            } => self.for_codegen(
+                start_name,
+                *start_antn,
+                start_expr,
+                cond_expr,
+                step_expr,
+                body,
+            ),
             Let {
                 name,
                 antn: ty,
@@ -350,7 +357,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     Gt => IntPredicate::UGT,
                     Lt => IntPredicate::ULT,
                     Eq => IntPredicate::EQ,
-                    _ => return Err("noncanbe: Something went really wrong in binop_codegen()".to_string()),
+                    _ => {
+                        return Err(
+                            "noncanbe: Something went really wrong in binop_codegen()".to_string()
+                        )
+                    }
                 };
                 let cmp = self.builder.build_int_compare(
                     pred,
@@ -399,12 +410,13 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         })
     }
 
+    // XXX: fix arg names
     // if then optional else
     fn cond_codegen(
         &mut self,
         cond_expr: &Expression,
         then_expr: &[&Expression],
-        else_expr: &Option<Vec<&Expression>>, // todo: can this be a slice?
+        else_expr: &Option<Vec<&Expression>>,
     ) -> StmtResult<'ctx> {
         // Get the current function for insertion
         let parent = self
@@ -477,11 +489,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     // start == let var_name = x
     fn for_codegen(
         &mut self,
-        var_name: &str,
-        var_type: Type,
-        start: &Node,
-        cond: &Node,
-        step: &Node,
+        start_name: &str,
+        start_antn: Type,
+        start_expr: &Expression,
+        cond_expr: &Expression,
+        step_expr: &Expression,
         body: &[Node],
     ) -> StmtResult<'ctx> {
         let parent = self
@@ -491,8 +503,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             .ok_or_else(|| "Parent function not found when building loop".to_string())?;
 
         // Create entry alloca, codegen start expr, and store result
-        let start_alloca = self.create_entry_block_alloca(var_name, var_type, &parent);
-        let start_code = self.expr_codegen(start.as_expr()?)?.ret_val()?;
+        let start_alloca = self.create_entry_block_alloca(start_name, start_antn, &parent);
+        let start_code = self.expr_codegen(start_expr)?.ret_val()?;
         self.builder.build_store(start_alloca, start_code);
 
         // Create a block for the loop, a branch to it, and move the insertion
@@ -503,8 +515,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Save the variable value if we are shadowing and insert alloca into
         // local map
-        let old_var = self.local_vars.remove(var_name);
-        self.local_vars.insert(var_name.to_owned(), start_alloca);
+        let old_var = self.local_vars.remove(start_name);
+        self.local_vars.insert(start_name.to_owned(), start_alloca);
 
         // Generate all body expressions
         for expr in body {
@@ -512,15 +524,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
 
         // Codegen step value and end cond
-        let step_code = self.expr_codegen(step.as_expr()?)?;
-        let cond_code = self
-            .expr_codegen(cond.as_expr()?)?
-            .ret_val()?
-            .into_int_value(); // XXX
+        let step_code = self.expr_codegen(step_expr)?;
+        let cond_code = self.expr_codegen(cond_expr)?.ret_val()?.into_int_value(); // XXX
 
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
-        let cur = self.builder.build_load(start_alloca, var_name);
+        let cur = self.builder.build_load(start_alloca, start_name);
         let next = self.builder.build_int_add(
             cur.into_int_value(),
             step_code.ret_val()?.into_int_value(),
@@ -543,9 +552,9 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         self.builder.position_at_end(after_bb);
 
         // Reset shadowed variable
-        self.local_vars.remove(var_name);
+        self.local_vars.remove(start_name);
         if let Some(v) = old_var {
-            self.local_vars.insert(var_name.to_owned(), v);
+            self.local_vars.insert(start_name.to_owned(), v);
         }
 
         Ok(())

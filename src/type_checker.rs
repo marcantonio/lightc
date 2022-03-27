@@ -40,20 +40,32 @@ impl TypeChecker {
     fn stmt_check(&mut self, stmt: &mut Statement) -> Result<(), String> {
         use Statement::*;
         match stmt {
-            // Cond { cond, cons, alt } => {
-            //     self.cond_codegen(cond.as_expr()?, &*cons.as_expr()?, &alt.as_expr()?)
-            // }
-            // For {
-            //     var_name,
-            //     var_type,
-            //     start,
-            //     cond,
-            //     step,
-            //     body,
-            // } => self.for_codegen(var_name, *var_type, start, cond, step, body),
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+            } => self.cond_check(
+                cond_expr,
+                &mut then_block.as_expr_mut()?,
+                &mut else_block.as_expr_mut()?,
+            ),
+            For {
+                start_name,
+                start_antn,
+                start_expr,
+                cond_expr,
+                step_expr,
+                body,
+            } => self.for_check(
+                start_name,
+                *start_antn,
+                start_expr,
+                cond_expr,
+                step_expr,
+                body,
+            ),
             Let { name, antn, init } => self.let_check(name, *antn, &mut init.as_expr_mut()?),
             Fn { proto, body } => self.func_check(proto, body),
-            _ => todo!("stmt: {:?}", stmt),
         }
     }
 
@@ -112,6 +124,78 @@ impl TypeChecker {
         Ok(())
     }
 
+    fn cond_check(
+        &mut self,
+        cond_expr: &mut Expression,
+        then_block: &mut [&mut Expression],
+        else_block: &mut Option<Vec<&mut Expression>>,
+    ) -> Result<(), String> {
+        self.expr_check(cond_expr)?;
+
+        for expr in then_block {
+            self.expr_check(expr)?;
+        }
+
+        if let Some(else_block) = else_block {
+            for expr in else_block {
+                self.expr_check(*expr)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn for_check(
+        &mut self,
+        start_name: &str,
+        start_antn: Type,
+        start_expr: &mut Expression,
+        cond_expr: &mut Expression,
+        step_expr: &mut Expression,
+        body: &mut [Node],
+    ) -> Result<(), String> {
+        let start_ty = self.expr_check(start_expr)?;
+        if start_antn != start_ty {
+            return Err(format!(
+                "Initial type mismatch in for statement. Annotated with `{}` but value is `{}`",
+                start_antn, start_ty
+            ));
+        }
+
+        // XXX shadowing
+        self.variable_table
+            .insert(start_name.to_owned(), start_antn);
+
+        let cond_ty = self.expr_check(cond_expr)?;
+        if cond_ty != start_ty {
+            return Err(format!(
+                "Conditional type mismatch in for statement. Conditional is `{}` but `{}` is `{}`",
+                cond_ty, start_name, start_ty
+            ));
+        }
+
+        let step_ty = self.expr_check(step_expr)?;
+        if step_ty != start_ty {
+            return Err(format!(
+                "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
+                step_ty, start_name, start_ty
+            ));
+        }
+
+        for node in body {
+            match node {
+                Node::Stmt(s) => self.stmt_check(s)?,
+                Node::Expr(e) => {
+                    self.expr_check(e)?;
+                }
+            }
+        }
+
+        self.variable_table.remove(start_name);
+
+        Ok(())
+    }
+
     fn let_check(
         &mut self,
         name: &str,
@@ -122,7 +206,7 @@ impl TypeChecker {
             let init_ty = self.expr_check(init)?;
             if antn != init_ty {
                 return Err(format!(
-                    "Types don't match in let statement. Annotated with {} but initial value is {}",
+                    "Types don't match in let statement. Annotated with `{}` but initial value is `{}`",
                     antn, init_ty
                 ));
             }

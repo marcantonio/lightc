@@ -26,8 +26,20 @@ fn print_bang() {
 // }
 
 fn main() {
+    let x: u64 = 3
     let y: f64 = 1.0
+
     plus_one(-y)
-    print_dot()
+
+    for z: u64 = 0; z < 3; 1 {
+        print_dot()
+    }
+
+    if x < 3 {
+        print_dot()
+    } else {
+        print_bang()
+    }
+
     print_bang()
 }

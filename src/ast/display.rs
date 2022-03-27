@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Expression, Node, Prototype, Statement, Literal};
+use super::{Expression, Literal, Node, Prototype, Statement};
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -15,14 +15,14 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Statement::*;
         match self {
-            Cond { cond, cons, alt } => {
-                let mut s = format!("(if {}", cond);
-                s += &cons.iter().fold(String::new(), |mut acc, n| {
+            Cond { cond_expr, then_block, else_block } => {
+                let mut s = format!("(if {}", cond_expr);
+                s += &then_block.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!(" {}", n);
                     acc
                 });
 
-                if let Some(alt) = alt {
+                if let Some(alt) = else_block {
                     s += &alt.iter().fold(String::new(), |mut acc, n| {
                         acc += &format!(" {}", n);
                         acc
@@ -31,22 +31,25 @@ impl Display for Statement {
                 write!(f, "{})", s)
             }
             For {
-                var_name,
-                var_type,
-                start,
-                cond,
-                step,
+                start_name,
+                start_antn,
+                start_expr,
+                cond_expr,
+                step_expr,
                 body,
             } => {
-                let mut s = format!("(for ({}: {} {}) {} {}", var_name, var_type, start, cond, step);
+                let mut s = format!(
+                    "(for ({}: {} {}) {} {}",
+                    start_name, start_antn, start_expr, cond_expr, step_expr
+                );
                 s += &body.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!(" {}", n);
                     acc
                 });
                 write!(f, "{})", s)
             }
-            Let { name, antn: ty, init } => {
-                let mut s = format!("(let {}:{}", name, ty);
+            Let { name, antn, init } => {
+                let mut s = format!("(let {}:{}", name, antn);
                 if let Some(body) = init {
                     s += &format!(" {}", body);
                 }

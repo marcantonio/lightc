@@ -1,6 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
+use crate::ast::as_expr::ToExpr;
 use crate::ast::{Ast, Expression, Literal, Node, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
@@ -40,7 +41,7 @@ impl<'a> Parser<'a> {
         let token = self
             .tokens
             .peek()
-            .ok_or("Premature end of statement".to_string())?;
+            .ok_or_else(|| "Premature end of statement".to_string())?;
 
         let expr = match &token.tt {
             TokenType::If => self.parse_cond()?,
@@ -353,10 +354,10 @@ impl<'a> Parser<'a> {
     fn parse_cond(&mut self) -> ParseResult {
         self.tokens.next(); // Eat if
 
-        let cond = self.parse_expression(0)?;
-        let cons = self.parse_block()?;
+        let cond_node = self.parse_expression(0)?;
+        let then_block = self.parse_block()?;
 
-        let alt = token_is_and_then!(self.tokens.peek(), TokenType::Else, {
+        let else_block = token_is_and_then!(self.tokens.peek(), TokenType::Else, {
             self.tokens.next(); // Eat else
 
             // To support `else if`, peek to check for `{` or `if`
@@ -372,16 +373,16 @@ impl<'a> Parser<'a> {
         });
 
         Ok(Node::Stmt(Statement::Cond {
-            cond: Box::new(cond),
-            cons,
-            alt,
+            cond_expr: Box::new(cond_node.to_expr()?),
+            then_block,
+            else_block,
         }))
     }
 
     fn parse_for(&mut self) -> ParseResult {
         self.tokens.next(); // Eat for
 
-        let var_name = expect_next_token!(
+        let name = expect_next_token!(
             self.tokens,
             TokenType::Ident(_),
             "Expecting identifier after for"
@@ -393,7 +394,7 @@ impl<'a> Parser<'a> {
             "Expecting colon in initial statement"
         );
 
-        let ty = expect_next_token!(
+        let antn = expect_next_token!(
             self.tokens,
             TokenType::VarType(_),
             "Type annotation required in intial statement"
@@ -405,28 +406,28 @@ impl<'a> Parser<'a> {
             "Expecting '=' after identifer"
         );
 
-        let start = self.parse_expression(0)?;
+        let start_node = self.parse_expression(0)?;
         expect_next_token!(
             self.tokens,
             TokenType::Semicolon,
             "Expecting ';' after start"
         );
 
-        let cond = self.parse_expression(0)?;
+        let cond_node = self.parse_expression(0)?;
         expect_next_token!(
             self.tokens,
             TokenType::Semicolon,
             "Expecting ';' after condition"
         );
 
-        let step = self.parse_expression(0)?;
+        let step_node = self.parse_expression(0)?;
 
         Ok(Node::Stmt(Statement::For {
-            var_name: var_name.to_owned(),
-            var_type: *ty,
-            start: Box::new(start),
-            cond: Box::new(cond),
-            step: Box::new(step),
+            start_name: name.to_owned(),
+            start_antn: *antn,
+            start_expr: Box::new(start_node.to_expr()?),
+            cond_expr: Box::new(cond_node.to_expr()?),
+            step_expr: Box::new(step_node.to_expr()?),
             body: self.parse_block()?,
         }))
     }

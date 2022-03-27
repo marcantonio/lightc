@@ -45,16 +45,16 @@ impl Node {
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Statement {
     Cond {
-        cond: Box<Node>,
-        cons: Vec<Node>,
-        alt: Option<Vec<Node>>,
+        cond_expr: Box<Expression>,
+        then_block: Vec<Node>,
+        else_block: Option<Vec<Node>>,
     },
     For {
-        var_name: String,
-        var_type: Type,
-        start: Box<Node>,
-        cond: Box<Node>,
-        step: Box<Node>,
+        start_name: String,
+        start_antn: Type,
+        start_expr: Box<Expression>,
+        cond_expr: Box<Expression>,
+        step_expr: Box<Expression>,
         body: Vec<Node>,
     },
     Let {
