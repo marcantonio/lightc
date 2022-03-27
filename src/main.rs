@@ -4,10 +4,12 @@ mod jit_externs;
 mod lexer;
 mod parser;
 mod token;
+mod type_checker;
 
 use crate::codegen::CodeGen;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::type_checker::TypeChecker;
 
 use clap::Parser as Clap;
 use inkwell::{
@@ -42,7 +44,7 @@ fn main() {
 
     // Parser
     let parser = Parser::new(&tokens);
-    let ast = parser.parse().unwrap_or_else(|e| {
+    let mut ast = parser.parse().unwrap_or_else(|e| {
         eprintln!("{}", e);
         exit(1);
     });
@@ -54,6 +56,10 @@ fn main() {
         }
         println!();
     }
+
+    // Type Checker
+    let mut type_checker = TypeChecker::new();
+    type_checker.walk(&mut ast).expect("Type checking error");
 
     // CodeGen
     let context = Context::create();

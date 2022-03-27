@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
         let token = self
             .tokens
             .peek()
-            .ok_or_else(|| "Premature end of statement".to_string())?;
+            .ok_or("Premature end of statement".to_string())?;
 
         let expr = match &token.tt {
             TokenType::If => self.parse_cond()?,
@@ -466,7 +466,7 @@ impl<'a> Parser<'a> {
 
         Ok(Node::Stmt(Statement::Let {
             name: var_name.to_owned(),
-            ty: *ty,
+            antn: *ty,
             init: init.map(Box::new),
         }))
     }

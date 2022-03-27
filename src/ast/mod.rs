@@ -8,11 +8,11 @@ pub mod as_expr;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
-pub(crate) struct Ast<T: Visitable> {
+pub(crate) struct Ast<T> {
     nodes: Vec<T>,
 }
 
-impl<T: Visitable> Ast<T> {
+impl<T> Ast<T> {
     pub(crate) fn new() -> Self {
         Ast { nodes: vec![] }
     }
@@ -21,8 +21,12 @@ impl<T: Visitable> Ast<T> {
         self.nodes.push(node)
     }
 
-    pub(crate) fn nodes(&self) -> &Vec<T> {
+    pub(crate) fn nodes(&self) -> &Vec<T> { // XXX
         &self.nodes
+    }
+
+    pub(crate) fn nodes_mut(&mut self) -> &mut Vec<T> {
+        &mut self.nodes
     }
 }
 
@@ -55,7 +59,7 @@ pub(crate) enum Statement {
     },
     Let {
         name: String,
-        ty: Type,
+        antn: Type,
         init: Option<Box<Node>>,
     },
     Fn {
@@ -118,6 +122,8 @@ pub(crate) struct Prototype {
     pub(crate) ret_type: Option<Type>,
 }
 
+// Immutable visitor interface
+
 pub(crate) trait AstVisitor {
     type Result;
 
@@ -146,6 +152,40 @@ impl Visitable for Expression {
 
 impl Visitable for Statement {
     fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
+        v.visit_stmt(self)
+    }
+}
+
+// Mutable visitor interface
+
+pub(crate) trait AstVisitorMut {
+    type Result;
+
+    fn visit_stmt(&mut self, s: &mut Statement) -> Self::Result;
+    fn visit_expr(&mut self, e: &mut Expression) -> Self::Result;
+}
+
+pub(crate) trait VisitableMut {
+    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result;
+}
+
+impl VisitableMut for Node {
+    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
+        match self {
+            Node::Stmt(s) => v.visit_stmt(s),
+            Node::Expr(e) => v.visit_expr(e),
+        }
+    }
+}
+
+impl VisitableMut for Expression {
+    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
+        v.visit_expr(self)
+    }
+}
+
+impl VisitableMut for Statement {
+    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
         v.visit_stmt(self)
     }
 }

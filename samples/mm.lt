@@ -11,13 +11,14 @@ fn print_int(x: u64) {
 }
 
 fn plus_one(x: f64) -> f64 {
-    x + 1.0
+    let y: f64 = 1.0
+    x + y
 }
 
-// fn print_bang() {
-//     putchar(33)
-//     putchar(10)
-// }
+fn print_bang() {
+    putchar(33)
+    putchar(10)
+}
 
 // fn foo(x) {
 //     let xasdf: u64 = 1
@@ -25,15 +26,8 @@ fn plus_one(x: f64) -> f64 {
 // }
 
 fn main() {
-    //let x: f64 = 1
-    //let y: f64 = 2
     let y: f64 = 1.0
     plus_one(-y)
-    //print_int(plus_one(1))
-    for x: f64 = 1.0; x < 3; 1 {
-        print_dot()
-    }
-    print_int(1)
     print_dot()
-    //print_bang()
+    print_bang()
 }

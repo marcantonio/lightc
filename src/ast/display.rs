@@ -45,7 +45,7 @@ impl Display for Statement {
                 });
                 write!(f, "{})", s)
             }
-            Let { name, ty, init } => {
+            Let { name, antn: ty, init } => {
                 let mut s = format!("(let {}:{}", name, ty);
                 if let Some(body) = init {
                     s += &format!(" {}", body);

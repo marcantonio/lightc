@@ -23,6 +23,7 @@ macro_rules! extract_type {
         match ty {
             Type::U64 | Type::I64 => BasicMetadataTypeEnum::IntType($ctx.i64_type()),
             Type::F64 => BasicMetadataTypeEnum::FloatType($ctx.f64_type()),
+            _ => todo!("extract"),
         }
     }};
 }
@@ -111,12 +112,13 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         match ty {
             Type::U64 | Type::I64 => builder.build_alloca(self.context.i64_type(), name),
             Type::F64 => builder.build_alloca(self.context.f64_type(), name),
+            _ => todo!("alloc"),
         }
     }
 
-    fn stmt_codegen(&mut self, expr: &Statement) -> StmtResult<'ctx> {
+    fn stmt_codegen(&mut self, stmt: &Statement) -> StmtResult<'ctx> {
         use Statement::*;
-        match expr {
+        match stmt {
             Cond { cond, cons, alt } => {
                 self.cond_codegen(cond.as_expr()?, &*cons.as_expr()?, &alt.as_expr()?)
             }
@@ -128,7 +130,11 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 step,
                 body,
             } => self.for_codegen(var_name, *var_type, start, cond, step, body),
-            Let { name, ty, init } => self.let_codegen(name, *ty, &init.as_expr()?),
+            Let {
+                name,
+                antn: ty,
+                init,
+            } => self.let_codegen(name, *ty, &init.as_expr()?),
             Fn { proto, body } => self.func_codegen(proto, body),
         }
     }
@@ -144,6 +150,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let func_type = match proto.ret_type {
             Some(Type::F64) => self.context.f64_type().fn_type(&args_type, false),
             Some(Type::U64 | Type::I64) => self.context.i64_type().fn_type(&args_type, false),
+            Some(_) => todo!("proto"),
             None => self.context.void_type().fn_type(&args_type, false),
         };
 
@@ -192,10 +199,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     self.stmt_codegen(s)?;
                     None
                 }
-                Node::Expr(e) => match self.expr_codegen(e) {
-                    Ok(v) => v,
-                    Err(e) => return Err(e),
-                },
+                Node::Expr(e) => self.expr_codegen(e)?,
             }
         }
 
@@ -236,47 +240,38 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     }
 
     fn expr_codegen(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+        use Expression::*;
         match expr {
-            Expression::Lit { value, .. } => Some(self.num_codegen(value)),
-            Expression::Ident { name, .. } => Some(self.ident_codegen(name)),
-            Expression::BinOp { sym, lhs, rhs, .. } => {
+            Lit { value, .. } => Some(self.lit_codegen(value)),
+            Ident { name, .. } => Some(self.ident_codegen(name)),
+            BinOp { sym, lhs, rhs, .. } => {
                 Some(self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?))
             }
-            Expression::UnOp { sym, rhs, .. } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
-            Expression::Call { name, args, .. } => {
-                self.call_codegen(name, &args.as_expr()?).transpose()
-            }
+            UnOp { sym, rhs, .. } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
+            Call { name, args, .. } => self.call_codegen(name, &args.as_expr()?).transpose(),
         }
         .transpose()
     }
 
-    fn num_codegen(&self, num: &Literal) -> ExprResult<'ctx> {
-        Ok(match num {
-            Literal::I64(n) => self
+    fn lit_codegen(&self, value: &Literal) -> ExprResult<'ctx> {
+        Ok(match value {
+            Literal::I64(v) => self
                 .context
                 .i64_type()
-                .const_int(*n as u64, true)
+                .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            Literal::U64(n) => self
+            Literal::U64(v) => self
                 .context
                 .i64_type()
-                .const_int(*n, false)
+                .const_int(*v, false)
                 .as_basic_value_enum(),
-            Literal::F64(n) => self
+            Literal::F64(v) => self
                 .context
                 .f64_type()
-                .const_float(*n)
+                .const_float(*v)
                 .as_basic_value_enum(),
         })
     }
-
-    // fn num_codegen_i64(&self, num: u64) -> ExprCgResult<'ctx> {
-    //     Ok(self.context.i64_type().const_int(num, false).as_basic_value_enum())
-    // }
-
-    // fn num_codegen_f64(&self, num: f64) -> ExprCgResult<'ctx> {
-    //     Ok(self.context.f64_type().const_float(num).as_basic_value_enum())
-    // }
 
     fn ident_codegen(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
@@ -313,7 +308,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             return Ok(r_val);
         }
 
-        let lhs = self.expr_codegen(lhs)?.ret_val()?;
+        let lhs = self.expr_codegen(lhs)?.ret_val()?; // Valuable? Inner?
         let rhs = self.expr_codegen(rhs)?.ret_val()?;
 
         // Generate the proper instruction for each op
@@ -355,7 +350,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     Gt => IntPredicate::UGT,
                     Lt => IntPredicate::ULT,
                     Eq => IntPredicate::EQ,
-                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
+                    _ => return Err("noncanbe: Something went really wrong in binop_codegen()".to_string()),
                 };
                 let cmp = self.builder.build_int_compare(
                     pred,
@@ -378,20 +373,26 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         name: &str,
         args: &[&Expression],
     ) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+        // Look up the function. Error if it's not been defined.
         let func = self
             .module
             .get_function(name)
             .ok_or(format!("Unknown function call: {}", name))?;
 
+        // Codegen the call args
         let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
             args_code.push((self.expr_codegen(arg)?.ret_val()?).into());
         }
 
+        // Build the call instruction
         let call_val = self
             .builder
             .build_call(func, &args_code, &("call_".to_owned() + name));
 
+        // If func has a non-void return type, it will produce a call_val that
+        // is converted into a BasicValueEnum. Otherwise it becomes an
+        // InstructionValue, which we ignore.
         Ok(match call_val.try_as_basic_value() {
             Either::Left(v) => Some(v),
             Either::Right(_) => None,
@@ -597,6 +598,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
             (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
             (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
+            _ => todo!("let"),
         };
 
         let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
