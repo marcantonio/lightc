@@ -2,9 +2,9 @@ use serde::Serialize;
 
 use crate::token::{Symbol, Type};
 
-use self::as_expr::AsExpr;
+use self::conversion::AsExpr;
 
-pub mod as_expr;
+pub mod conversion;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]

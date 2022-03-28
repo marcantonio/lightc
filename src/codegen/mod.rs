@@ -8,7 +8,7 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
-use crate::ast::as_expr::AsExpr;
+use crate::ast::conversion::AsExpr;
 use crate::ast::{Ast, Expression, Literal};
 use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
@@ -116,12 +116,26 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
+    // Helper function for when we don't know if we have a statement or an
+    // expression
+    fn node_codegen(&mut self, node: &Node) -> StmtResult<'ctx> {
+        match node {
+            Node::Stmt(s) => self.stmt_codegen(s),
+            Node::Expr(e) => {
+                self.expr_codegen(e)?;
+                Ok(())
+            }
+        }
+    }
+
     fn stmt_codegen(&mut self, stmt: &Statement) -> StmtResult<'ctx> {
         use Statement::*;
         match stmt {
-            Cond { cond_expr, then_block, else_block } => {
-                self.cond_codegen(cond_expr, &*then_block.as_expr()?, &else_block.as_expr()?)
-            }
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+            } => self.cond_codegen(cond_expr, then_block, &else_block.as_expr()?),
             For {
                 start_name,
                 start_antn,
@@ -137,11 +151,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 step_expr,
                 body,
             ),
-            Let {
-                name,
-                antn: ty,
-                init,
-            } => self.let_codegen(name, *ty, &init.as_expr()?),
+            Let { name, antn, init } => self.let_codegen(name, *antn, &init.as_expr()?),
             Fn { proto, body } => self.func_codegen(proto, body),
         }
     }
@@ -197,8 +207,9 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         //todo: no redefining functions
 
-        // Generate and add all expressions in the body. Save the last to
-        // one to use with the ret instruction.
+        // Generate and add all expressions in the body. Save the last to one to
+        // use with the ret instruction. Note: We can't use codegen_node() here
+        // because we need the return value.
         let mut last_node_val = None;
         for node in body {
             last_node_val = match node {
@@ -410,13 +421,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         })
     }
 
-    // XXX: fix arg names
     // if then optional else
     fn cond_codegen(
         &mut self,
         cond_expr: &Expression,
-        then_expr: &[&Expression],
-        else_expr: &Option<Vec<&Expression>>,
+        then_block: &[Node],
+        else_block: &Option<Vec<&Expression>>,
     ) -> StmtResult<'ctx> {
         // Get the current function for insertion
         let parent = self
@@ -441,45 +451,45 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         // Create blocks for branches and after. The else block is just a
         // pointer to end if there's no else expression.
-        let then_block = self.context.append_basic_block(parent, "if.then");
-        let end_block = self.context.append_basic_block(parent, "if.end");
-        let mut else_block = end_block;
-        if else_expr.is_some() {
-            else_block = self.context.append_basic_block(parent, "if.else");
-            else_block
-                .move_before(end_block)
+        let then_bb = self.context.append_basic_block(parent, "if.then");
+        let end_bb = self.context.append_basic_block(parent, "if.end");
+        let mut else_bb = end_bb;
+        if else_block.is_some() {
+            else_bb = self.context.append_basic_block(parent, "if.else");
+            else_bb
+                .move_before(end_bb)
                 .map_err(|_| String::from("LLVM error"))?;
         }
 
         // Emits the entry conditional branch instructions
         self.builder
-            .build_conditional_branch(cond_bool, then_block, else_block);
+            .build_conditional_branch(cond_bool, then_bb, else_bb);
 
         // Point the builder at the end of the empty then block
-        self.builder.position_at_end(then_block);
+        self.builder.position_at_end(then_bb);
 
         // CodeGen the then block
-        for expr in then_expr {
-            self.expr_codegen(expr)?;
+        for node in then_block {
+            self.node_codegen(node)?;
         }
 
         // Make sure the consequent returns to the end block after execution
-        self.builder.build_unconditional_branch(end_block);
+        self.builder.build_unconditional_branch(end_bb);
 
         // Point the builder at the end of the empty else block
-        self.builder.position_at_end(else_block);
+        self.builder.position_at_end(else_bb);
 
         // CodeGen the else block if we have one
-        if let Some(ee) = else_expr {
+        if let Some(ee) = else_block {
             for expr in ee {
                 self.expr_codegen(expr)?;
             }
 
             // Make sure the alternative returns to the end block after execution
-            self.builder.build_unconditional_branch(end_block);
+            self.builder.build_unconditional_branch(end_bb);
 
             // Point the builder at the end of the empty end block
-            self.builder.position_at_end(end_block);
+            self.builder.position_at_end(end_bb);
         }
 
         Ok(())
@@ -519,8 +529,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         self.local_vars.insert(start_name.to_owned(), start_alloca);
 
         // Generate all body expressions
-        for expr in body {
-            self.expr_codegen(expr.as_expr()?)?;
+        for node in body {
+            self.node_codegen(node)?;
         }
 
         // Codegen step value and end cond

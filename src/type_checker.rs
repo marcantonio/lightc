@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::as_expr::AsExprMut;
+use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::token::Type;
 
@@ -37,6 +37,18 @@ impl TypeChecker {
         Ok(())
     }
 
+    // Helper function for when we don't know if we have a statement or an
+    // expression
+    fn node_check(&mut self, node: &mut Node) -> Result<(), String> {
+        match node {
+            Node::Stmt(s) => self.stmt_check(s),
+            Node::Expr(e) => {
+                self.expr_check(e)?;
+                Ok(())
+            }
+        }
+    }
+
     fn stmt_check(&mut self, stmt: &mut Statement) -> Result<(), String> {
         use Statement::*;
         match stmt {
@@ -44,11 +56,7 @@ impl TypeChecker {
                 cond_expr,
                 then_block,
                 else_block,
-            } => self.cond_check(
-                cond_expr,
-                &mut then_block.as_expr_mut()?,
-                &mut else_block.as_expr_mut()?,
-            ),
+            } => self.cond_check(cond_expr, then_block, &mut else_block.as_expr_mut()?),
             For {
                 start_name,
                 start_antn,
@@ -127,13 +135,13 @@ impl TypeChecker {
     fn cond_check(
         &mut self,
         cond_expr: &mut Expression,
-        then_block: &mut [&mut Expression],
+        then_block: &mut [Node],
         else_block: &mut Option<Vec<&mut Expression>>,
     ) -> Result<(), String> {
         self.expr_check(cond_expr)?;
 
-        for expr in then_block {
-            self.expr_check(expr)?;
+        for node in then_block {
+            self.node_check(node)?;
         }
 
         if let Some(else_block) = else_block {
@@ -183,12 +191,7 @@ impl TypeChecker {
         }
 
         for node in body {
-            match node {
-                Node::Stmt(s) => self.stmt_check(s)?,
-                Node::Expr(e) => {
-                    self.expr_check(e)?;
-                }
-            }
+            self.node_check(node)?;
         }
 
         self.variable_table.remove(start_name);

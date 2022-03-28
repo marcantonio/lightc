@@ -1,7 +1,7 @@
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
-use crate::ast::as_expr::ToExpr;
+use crate::ast::conversion::ToExpr;
 use crate::ast::{Ast, Expression, Literal, Node, Prototype, Statement};
 use crate::token::{Symbol, Token, TokenType, Type};
 
@@ -27,11 +27,8 @@ impl<'a> Parser<'a> {
 
     // Parse each token using recursive descent
     pub(crate) fn parse(mut self) -> Result<Ast<Node>, ParseError> {
-        while let Some(t) = self.tokens.peek() {
-            let node = match t.tt {
-                //_ => AstNode::Expr(self.parse_expression(0)?),
-                _ => self.parse_statement()?,
-            };
+        while self.tokens.peek().is_some() {
+            let node = self.parse_statement()?;
             self.ast.add(node);
         }
         Ok(self.ast)

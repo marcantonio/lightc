@@ -1,6 +1,6 @@
 use super::*;
 
-// As immutable expresions
+// As immutable expressions
 
 pub(crate) trait AsExpr<'a> {
     type Item;
@@ -51,7 +51,7 @@ impl<'a> AsExpr<'a> for Option<Vec<Node>> {
     }
 }
 
-// As mutable expresions
+// As mutable expressions
 
 pub(crate) trait AsExprMut<'a> {
     type Item;
@@ -94,6 +94,7 @@ impl<'a> AsExprMut<'a> for Option<Vec<Node>> {
     }
 }
 
+// Transfer ownership
 
 pub(crate) trait ToExpr {
     type Item;
