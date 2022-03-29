@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 540
 expression: asts
 input_file: src/parser/tests/inputs/if_else.input
 ---
@@ -8,27 +8,26 @@ input_file: src/parser/tests/inputs/if_else.input
       nodes:
         - Stmt:
             Cond:
-              cond:
-                Expr:
-                  BinOp:
-                    sym: Gt
-                    lhs:
-                      Expr:
-                        Ident:
-                          name: a
-                          ty: ~
-                    rhs:
-                      Expr:
-                        Ident:
-                          name: b
-                          ty: ~
-                    ty: ~
-              cons:
+              cond_expr:
+                BinOp:
+                  sym: Gt
+                  lhs:
+                    Expr:
+                      Ident:
+                        name: a
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Ident:
+                        name: b
+                        ty: ~
+                  ty: ~
+              then_block:
                 - Expr:
                     Ident:
                       name: foo
                       ty: ~
-              alt:
+              else_block:
                 - Expr:
                     Ident:
                       name: bar

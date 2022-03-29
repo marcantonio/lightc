@@ -1,19 +1,34 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 484
+assertion_line: 540
 expression: asts
 input_file: src/parser/tests/inputs/let.input
-
 ---
 - - Ok:
       nodes:
         - Stmt:
             Let:
               name: x
-              ty: U64
+              antn: U64
               init:
                 Expr:
-                  U64: 1
+                  Lit:
+                    value:
+                      U64: 1
+                    ty: ~
+  - "(let x:u64 1)"
+- - Ok:
+      nodes:
+        - Stmt:
+            Let:
+              name: x
+              antn: U64
+              init:
+                Expr:
+                  Lit:
+                    value:
+                      F64: 1.0
+                    ty: ~
   - "(let x:u64 1)"
 - - Err:
       message: Premature end of expression
@@ -25,7 +40,7 @@ input_file: src/parser/tests/inputs/let.input
         - Stmt:
             Let:
               name: x
-              ty: U64
+              antn: U64
               init: ~
   - "(let x:u64)"
 - - Err:

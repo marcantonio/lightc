@@ -1,10 +1,9 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 712
+assertion_line: 746
 expression: ir
 input_file: src/codegen/tests/inputs/let.input
 ---
 - "define void @main() {\nentry:\n  ret void\n}\n"
 - "define void @main() {\nentry:\n  ret void\n}\n"
-- "Types don't match in let statement. Annotated with u64 but value is f64"
 

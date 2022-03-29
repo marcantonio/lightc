@@ -1,8 +1,0 @@
----
-source: src/codegen/mod.rs
-assertion_line: 712
-expression: ir
-input_file: src/codegen/tests/inputs/unknown_assignment.input
----
-- "Unknown variable in assignment: x"
-

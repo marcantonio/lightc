@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 540
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 ---
@@ -8,36 +8,33 @@ input_file: src/parser/tests/inputs/for.input
       nodes:
         - Stmt:
             For:
-              var_name: x
-              var_type: U64
-              start:
-                Expr:
-                  Lit:
-                    value:
-                      U64: 1
-                    ty: ~
-              cond:
-                Expr:
-                  BinOp:
-                    sym: Lt
-                    lhs:
-                      Expr:
-                        Ident:
-                          name: x
-                          ty: ~
-                    rhs:
-                      Expr:
-                        Lit:
-                          value:
-                            U64: 10
-                          ty: ~
-                    ty: ~
-              step:
-                Expr:
-                  Lit:
-                    value:
-                      U64: 1
-                    ty: ~
+              start_name: x
+              start_antn: U64
+              start_expr:
+                Lit:
+                  value:
+                    U64: 1
+                  ty: ~
+              cond_expr:
+                BinOp:
+                  sym: Lt
+                  lhs:
+                    Expr:
+                      Ident:
+                        name: x
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          U64: 10
+                        ty: ~
+                  ty: ~
+              step_expr:
+                Lit:
+                  value:
+                    U64: 1
+                  ty: ~
               body:
                 - Expr:
                     Ident:

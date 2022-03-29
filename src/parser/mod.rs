@@ -112,19 +112,6 @@ impl<'a> Parser<'a> {
             // Descend for rhs with the current precedence as min_p
             let rhs = self.parse_expression(p)?;
 
-            // // Make sure types match
-            // // TODO: provide context
-            // let lhs_ty = lhs.ty()?;
-            // let rhs_ty = rhs.ty()?;
-            // if lhs_ty != rhs_ty {
-            //     return Err(ParseError::from(format!(
-            //         "Type mismatch: {} {} {}",
-            //         lhs_ty,
-            //         sym,
-            //         rhs_ty,
-            //     )));
-            // }
-
             // Make a new lhs and continue loop
             lhs = Node::Expr(Expression::BinOp {
                 sym,
@@ -274,13 +261,6 @@ impl<'a> Parser<'a> {
             )))
         }
     }
-
-    // pub(crate) fn bool(s: &str) -> Option<Value> {
-    //     match s.parse::<bool>() {
-    //         Ok(b) => Some(Value::Bool(b)),
-    //         Err(_) => None,
-    //     }
-    // }        Ok(Expression::Num { value: n })
 
     // Variable or function call
     fn parse_ident(&mut self, id: &str) -> ParseResult {
@@ -449,13 +429,6 @@ impl<'a> Parser<'a> {
             TokenType::VarType(_),
             "Type annotation required in let statement"
         );
-
-        // XXX: why not
-        // expect_next_token!(
-        //     self.tokens,
-        //     TokenType::Op(Symbol::Assign),
-        //     "Expecting '=' after identifer"
-        // );
 
         let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
             self.tokens.next();

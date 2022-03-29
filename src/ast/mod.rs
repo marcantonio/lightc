@@ -1,8 +1,7 @@
 use serde::Serialize;
 
-use crate::token::{Symbol, Type};
-
 use self::conversion::AsExpr;
+use crate::token::{Symbol, Type};
 
 pub mod conversion;
 mod display;
@@ -21,11 +20,11 @@ impl<T> Ast<T> {
         self.nodes.push(node)
     }
 
-    pub(crate) fn nodes(&self) -> &Vec<T> { // XXX
+    pub(crate) fn nodes(&self) -> &[T] {
         &self.nodes
     }
 
-    pub(crate) fn nodes_mut(&mut self) -> &mut Vec<T> {
+    pub(crate) fn nodes_mut(&mut self) -> &mut [T] {
         &mut self.nodes
     }
 }

@@ -13,6 +13,7 @@
 - [ ] Add while
 - [ ] Desugar for loops
 - [ ] Fix main exit code
+- [ ] Decide on redundant errors in codegen and the type checker
 
 # Roadmap
 - [ ] Formalize grammar

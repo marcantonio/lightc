@@ -13,11 +13,11 @@ impl AstVisitorMut for TypeChecker {
     type Result = Result<(), String>;
 
     fn visit_stmt(&mut self, s: &mut Statement) -> Self::Result {
-        self.stmt_check(s)
+        self.check_stmt(s)
     }
 
     fn visit_expr(&mut self, e: &mut Expression) -> Self::Result {
-        self.expr_check(e)?;
+        self.check_expr(e)?;
         Ok(())
     }
 }
@@ -39,24 +39,25 @@ impl TypeChecker {
 
     // Helper function for when we don't know if we have a statement or an
     // expression
-    fn node_check(&mut self, node: &mut Node) -> Result<(), String> {
+    fn check_node(&mut self, node: &mut Node) -> Result<(), String> {
         match node {
-            Node::Stmt(s) => self.stmt_check(s),
+            Node::Stmt(s) => self.check_stmt(s),
             Node::Expr(e) => {
-                self.expr_check(e)?;
+                self.check_expr(e)?;
                 Ok(())
             }
         }
     }
 
-    fn stmt_check(&mut self, stmt: &mut Statement) -> Result<(), String> {
+    fn check_stmt(&mut self, stmt: &mut Statement) -> Result<(), String> {
         use Statement::*;
+
         match stmt {
             Cond {
                 cond_expr,
                 then_block,
                 else_block,
-            } => self.cond_check(cond_expr, then_block, &mut else_block.as_expr_mut()?),
+            } => self.check_cond(cond_expr, then_block, &mut else_block.as_expr_mut()?),
             For {
                 start_name,
                 start_antn,
@@ -64,7 +65,7 @@ impl TypeChecker {
                 cond_expr,
                 step_expr,
                 body,
-            } => self.for_check(
+            } => self.check_for(
                 start_name,
                 *start_antn,
                 start_expr,
@@ -72,13 +73,13 @@ impl TypeChecker {
                 step_expr,
                 body,
             ),
-            Let { name, antn, init } => self.let_check(name, *antn, &mut init.as_expr_mut()?),
-            Fn { proto, body } => self.func_check(proto, body),
+            Let { name, antn, init } => self.check_let(name, *antn, &mut init.as_expr_mut()?),
+            Fn { proto, body } => self.check_func(proto, body),
         }
     }
 
     // TODO: Variable shadowing
-    fn func_check(
+    fn check_func(
         &mut self,
         proto: &Prototype,
         body: &mut Option<Vec<Node>>,
@@ -108,10 +109,10 @@ impl TypeChecker {
         for node in body {
             body_ty = match node {
                 Node::Stmt(s) => {
-                    self.stmt_check(s)?;
+                    self.check_stmt(s)?;
                     Type::Void
                 }
-                Node::Expr(e) => self.expr_check(e)?,
+                Node::Expr(e) => self.check_expr(e)?,
             }
         }
 
@@ -132,28 +133,28 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn cond_check(
+    fn check_cond(
         &mut self,
         cond_expr: &mut Expression,
         then_block: &mut [Node],
         else_block: &mut Option<Vec<&mut Expression>>,
     ) -> Result<(), String> {
-        self.expr_check(cond_expr)?;
+        self.check_expr(cond_expr)?;
 
         for node in then_block {
-            self.node_check(node)?;
+            self.check_node(node)?;
         }
 
         if let Some(else_block) = else_block {
             for expr in else_block {
-                self.expr_check(*expr)?;
+                self.check_expr(*expr)?;
             }
         }
 
         Ok(())
     }
 
-    fn for_check(
+    fn check_for(
         &mut self,
         start_name: &str,
         start_antn: Type,
@@ -162,7 +163,7 @@ impl TypeChecker {
         step_expr: &mut Expression,
         body: &mut [Node],
     ) -> Result<(), String> {
-        let start_ty = self.expr_check(start_expr)?;
+        let start_ty = self.check_expr(start_expr)?;
         if start_antn != start_ty {
             return Err(format!(
                 "Initial type mismatch in for statement. Annotated with `{}` but value is `{}`",
@@ -174,7 +175,7 @@ impl TypeChecker {
         self.variable_table
             .insert(start_name.to_owned(), start_antn);
 
-        let cond_ty = self.expr_check(cond_expr)?;
+        let cond_ty = self.check_expr(cond_expr)?;
         if cond_ty != start_ty {
             return Err(format!(
                 "Conditional type mismatch in for statement. Conditional is `{}` but `{}` is `{}`",
@@ -182,7 +183,7 @@ impl TypeChecker {
             ));
         }
 
-        let step_ty = self.expr_check(step_expr)?;
+        let step_ty = self.check_expr(step_expr)?;
         if step_ty != start_ty {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
@@ -191,7 +192,7 @@ impl TypeChecker {
         }
 
         for node in body {
-            self.node_check(node)?;
+            self.check_node(node)?;
         }
 
         self.variable_table.remove(start_name);
@@ -199,14 +200,14 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn let_check(
+    fn check_let(
         &mut self,
         name: &str,
         antn: Type,
         init: &mut Option<&mut Expression>,
     ) -> Result<(), String> {
         if let Some(init) = init {
-            let init_ty = self.expr_check(init)?;
+            let init_ty = self.check_expr(init)?;
             if antn != init_ty {
                 return Err(format!(
                     "Types don't match in let statement. Annotated with `{}` but initial value is `{}`",
@@ -218,26 +219,24 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn expr_check(&mut self, expr: &mut Expression) -> Result<Type, String> {
+    fn check_expr(&mut self, expr: &mut Expression) -> Result<Type, String> {
         use Expression::*;
-        println!("EXPR: {:?}", expr);
-        let mm = match expr {
-            Lit { value, ty } => self.lit_check(value, ty),
-            Ident { name, ty } => self.ident_check(name, ty),
+
+        match expr {
+            Lit { value, ty } => self.check_lit(value, ty),
+            Ident { name, ty } => self.check_ident(name, ty),
             BinOp {
                 sym: _,
                 lhs,
                 rhs,
                 ty,
-            } => self.binop_check(lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty),
-            UnOp { sym: _, rhs, ty } => self.unop_check(rhs.as_expr_mut()?, ty),
-            Call { name, args, ty } => self.call_check(name, &mut args.as_expr_mut()?, ty),
-        };
-        println!("EXPR after: {:?}", expr);
-        mm
+            } => self.check_binop(lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty),
+            UnOp { sym: _, rhs, ty } => self.check_unop(rhs.as_expr_mut()?, ty),
+            Call { name, args, ty } => self.check_call(name, &mut args.as_expr_mut()?, ty),
+        }
     }
 
-    fn lit_check(&self, value: &Literal, ty: &mut Option<Type>) -> Result<Type, String> {
+    fn check_lit(&self, value: &Literal, ty: &mut Option<Type>) -> Result<Type, String> {
         let lit_ty = match value {
             Literal::I64(_) => Type::I64,
             Literal::U64(_) => Type::U64,
@@ -247,7 +246,7 @@ impl TypeChecker {
         Ok(lit_ty)
     }
 
-    fn ident_check(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
+    fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
         let ident_ty = *self
             .variable_table
             .get(name)
@@ -256,7 +255,7 @@ impl TypeChecker {
         Ok(ident_ty)
     }
 
-    fn call_check(
+    fn check_call(
         &mut self,
         name: &str,
         args: &mut [&mut Expression],
@@ -264,7 +263,7 @@ impl TypeChecker {
     ) -> Result<Type, String> {
         // Check all args
         for arg in args {
-            self.expr_check(arg)?;
+            self.check_expr(arg)?;
         }
 
         // Pull return type of call from table
@@ -279,14 +278,14 @@ impl TypeChecker {
         Ok(ret_ty)
     }
 
-    fn binop_check(
+    fn check_binop(
         &mut self,
         lhs: &mut Expression,
         rhs: &mut Expression,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
-        let lhs_ty = self.expr_check(lhs)?;
-        let rhs_ty = self.expr_check(rhs)?;
+        let lhs_ty = self.check_expr(lhs)?;
+        let rhs_ty = self.check_expr(rhs)?;
 
         if lhs_ty != rhs_ty {
             return Err(format!(
@@ -299,8 +298,8 @@ impl TypeChecker {
         Ok(lhs_ty)
     }
 
-    fn unop_check(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
-        let rhs_ty = self.expr_check(rhs)?;
+    fn check_unop(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
+        let rhs_ty = self.check_expr(rhs)?;
         *ty = Some(rhs_ty);
         Ok(rhs_ty)
     }

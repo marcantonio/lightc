@@ -17,18 +17,10 @@ use crate::token::{Symbol, Type};
 type StmtResult<'ctx> = Result<(), String>;
 type ExprResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
 
-macro_rules! extract_type {
-    ($ctx:expr, $var:expr) => {{
-        let (_, ty) = $var;
-        match ty {
-            Type::U64 | Type::I64 => BasicMetadataTypeEnum::IntType($ctx.i64_type()),
-            Type::F64 => BasicMetadataTypeEnum::FloatType($ctx.f64_type()),
-            _ => todo!("extract"),
-        }
-    }};
-}
+// Generate IR for the AST. If types mismatch at this stage, it's a compiler
+// bug, not user error.
 
-pub(crate) struct CodeGen<'a, 'ctx> {
+pub(crate) struct Codegen<'a, 'ctx> {
     context: &'ctx Context,
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
@@ -37,20 +29,20 @@ pub(crate) struct CodeGen<'a, 'ctx> {
     main: Option<FunctionValue<'ctx>>,
 }
 
-impl<'a, 'ctx> AstVisitor for CodeGen<'a, 'ctx> {
+impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
     type Result = Result<(), String>;
 
     fn visit_stmt(&mut self, s: &Statement) -> Self::Result {
-        self.stmt_codegen(s)
+        self.codegen_stmt(s)
     }
 
     fn visit_expr(&mut self, e: &Expression) -> Self::Result {
-        self.expr_codegen(e)?;
+        self.codegen_expr(e)?;
         Ok(())
     }
 }
 
-impl<'a, 'ctx> CodeGen<'a, 'ctx> {
+impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub(crate) fn new(
         context: &'ctx Context,
         builder: &'a Builder<'ctx>,
@@ -69,7 +61,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         fpm.add_reassociate_pass();
         fpm.initialize();
 
-        CodeGen {
+        Codegen {
             context,
             builder,
             module,
@@ -112,30 +104,31 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         match ty {
             Type::U64 | Type::I64 => builder.build_alloca(self.context.i64_type(), name),
             Type::F64 => builder.build_alloca(self.context.f64_type(), name),
-            _ => todo!("alloc"),
+            Type::Void => unreachable!("noncanbe in create_entry_block_alloca()"),
         }
     }
 
     // Helper function for when we don't know if we have a statement or an
     // expression
-    fn node_codegen(&mut self, node: &Node) -> StmtResult<'ctx> {
+    fn codegen_node(&mut self, node: &Node) -> StmtResult<'ctx> {
         match node {
-            Node::Stmt(s) => self.stmt_codegen(s),
+            Node::Stmt(s) => self.codegen_stmt(s),
             Node::Expr(e) => {
-                self.expr_codegen(e)?;
+                self.codegen_expr(e)?;
                 Ok(())
             }
         }
     }
 
-    fn stmt_codegen(&mut self, stmt: &Statement) -> StmtResult<'ctx> {
+    fn codegen_stmt(&mut self, stmt: &Statement) -> StmtResult<'ctx> {
         use Statement::*;
+
         match stmt {
             Cond {
                 cond_expr,
                 then_block,
                 else_block,
-            } => self.cond_codegen(cond_expr, then_block, &else_block.as_expr()?),
+            } => self.codegen_cond(cond_expr, then_block, &else_block.as_expr()?),
             For {
                 start_name,
                 start_antn,
@@ -143,7 +136,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 cond_expr,
                 step_expr,
                 body,
-            } => self.for_codegen(
+            } => self.codegen_for(
                 start_name,
                 *start_antn,
                 start_expr,
@@ -151,24 +144,32 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 step_expr,
                 body,
             ),
-            Let { name, antn, init } => self.let_codegen(name, *antn, &init.as_expr()?),
-            Fn { proto, body } => self.func_codegen(proto, body),
+            Let { name, antn, init } => self.codegen_let(name, *antn, &init.as_expr()?),
+            Fn { proto, body } => self.codegen_func(proto, body),
         }
     }
 
-    fn proto_codegen(&self, proto: &Prototype) -> Result<FunctionValue<'ctx>, String> {
+    fn codegen_proto(&self, proto: &Prototype) -> Result<FunctionValue<'ctx>, String> {
         let args_type = proto
             .args
             .iter()
-            .map(|x| extract_type!(self.context, x))
+            .map(|x| {
+                let (_, ty) = x;
+                match ty {
+                    Type::U64 | Type::I64 => {
+                        BasicMetadataTypeEnum::IntType(self.context.i64_type())
+                    }
+                    Type::F64 => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
+                    Type::Void => unreachable!("noncanbe in codegen_proto()"),
+                }
+            })
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         // Generate function based on return type
         let func_type = match proto.ret_type {
             Some(Type::F64) => self.context.f64_type().fn_type(&args_type, false),
             Some(Type::U64 | Type::I64) => self.context.i64_type().fn_type(&args_type, false),
-            Some(_) => todo!("proto"),
-            None => self.context.void_type().fn_type(&args_type, false),
+            Some(_) | None => self.context.void_type().fn_type(&args_type, false),
         };
 
         // Add function to current module's symbold table. Defaults to external
@@ -183,8 +184,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         Ok(func)
     }
 
-    fn func_codegen(&mut self, proto: &Prototype, body: &Option<Vec<Node>>) -> StmtResult<'ctx> {
-        let function = self.proto_codegen(proto)?;
+    fn codegen_func(&mut self, proto: &Prototype, body: &Option<Vec<Node>>) -> StmtResult<'ctx> {
+        let function = self.codegen_proto(proto)?;
         // If body is None assume call is an extern
         let body = match body {
             Some(body) => body,
@@ -214,10 +215,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         for node in body {
             last_node_val = match node {
                 Node::Stmt(s) => {
-                    self.stmt_codegen(s)?;
+                    self.codegen_stmt(s)?;
                     None
                 }
-                Node::Expr(e) => self.expr_codegen(e)?,
+                Node::Expr(e) => self.codegen_expr(e)?,
             }
         }
 
@@ -257,21 +258,208 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn expr_codegen(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
-        use Expression::*;
-        match expr {
-            Lit { value, .. } => Some(self.lit_codegen(value)),
-            Ident { name, .. } => Some(self.ident_codegen(name)),
-            BinOp { sym, lhs, rhs, .. } => {
-                Some(self.binop_codegen(*sym, lhs.as_expr()?, rhs.as_expr()?))
+    // if then optional else
+    fn codegen_cond(
+        &mut self,
+        cond_expr: &Expression,
+        then_block: &[Node],
+        else_block: &Option<Vec<&Expression>>,
+    ) -> StmtResult<'ctx> {
+        // Get the current function for insertion
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
+
+        // Codegen expression. Will be optimized to a 0 or 1 if comparing
+        // constants. Otherwise, the value will be IR to evaluate. Result will
+        // be a float 0 or 1.
+        let cond_val = self.codegen_expr(cond_expr)?.value()?.into_int_value(); // XXX
+
+        // Codegen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
+        // "bool".
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
+            cond_val,
+            self.context.i64_type().const_zero(),
+            "if.cond",
+        );
+
+        // Create blocks for branches and after. The else block is just a
+        // pointer to end if there's no else expression.
+        let then_bb = self.context.append_basic_block(parent, "if.then");
+        let end_bb = self.context.append_basic_block(parent, "if.end");
+        let mut else_bb = end_bb;
+        if else_block.is_some() {
+            else_bb = self.context.append_basic_block(parent, "if.else");
+            else_bb
+                .move_before(end_bb)
+                .map_err(|_| String::from("LLVM error"))?;
+        }
+
+        // Emits the entry conditional branch instructions
+        self.builder
+            .build_conditional_branch(cond_bool, then_bb, else_bb);
+
+        // Point the builder at the end of the empty then block
+        self.builder.position_at_end(then_bb);
+
+        // Codegen the then block
+        for node in then_block {
+            self.codegen_node(node)?;
+        }
+
+        // Make sure the consequent returns to the end block after execution
+        self.builder.build_unconditional_branch(end_bb);
+
+        // Point the builder at the end of the empty else block
+        self.builder.position_at_end(else_bb);
+
+        // Codegen the else block if we have one
+        if let Some(ee) = else_block {
+            for expr in ee {
+                self.codegen_expr(expr)?;
             }
-            UnOp { sym, rhs, .. } => Some(self.unop_codegen(*sym, rhs.as_expr()?)),
-            Call { name, args, .. } => self.call_codegen(name, &args.as_expr()?).transpose(),
+
+            // Make sure the alternative returns to the end block after execution
+            self.builder.build_unconditional_branch(end_bb);
+
+            // Point the builder at the end of the empty end block
+            self.builder.position_at_end(end_bb);
+        }
+
+        Ok(())
+    }
+
+    // for start; cond; step { body }
+    // start == let var_name = x
+    fn codegen_for(
+        &mut self,
+        start_name: &str,
+        start_antn: Type,
+        start_expr: &Expression,
+        cond_expr: &Expression,
+        step_expr: &Expression,
+        body: &[Node],
+    ) -> StmtResult<'ctx> {
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building loop".to_string())?;
+
+        // Create entry alloca, codegen start expr, and store result
+        let start_alloca = self.create_entry_block_alloca(start_name, start_antn, &parent);
+        let start_code = self.codegen_expr(start_expr)?.value()?;
+        self.builder.build_store(start_alloca, start_code);
+
+        // Create a block for the loop, a branch to it, and move the insertion
+        // to it
+        let loop_bb = self.context.append_basic_block(parent, "loop");
+        self.builder.build_unconditional_branch(loop_bb);
+        self.builder.position_at_end(loop_bb);
+
+        // Save the variable value if we are shadowing and insert alloca into
+        // local map
+        let old_var = self.local_vars.remove(start_name);
+        self.local_vars.insert(start_name.to_owned(), start_alloca);
+
+        // Generate all body expressions
+        for node in body {
+            self.codegen_node(node)?;
+        }
+
+        // Codegen step value and end cond
+        let step_code = self.codegen_expr(step_expr)?;
+        let cond_code = self.codegen_expr(cond_expr)?.value()?.into_int_value(); // XXX
+
+        // Load the current induction variable from the stack, increment it by
+        // step, and store it again. Body could have mutated it.
+        let cur = self.builder.build_load(start_alloca, start_name);
+        let next = self.builder.build_int_add(
+            cur.into_int_value(),
+            step_code.value()?.into_int_value(),
+            "incvar",
+        ); // XXX
+        self.builder.build_store(start_alloca, next);
+
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
+            cond_code,
+            self.context.i64_type().const_zero(), // XXX
+            "endcond",
+        );
+
+        // Append a block for after the loop and insert the loop conditional at
+        // the end
+        let after_bb = self.context.append_basic_block(parent, "afterloop");
+        self.builder
+            .build_conditional_branch(cond_bool, loop_bb, after_bb);
+        self.builder.position_at_end(after_bb);
+
+        // Reset shadowed variable
+        self.local_vars.remove(start_name);
+        if let Some(v) = old_var {
+            self.local_vars.insert(start_name.to_owned(), v);
+        }
+
+        Ok(())
+    }
+
+    fn codegen_let(
+        &mut self,
+        name: &str,
+        ty: Type,
+        init: &Option<&Expression>,
+    ) -> StmtResult<'ctx> {
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
+
+        // Match combinations of init presence and type. When init is None,
+        // initialize with 0.
+        //
+        // Note: If this is the only place we use .ty(), we should drop it.
+        let init_code = match (ty, init) {
+            (_, Some(i)) => {
+                if i.ty() == Some(ty) {
+                    self.codegen_expr(i)?
+                } else {
+                    unreachable!("noncanbe in codegen_let()");
+                }
+            }
+            (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+            (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+            (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
+            (Type::Void, None) => unreachable!("noncanbe in codegen_let()"),
+        };
+
+        let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
+        self.builder.build_store(init_alloca, init_code.value()?);
+        self.local_vars.insert(name.to_owned(), init_alloca);
+
+        Ok(())
+    }
+
+    fn codegen_expr(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+        use Expression::*;
+
+        match expr {
+            Lit { value, .. } => Some(self.codegen_lit(value)),
+            Ident { name, .. } => Some(self.codegen_ident(name)),
+            BinOp { sym, lhs, rhs, .. } => {
+                Some(self.codegen_binop(*sym, lhs.as_expr()?, rhs.as_expr()?))
+            }
+            UnOp { sym, rhs, .. } => Some(self.codegen_unop(*sym, rhs.as_expr()?)),
+            Call { name, args, .. } => self.codegen_call(name, &args.as_expr()?).transpose(),
         }
         .transpose()
     }
 
-    fn lit_codegen(&self, value: &Literal) -> ExprResult<'ctx> {
+    fn codegen_lit(&self, value: &Literal) -> ExprResult<'ctx> {
         Ok(match value {
             Literal::I64(v) => self
                 .context
@@ -291,7 +479,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         })
     }
 
-    fn ident_codegen(&self, name: &str) -> ExprResult<'ctx> {
+    fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
         match self.local_vars.get(name) {
             Some(var) => Ok(self.builder.build_load(*var, name)),
@@ -299,13 +487,13 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn binop_codegen(
+    fn codegen_binop(
         &mut self,
         op: Symbol,
         lhs: &Expression,
         rhs: &Expression,
     ) -> ExprResult<'ctx> {
-        use super::token::Symbol::*;
+        use Symbol::*;
 
         // If assignment, make sure lvalue is a variable and store rhs there
         if op == Assign {
@@ -314,7 +502,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                 _ => return Err("Expected LHS to be a variable for assignment".to_string()),
             };
 
-            let r_val = self.expr_codegen(rhs)?.ret_val()?;
+            let r_val = self.codegen_expr(rhs)?.value()?;
             let l_var = self
                 .local_vars
                 .get(l_var)
@@ -326,8 +514,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             return Ok(r_val);
         }
 
-        let lhs = self.expr_codegen(lhs)?.ret_val()?; // Valuable? Inner?
-        let rhs = self.expr_codegen(rhs)?.ret_val()?;
+        let lhs = self.codegen_expr(lhs)?.value()?;
+        let rhs = self.codegen_expr(rhs)?.value()?;
 
         // Generate the proper instruction for each op
         match op {
@@ -368,11 +556,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
                     Gt => IntPredicate::UGT,
                     Lt => IntPredicate::ULT,
                     Eq => IntPredicate::EQ,
-                    _ => {
-                        return Err(
-                            "noncanbe: Something went really wrong in binop_codegen()".to_string()
-                        )
-                    }
+                    _ => unreachable!("noncanbe in codegen_binop()"),
                 };
                 let cmp = self.builder.build_int_compare(
                     pred,
@@ -390,7 +574,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    fn call_codegen(
+    fn codegen_call(
         &mut self,
         name: &str,
         args: &[&Expression],
@@ -404,7 +588,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         // Codegen the call args
         let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
-            args_code.push((self.expr_codegen(arg)?.ret_val()?).into());
+            args_code.push((self.codegen_expr(arg)?.value()?).into());
         }
 
         // Build the call instruction
@@ -421,159 +605,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         })
     }
 
-    // if then optional else
-    fn cond_codegen(
-        &mut self,
-        cond_expr: &Expression,
-        then_block: &[Node],
-        else_block: &Option<Vec<&Expression>>,
-    ) -> StmtResult<'ctx> {
-        // Get the current function for insertion
-        let parent = self
-            .builder
-            .get_insert_block()
-            .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
-
-        // CodeGen expression. Will be optimized to a 0 or 1 if comparing
-        // constants. Otherwise, the value will be IR to evaluate. Result will
-        // be a float 0 or 1.
-        let cond_val = self.expr_codegen(cond_expr)?.ret_val()?.into_int_value(); // XXX
-
-        // Codegen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
-        // "bool".
-        let cond_bool = self.builder.build_int_compare(
-            IntPredicate::NE,
-            cond_val,
-            self.context.i64_type().const_zero(),
-            "if.cond",
-        );
-
-        // Create blocks for branches and after. The else block is just a
-        // pointer to end if there's no else expression.
-        let then_bb = self.context.append_basic_block(parent, "if.then");
-        let end_bb = self.context.append_basic_block(parent, "if.end");
-        let mut else_bb = end_bb;
-        if else_block.is_some() {
-            else_bb = self.context.append_basic_block(parent, "if.else");
-            else_bb
-                .move_before(end_bb)
-                .map_err(|_| String::from("LLVM error"))?;
-        }
-
-        // Emits the entry conditional branch instructions
-        self.builder
-            .build_conditional_branch(cond_bool, then_bb, else_bb);
-
-        // Point the builder at the end of the empty then block
-        self.builder.position_at_end(then_bb);
-
-        // CodeGen the then block
-        for node in then_block {
-            self.node_codegen(node)?;
-        }
-
-        // Make sure the consequent returns to the end block after execution
-        self.builder.build_unconditional_branch(end_bb);
-
-        // Point the builder at the end of the empty else block
-        self.builder.position_at_end(else_bb);
-
-        // CodeGen the else block if we have one
-        if let Some(ee) = else_block {
-            for expr in ee {
-                self.expr_codegen(expr)?;
-            }
-
-            // Make sure the alternative returns to the end block after execution
-            self.builder.build_unconditional_branch(end_bb);
-
-            // Point the builder at the end of the empty end block
-            self.builder.position_at_end(end_bb);
-        }
-
-        Ok(())
-    }
-
-    // for start; cond; step { body }
-    // start == let var_name = x
-    fn for_codegen(
-        &mut self,
-        start_name: &str,
-        start_antn: Type,
-        start_expr: &Expression,
-        cond_expr: &Expression,
-        step_expr: &Expression,
-        body: &[Node],
-    ) -> StmtResult<'ctx> {
-        let parent = self
-            .builder
-            .get_insert_block()
-            .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building loop".to_string())?;
-
-        // Create entry alloca, codegen start expr, and store result
-        let start_alloca = self.create_entry_block_alloca(start_name, start_antn, &parent);
-        let start_code = self.expr_codegen(start_expr)?.ret_val()?;
-        self.builder.build_store(start_alloca, start_code);
-
-        // Create a block for the loop, a branch to it, and move the insertion
-        // to it
-        let loop_bb = self.context.append_basic_block(parent, "loop");
-        self.builder.build_unconditional_branch(loop_bb);
-        self.builder.position_at_end(loop_bb);
-
-        // Save the variable value if we are shadowing and insert alloca into
-        // local map
-        let old_var = self.local_vars.remove(start_name);
-        self.local_vars.insert(start_name.to_owned(), start_alloca);
-
-        // Generate all body expressions
-        for node in body {
-            self.node_codegen(node)?;
-        }
-
-        // Codegen step value and end cond
-        let step_code = self.expr_codegen(step_expr)?;
-        let cond_code = self.expr_codegen(cond_expr)?.ret_val()?.into_int_value(); // XXX
-
-        // Load the current induction variable from the stack, increment it by
-        // step, and store it again. Body could have mutated it.
-        let cur = self.builder.build_load(start_alloca, start_name);
-        let next = self.builder.build_int_add(
-            cur.into_int_value(),
-            step_code.ret_val()?.into_int_value(),
-            "incvar",
-        ); // XXX
-        self.builder.build_store(start_alloca, next);
-
-        let cond_bool = self.builder.build_int_compare(
-            IntPredicate::NE,
-            cond_code,
-            self.context.i64_type().const_zero(), // XXX
-            "endcond",
-        );
-
-        // Append a block for after the loop and insert the loop conditional at
-        // the end
-        let after_bb = self.context.append_basic_block(parent, "afterloop");
-        self.builder
-            .build_conditional_branch(cond_bool, loop_bb, after_bb);
-        self.builder.position_at_end(after_bb);
-
-        // Reset shadowed variable
-        self.local_vars.remove(start_name);
-        if let Some(v) = old_var {
-            self.local_vars.insert(start_name.to_owned(), v);
-        }
-
-        Ok(())
-    }
-
-    fn unop_codegen(&mut self, op: Symbol, rhs: &Expression) -> ExprResult<'ctx> {
+    fn codegen_unop(&mut self, op: Symbol, rhs: &Expression) -> ExprResult<'ctx> {
         use Symbol::*;
 
-        let rhs = self.expr_codegen(rhs)?.ret_val()?;
+        let rhs = self.codegen_expr(rhs)?.value()?;
         match op {
             Sub => Ok(match rhs.get_type() {
                 BasicTypeEnum::FloatType(_) => self
@@ -588,43 +623,6 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             }),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
-    }
-
-    fn let_codegen(
-        &mut self,
-        name: &str,
-        ty: Type,
-        init: &Option<&Expression>,
-    ) -> StmtResult<'ctx> {
-        let parent = self
-            .builder
-            .get_insert_block()
-            .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
-
-        let init_code = match (ty, init) {
-            (_, Some(i)) => {
-                if i.ty() == Some(ty) {
-                    self.expr_codegen(i)?
-                } else {
-                    return Err(format!(
-                        "Types don't match in let statement. Annotated with {} but value is {}",
-                        ty,
-                        i.ty().unwrap_or(Type::U64) // XXX
-                    ));
-                }
-            }
-            (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
-            (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
-            (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
-            _ => todo!("let"),
-        };
-
-        let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
-        self.builder.build_store(init_alloca, init_code.ret_val()?);
-        self.local_vars.insert(name.to_owned(), init_alloca);
-
-        Ok(())
     }
 
     fn add(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
@@ -708,6 +706,7 @@ mod test {
     use super::*;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
+    use crate::type_checker::TypeChecker;
 
     // This is how we "deserialize" FunctionValue to work with insta
     fn code_to_string(code: Result<FunctionValue, String>) -> String {
@@ -732,12 +731,13 @@ mod test {
                     .map(|line| {
                         let line = line.expect("Error reading input line");
                         let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
-                        let ast = Parser::new(&tokens).parse().unwrap_or_else(|_| panic!("file: {:?}", path)); // XXX
+                        let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
+                        TypeChecker::new().walk(&mut ast).unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let context = Context::create();
                         let builder = context.create_builder();
                         let module = context.create_module("main_mod");
                         let fpm = PassManager::create(&module);
-                        let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
+                        let mut codegen = Codegen::new(&context, &builder, &module, &fpm);
                         code_to_string(codegen.walk(&ast))
                     })
                     .collect::<Vec<_>>();
@@ -749,16 +749,16 @@ mod test {
 
 // Like unwrap() but with a fixed error message. Necessary to allow call_expr to
 // return an Option for void calls.
-trait AsRetVal<T> {
+trait Valuable<T> {
     type Result;
 
-    fn ret_val(self) -> Result<T, Self::Result>;
+    fn value(self) -> Result<T, Self::Result>;
 }
 
-impl<T> AsRetVal<T> for Option<T> {
+impl<T> Valuable<T> for Option<T> {
     type Result = String;
 
-    fn ret_val(self) -> Result<T, Self::Result> {
+    fn value(self) -> Result<T, Self::Result> {
         match self {
             Some(v) => Ok(v),
             None => Err("Expected value, found void".to_string()),

@@ -6,7 +6,7 @@ mod parser;
 mod token;
 mod type_checker;
 
-use crate::codegen::CodeGen;
+use crate::codegen::Codegen;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::type_checker::TypeChecker;
@@ -49,8 +49,8 @@ fn main() {
         exit(1);
     });
 
-    if args.ast {
-        println!("AST:");
+    if args.astpre {
+        println!("AST (pre):");
         for node in ast.nodes() {
             println!("{}", node);
         }
@@ -61,13 +61,21 @@ fn main() {
     let mut type_checker = TypeChecker::new();
     type_checker.walk(&mut ast).expect("Type checking error");
 
-    // CodeGen
+    if args.ast {
+        println!("AST:");
+        for node in ast.nodes() {
+            println!("{}", node);
+        }
+        println!();
+    }
+
+    // Codegen
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("light_main");
     set_target_machine(&module);
     let fpm = PassManager::create(&module);
-    let mut codegen = CodeGen::new(&context, &builder, &module, &fpm);
+    let mut codegen = Codegen::new(&context, &builder, &module, &fpm);
     codegen.walk(&ast).expect("Compiler error");
 
     let tmp_file = tempfile::Builder::new()
@@ -144,6 +152,10 @@ struct Args {
     /// Display lexeme tokens
     #[clap(short, long, parse(from_flag))]
     tokens: bool,
+
+    /// Display AST pre type checker
+    #[clap(short='A', long, parse(from_flag))]
+    astpre: bool,
 
     /// Display AST
     #[clap(short, long, parse(from_flag))]

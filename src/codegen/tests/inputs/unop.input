@@ -1,1 +1,1 @@
-fn test(x: i64) -> i64 { x + 1 } fn main() -> i64 { test(-40) }
+fn test(x: u64) -> u64 { x + 1 } fn main() -> u64 { test(-40) }
