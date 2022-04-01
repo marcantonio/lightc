@@ -242,11 +242,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_num(&self, num: &str, token: &Token) -> ParseResult {
-        // if let Ok(n) = num.parse::<i64>() {
-        //     Ok(Expression::I64(n))
         if let Ok(n) = num.parse::<u64>() {
             Ok(Node::Expr(Expression::Lit {
                 value: Literal::U64(n),
+                ty: None,
+            }))
+        } else if let Ok(n) = num.parse::<i64>() {
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::I64(n),
                 ty: None,
             }))
         } else if let Ok(n) = num.parse::<f64>() {
@@ -346,7 +349,12 @@ impl<'a> Parser<'a> {
                 )));
             }
 
-            self.parse_block()?
+            // XXX
+            if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
+                vec![]
+            } else {
+                self.parse_block()?
+            }
         });
 
         Ok(Node::Stmt(Statement::Cond {

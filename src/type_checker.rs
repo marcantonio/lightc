@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
-use crate::token::Type;
+use crate::token::{Type, Symbol};
 
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, Type>,
@@ -175,13 +175,8 @@ impl TypeChecker {
         self.variable_table
             .insert(start_name.to_owned(), start_antn);
 
-        let cond_ty = self.check_expr(cond_expr)?;
-        if cond_ty != start_ty {
-            return Err(format!(
-                "Conditional type mismatch in for statement. Conditional is `{}` but `{}` is `{}`",
-                cond_ty, start_name, start_ty
-            ));
-        }
+        // ignore conditional type; it should always be bool
+        self.check_expr(cond_expr)?;
 
         let step_ty = self.check_expr(step_expr)?;
         if step_ty != start_ty {
@@ -226,11 +221,11 @@ impl TypeChecker {
             Lit { value, ty } => self.check_lit(value, ty),
             Ident { name, ty } => self.check_ident(name, ty),
             BinOp {
-                sym: _,
+                sym,
                 lhs,
                 rhs,
                 ty,
-            } => self.check_binop(lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty),
+            } => self.check_binop(*sym, lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty),
             UnOp { sym: _, rhs, ty } => self.check_unop(rhs.as_expr_mut()?, ty),
             Call { name, args, ty } => self.check_call(name, &mut args.as_expr_mut()?, ty),
         }
@@ -280,6 +275,7 @@ impl TypeChecker {
 
     fn check_binop(
         &mut self,
+        sym: Symbol,
         lhs: &mut Expression,
         rhs: &mut Expression,
         ty: &mut Option<Type>,
@@ -293,9 +289,19 @@ impl TypeChecker {
                 lhs_ty, rhs_ty
             ));
         }
-        *ty = Some(lhs_ty);
 
-        Ok(lhs_ty)
+        let new_ty = match sym {
+            Symbol::And | Symbol::Eq |
+            Symbol::Gt |
+            Symbol::Lt |
+            Symbol::Not |
+            Symbol::Or => Type::U64,
+            _ => lhs_ty,
+        };
+
+        *ty = Some(new_ty);
+
+        Ok(new_ty)
     }
 
     fn check_unop(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
