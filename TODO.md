@@ -14,8 +14,11 @@
 - [ ] Desugar for loops
 - [ ] Fix main exit code
 - [ ] Decide on redundant errors in codegen and the type checker
+- [ ] Force comparisons to be bools (parser)
+- [ ] Extensive testing of binops, especially compares
 
 # Roadmap
 - [ ] Formalize grammar
+- [ ] Parser error recovery
 - [ ] Add primitive types
 - [ ] Add string type

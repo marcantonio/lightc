@@ -20,23 +20,18 @@ fn print_bang() {
     putchar(10)
 }
 
-// fn foo(x) {
-//     let xasdf: u64 = 1
-//     2
-// }
-
 fn main() {
-    let x: u64 = 2
+    let x: f64 = 2.0
     // let y: f64 = 1.0
 
     // plus_one(-y)
 
-    // for z: u64 = 0; z < 3; 1 {
-    //     print_dot()
-    // }
+    for z: f64 = 0.0; z < 3.0; 1.0 {
+        print_dot()
+    }
 
-    if x < 3 {
-        let a: f64 = 7.0
+    if x > -3.0 {
+        let a: f64 = 7.0 / 2.0
         print_dot()
     } else {
         print_bang()

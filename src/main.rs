@@ -154,7 +154,7 @@ struct Args {
     tokens: bool,
 
     /// Display AST pre type checker
-    #[clap(short='A', long, parse(from_flag))]
+    #[clap(short = 'A', long, parse(from_flag))]
     astpre: bool,
 
     /// Display AST

@@ -71,7 +71,7 @@ pub(crate) enum Statement {
 pub(crate) enum Expression {
     Lit {
         value: Literal,
-        ty: Option<Type>,
+        ty: Option<Type>, // XXX: Remove option and default to void?
     },
     Ident {
         name: String,

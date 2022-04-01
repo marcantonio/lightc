@@ -3,7 +3,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
-use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
+use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
@@ -13,6 +13,8 @@ use crate::ast::{Ast, Expression, Literal};
 use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
 use crate::token::{Symbol, Type};
+
+mod ops;
 
 type StmtResult<'ctx> = Result<(), String>;
 type ExprResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
@@ -104,7 +106,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         match ty {
             Type::U64 | Type::I64 => builder.build_alloca(self.context.i64_type(), name),
             Type::F64 => builder.build_alloca(self.context.f64_type(), name),
-            Type::Void => unreachable!("noncanbe in create_entry_block_alloca()"),
+            Type::Void => unreachable!(
+                "NONCANBE: void type for stack variable in create_entry_block_alloca()"
+            ),
         }
     }
 
@@ -160,7 +164,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         BasicMetadataTypeEnum::IntType(self.context.i64_type())
                     }
                     Type::F64 => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
-                    Type::Void => unreachable!("noncanbe in codegen_proto()"),
+                    Type::Void => {
+                        unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
+                    }
                 }
             })
             .collect::<Vec<BasicMetadataTypeEnum>>();
@@ -274,16 +280,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Codegen expression. Will be optimized to a 0 or 1 if comparing
         // constants. Otherwise, the value will be IR to evaluate. Result will
-        // be a float 0 or 1.
-        let cond_val = self.codegen_expr(cond_expr)?.value()?.into_int_value(); // XXX
-
-        // Codegen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
+        // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
         // "bool".
+        let cond_val = self.codegen_expr(cond_expr)?.value()?.into_int_value();
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_val,
             self.context.i64_type().const_zero(),
-            "if.cond",
+            "if.cond.int",
         );
 
         // Create blocks for branches and after. The else block is just a
@@ -356,7 +360,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create a block for the loop, a branch to it, and move the insertion
         // to it
-        let loop_bb = self.context.append_basic_block(parent, "loop");
+        let loop_bb = self.context.append_basic_block(parent, "for.loop");
         self.builder.build_unconditional_branch(loop_bb);
         self.builder.position_at_end(loop_bb);
 
@@ -372,28 +376,41 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Codegen step value and end cond
         let step_code = self.codegen_expr(step_expr)?;
-        let cond_code = self.codegen_expr(cond_expr)?.value()?.into_int_value(); // XXX
+        let cond_code = self.codegen_expr(cond_expr)?.value()?.into_int_value();
 
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
         let cur = self.builder.build_load(start_alloca, start_name);
-        let next = self.builder.build_int_add(
-            cur.into_int_value(),
-            step_code.value()?.into_int_value(),
-            "incvar",
-        ); // XXX
-        self.builder.build_store(start_alloca, next);
+        match start_expr.ty() {
+            Some(Type::U64 | Type::I64) => {
+                let next = self.builder.build_int_add(
+                    cur.into_int_value(),
+                    step_code.value()?.into_int_value(),
+                    "for.int.step",
+                );
+                self.builder.build_store(start_alloca, next);
+            }
+            Some(Type::F64) => {
+                let next = self.builder.build_float_add(
+                    cur.into_float_value(),
+                    step_code.value()?.into_float_value(),
+                    "for.float.step",
+                );
+                self.builder.build_store(start_alloca, next);
+            }
+            _ => unreachable!("NONCANBE: void type for step in codegen_for()"),
+        };
 
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_code,
-            self.context.i64_type().const_zero(), // XXX
-            "endcond",
+            self.context.i64_type().const_zero(),
+            "for.cond",
         );
 
         // Append a block for after the loop and insert the loop conditional at
         // the end
-        let after_bb = self.context.append_basic_block(parent, "afterloop");
+        let after_bb = self.context.append_basic_block(parent, "for.after");
         self.builder
             .build_conditional_branch(cond_bool, loop_bb, after_bb);
         self.builder.position_at_end(after_bb);
@@ -421,20 +438,20 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Match combinations of init presence and type. When init is None,
         // initialize with 0.
-        //
-        // Note: If this is the only place we use .ty(), we should drop it.
         let init_code = match (ty, init) {
-            (_, Some(i)) => {
-                if i.ty() == Some(ty) {
-                    self.codegen_expr(i)?
+            (_, Some(init)) => {
+                if init.ty() == Some(ty) {
+                    self.codegen_expr(init)?
                 } else {
-                    unreachable!("noncanbe in codegen_let()");
+                    unreachable!("NONCANBE: void type for init expr in codegen_let()");
                 }
             }
             (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
             (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
             (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
-            (Type::Void, None) => unreachable!("noncanbe in codegen_let()"),
+            (Type::Void, None) => {
+                unreachable!("NONCANBE: void type for init annotation in codegen_let()")
+            }
         };
 
         let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
@@ -487,93 +504,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
     }
 
-    fn codegen_binop(
-        &mut self,
-        op: Symbol,
-        lhs: &Expression,
-        rhs: &Expression,
-    ) -> ExprResult<'ctx> {
-        use Symbol::*;
-
-        // If assignment, make sure lvalue is a variable and store rhs there
-        if op == Assign {
-            let l_var = match lhs {
-                Expression::Ident { name, .. } => name,
-                _ => return Err("Expected LHS to be a variable for assignment".to_string()),
-            };
-
-            let r_val = self.codegen_expr(rhs)?.value()?;
-            let l_var = self
-                .local_vars
-                .get(l_var)
-                .ok_or(format!("Unknown variable in assignment: {}", l_var))?
-                .to_owned();
-
-            self.builder.build_store(l_var, r_val);
-
-            return Ok(r_val);
-        }
-
-        let lhs = self.codegen_expr(lhs)?.value()?;
-        let rhs = self.codegen_expr(rhs)?.value()?;
-
-        // Generate the proper instruction for each op
-        match op {
-            Add => self.add(lhs, rhs),
-            Div => Ok(self
-                .builder
-                .build_int_unsigned_div(lhs.into_int_value(), rhs.into_int_value(), "tmpdiv")
-                .as_basic_value_enum()),
-            Mul => self.mul(lhs, rhs),
-            Sub => self.sub(lhs, rhs),
-            op @ (And | Or) => {
-                // let lhs = self.builder.build_float_to_signed_int(
-                //     lhs,
-                //     self.context.i64_type(),
-                //     "tmplhsint",
-                // );
-                // let rhs = self.builder.build_float_to_signed_int(
-                //     rhs,
-                //     self.context.i64_type(),
-                //     "tmprhsint",
-                // );
-                let cmp = match op {
-                    And => self
-                        .builder
-                        .build_and(lhs.into_int_value(), rhs.into_int_value(), "tmpand")
-                        .as_basic_value_enum(),
-                    Or => self
-                        .builder
-                        .build_or(lhs.into_int_value(), rhs.into_int_value(), "tmpor")
-                        .as_basic_value_enum(),
-                    _ => return Err("Something went really wrong in binop_codegen()".to_string()),
-                };
-                // Convert the i1 to a double
-                Ok(cmp)
-            }
-            op @ (Gt | Lt | Eq) => {
-                let pred = match op {
-                    Gt => IntPredicate::UGT,
-                    Lt => IntPredicate::ULT,
-                    Eq => IntPredicate::EQ,
-                    _ => unreachable!("noncanbe in codegen_binop()"),
-                };
-                let cmp = self.builder.build_int_compare(
-                    pred,
-                    lhs.into_int_value(),
-                    rhs.into_int_value(),
-                    "tmpcmp",
-                );
-                // Convert the i1 to a double
-                Ok(self
-                    .builder
-                    .build_int_cast(cmp, self.context.i64_type(), "tmpbool")
-                    .as_basic_value_enum())
-            }
-            x => Err(format!("Unknown binary operator: {}", x)),
-        }
-    }
-
     fn codegen_call(
         &mut self,
         name: &str,
@@ -605,93 +535,85 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         })
     }
 
+    fn codegen_binop(
+        &mut self,
+        op: Symbol,
+        lhs: &Expression,
+        rhs: &Expression,
+    ) -> ExprResult<'ctx> {
+        use Symbol::*;
+
+        // If assignment, make sure lvalue is a variable and store rhs there
+        if op == Assign {
+            let l_var = match lhs {
+                Expression::Ident { name, .. } => name,
+                _ => return Err("Expected LHS to be a variable for assignment".to_string()),
+            };
+
+            let r_val = self.codegen_expr(rhs)?.value()?;
+            let l_var = self
+                .local_vars
+                .get(l_var)
+                .ok_or(format!("Unknown variable in assignment: {}", l_var))?
+                .to_owned();
+
+            self.builder.build_store(l_var, r_val);
+
+            return Ok(r_val);
+        }
+
+        let lhs_val = self.codegen_expr(lhs)?.value()?;
+        let lhs_ty = lhs.ty().unwrap_or_else(|| {
+            unreachable!("NONCANBE: missing type for lhs expr in codegen_binop()")
+        });
+        let rhs_val = self.codegen_expr(rhs)?.value()?;
+        let rhs_ty = rhs.ty().unwrap_or_else(|| {
+            unreachable!("NONCANBE: missing type for rhs expr in codegen_binop()")
+        });
+
+        // Generate the proper instruction for each op
+        match op {
+            Add => self.add((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Sub => self.sub((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Mul => self.mul((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Div => self.div((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            And => self.and((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Or => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            op @ (Gt | Lt | Eq) => self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            x => Err(format!("Unknown binary operator: {}", x)),
+        }
+    }
+
     fn codegen_unop(&mut self, op: Symbol, rhs: &Expression) -> ExprResult<'ctx> {
         use Symbol::*;
 
-        let rhs = self.codegen_expr(rhs)?.value()?;
+        let rhs_val = self.codegen_expr(rhs)?.value()?;
+        let rhs_ty = rhs.ty().unwrap();
         match op {
-            Sub => Ok(match rhs.get_type() {
-                BasicTypeEnum::FloatType(_) => self
-                    .builder
-                    .build_float_neg(rhs.into_float_value(), "neg")
-                    .as_basic_value_enum(),
-                BasicTypeEnum::IntType(_) => self
-                    .builder
-                    .build_int_neg(rhs.into_int_value(), "neg")
-                    .as_basic_value_enum(),
-                _ => todo!(),
-            }),
+            Sub => self.neg((rhs_val, rhs_ty)),
             x => Err(format!("Unknown unary operator: {}", x)),
-        }
-    }
-
-    fn add(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
-        match lhs.get_type() {
-            BasicTypeEnum::IntType(_) => Ok(self
-                .builder
-                .build_int_add(lhs.into_int_value(), rhs.into_int_value(), "intadd")
-                .as_basic_value_enum()),
-            BasicTypeEnum::FloatType(_) => Ok(self
-                .builder
-                .build_float_add(lhs.into_float_value(), rhs.into_float_value(), "floatadd")
-                .as_basic_value_enum()),
-            _ => Err("Unsupported types in add operation".to_string()),
-        }
-    }
-
-    fn sub(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
-        match lhs.get_type() {
-            BasicTypeEnum::IntType(_) => Ok(self
-                .builder
-                .build_int_sub(lhs.into_int_value(), rhs.into_int_value(), "intsub")
-                .as_basic_value_enum()),
-            BasicTypeEnum::FloatType(_) => Ok(self
-                .builder
-                .build_float_sub(lhs.into_float_value(), rhs.into_float_value(), "floatsub")
-                .as_basic_value_enum()),
-            _ => Err("Unsupported types in subtract operation".to_string()),
-        }
-    }
-
-    fn mul(&self, lhs: BasicValueEnum<'ctx>, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
-        match lhs.get_type() {
-            BasicTypeEnum::IntType(_) => Ok(self
-                .builder
-                .build_int_mul(lhs.into_int_value(), rhs.into_int_value(), "intmul")
-                .as_basic_value_enum()),
-            BasicTypeEnum::FloatType(_) => Ok(self
-                .builder
-                .build_float_mul(lhs.into_float_value(), rhs.into_float_value(), "floatmul")
-                .as_basic_value_enum()),
-            _ => Err("Unsupported types in multiply operation".to_string()),
         }
     }
 }
 
-// trait DoMath<T> {
-//     type Result;
-//     fn sub(&self, lhs: T, rhs: T) -> Self::Result;
-// }
+// Like unwrap() but with a fixed error message. Necessary to allow call_expr to
+// return an Option for void calls.
+trait Valuable<T> {
+    type Result;
 
-// impl<'a, 'ctx> DoMath<FloatValue<'ctx>> for CodeGen<'a, 'ctx> {
-//     type Result = BasicValueEnum<'ctx>;
+    fn value(self) -> Result<T, Self::Result>;
+}
 
-//     fn sub(&self, lhs: FloatValue<'ctx>, rhs: FloatValue<'ctx>) -> Self::Result {
-//         self.builder
-//             .build_float_sub(lhs, rhs, "floatsub")
-//             .as_basic_value_enum()
-//     }
-// }
+impl<T> Valuable<T> for Option<T> {
+    type Result = String;
 
-// impl<'a, 'ctx> DoMath<IntValue<'ctx>> for CodeGen<'a, 'ctx> {
-//     type Result = BasicValueEnum<'ctx>;
-
-//     fn sub(&self, lhs: IntValue<'ctx>, rhs: IntValue<'ctx>) -> Self::Result {
-//         self.builder
-//             .build_int_sub(lhs, rhs, "floatsub")
-//             .as_basic_value_enum()
-//     }
-// }
+    fn value(self) -> Result<T, Self::Result> {
+        match self {
+            Some(v) => Ok(v),
+            None => Err("Expected value, found void".to_string()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -744,25 +666,6 @@ mod test {
                 assert_yaml_snapshot!(ir);
             });
         });
-    }
-}
-
-// Like unwrap() but with a fixed error message. Necessary to allow call_expr to
-// return an Option for void calls.
-trait Valuable<T> {
-    type Result;
-
-    fn value(self) -> Result<T, Self::Result>;
-}
-
-impl<T> Valuable<T> for Option<T> {
-    type Result = String;
-
-    fn value(self) -> Result<T, Self::Result> {
-        match self {
-            Some(v) => Ok(v),
-            None => Err("Expected value, found void".to_string()),
-        }
     }
 }
 

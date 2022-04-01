@@ -15,7 +15,11 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Statement::*;
         match self {
-            Cond { cond_expr, then_block, else_block } => {
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+            } => {
                 let mut s = format!("(if {}", cond_expr);
                 s += &then_block.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!(" {}", n);
