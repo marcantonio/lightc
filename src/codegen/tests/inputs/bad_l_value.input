@@ -1,1 +1,1 @@
-fn main(x: u64) { x + 1 = 1 }
+fn main(x: int) { x + 1 = 1 }

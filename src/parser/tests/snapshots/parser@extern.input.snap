@@ -1,9 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 504
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/extern.input
-
 ---
 - - Ok:
       nodes:
@@ -13,8 +12,8 @@ input_file: src/parser/tests/inputs/extern.input
                 name: cos
                 args:
                   - - x
-                    - F64
+                    - Float
                 ret_type: ~
               body: ~
-  - "(define (cos x:f64))"
+  - "(define (cos x:float))"
 

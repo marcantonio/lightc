@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/paren_excessive.input
 ---
@@ -9,7 +9,7 @@ input_file: src/parser/tests/inputs/paren_excessive.input
         - Expr:
             Lit:
               value:
-                U64: 0
+                Int32: 0
               ty: ~
   - "0"
 

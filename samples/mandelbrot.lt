@@ -1,6 +1,6 @@
-extern putchar(c: u64)
+extern putchar(c: int)
 
-fn printdensity(d: f64) {
+fn printdensity(d: float) {
     if d > 8.0 {
         putchar(32)
     } else if d > 4.0 {
@@ -12,8 +12,8 @@ fn printdensity(d: f64) {
     }
 }
 
-fn mandelconverger(real: f64, imag: f64, iters: f64, creal: f64, cimag: f64) -> f64 {
-    let tmp: f64
+fn mandelconverger(real: float, imag: float, iters: float, creal: float, cimag: float) -> float {
+    let tmp: float
     if iters > 255.0 || (real * real + imag + imag > 4.0) {
         tmp = iters
     } else {
@@ -24,20 +24,20 @@ fn mandelconverger(real: f64, imag: f64, iters: f64, creal: f64, cimag: f64) -> 
     tmp
 }
 
-fn mandelconverge(real: f64, imag: f64) -> f64 {
+fn mandelconverge(real: float, imag: float) -> float {
     mandelconverger(real, imag, 0.0 , real, imag)
 }
 
-fn mandelhelp(xmin: f64, xmax: f64, xstep: f64, ymin: f64, ymax: f64, ystep: f64) {
-    for y: f64 = ymin; y < ymax; ystep {
-        for x: f64 = xmin; x < xmax; xstep {
+fn mandelhelp(xmin: float, xmax: float, xstep: float, ymin: float, ymax: float, ystep: float) {
+    for y: float = ymin; y < ymax; ystep {
+        for x: float = xmin; x < xmax; xstep {
             printdensity(mandelconverge(x, y))
         }
         putchar(10)
     }
 }
 
-fn mandel(realstart: f64, imagstart: f64, realmag: f64, imagmag: f64) {
+fn mandel(realstart: float, imagstart: float, realmag: float, imagmag: float) {
     mandelhelp(realstart, realstart + realmag * 78.0, realmag,
                imagstart, imagstart + imagmag * 40.0, imagmag)
 }

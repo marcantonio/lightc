@@ -1,1 +1,1 @@
-fn test(x: u64) -> u64 { x + 1 } fn main() -> u64 { test(-40) }
+fn test(x: int) -> int { x + 1 } fn main() -> int { test(-40) }

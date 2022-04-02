@@ -1,6 +1,6 @@
 ---
 source: src/lexer.rs
-assertion_line: 268
+assertion_line: 274
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/fn.input
 ---
@@ -41,7 +41,7 @@ Ok:
     line: 1
     column: 17
   - tt:
-      VarType: U64
+      VarType: Int32
     line: 1
     column: 20
   - tt: OpenBrace

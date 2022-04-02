@@ -14,6 +14,8 @@ use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
 use crate::token::{Symbol, Type};
 
+#[macro_use]
+mod macros;
 mod ops;
 
 type StmtResult<'ctx> = Result<(), String>;
@@ -104,8 +106,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create alloca and return it
         match ty {
-            Type::U64 | Type::I64 => builder.build_alloca(self.context.i64_type(), name),
-            Type::F64 => builder.build_alloca(self.context.f64_type(), name),
+            int32_types!() => builder.build_alloca(self.context.i32_type(), name),
+            int64_types!() => builder.build_alloca(self.context.i64_type(), name),
+            Type::Float => builder.build_alloca(self.context.f32_type(), name),
+            Type::Double => builder.build_alloca(self.context.f64_type(), name),
             Type::Void => unreachable!(
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
@@ -160,10 +164,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .map(|x| {
                 let (_, ty) = x;
                 match ty {
-                    Type::U64 | Type::I64 => {
-                        BasicMetadataTypeEnum::IntType(self.context.i64_type())
-                    }
-                    Type::F64 => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
+                    int32_types!() => BasicMetadataTypeEnum::IntType(self.context.i32_type()),
+                    int64_types!() => BasicMetadataTypeEnum::IntType(self.context.i64_type()),
+                    Type::Float => BasicMetadataTypeEnum::FloatType(self.context.f32_type()),
+                    Type::Double => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
                     Type::Void => {
                         unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
                     }
@@ -173,8 +177,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Generate function based on return type
         let func_type = match proto.ret_type {
-            Some(Type::F64) => self.context.f64_type().fn_type(&args_type, false),
-            Some(Type::U64 | Type::I64) => self.context.i64_type().fn_type(&args_type, false),
+            Some(int32_types!()) => self.context.i32_type().fn_type(&args_type, false),
+            Some(int64_types!()) => self.context.i64_type().fn_type(&args_type, false),
+            Some(Type::Float) => self.context.f32_type().fn_type(&args_type, false),
+            Some(Type::Double) => self.context.f64_type().fn_type(&args_type, false),
             Some(_) | None => self.context.void_type().fn_type(&args_type, false),
         };
 
@@ -230,7 +236,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_type, last_node_val) {
-            (Some(Type::F64 | Type::I64 | Type::U64), Some(v)) => {
+            (Some(numeric_types!()), Some(v)) => {
                 self.builder.build_return(Some(&v))
             }
             (Some(rt), None) => {
@@ -257,10 +263,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             //     // TODO: Do we care about this for AOT comiplation?
             //     function.delete();
             // }
-            Err(format!(
-                "Error compiling: {}",
-                function.get_name().to_str().unwrap()
-            ))
+            // Err(format!(
+            //     "Error compiling: {}",
+            //     function.get_name().to_str().unwrap()
+            // ))
+            Ok(())
         }
     }
 
@@ -286,7 +293,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_val,
-            self.context.i64_type().const_zero(),
+            self.context.i32_type().const_zero(),
             "if.cond.int",
         );
 
@@ -382,7 +389,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // step, and store it again. Body could have mutated it.
         let cur = self.builder.build_load(start_alloca, start_name);
         match start_expr.ty() {
-            Some(Type::U64 | Type::I64) => {
+            Some(int_types!()) => {
                 let next = self.builder.build_int_add(
                     cur.into_int_value(),
                     step_code.value()?.into_int_value(),
@@ -390,7 +397,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             }
-            Some(Type::F64) => {
+            Some(float_types!()) => {
                 let next = self.builder.build_float_add(
                     cur.into_float_value(),
                     step_code.value()?.into_float_value(),
@@ -404,7 +411,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_code,
-            self.context.i64_type().const_zero(),
+            self.context.i32_type().const_zero(),
             "for.cond",
         );
 
@@ -446,9 +453,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     unreachable!("NONCANBE: void type for init expr in codegen_let()");
                 }
             }
-            (Type::U64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
-            (Type::I64, None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
-            (Type::F64, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
+            (int32_types!(), None) => Some(self.context.i32_type().const_zero().as_basic_value_enum()),
+            (int64_types!(), None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+            (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
+            (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
             (Type::Void, None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
@@ -478,17 +486,32 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     fn codegen_lit(&self, value: &Literal) -> ExprResult<'ctx> {
         Ok(match value {
-            Literal::I64(v) => self
+            Literal::Int32(v) => self
+                .context
+                .i32_type()
+                .const_int(*v as u64, true)
+                .as_basic_value_enum(),
+            Literal::Int64(v) => self
                 .context
                 .i64_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            Literal::U64(v) => self
+            Literal::UInt32(v) => self
+                .context
+                .i32_type()
+                .const_int(*v as u64, false)
+                .as_basic_value_enum(),
+            Literal::UInt64(v) => self
                 .context
                 .i64_type()
                 .const_int(*v, false)
                 .as_basic_value_enum(),
-            Literal::F64(v) => self
+            Literal::Float(v) => self
+                .context
+                .f32_type()
+                .const_float(*v as f64)
+                .as_basic_value_enum(),
+            Literal::Double(v) => self
                 .context
                 .f64_type()
                 .const_float(*v)

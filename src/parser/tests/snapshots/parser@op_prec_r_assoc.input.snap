@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/op_prec_r_assoc.input
 ---
@@ -13,7 +13,7 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                 Expr:
                   Lit:
                     value:
-                      U64: 19
+                      Int32: 19
                     ty: ~
               rhs:
                 Expr:
@@ -23,13 +23,13 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                       Expr:
                         Lit:
                           value:
-                            U64: 21
+                            Int32: 21
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            U64: 40
+                            Int32: 40
                           ty: ~
                     ty: ~
               ty: ~
@@ -47,20 +47,20 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                       Expr:
                         Lit:
                           value:
-                            U64: 19
+                            Int32: 19
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            U64: 21
+                            Int32: 21
                           ty: ~
                     ty: ~
               rhs:
                 Expr:
                   Lit:
                     value:
-                      U64: 40
+                      Int32: 40
                     ty: ~
               ty: ~
   - (+ (^ 19 21) 40)
@@ -77,7 +77,7 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                       Expr:
                         Lit:
                           value:
-                            U64: 19
+                            Int32: 19
                           ty: ~
                     rhs:
                       Expr:
@@ -87,13 +87,13 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                             Expr:
                               Lit:
                                 value:
-                                  U64: 21
+                                  Int32: 21
                                 ty: ~
                           rhs:
                             Expr:
                               Lit:
                                 value:
-                                  U64: 40
+                                  Int32: 40
                                 ty: ~
                           ty: ~
                     ty: ~
@@ -101,7 +101,7 @@ input_file: src/parser/tests/inputs/op_prec_r_assoc.input
                 Expr:
                   Lit:
                     value:
-                      U64: 2
+                      Int32: 2
                     ty: ~
               ty: ~
   - (/ (^ 19 (^ 21 40)) 2)

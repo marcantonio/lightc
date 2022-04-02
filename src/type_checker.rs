@@ -233,9 +233,12 @@ impl TypeChecker {
 
     fn check_lit(&self, value: &Literal, ty: &mut Option<Type>) -> Result<Type, String> {
         let lit_ty = match value {
-            Literal::I64(_) => Type::I64,
-            Literal::U64(_) => Type::U64,
-            Literal::F64(_) => Type::F64,
+            Literal::Int32(_) => Type::Int32,
+            Literal::Int64(_) => Type::Int64,
+            Literal::UInt32(_) => Type::UInt32,
+            Literal::UInt64(_) => Type::UInt64,
+            Literal::Float(_) => Type::Float,
+            Literal::Double(_) => Type::Double,
         };
         *ty = Some(lit_ty);
         Ok(lit_ty)
@@ -295,7 +298,7 @@ impl TypeChecker {
             Symbol::Gt |
             Symbol::Lt |
             Symbol::Not |
-            Symbol::Or => Type::U64,
+            Symbol::Or => Type::UInt32,
             _ => lhs_ty,
         };
 

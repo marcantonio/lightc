@@ -1,8 +1,8 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 689
+assertion_line: 688
 expression: ir
 input_file: src/codegen/tests/inputs/unop.input
 ---
-- "define i64 @main() {\nentry:\n  %call_test = call i64 @test(i64 -40)\n  ret i64 %call_test\n}\n"
+- "define i32 @main() {\nentry:\n  %call_test = call i32 @test(i32 -40)\n  ret i32 %call_test\n}\n"
 

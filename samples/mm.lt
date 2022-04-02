@@ -1,18 +1,13 @@
-extern putchar(x: u64) -> u64
+extern putchar(x: int)
 
 fn print_dot() {
     putchar(46)
     putchar(10)
 }
 
-fn print_int(x: u64) {
+fn print_int(x: int) {
     putchar(x + 48)
     putchar(10)
-}
-
-fn plus_one(x: u64) -> u64 {
-    let y: u64 = 1
-    x + y
 }
 
 fn print_bang() {
@@ -20,22 +15,10 @@ fn print_bang() {
     putchar(10)
 }
 
-fn main() {
-    let x: f64 = 2.0
-    // let y: f64 = 1.0
+// fn main() {
+//     let x: int = -3
 
-    // plus_one(-y)
+//     print_bang()
+// }
 
-    for z: f64 = 0.0; z < 3.0; 1.0 {
-        print_dot()
-    }
-
-    if x > -3.0 {
-        let a: f64 = 7.0 / 2.0
-        print_dot()
-    } else {
-        print_bang()
-    }
-
-    print_bang()
-}
+fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else { 6 } }

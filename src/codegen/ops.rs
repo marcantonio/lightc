@@ -11,11 +11,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_int_add(lhs.0.into_int_value(), rhs.0.into_int_value(), "add.int")
                 .as_basic_value_enum()),
-            Type::F64 => Ok(self
+            float_types!() => Ok(self
                 .builder
                 .build_float_add(
                     lhs.0.into_float_value(),
@@ -33,11 +33,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_int_sub(lhs.0.into_int_value(), rhs.0.into_int_value(), "sub.int")
                 .as_basic_value_enum()),
-            Type::F64 => Ok(self
+            float_types!() => Ok(self
                 .builder
                 .build_float_sub(
                     lhs.0.into_float_value(),
@@ -55,11 +55,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_int_mul(lhs.0.into_int_value(), rhs.0.into_int_value(), "mul.int")
                 .as_basic_value_enum()),
-            Type::F64 => Ok(self
+            float_types!() => Ok(self
                 .builder
                 .build_float_mul(
                     lhs.0.into_float_value(),
@@ -77,15 +77,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 => Ok(self
+            signed_int_types!() => Ok(self
                 .builder
-                .build_int_unsigned_div(lhs.0.into_int_value(), rhs.0.into_int_value(), "div.int")
+                .build_int_signed_div(lhs.0.into_int_value(), rhs.0.into_int_value(), "div.int")
                 .as_basic_value_enum()),
-            Type::I64 => Ok(self
+            unsigned_int_types!() => Ok(self
                 .builder
-                .build_int_signed_div(lhs.0.into_int_value(), rhs.0.into_int_value(), "div.uint")
+                .build_int_unsigned_div(lhs.0.into_int_value(), rhs.0.into_int_value(), "div.uint")
                 .as_basic_value_enum()),
-            Type::F64 => Ok(self
+            float_types!() => Ok(self
                 .builder
                 .build_float_div(
                     lhs.0.into_float_value(),
@@ -103,11 +103,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_and(lhs.0.into_int_value(), rhs.0.into_int_value(), "and.int")
                 .as_basic_value_enum()),
-            Type::F64 => {
+            float_types!() => {
                 let lhs = self.builder.build_float_to_signed_int(
                     lhs.0.into_float_value(),
                     self.context.i64_type(),
@@ -133,11 +133,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_or(lhs.0.into_int_value(), rhs.0.into_int_value(), "or.int")
                 .as_basic_value_enum()),
-            Type::F64 => {
+            float_types!() => {
                 let lhs = self.builder.build_float_to_signed_int(
                     lhs.0.into_float_value(),
                     self.context.i64_type(),
@@ -164,52 +164,51 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         use Symbol::*;
-        use Type::*;
 
         let inst = match (lhs.1, op) {
-            (U64 | I64, Eq) => self.builder.build_int_compare(
+            (int_types!(), Eq) => self.builder.build_int_compare(
                 IntPredicate::EQ,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "eq.int",
             ),
-            (U64, Gt) => self.builder.build_int_compare(
-                IntPredicate::UGT,
-                lhs.0.into_int_value(),
-                rhs.0.into_int_value(),
-                "ugt.int",
-            ),
-            (U64, Lt) => self.builder.build_int_compare(
-                IntPredicate::ULT,
-                lhs.0.into_int_value(),
-                rhs.0.into_int_value(),
-                "lgt.int",
-            ),
-            (I64, Gt) => self.builder.build_int_compare(
+            (signed_int_types!(), Gt) => self.builder.build_int_compare(
                 IntPredicate::SGT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "sgt.int",
             ),
-            (I64, Lt) => self.builder.build_int_compare(
+            (signed_int_types!(), Lt) => self.builder.build_int_compare(
                 IntPredicate::SLT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "slt.int",
             ),
-            (F64, Eq) => self.builder.build_float_compare(
+            (unsigned_int_types!(), Gt) => self.builder.build_int_compare(
+                IntPredicate::UGT,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "ugt.int",
+            ),
+            (unsigned_int_types!(), Lt) => self.builder.build_int_compare(
+                IntPredicate::ULT,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "ult.int",
+            ),
+            (float_types!(), Eq) => self.builder.build_float_compare(
                 FloatPredicate::UEQ,
                 lhs.0.into_float_value(),
                 rhs.0.into_float_value(),
                 "ueq.float",
             ),
-            (F64, Gt) => self.builder.build_float_compare(
+            (float_types!(), Gt) => self.builder.build_float_compare(
                 FloatPredicate::UGT,
                 lhs.0.into_float_value(),
                 rhs.0.into_float_value(),
                 "ugt.float",
             ),
-            (F64, Lt) => self.builder.build_float_compare(
+            (float_types!(), Lt) => self.builder.build_float_compare(
                 FloatPredicate::ULT,
                 lhs.0.into_float_value(),
                 rhs.0.into_float_value(),
@@ -225,7 +224,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         Ok(self
             .builder
-            .build_int_cast(inst, self.context.i64_type(), "cmp.bool")
+            .build_int_cast(inst, self.context.i32_type(), "cmp.bool")
             .as_basic_value_enum())
     }
 
@@ -233,11 +232,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, Type)) -> ExprResult<'ctx> {
         match rhs.1 {
-            Type::U64 | Type::I64 => Ok(self
+            int_types!() => Ok(self
                 .builder
                 .build_int_neg(rhs.0.into_int_value(), "neg.int")
                 .as_basic_value_enum()),
-            Type::F64 => Ok(self
+            float_types!() => Ok(self
                 .builder
                 .build_float_neg(rhs.0.into_float_value(), "neg.float")
                 .as_basic_value_enum()),

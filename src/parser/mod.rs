@@ -242,19 +242,34 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_num(&self, num: &str, token: &Token) -> ParseResult {
-        if let Ok(n) = num.parse::<u64>() {
+        if let Ok(n) = num.parse::<i32>() {
             Ok(Node::Expr(Expression::Lit {
-                value: Literal::U64(n),
+                value: Literal::Int32(n),
                 ty: None,
             }))
         } else if let Ok(n) = num.parse::<i64>() {
             Ok(Node::Expr(Expression::Lit {
-                value: Literal::I64(n),
+                value: Literal::Int64(n),
+                ty: None,
+            }))
+        } else if let Ok(n) = num.parse::<u32>() {
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::UInt32(n),
+                ty: None,
+            }))
+        } else if let Ok(n) = num.parse::<u64>() {
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::UInt64(n),
+                ty: None,
+            }))
+        } else if let Ok(n) = num.parse::<f32>() {
+            Ok(Node::Expr(Expression::Lit {
+                value: Literal::Float(n),
                 ty: None,
             }))
         } else if let Ok(n) = num.parse::<f64>() {
             Ok(Node::Expr(Expression::Lit {
-                value: Literal::F64(n),
+                value: Literal::Double(n),
                 ty: None,
             }))
         } else {

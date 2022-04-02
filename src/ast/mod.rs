@@ -109,9 +109,12 @@ impl Expression {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Literal {
-    I64(i64),
-    U64(u64),
-    F64(f64),
+    Int32(i32),
+    Int64(i64),
+    UInt32(u32),
+    UInt64(u64),
+    Float(f32),
+    Double(f64),
 }
 
 #[derive(Debug, PartialEq, Serialize)]

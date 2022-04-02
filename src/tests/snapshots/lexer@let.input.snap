@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 264
+assertion_line: 274
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/let.input
-
 ---
 Ok:
   - tt: Let
@@ -17,7 +16,7 @@ Ok:
     line: 1
     column: 6
   - tt:
-      VarType: U64
+      VarType: Int32
     line: 1
     column: 8
   - tt:
@@ -39,37 +38,147 @@ Ok:
     line: 2
     column: 6
   - tt:
-      VarType: I64
+      VarType: Int32
     line: 2
     column: 8
   - tt:
       Op: Assign
     line: 2
-    column: 12
+    column: 14
   - tt:
       Num: "2"
     line: 2
-    column: 14
+    column: 16
   - tt: Let
     line: 3
     column: 1
   - tt:
-      Ident: c
+      Ident: b
     line: 3
     column: 5
   - tt: Colon
     line: 3
     column: 6
   - tt:
-      Ident: f32
+      VarType: Int64
     line: 3
     column: 8
   - tt:
       Op: Assign
     line: 3
-    column: 12
-  - tt:
-      Num: "3.0"
-    line: 3
     column: 14
+  - tt:
+      Num: "3"
+    line: 3
+    column: 16
+  - tt: Let
+    line: 4
+    column: 1
+  - tt:
+      Ident: b
+    line: 4
+    column: 5
+  - tt: Colon
+    line: 4
+    column: 6
+  - tt:
+      VarType: UInt32
+    line: 4
+    column: 8
+  - tt:
+      Op: Assign
+    line: 4
+    column: 13
+  - tt:
+      Num: "4"
+    line: 4
+    column: 15
+  - tt: Let
+    line: 5
+    column: 1
+  - tt:
+      Ident: b
+    line: 5
+    column: 5
+  - tt: Colon
+    line: 5
+    column: 6
+  - tt:
+      VarType: UInt32
+    line: 5
+    column: 8
+  - tt:
+      Op: Assign
+    line: 5
+    column: 15
+  - tt:
+      Num: "5"
+    line: 5
+    column: 17
+  - tt: Let
+    line: 6
+    column: 1
+  - tt:
+      Ident: b
+    line: 6
+    column: 5
+  - tt: Colon
+    line: 6
+    column: 6
+  - tt:
+      VarType: UInt64
+    line: 6
+    column: 8
+  - tt:
+      Op: Assign
+    line: 6
+    column: 15
+  - tt:
+      Num: "6"
+    line: 6
+    column: 17
+  - tt: Let
+    line: 7
+    column: 1
+  - tt:
+      Ident: c
+    line: 7
+    column: 5
+  - tt: Colon
+    line: 7
+    column: 6
+  - tt:
+      VarType: Float
+    line: 7
+    column: 8
+  - tt:
+      Op: Assign
+    line: 7
+    column: 14
+  - tt:
+      Num: "7.0"
+    line: 7
+    column: 16
+  - tt: Let
+    line: 8
+    column: 1
+  - tt:
+      Ident: c
+    line: 8
+    column: 5
+  - tt: Colon
+    line: 8
+    column: 6
+  - tt:
+      VarType: Double
+    line: 8
+    column: 8
+  - tt:
+      Op: Assign
+    line: 8
+    column: 15
+  - tt:
+      Num: "8.0"
+    line: 8
+    column: 17
 

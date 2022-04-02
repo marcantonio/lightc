@@ -1,8 +1,8 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 871
+assertion_line: 689
 expression: ir
 input_file: src/codegen/tests/inputs/for.input
 ---
-- "define void @main() {\nentry:\n  br label %for.loop\n\nfor.loop:                                         ; preds = %for.loop, %entry\n  %y1 = phi i64 [ %for.int.step, %for.loop ], [ 0, %entry ]\n  %call_putchar = call i64 @putchar(i64 46)\n  %lgt.int = icmp ult i64 %y1, 3\n  %for.int.step = add i64 %y1, 1\n  br i1 %lgt.int, label %for.loop, label %for.after\n\nfor.after:                                        ; preds = %for.loop\n  %call_putchar4 = call i64 @putchar(i64 10)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  br label %for.loop\n\nfor.loop:                                         ; preds = %for.loop, %entry\n  %y1 = phi i32 [ %for.int.step, %for.loop ], [ 0, %entry ]\n  %call_putchar = call i32 @putchar(i32 46)\n  %slt.int = icmp slt i32 %y1, 3\n  %for.int.step = add i32 %y1, 1\n  br i1 %slt.int, label %for.loop, label %for.after\n\nfor.after:                                        ; preds = %for.loop\n  %call_putchar4 = call i32 @putchar(i32 10)\n  ret void\n}\n"
 

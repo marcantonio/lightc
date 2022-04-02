@@ -56,15 +56,21 @@ impl Lexer {
             }
 
             let tt = match identifier.as_str() {
+                "fn" => TokenType::Fn,
+                "let" => TokenType::Let,
+                "for" => TokenType::For,
+                "if" => TokenType::If,
                 "else" => TokenType::Else,
                 "extern" => TokenType::Extern,
-                "f64" => TokenType::VarType(Type::F64),
-                "fn" => TokenType::Fn,
-                "for" => TokenType::For,
-                "i64" => TokenType::VarType(Type::I64),
-                "if" => TokenType::If,
-                "let" => TokenType::Let,
-                "u64" => TokenType::VarType(Type::U64),
+                "float" => TokenType::VarType(Type::Float),
+                "double" => TokenType::VarType(Type::Double),
+                "int32" => TokenType::VarType(Type::Int32),
+                "int64" => TokenType::VarType(Type::Int64),
+                "uint32" => TokenType::VarType(Type::UInt32),
+                "uint64" => TokenType::VarType(Type::UInt64),
+                // TODO: don't hardcode these
+                "int" => TokenType::VarType(Type::Int32),
+                "uint" => TokenType::VarType(Type::UInt32),
                 _ => TokenType::Ident(identifier),
             };
 

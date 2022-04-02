@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 ---
@@ -12,10 +12,10 @@ input_file: src/parser/tests/inputs/func_def.input
                 name: a
                 args:
                   - - b
-                    - I64
+                    - Int32
                   - - c
-                    - I64
-                ret_type: I64
+                    - Int32
+                ret_type: Int32
               body:
                 - Expr:
                     BinOp:
@@ -28,7 +28,7 @@ input_file: src/parser/tests/inputs/func_def.input
                               Expr:
                                 Lit:
                                   value:
-                                    U64: 19
+                                    Int32: 19
                                   ty: ~
                             rhs:
                               Expr:
@@ -40,10 +40,10 @@ input_file: src/parser/tests/inputs/func_def.input
                         Expr:
                           Lit:
                             value:
-                              U64: 40
+                              Int32: 40
                             ty: ~
                       ty: ~
-  - "(define (a b:i64 c:i64) (+ (+ 19 a) 40))"
+  - "(define (a b:int32 c:int32) (+ (+ 19 a) 40))"
 - - Ok:
       nodes:
         - Stmt:
@@ -52,10 +52,10 @@ input_file: src/parser/tests/inputs/func_def.input
                 name: a
                 args:
                   - - b
-                    - I64
+                    - Int32
                   - - c
-                    - I64
-                ret_type: I64
+                    - Int32
+                ret_type: Int32
               body:
                 - Expr:
                     BinOp:
@@ -68,7 +68,7 @@ input_file: src/parser/tests/inputs/func_def.input
                               Expr:
                                 Lit:
                                   value:
-                                    U64: 19
+                                    Int32: 19
                                   ty: ~
                             rhs:
                               Expr:
@@ -80,7 +80,7 @@ input_file: src/parser/tests/inputs/func_def.input
                         Expr:
                           Lit:
                             value:
-                              U64: 40
+                              Int32: 40
                             ty: ~
                       ty: ~
                 - Expr:
@@ -97,7 +97,7 @@ input_file: src/parser/tests/inputs/func_def.input
                             name: a
                             ty: ~
                       ty: ~
-  - "(define (a b:i64 c:i64) (+ (+ 19 a) 40) (+ b a))"
+  - "(define (a b:int32 c:int32) (+ (+ 19 a) 40) (+ b a))"
 - - Ok:
       nodes:
         - Stmt:
@@ -106,14 +106,14 @@ input_file: src/parser/tests/inputs/func_def.input
                 name: a
                 args:
                   - - b
-                    - I64
+                    - Int32
                 ret_type: ~
               body:
                 - Expr:
                     Ident:
                       name: b
                       ty: ~
-  - "(define (a b:i64) b)"
+  - "(define (a b:int32) b)"
 - - Err:
       message: "Expecting '{' to start block. Got -"
       line: 1

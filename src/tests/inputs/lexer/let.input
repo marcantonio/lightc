@@ -1,3 +1,8 @@
-let a: u64 = 1
-let b: i64 = 2
-let c: f32 = 3.0
+let a: int = 1
+let b: int32 = 2
+let b: int64 = 3
+let b: uint = 4
+let b: uint32 = 5
+let b: uint64 = 6
+let c: float = 7.0
+let c: double = 8.0

@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/unary_ops.input
 ---
@@ -13,7 +13,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      U64: 21
+                      Int32: 21
                     ty: ~
               ty: ~
   - (- 21)
@@ -36,7 +36,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      U64: 2
+                      Int32: 2
                     ty: ~
               ty: ~
   - (* (- a) 2)
@@ -49,7 +49,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      U64: 3
+                      Int32: 3
                     ty: ~
               rhs:
                 Expr:
@@ -59,7 +59,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            U64: 21
+                            Int32: 21
                           ty: ~
                     ty: ~
               ty: ~
@@ -77,13 +77,13 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            U64: 4
+                            Int32: 4
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            U64: 2
+                            Int32: 2
                           ty: ~
                     ty: ~
               ty: ~
@@ -101,7 +101,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            U64: 21
+                            Int32: 21
                           ty: ~
                     ty: ~
               ty: ~

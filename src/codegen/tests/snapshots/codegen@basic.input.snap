@@ -1,8 +1,8 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 712
+assertion_line: 689
 expression: ir
 input_file: src/codegen/tests/inputs/basic.input
 ---
-- "define i64 @main() {\nentry:\n  ret i64 80\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 80\n}\n"
 

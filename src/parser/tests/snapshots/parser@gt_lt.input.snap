@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/gt_lt.input
 ---
@@ -28,7 +28,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                 Expr:
                   Lit:
                     value:
-                      U64: 40
+                      Int32: 40
                     ty: ~
               ty: ~
   - (> (+ a b) 40)
@@ -55,7 +55,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                       Expr:
                         Lit:
                           value:
-                            U64: 40
+                            Int32: 40
                           ty: ~
                     ty: ~
               ty: ~

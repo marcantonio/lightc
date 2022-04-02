@@ -1,18 +1,18 @@
-fn a(b: i64, c: i64) -> i64 { 19 + a + 40 }
-fn a(b: i64, c: i64) -> i64 { 19 + a + 40 b + a }
-fn a(b: i64) { b }
-fn a(b: i64) - { b }
-fn a(b: i64) -> { b }
-fn a(b: i64) -> a { b }
+fn a(b: int, c: int) -> int { 19 + a + 40 }
+fn a(b: int, c: int) -> int { 19 + a + 40 b + a }
+fn a(b: int) { b }
+fn a(b: int) - { b }
+fn a(b: int) -> { b }
+fn a(b: int) -> a { b }
 fn a() {}
-fn (a: i64, c: i64) { 1 + 2 }
+fn (a: int, c: int) { 1 + 2 }
 fn a
 fn a( {}
-fn a(a: i64, {}
-fn a(b: i64 b: i64)
+fn a(a: int, {}
+fn a(b: int b: int)
 fn a(
-fn a(a: i64, {}
-fn a(a: i64
-fn a(a: i64,
+fn a(a: int, {}
+fn a(a: int
+fn a(a: int,
 fn a(b:)
 fn a(b)

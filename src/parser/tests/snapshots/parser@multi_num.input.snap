@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/multi_num.input
 ---
@@ -17,13 +17,13 @@ input_file: src/parser/tests/inputs/multi_num.input
                       Expr:
                         Lit:
                           value:
-                            U64: 19
+                            Int32: 19
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            U64: 21
+                            Int32: 21
                           ty: ~
                     ty: ~
               rhs:
@@ -34,7 +34,7 @@ input_file: src/parser/tests/inputs/multi_num.input
                       Expr:
                         Lit:
                           value:
-                            U64: 40
+                            Int32: 40
                           ty: ~
                     ty: ~
               ty: ~

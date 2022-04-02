@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/call_with_expr_arg.input
 ---
@@ -22,7 +22,7 @@ input_file: src/parser/tests/inputs/call_with_expr_arg.input
                         Expr:
                           Lit:
                             value:
-                              U64: 1
+                              Int32: 1
                             ty: ~
                       ty: ~
                 - Expr:
@@ -41,13 +41,13 @@ input_file: src/parser/tests/inputs/call_with_expr_arg.input
                               Expr:
                                 Lit:
                                   value:
-                                    U64: 2
+                                    Int32: 2
                                   ty: ~
                             rhs:
                               Expr:
                                 Lit:
                                   value:
-                                    U64: 4
+                                    Int32: 4
                                   ty: ~
                             ty: ~
                       ty: ~

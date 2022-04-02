@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 540
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 ---
@@ -9,11 +9,11 @@ input_file: src/parser/tests/inputs/for.input
         - Stmt:
             For:
               start_name: x
-              start_antn: U64
+              start_antn: Int32
               start_expr:
                 Lit:
                   value:
-                    U64: 1
+                    Int32: 1
                   ty: ~
               cond_expr:
                 BinOp:
@@ -27,20 +27,20 @@ input_file: src/parser/tests/inputs/for.input
                     Expr:
                       Lit:
                         value:
-                          U64: 10
+                          Int32: 10
                         ty: ~
                   ty: ~
               step_expr:
                 Lit:
                   value:
-                    U64: 1
+                    Int32: 1
                   ty: ~
               body:
                 - Expr:
                     Ident:
                       name: foo
                       ty: ~
-  - "(for (x: u64 1) (< x 10) 1 foo)"
+  - "(for (x: int32 1) (< x 10) 1 foo)"
 - - Err:
       message: Expecting identifier after for. Got EOF
       line: 0

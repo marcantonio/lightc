@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/single_num.input
 ---
@@ -9,7 +9,7 @@ input_file: src/parser/tests/inputs/single_num.input
         - Expr:
             Lit:
               value:
-                U64: 19
+                Int32: 19
               ty: ~
   - "19"
 

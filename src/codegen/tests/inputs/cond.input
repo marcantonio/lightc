@@ -1,1 +1,1 @@
-fn plus_one(x: u64) -> u64 { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else { 6 } }
+fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else { 6 } }

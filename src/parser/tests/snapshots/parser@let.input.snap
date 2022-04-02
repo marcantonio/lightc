@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 540
+assertion_line: 536
 expression: asts
 input_file: src/parser/tests/inputs/let.input
 ---
@@ -9,27 +9,27 @@ input_file: src/parser/tests/inputs/let.input
         - Stmt:
             Let:
               name: x
-              antn: U64
+              antn: Int32
               init:
                 Expr:
                   Lit:
                     value:
-                      U64: 1
+                      Int32: 1
                     ty: ~
-  - "(let x:u64 1)"
+  - "(let x:int32 1)"
 - - Ok:
       nodes:
         - Stmt:
             Let:
               name: x
-              antn: U64
+              antn: Float
               init:
                 Expr:
                   Lit:
                     value:
-                      F64: 1.0
+                      Float: 1.0
                     ty: ~
-  - "(let x:u64 1)"
+  - "(let x:float 1)"
 - - Err:
       message: Premature end of expression
       line: 0
@@ -40,9 +40,9 @@ input_file: src/parser/tests/inputs/let.input
         - Stmt:
             Let:
               name: x
-              antn: U64
+              antn: Int32
               init: ~
-  - "(let x:u64)"
+  - "(let x:int32)"
 - - Err:
       message: Type annotation required in let statement. Got EOF
       line: 0
