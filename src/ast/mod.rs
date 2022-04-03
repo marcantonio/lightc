@@ -92,7 +92,7 @@ pub(crate) enum Expression {
         cond_expr: Box<Expression>,
         then_block: Vec<Node>,
         else_block: Option<Vec<Node>>,
-        ty: Option<Type>
+        ty: Option<Type>,
     },
 }
 

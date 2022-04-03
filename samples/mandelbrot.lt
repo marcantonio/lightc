@@ -13,15 +13,13 @@ fn printdensity(d: float) {
 }
 
 fn mandelconverger(real: float, imag: float, iters: float, creal: float, cimag: float) -> float {
-    let tmp: float
     if iters > 255.0 || (real * real + imag + imag > 4.0) {
-        tmp = iters
+        iters
     } else {
-        tmp = mandelconverger(real * real - imag * imag + creal,
+        mandelconverger(real * real - imag * imag + creal,
                         2.0 * real * imag + cimag,
                         iters + 1.0, creal, cimag)
     }
-    tmp
 }
 
 fn mandelconverge(real: float, imag: float) -> float {

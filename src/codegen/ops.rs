@@ -111,12 +111,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 let lhs = self.builder.build_float_to_signed_int(
                     lhs.0.into_float_value(),
                     self.context.i64_type(),
-                    "and.float.lhs",
+                    "and.lhs.float",
                 );
                 let rhs = self.builder.build_float_to_signed_int(
                     rhs.0.into_float_value(),
                     self.context.i64_type(),
-                    "and.float.rhs",
+                    "and.rhs.float",
                 );
                 Ok(self
                     .builder
@@ -141,12 +141,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 let lhs = self.builder.build_float_to_signed_int(
                     lhs.0.into_float_value(),
                     self.context.i64_type(),
-                    "or.float.lhs",
+                    "or.lhs.float",
                 );
                 let rhs = self.builder.build_float_to_signed_int(
                     rhs.0.into_float_value(),
                     self.context.i64_type(),
-                    "or.float.rhs",
+                    "or.rhs.float",
                 );
                 Ok(self
                     .builder

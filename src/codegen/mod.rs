@@ -4,7 +4,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
+use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PhiValue, PointerValue};
 use inkwell::IntPredicate;
 use std::collections::HashMap;
 
@@ -411,8 +411,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 cond_expr,
                 then_block,
                 else_block,
-                ..
-            } => Some(self.codegen_cond(cond_expr, then_block, else_block)),
+                ty,
+            } => Some(self.codegen_cond(cond_expr, then_block, else_block, ty.unwrap())),
         }
         .transpose()
     }
@@ -557,7 +557,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         cond_expr: &Expression,
         then_block: &[Node],
         else_block: &Option<Vec<Node>>,
+        ty: Type,
     ) -> ExprResult<'ctx> {
+        // Should never be used. Useful for an unused phi branch.
         let undef_val = self.context.i32_type().get_undef().as_basic_value_enum();
 
         // Get the current function for insertion
@@ -619,7 +621,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Point the builder at the end of the empty else/end block
         self.builder.position_at_end(else_bb);
 
-        let value;
+        let val;
         // Codegen the else block if we have one
         if let Some(else_block) = else_block {
             // Codegen the then block. Save the last value for phi.
@@ -642,17 +644,36 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             self.builder.position_at_end(end_bb);
 
             // Create the phi node and insert code/value pairs
-            let phi = self
-                .builder
-                .build_phi(self.context.i32_type(), "if.else.phi");
+            let phi = self.build_phi_for_type(ty, "if.else.phi");
             phi.add_incoming(&[(&last_then_val, then_bb), (&last_else_val, else_bb)]);
-            value = phi.as_basic_value();
+            val = phi.as_basic_value();
         } else {
-            let phi = self.builder.build_phi(self.context.i32_type(), "if.phi");
+            let phi = self.build_phi_for_type(ty, "if.phi");
             phi.add_incoming(&[(&last_then_val, then_bb), (&undef_val, entry_bb)]);
-            value = phi.as_basic_value();
+            val = phi.as_basic_value();
         }
-        Ok(value)
+        Ok(val)
+    }
+
+    fn build_phi_for_type(&self, ty: Type, name: &str) -> PhiValue<'ctx> {
+        let name = name.to_owned();
+        match ty {
+            int32_types!() => self
+                .builder
+                .build_phi(self.context.i32_type(), &(name + ".int32")),
+            int64_types!() => self
+                .builder
+                .build_phi(self.context.i64_type(), &(name + ".int64")),
+            Type::Float => self
+                .builder
+                .build_phi(self.context.f32_type(), &(name + ".float")),
+            Type::Double => self
+                .builder
+                .build_phi(self.context.f64_type(), &(name + ".double")),
+            Type::Void => self
+                .builder
+                .build_phi(self.context.i32_type(), &(name + ".void")),
+        }
     }
 }
 
