@@ -4,7 +4,6 @@ use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::token::{Symbol, Type};
 
-
 // Current performs the following tasks:
 // - applies types to all expressions
 // - checks for annotation consistency
@@ -85,11 +84,11 @@ impl TypeChecker {
     // TODO: Variable shadowing
     fn check_func(
         &mut self,
-        proto: &Prototype,
+        proto: &mut Prototype,
         body: &mut Option<Vec<Node>>,
     ) -> Result<(), String> {
         // First check if this function has already been defined
-        let proto_ty = proto.ret_type.unwrap_or_default();
+        let mut proto_ty = proto.ret_type.unwrap_or(Type::Void);
         if self
             .function_table
             .insert(proto.name.to_owned(), proto_ty)
@@ -110,7 +109,7 @@ impl TypeChecker {
         }
 
         let mut body_ty = Type::Void;
-        for node in body {
+        for node in body.iter_mut() {
             body_ty = match node {
                 Node::Stmt(s) => {
                     self.check_stmt(s)?;
@@ -118,6 +117,19 @@ impl TypeChecker {
                 }
                 Node::Expr(e) => self.check_expr(e)?,
             }
+        }
+
+        // Ensure main always returns a 0 if nothing is specified
+        //
+        // TODO: Should go into a desugar phase
+        if proto.name == "main" && body_ty == Type::Void {
+            body.push(Node::Expr(Expression::Lit {
+                value: Literal::Int32(0),
+                ty: Some(Type::Int32),
+            }));
+            body_ty = Type::Int32;
+            proto_ty = body_ty;
+            proto.ret_type = Some(body_ty);
         }
 
         // Make sure function return type and the last statement match. Ignore

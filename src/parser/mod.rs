@@ -450,7 +450,7 @@ impl<'a> Parser<'a> {
 
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
-                // XXX
+                // An `if` is always an expression so this is ok
                 vec![self.parse_expression(0)?]
             } else {
                 self.parse_block()?

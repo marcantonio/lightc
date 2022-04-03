@@ -23,34 +23,6 @@ fn print_eq() {
 fn main() {
     //let x: int = -3
 
-    // if x > 1 {
-    //     print_dot()
-    // } else {
-    //     print_bang()
-    // }
-
-    // print_eq()
-
-    // if x == -3 {
-    //     print_dot()
-    // } else {
-    //     print_bang()
-    // }
-
-    // print_eq()
-
-    // if x < -3 {
-    //     print_dot()
-    // }
-
-    // print_eq()
-
-    // if x == -3 {
-    //     print_dot()
-    // }
-
-    // print_eq()
-
     if 3 == -3 {
         print_dot()
     }
@@ -130,7 +102,6 @@ fn main() {
     } else {
         print_int(3)
     }
-
 
     print_bang()
 }

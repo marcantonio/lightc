@@ -1,2 +1,0 @@
-if a > b { foo } else { bar }
-if a > b { foo } else bar

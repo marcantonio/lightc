@@ -248,7 +248,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         };
 
         // Identify main
-        if function.get_name().to_str().unwrap() == "main" {
+        let func_name = function.get_name().to_str().unwrap();
+        if func_name == "main" {
             self.main = Some(function);
         }
 
@@ -263,11 +264,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     self.fpm.run_on(&function);
                 }
             } else {
-                // Useful for JIT, if we support that
+                // Useful for JIT, if we support that later
                 // unsafe {
                 //     function.delete();
                 // }
-                return Err(format!("Error compiling: {}", function.get_name().to_str().unwrap()))
+                return Err(format!("Error compiling: {}", func_name));
             }
         }
         Ok(())
