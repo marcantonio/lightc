@@ -49,7 +49,7 @@ fn main() {
         exit(1);
     });
 
-    if args.astpre {
+    if args.ast_pre {
         println!("AST (pre):");
         for node in ast.nodes() {
             println!("{}", node);
@@ -75,7 +75,14 @@ fn main() {
     let module = context.create_module("light_main");
     set_target_machine(&module);
     let fpm = PassManager::create(&module);
-    let mut codegen = Codegen::new(&context, &builder, &module, &fpm);
+    let mut codegen = Codegen::new(
+        &context,
+        &builder,
+        &module,
+        &fpm,
+        args.opt_level,
+        args.no_verify,
+    );
     codegen.walk(&ast).expect("Compiler error");
 
     let tmp_file = tempfile::Builder::new()
@@ -155,7 +162,7 @@ struct Args {
 
     /// Display AST pre type checker
     #[clap(short = 'A', long, parse(from_flag))]
-    astpre: bool,
+    ast_pre: bool,
 
     /// Display AST
     #[clap(short, long, parse(from_flag))]
@@ -173,7 +180,27 @@ struct Args {
     #[clap(short, long, value_name="file", default_value_t = String::from("./a.out"))]
     output: String,
 
+    /// Optimization level
+    #[clap(short = 'O', long, value_name="level", default_value_t = 1, parse(try_from_str=valid_opt_level))]
+    opt_level: usize,
+
+    /// Disable LLVM function validation (useful for debugging)
+    #[clap(short, long, parse(from_flag))]
+    no_verify: bool,
+
     /// Input file
     #[clap(parse(from_os_str))]
     file: PathBuf,
+}
+
+fn valid_opt_level(s: &str) -> Result<usize, String> {
+    let opt_level = s
+        .parse()
+        .map_err(|_| format!("`{}` isn't an optimization level", s))?;
+
+    if (0..=1).contains(&opt_level) {
+        Ok(opt_level)
+    } else {
+        Err("Must be one of: 0 (none), 1 (basic)".to_string())
+    }
 }

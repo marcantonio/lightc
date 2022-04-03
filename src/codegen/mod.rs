@@ -31,6 +31,8 @@ pub(crate) struct Codegen<'a, 'ctx> {
     fpm: &'a PassManager<FunctionValue<'ctx>>,
     local_vars: HashMap<String, PointerValue<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
+    opt_level: usize,
+    skip_verify: bool,
 }
 
 impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
@@ -52,18 +54,22 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         builder: &'a Builder<'ctx>,
         module: &'a Module<'ctx>,
         fpm: &'a PassManager<FunctionValue<'ctx>>,
+        opt_level: usize,
+        skip_verify: bool,
     ) -> Self {
         let values = HashMap::new();
 
-        fpm.add_instruction_combining_pass();
-        fpm.add_reassociate_pass();
-        fpm.add_gvn_pass();
-        fpm.add_cfg_simplification_pass();
-        fpm.add_basic_alias_analysis_pass();
-        fpm.add_promote_memory_to_register_pass();
-        fpm.add_instruction_combining_pass();
-        fpm.add_reassociate_pass();
-        fpm.initialize();
+        if opt_level > 0 {
+            fpm.add_instruction_combining_pass();
+            fpm.add_reassociate_pass();
+            fpm.add_gvn_pass();
+            fpm.add_cfg_simplification_pass();
+            fpm.add_basic_alias_analysis_pass();
+            fpm.add_promote_memory_to_register_pass();
+            fpm.add_instruction_combining_pass();
+            fpm.add_reassociate_pass();
+            fpm.initialize();
+        }
 
         Codegen {
             context,
@@ -72,6 +78,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             fpm,
             local_vars: values,
             main: None,
+            opt_level,
+            skip_verify,
         }
     }
 
@@ -213,8 +221,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             self.local_vars.insert(proto.args[i].0.to_owned(), alloca);
         }
 
-        //todo: no redefining functions
-
         // Generate and add all expressions in the body. Save the last to one to
         // use with the ret instruction. Note: We can't use codegen_node() here
         // because we need the return value.
@@ -241,27 +247,30 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             _ => self.builder.build_return(None),
         };
 
-        // Make sure we didn't miss anything
-        // TODO: Should this allow llvm to print or use a verbose flag, or are
-        // the errors not useful?
-        if function.verify(true) {
-            self.fpm.run_on(&function);
-
-            if function.get_name().to_str().unwrap() == "main" {
-                self.main = Some(function);
-            }
-            Ok(())
-        } else {
-            // unsafe {
-            //     // TODO: Do we care about this for AOT comiplation?
-            //     function.delete();
-            // }
-            // Err(format!(
-            //     "Error compiling: {}",
-            //     function.get_name().to_str().unwrap()
-            // ))
-            Ok(())
+        // Identify main
+        if function.get_name().to_str().unwrap() == "main" {
+            self.main = Some(function);
         }
+
+        // Some times it's useful to skip verification just so we can see the
+        if !self.skip_verify {
+            // Make sure we didn't miss anything
+            // TODO: Should this allow llvm to print or use a verbose flag, or are
+            // the errors not useful?
+            if function.verify(true) {
+                if self.opt_level > 0 {
+                    // Only run optimizations on verified functions
+                    self.fpm.run_on(&function);
+                }
+            } else {
+                // Useful for JIT, if we support that
+                // unsafe {
+                //     function.delete();
+                // }
+                return Err(format!("Error compiling: {}", function.get_name().to_str().unwrap()))
+            }
+        }
+        Ok(())
     }
 
     // for start; cond; step { body }
@@ -740,7 +749,7 @@ mod test {
                         let builder = context.create_builder();
                         let module = context.create_module("main_mod");
                         let fpm = PassManager::create(&module);
-                        let mut codegen = Codegen::new(&context, &builder, &module, &fpm);
+                        let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
                         code_to_string(codegen.walk(&ast))
                     })
                     .collect::<Vec<_>>();

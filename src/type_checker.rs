@@ -4,6 +4,15 @@ use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::token::{Symbol, Type};
 
+
+// Current performs the following tasks:
+// - applies types to all expressions
+// - checks for annotation consistency
+// - checks for type consistency in binops
+// - checks for type consistency in for step
+// - checks for type consistency in if branches
+// - ensures functions aren't redefined
+
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, Type>,
     variable_table: HashMap<String, Type>,
