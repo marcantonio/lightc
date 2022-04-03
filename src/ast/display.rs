@@ -15,25 +15,6 @@ impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Statement::*;
         match self {
-            Cond {
-                cond_expr,
-                then_block,
-                else_block,
-            } => {
-                let mut s = format!("(if {}", cond_expr);
-                s += &then_block.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-
-                if let Some(alt) = else_block {
-                    s += &alt.iter().fold(String::new(), |mut acc, n| {
-                        acc += &format!(" {}", n);
-                        acc
-                    });
-                }
-                write!(f, "{})", s)
-            }
             For {
                 start_name,
                 start_antn,
@@ -87,6 +68,26 @@ impl Display for Expression {
                     for arg in args {
                         s += &format!(" {}", arg);
                     }
+                }
+                write!(f, "{})", s)
+            }
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+                ..
+            } => {
+                let mut s = format!("(if {}", cond_expr);
+                s += &then_block.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!(" {}", n);
+                    acc
+                });
+
+                if let Some(alt) = else_block {
+                    s += &alt.iter().fold(String::new(), |mut acc, n| {
+                        acc += &format!(" {}", n);
+                        acc
+                    });
                 }
                 write!(f, "{})", s)
             }

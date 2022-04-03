@@ -43,11 +43,6 @@ impl Node {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) enum Statement {
-    Cond {
-        cond_expr: Box<Expression>,
-        then_block: Vec<Node>,
-        else_block: Option<Vec<Node>>,
-    },
     For {
         start_name: String,
         start_antn: Type,
@@ -93,6 +88,12 @@ pub(crate) enum Expression {
         args: Vec<Node>,
         ty: Option<Type>,
     },
+    Cond {
+        cond_expr: Box<Expression>,
+        then_block: Vec<Node>,
+        else_block: Option<Vec<Node>>,
+        ty: Option<Type>
+    },
 }
 
 impl Expression {
@@ -103,6 +104,7 @@ impl Expression {
             Expression::BinOp { ty, .. } => *ty,
             Expression::UnOp { ty, .. } => *ty,
             Expression::Call { ty, .. } => *ty,
+            Expression::Cond { ty, .. } => *ty,
         }
     }
 }

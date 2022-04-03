@@ -1,0 +1,16 @@
+---
+source: src/codegen/mod.rs
+assertion_line: 726
+expression: ir
+input_file: src/codegen/tests/inputs/if.input
+---
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+

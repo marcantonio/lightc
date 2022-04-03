@@ -118,13 +118,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     // Helper function for when we don't know if we have a statement or an
     // expression
-    fn codegen_node(&mut self, node: &Node) -> StmtResult<'ctx> {
+    fn codegen_node(&mut self, node: &Node) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         match node {
-            Node::Stmt(s) => self.codegen_stmt(s),
-            Node::Expr(e) => {
-                self.codegen_expr(e)?;
-                Ok(())
+            Node::Stmt(s) => {
+                self.codegen_stmt(s)?;
+                Ok(None)
             }
+            Node::Expr(e) => self.codegen_expr(e),
         }
     }
 
@@ -132,11 +132,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         use Statement::*;
 
         match stmt {
-            Cond {
-                cond_expr,
-                then_block,
-                else_block,
-            } => self.codegen_cond(cond_expr, then_block, &else_block.as_expr()?),
             For {
                 start_name,
                 start_antn,
@@ -236,9 +231,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_type, last_node_val) {
-            (Some(numeric_types!()), Some(v)) => {
-                self.builder.build_return(Some(&v))
-            }
+            (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
             (Some(rt), None) => {
                 return Err(format!(
                     "Function should return {} but last statement is void",
@@ -269,78 +262,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             // ))
             Ok(())
         }
-    }
-
-    // if then optional else
-    fn codegen_cond(
-        &mut self,
-        cond_expr: &Expression,
-        then_block: &[Node],
-        else_block: &Option<Vec<&Expression>>,
-    ) -> StmtResult<'ctx> {
-        // Get the current function for insertion
-        let parent = self
-            .builder
-            .get_insert_block()
-            .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
-
-        // Codegen expression. Will be optimized to a 0 or 1 if comparing
-        // constants. Otherwise, the value will be IR to evaluate. Result will
-        // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
-        // "bool".
-        let cond_val = self.codegen_expr(cond_expr)?.value()?.into_int_value();
-        let cond_bool = self.builder.build_int_compare(
-            IntPredicate::NE,
-            cond_val,
-            self.context.i32_type().const_zero(),
-            "if.cond.int",
-        );
-
-        // Create blocks for branches and after. The else block is just a
-        // pointer to end if there's no else expression.
-        let then_bb = self.context.append_basic_block(parent, "if.then");
-        let end_bb = self.context.append_basic_block(parent, "if.end");
-        let mut else_bb = end_bb;
-        if else_block.is_some() {
-            else_bb = self.context.append_basic_block(parent, "if.else");
-            else_bb
-                .move_before(end_bb)
-                .map_err(|_| String::from("LLVM error"))?;
-        }
-
-        // Emits the entry conditional branch instructions
-        self.builder
-            .build_conditional_branch(cond_bool, then_bb, else_bb);
-
-        // Point the builder at the end of the empty then block
-        self.builder.position_at_end(then_bb);
-
-        // Codegen the then block
-        for node in then_block {
-            self.codegen_node(node)?;
-        }
-
-        // Make sure the consequent returns to the end block after execution
-        self.builder.build_unconditional_branch(end_bb);
-
-        // Point the builder at the end of the empty else block
-        self.builder.position_at_end(else_bb);
-
-        // Codegen the else block if we have one
-        if let Some(ee) = else_block {
-            for expr in ee {
-                self.codegen_expr(expr)?;
-            }
-
-            // Make sure the alternative returns to the end block after execution
-            self.builder.build_unconditional_branch(end_bb);
-
-            // Point the builder at the end of the empty end block
-            self.builder.position_at_end(end_bb);
-        }
-
-        Ok(())
     }
 
     // for start; cond; step { body }
@@ -453,10 +374,16 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     unreachable!("NONCANBE: void type for init expr in codegen_let()");
                 }
             }
-            (int32_types!(), None) => Some(self.context.i32_type().const_zero().as_basic_value_enum()),
-            (int64_types!(), None) => Some(self.context.i64_type().const_zero().as_basic_value_enum()),
+            (int32_types!(), None) => {
+                Some(self.context.i32_type().const_zero().as_basic_value_enum())
+            }
+            (int64_types!(), None) => {
+                Some(self.context.i64_type().const_zero().as_basic_value_enum())
+            }
             (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
-            (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
+            (Type::Double, None) => {
+                Some(self.context.f64_type().const_zero().as_basic_value_enum())
+            }
             (Type::Void, None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
@@ -480,6 +407,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             }
             UnOp { sym, rhs, .. } => Some(self.codegen_unop(*sym, rhs.as_expr()?)),
             Call { name, args, .. } => self.codegen_call(name, &args.as_expr()?).transpose(),
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+                ..
+            } => Some(self.codegen_cond(cond_expr, then_block, else_block)),
         }
         .transpose()
     }
@@ -617,6 +550,110 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }
+
+    // if then optional else
+    fn codegen_cond(
+        &mut self,
+        cond_expr: &Expression,
+        then_block: &[Node],
+        else_block: &Option<Vec<Node>>,
+    ) -> ExprResult<'ctx> {
+        let undef_val = self.context.i32_type().get_undef().as_basic_value_enum();
+
+        // Get the current function for insertion
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
+
+        // Get the starting basic block. This is only used later if there is no
+        // else block, but we need to capture it now before we start appending
+        // new blocks.
+        let entry_bb = parent.get_last_basic_block().unwrap();
+
+        // Codegen expression. Will be optimized to a 0 or 1 if comparing
+        // constants. Otherwise, the value will be IR to evaluate. Result will
+        // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
+        // "bool".
+        let cond_val = self.codegen_expr(cond_expr)?.value()?.into_int_value();
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
+            cond_val,
+            self.context.i32_type().const_zero(),
+            "if.cond.int",
+        );
+
+        // Create blocks for branches and after. The else block is just a
+        // pointer to end if there's no else expression.
+        let mut then_bb = self.context.append_basic_block(parent, "if.then");
+        let end_bb = self.context.append_basic_block(parent, "if.end");
+        let mut else_bb = end_bb;
+        if else_block.is_some() {
+            else_bb = self.context.append_basic_block(parent, "if.else");
+        }
+
+        // Emits the entry conditional branch instructions
+        self.builder
+            .build_conditional_branch(cond_bool, then_bb, else_bb);
+
+        // Point the builder at the end of the empty then block
+        self.builder.position_at_end(then_bb);
+
+        // Codegen the then block. Save the last value for phi.
+        let mut last_then_val = undef_val;
+        for node in then_block {
+            if let Some(val) = self.codegen_node(node)? {
+                last_then_val = val;
+            }
+        }
+
+        // Make sure the consequent returns to the end block after its
+        // execution. Don't forget to reset `then_bb` in case codegen moved it.
+        self.builder.build_unconditional_branch(end_bb);
+        then_bb = self
+            .builder
+            .get_insert_block()
+            .ok_or("Can't reset `then` block")?;
+
+        // Point the builder at the end of the empty else/end block
+        self.builder.position_at_end(else_bb);
+
+        let value;
+        // Codegen the else block if we have one
+        if let Some(else_block) = else_block {
+            // Codegen the then block. Save the last value for phi.
+            let mut last_else_val = undef_val;
+            for node in else_block {
+                if let Some(val) = self.codegen_node(node)? {
+                    last_else_val = val;
+                }
+            }
+
+            // Make sure the alternative returns to the end block after its
+            // execution. Don't forget to reset `then_bb` in case codegen moved it.
+            self.builder.build_unconditional_branch(end_bb);
+            else_bb = self
+                .builder
+                .get_insert_block()
+                .ok_or("Can't reset `else` block")?;
+
+            // Point the builder at the end of the empty end block
+            self.builder.position_at_end(end_bb);
+
+            // Create the phi node and insert code/value pairs
+            let phi = self
+                .builder
+                .build_phi(self.context.i32_type(), "if.else.phi");
+            phi.add_incoming(&[(&last_then_val, then_bb), (&last_else_val, else_bb)]);
+            value = phi.as_basic_value();
+        } else {
+            let phi = self.builder.build_phi(self.context.i32_type(), "if.phi");
+            phi.add_incoming(&[(&last_then_val, then_bb), (&undef_val, entry_bb)]);
+            value = phi.as_basic_value();
+        }
+        Ok(value)
+    }
 }
 
 // Like unwrap() but with a fixed error message. Necessary to allow call_expr to
@@ -691,89 +728,3 @@ mod test {
         });
     }
 }
-
-/* CodeGen for conditionals. IR roughly looks like:
- *              |condition|
- *                 |   |
- *       ----------     ----------
- *      |                         |
- *      v                         v
- * |consequent|              |alternative|
- *      |                         |
- *       ----------     ----------
- *                 |   |
- *                 v   v
- *              |merge (phi)|
- */
-// Keeping as an example of using phi
-/*
-fn cond_codegen_phi(
-    &mut self,
-    cond: &Expression,
-    cons: &[Expression],
-    alt: &Option<Vec<Expression>>, // todo: can this be a slice?
-) -> ExprCgResult<'ctx> {
-    // Get the current function for insertion
-    let parent = self
-        .builder
-        .get_insert_block()
-        .and_then(|x| x.get_parent())
-        .ok_or("Parent function not found when building conditional")?;
-
-    // CodeGen cond expression. Will be optimized to a 0 or 1 if comparing
-    // constants. Otherwise, the value will be IR to evaluate. Result will
-    // be a float 0.0 or 1.0.
-    let cond_code = self.expr_codegen(cond)?.into_int_value();
-
-    // CodeGen to compare the cond_code (0 or 1) to 0. Result will be a 1 bit
-    // "bool".
-    let cond_bool = self.builder.build_int_compare(
-        IntPredicate::NE,
-        cond_code,
-        self.context.i64_type().const_zero(),
-        "ifcond",
-    );
-
-    // Create blocks for branches and after (phi)
-    let mut cons_bb = self.context.append_basic_block(parent, "cons");
-    let mut alt_bb = self.context.append_basic_block(parent, "alt");
-    let merge_bb = self.context.append_basic_block(parent, "merge");
-
-    // Emits the entry conditional branch instructions
-    self.builder
-        .build_conditional_branch(cond_bool, cons_bb, alt_bb);
-
-    // Point the builder at the end of the empty cons block
-    self.builder.position_at_end(cons_bb);
-    // CodeGen the cons block
-    let mut cons_code: Option<IntValue> = None; // todo: this is aweful
-    for expr in cons {
-        cons_code = Some(self.expr_codegen(expr)?);
-    }
-
-    // Make sure the consequent returns to the merge block after execution
-    self.builder.build_unconditional_branch(merge_bb);
-    // Update cons_bb in case the expr_codegen() moved it
-    cons_bb = self.builder.get_insert_block().unwrap();
-
-    // Point the builder at the end of the empty alt block
-    self.builder.position_at_end(alt_bb);
-    // CodeGen for the alt block
-    let mut alt_code: Option<IntValue> = None;
-    for expr in alt.as_ref().unwrap() {
-        alt_code = Some(self.expr_codegen(expr)?);
-    }
-    // Make sure the alternative returns to the merge block after execution
-    self.builder.build_unconditional_branch(merge_bb);
-    // Update alt_bb in case the expr_codegen() moved it
-    alt_bb = self.builder.get_insert_block().unwrap();
-
-    // Point the builder at the end of the empty merge block
-    self.builder.position_at_end(merge_bb);
-    // Create the phi node and insert code/value pairs
-    let phi = self.builder.build_phi(self.context.i64_type(), "condtmp");
-    phi.add_incoming(&[(&cons_code.unwrap(), cons_bb), (&alt_code.unwrap(), alt_bb)]);
-
-    Ok(phi.as_basic_value().into_int_value())
-}
- */

@@ -1,12 +1,12 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 540
+assertion_line: 535
 expression: asts
 input_file: src/parser/tests/inputs/block.input
 ---
 - - Ok:
       nodes:
-        - Stmt:
+        - Expr:
             Cond:
               cond_expr:
                 Ident:
@@ -18,10 +18,11 @@ input_file: src/parser/tests/inputs/block.input
                       name: bar
                       ty: ~
               else_block: ~
+              ty: ~
   - (if foo bar)
 - - Ok:
       nodes:
-        - Stmt:
+        - Expr:
             Cond:
               cond_expr:
                 Ident:
@@ -29,6 +30,7 @@ input_file: src/parser/tests/inputs/block.input
                   ty: ~
               then_block: []
               else_block: ~
+              ty: ~
   - (if foo)
 - - Err:
       message: "Expecting '{' to start block. Got EOF"

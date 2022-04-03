@@ -41,7 +41,6 @@ impl<'a> Parser<'a> {
             .ok_or_else(|| "Premature end of statement".to_string())?;
 
         let expr = match &token.tt {
-            TokenType::If => self.parse_cond()?,
             TokenType::For => self.parse_for()?,
             TokenType::Let => self.parse_let()?,
             TokenType::Fn => self.parse_function()?,
@@ -49,6 +48,92 @@ impl<'a> Parser<'a> {
             _ => self.parse_expression(0)?,
         };
         Ok(expr)
+    }
+
+    fn parse_for(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat for
+
+        let name = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting identifier after for"
+        );
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::Colon,
+            "Expecting colon in initial statement"
+        );
+
+        let antn = expect_next_token!(
+            self.tokens,
+            TokenType::VarType(_),
+            "Type annotation required in intial statement"
+        );
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::Op(Symbol::Assign),
+            "Expecting '=' after identifer"
+        );
+
+        let start_node = self.parse_expression(0)?;
+        expect_next_token!(
+            self.tokens,
+            TokenType::Semicolon,
+            "Expecting ';' after start"
+        );
+
+        let cond_node = self.parse_expression(0)?;
+        expect_next_token!(
+            self.tokens,
+            TokenType::Semicolon,
+            "Expecting ';' after condition"
+        );
+
+        let step_node = self.parse_expression(0)?;
+
+        Ok(Node::Stmt(Statement::For {
+            start_name: name.to_owned(),
+            start_antn: *antn,
+            start_expr: Box::new(start_node.to_expr()?),
+            cond_expr: Box::new(cond_node.to_expr()?),
+            step_expr: Box::new(step_node.to_expr()?),
+            body: self.parse_block()?,
+        }))
+    }
+
+    fn parse_let(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat let
+
+        let var_name = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting identifier after let"
+        );
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::Colon,
+            "Expecting colon in let statement"
+        );
+
+        let ty = expect_next_token!(
+            self.tokens,
+            TokenType::VarType(_),
+            "Type annotation required in let statement"
+        );
+
+        let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
+            self.tokens.next();
+            self.parse_expression(0)?
+        });
+
+        Ok(Node::Stmt(Statement::Let {
+            name: var_name.to_owned(),
+            antn: *ty,
+            init: init.map(Box::new),
+        }))
     }
 
     // Consume token and dispatch. These are all considered primary expressions.
@@ -59,6 +144,7 @@ impl<'a> Parser<'a> {
             .ok_or_else(|| "Premature end of expression".to_string())?;
 
         let expr = match &token.tt {
+            TokenType::If => self.parse_cond()?,
             TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
             TokenType::OpenParen => self.parse_paren()?,
@@ -347,8 +433,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_cond(&mut self) -> ParseResult {
-        self.tokens.next(); // Eat if
-
         let cond_node = self.parse_expression(0)?;
         let then_block = self.parse_block()?;
 
@@ -364,104 +448,20 @@ impl<'a> Parser<'a> {
                 )));
             }
 
-            // XXX
+            // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
-                vec![]
+                // XXX
+                vec![self.parse_expression(0)?]
             } else {
                 self.parse_block()?
             }
         });
 
-        Ok(Node::Stmt(Statement::Cond {
+        Ok(Node::Expr(Expression::Cond {
             cond_expr: Box::new(cond_node.to_expr()?),
             then_block,
             else_block,
-        }))
-    }
-
-    fn parse_for(&mut self) -> ParseResult {
-        self.tokens.next(); // Eat for
-
-        let name = expect_next_token!(
-            self.tokens,
-            TokenType::Ident(_),
-            "Expecting identifier after for"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::Colon,
-            "Expecting colon in initial statement"
-        );
-
-        let antn = expect_next_token!(
-            self.tokens,
-            TokenType::VarType(_),
-            "Type annotation required in intial statement"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::Op(Symbol::Assign),
-            "Expecting '=' after identifer"
-        );
-
-        let start_node = self.parse_expression(0)?;
-        expect_next_token!(
-            self.tokens,
-            TokenType::Semicolon,
-            "Expecting ';' after start"
-        );
-
-        let cond_node = self.parse_expression(0)?;
-        expect_next_token!(
-            self.tokens,
-            TokenType::Semicolon,
-            "Expecting ';' after condition"
-        );
-
-        let step_node = self.parse_expression(0)?;
-
-        Ok(Node::Stmt(Statement::For {
-            start_name: name.to_owned(),
-            start_antn: *antn,
-            start_expr: Box::new(start_node.to_expr()?),
-            cond_expr: Box::new(cond_node.to_expr()?),
-            step_expr: Box::new(step_node.to_expr()?),
-            body: self.parse_block()?,
-        }))
-    }
-
-    fn parse_let(&mut self) -> ParseResult {
-        self.tokens.next(); // Eat let
-
-        let var_name = expect_next_token!(
-            self.tokens,
-            TokenType::Ident(_),
-            "Expecting identifier after let"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::Colon,
-            "Expecting colon in let statement"
-        );
-
-        let ty = expect_next_token!(
-            self.tokens,
-            TokenType::VarType(_),
-            "Type annotation required in let statement"
-        );
-
-        let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
-            self.tokens.next();
-            self.parse_expression(0)?
-        });
-
-        Ok(Node::Stmt(Statement::Let {
-            name: var_name.to_owned(),
-            antn: *ty,
-            init: init.map(Box::new),
+            ty: None,
         }))
     }
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
-use crate::token::{Type, Symbol};
+use crate::token::{Symbol, Type};
 
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, Type>,
@@ -39,25 +39,20 @@ impl TypeChecker {
 
     // Helper function for when we don't know if we have a statement or an
     // expression
-    fn check_node(&mut self, node: &mut Node) -> Result<(), String> {
-        match node {
-            Node::Stmt(s) => self.check_stmt(s),
-            Node::Expr(e) => {
-                self.check_expr(e)?;
-                Ok(())
+    fn check_node(&mut self, node: &mut Node) -> Result<Type, String> {
+        Ok(match node {
+            Node::Stmt(s) => {
+                self.check_stmt(s)?;
+                Type::Void
             }
-        }
+            Node::Expr(e) => self.check_expr(e)?,
+        })
     }
 
     fn check_stmt(&mut self, stmt: &mut Statement) -> Result<(), String> {
         use Statement::*;
 
         match stmt {
-            Cond {
-                cond_expr,
-                then_block,
-                else_block,
-            } => self.check_cond(cond_expr, then_block, &mut else_block.as_expr_mut()?),
             For {
                 start_name,
                 start_antn,
@@ -133,27 +128,6 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_cond(
-        &mut self,
-        cond_expr: &mut Expression,
-        then_block: &mut [Node],
-        else_block: &mut Option<Vec<&mut Expression>>,
-    ) -> Result<(), String> {
-        self.check_expr(cond_expr)?;
-
-        for node in then_block {
-            self.check_node(node)?;
-        }
-
-        if let Some(else_block) = else_block {
-            for expr in else_block {
-                self.check_expr(*expr)?;
-            }
-        }
-
-        Ok(())
-    }
-
     fn check_for(
         &mut self,
         start_name: &str,
@@ -220,14 +194,17 @@ impl TypeChecker {
         match expr {
             Lit { value, ty } => self.check_lit(value, ty),
             Ident { name, ty } => self.check_ident(name, ty),
-            BinOp {
-                sym,
-                lhs,
-                rhs,
-                ty,
-            } => self.check_binop(*sym, lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty),
+            BinOp { sym, lhs, rhs, ty } => {
+                self.check_binop(*sym, lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty)
+            }
             UnOp { sym: _, rhs, ty } => self.check_unop(rhs.as_expr_mut()?, ty),
             Call { name, args, ty } => self.check_call(name, &mut args.as_expr_mut()?, ty),
+            Cond {
+                cond_expr,
+                then_block,
+                else_block,
+                ty,
+            } => self.check_cond(cond_expr, then_block, &mut else_block.as_expr_mut()?, ty),
         }
     }
 
@@ -294,11 +271,9 @@ impl TypeChecker {
         }
 
         let new_ty = match sym {
-            Symbol::And | Symbol::Eq |
-            Symbol::Gt |
-            Symbol::Lt |
-            Symbol::Not |
-            Symbol::Or => Type::UInt32,
+            Symbol::And | Symbol::Eq | Symbol::Gt | Symbol::Lt | Symbol::Not | Symbol::Or => {
+                Type::UInt32
+            }
             _ => lhs_ty,
         };
 
@@ -311,5 +286,37 @@ impl TypeChecker {
         let rhs_ty = self.check_expr(rhs)?;
         *ty = Some(rhs_ty);
         Ok(rhs_ty)
+    }
+
+    fn check_cond(
+        &mut self,
+        cond_expr: &mut Expression,
+        then_block: &mut [Node],
+        else_block: &mut Option<Vec<&mut Expression>>,
+        ty: &mut Option<Type>,
+    ) -> Result<Type, String> {
+        self.check_expr(cond_expr)?;
+
+        let mut then_ty = Type::Void;
+        for node in then_block {
+            then_ty = self.check_node(node)?;
+        }
+
+        if let Some(else_block) = else_block {
+            let mut else_ty = Type::Void;
+            for expr in else_block {
+                else_ty = self.check_expr(*expr)?;
+            }
+
+            if then_ty != else_ty {
+                return Err(format!(
+                    "Both arms of conditional must be the same type: `then` == {}; `else` == {}",
+                    then_ty, else_ty
+                ));
+            }
+        }
+
+        *ty = Some(then_ty);
+        Ok(then_ty)
     }
 }
