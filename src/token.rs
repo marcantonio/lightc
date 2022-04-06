@@ -40,6 +40,7 @@ impl Default for Token {
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub(crate) enum TokenType {
+    Bool(bool),
     CloseBrace,
     CloseParen,
     Colon,
@@ -123,6 +124,7 @@ pub(crate) enum Type {
     UInt64,
     Float,
     Double,
+    Bool,
     Void,
 }
 

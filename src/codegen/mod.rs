@@ -121,6 +121,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Void => unreachable!(
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
+            Type::Bool => builder.build_alloca(self.context.bool_type(), name),
         }
     }
 
@@ -171,6 +172,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     int64_types!() => BasicMetadataTypeEnum::IntType(self.context.i64_type()),
                     Type::Float => BasicMetadataTypeEnum::FloatType(self.context.f32_type()),
                     Type::Double => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
+                    Type::Bool => BasicMetadataTypeEnum::IntType(self.context.bool_type()),
                     Type::Void => {
                         unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
                     }
@@ -342,7 +344,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_code,
-            self.context.i32_type().const_zero(),
+            self.context.bool_type().const_zero(),
             "for.cond",
         );
 
@@ -394,6 +396,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             (Type::Double, None) => {
                 Some(self.context.f64_type().const_zero().as_basic_value_enum())
             }
+            (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
             (Type::Void, None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
@@ -458,6 +461,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .context
                 .f64_type()
                 .const_float(*v)
+                .as_basic_value_enum(),
+            Literal::Bool(v) => self
+                .context
+                .bool_type()
+                .const_int(*v as u64, true)
                 .as_basic_value_enum(),
         })
     }
@@ -592,7 +600,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_val,
-            self.context.i32_type().const_zero(),
+            self.context.bool_type().const_zero(),
             "if.cond.int",
         );
 
@@ -680,6 +688,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Double => self
                 .builder
                 .build_phi(self.context.f64_type(), &(name + ".double")),
+            Type::Bool => self
+                .builder
+                .build_phi(self.context.bool_type(), &(name + ".bool")),
             Type::Void => self
                 .builder
                 .build_phi(self.context.i32_type(), &(name + ".void")),

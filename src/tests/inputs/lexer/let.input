@@ -6,3 +6,5 @@ let b: uint32 = 5
 let b: uint64 = 6
 let c: float = 7.0
 let c: double = 8.0
+let d: bool = true
+let d: bool = false

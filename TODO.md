@@ -12,15 +12,16 @@
 - [ ] Include file name in error
 - [ ] Add while
 - [ ] Desugar for loops
-- [ ] Fix main exit code
+- [x] Fix main exit code
 - [ ] Decide on redundant errors in codegen and the type checker
 - [ ] Force comparisons to be bools (parser)
 - [ ] Extensive testing of binops, especially compares
-- [X] Add parser test for else if
+- [x] Add parser test for else if
 - [ ] Contextual type checking errors
+- [ ] Ensure conditionals are bools
 
 # Roadmap
 - [ ] Formalize grammar
 - [ ] Parser error recovery
-- [ ] Add primitive types
+- [x] Add primitive types
 - [ ] Add string type

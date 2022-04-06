@@ -11,6 +11,7 @@ use crate::token::{Symbol, Type};
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - ensures functions aren't redefined
+// - cooks main's return value
 
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, Type>,
@@ -237,6 +238,7 @@ impl TypeChecker {
             Literal::UInt64(_) => Type::UInt64,
             Literal::Float(_) => Type::Float,
             Literal::Double(_) => Type::Double,
+            Literal::Bool(_) => Type::Bool,
         };
         *ty = Some(lit_ty);
         Ok(lit_ty)

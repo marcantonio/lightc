@@ -1,6 +1,6 @@
 ---
 source: src/lexer.rs
-assertion_line: 274
+assertion_line: 277
 expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
 input_file: src/tests/inputs/lexer/let.input
 ---
@@ -181,4 +181,48 @@ Ok:
       Num: "8.0"
     line: 8
     column: 17
+  - tt: Let
+    line: 9
+    column: 1
+  - tt:
+      Ident: d
+    line: 9
+    column: 5
+  - tt: Colon
+    line: 9
+    column: 6
+  - tt:
+      VarType: Bool
+    line: 9
+    column: 8
+  - tt:
+      Op: Assign
+    line: 9
+    column: 13
+  - tt:
+      Bool: true
+    line: 9
+    column: 15
+  - tt: Let
+    line: 10
+    column: 1
+  - tt:
+      Ident: d
+    line: 10
+    column: 5
+  - tt: Colon
+    line: 10
+    column: 6
+  - tt:
+      VarType: Bool
+    line: 10
+    column: 8
+  - tt:
+      Op: Assign
+    line: 10
+    column: 13
+  - tt:
+      Bool: false
+    line: 10
+    column: 15
 

@@ -21,86 +21,13 @@ fn print_eq() {
 }
 
 fn main() {
-    //let x: int = -3
-
-    if 3 == -3 {
-        print_dot()
-    }
-
-    if -3 == -3 {
-        print_eq()
-    }
-
-    if 3 == 2 {
-        print_dot()
-    } else {
-        print_eq()
-    }
-
-    if 2 == 2 {
+    let x: int = -3
+    let y: float = 2.0
+    let b: bool = false
+    if x == -3 {
         print_eq()
     } else {
         print_dot()
-    }
-
-    if 3 == -3 {
-        print_dot()
-    } else if 1 < -3 {
-        print_int(3)
-    } else {
-        print_eq()
-    }
-
-    if 3 == -3 {
-        print_dot()
-    } else if 1 > -3 {
-        print_eq()
-    } else {
-        print_int(3)
-    }
-
-    if -3 == -3 {
-        print_eq()
-    } else if 1 < -3 {
-        print_dot()
-    } else {
-        print_int(3)
-    }
-
-    if -3 == -3 {
-        print_eq()
-    } else if 1 > -3 {
-        print_dot()
-    } else {
-        print_int(3)
-    }
-
-    if -3 == -3 {
-        print_eq()
-    } else if 1 < -3 {
-        print_dot()
-    }
-
-    if 3 == -3 {
-        print_dot()
-    } else if 1 > -3 {
-        print_eq()
-    }
-
-    if -3 == -3 {
-        print_eq()
-    } else if 1 > -3 {
-        print_dot()
-    }
-
-    if -3 == -3 {
-        print_eq()
-    } else if 1 > -3 {
-        print_dot()
-    } else if 1 > 3 {
-        print_dot()
-    } else {
-        print_int(3)
     }
 
     print_bang()

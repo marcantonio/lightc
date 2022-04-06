@@ -145,6 +145,7 @@ impl<'a> Parser<'a> {
 
         let expr = match &token.tt {
             TokenType::If => self.parse_cond()?,
+            TokenType::Bool(b) => self.parse_bool(*b)?,
             TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
             TokenType::OpenParen => self.parse_paren()?,
@@ -325,6 +326,13 @@ impl<'a> Parser<'a> {
             args,
             ret_type,
         })
+    }
+
+    fn parse_bool(&self, val: bool) -> ParseResult {
+        Ok(Node::Expr(Expression::Lit {
+            value: Literal::Bool(val),
+            ty: None,
+        }))
     }
 
     fn parse_num(&self, num: &str, token: &Token) -> ParseResult {

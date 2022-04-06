@@ -1,8 +1,8 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 535
+assertion_line: 544
 expression: asts
-input_file: src/parser/tests/inputs/if_only.input
+input_file: src/parser/tests/inputs/if.input
 ---
 - - Ok:
       nodes:
@@ -162,6 +162,48 @@ input_file: src/parser/tests/inputs/if_only.input
                       ty: ~
               ty: ~
   - (if (> a b) foo (if (< c a) bar baz))
+- - Ok:
+      nodes:
+        - Expr:
+            Cond:
+              cond_expr:
+                Lit:
+                  value:
+                    Bool: true
+                  ty: ~
+              then_block:
+                - Expr:
+                    Ident:
+                      name: foo
+                      ty: ~
+              else_block:
+                - Expr:
+                    Ident:
+                      name: bar
+                      ty: ~
+              ty: ~
+  - (if true foo bar)
+- - Ok:
+      nodes:
+        - Expr:
+            Cond:
+              cond_expr:
+                Lit:
+                  value:
+                    Bool: false
+                  ty: ~
+              then_block:
+                - Expr:
+                    Ident:
+                      name: foo
+                      ty: ~
+              else_block:
+                - Expr:
+                    Ident:
+                      name: bar
+                      ty: ~
+              ty: ~
+  - (if false foo bar)
 - - Err:
       message: "Expecting 'if' or '{' after else"
       line: 1

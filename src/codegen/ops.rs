@@ -224,7 +224,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         Ok(self
             .builder
-            .build_int_cast(inst, self.context.i32_type(), "cmp.bool")
+            .build_int_cast(inst, self.context.bool_type(), "cmp.bool")
             .as_basic_value_enum())
     }
 

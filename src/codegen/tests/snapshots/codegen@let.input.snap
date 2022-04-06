@@ -1,9 +1,10 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 746
+assertion_line: 768
 expression: ir
 input_file: src/codegen/tests/inputs/let.input
 ---
-- "define void @main() {\nentry:\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  ret void\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
 

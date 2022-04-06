@@ -117,6 +117,7 @@ pub(crate) enum Literal {
     UInt64(u64),
     Float(f32),
     Double(f64),
+    Bool(bool)
 }
 
 #[derive(Debug, PartialEq, Serialize)]

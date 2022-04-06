@@ -116,6 +116,7 @@ impl Display for Literal {
             Literal::UInt64(v) => write!(f, "{}", v),
             Literal::Float(v) => write!(f, "{}", v),
             Literal::Double(v) => write!(f, "{}", v),
+            Literal::Bool(v) => write!(f, "{}", v),
         }
     }
 }
