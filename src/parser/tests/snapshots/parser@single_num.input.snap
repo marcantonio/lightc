@@ -9,7 +9,7 @@ input_file: src/parser/tests/inputs/single_num.input
         - Expr:
             Lit:
               value:
-                Int32: 19
+                UInt64: 19
               ty: ~
   - "19"
 

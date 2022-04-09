@@ -13,7 +13,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 21
+                      UInt64: 21
                     ty: ~
               ty: ~
   - (- 21)
@@ -36,7 +36,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 2
+                      UInt64: 2
                     ty: ~
               ty: ~
   - (* (- a) 2)
@@ -49,7 +49,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 3
+                      UInt64: 3
                     ty: ~
               rhs:
                 Expr:
@@ -59,7 +59,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 21
+                            UInt64: 21
                           ty: ~
                     ty: ~
               ty: ~
@@ -77,13 +77,13 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 4
+                            UInt64: 4
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            Int32: 2
+                            UInt64: 2
                           ty: ~
                     ty: ~
               ty: ~
@@ -101,7 +101,7 @@ input_file: src/parser/tests/inputs/unary_ops.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 21
+                            UInt64: 21
                           ty: ~
                     ty: ~
               ty: ~

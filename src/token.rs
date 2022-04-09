@@ -118,8 +118,12 @@ impl std::fmt::Display for Symbol {
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub(crate) enum Type {
+    Int8,
+    Int16,
     Int32,
     Int64,
+    UInt8,
+    UInt16,
     UInt32,
     UInt64,
     Float,

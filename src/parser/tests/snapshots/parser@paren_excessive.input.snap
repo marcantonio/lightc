@@ -9,7 +9,7 @@ input_file: src/parser/tests/inputs/paren_excessive.input
         - Expr:
             Lit:
               value:
-                Int32: 0
+                UInt64: 0
               ty: ~
   - "0"
 

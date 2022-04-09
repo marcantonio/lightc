@@ -98,33 +98,60 @@ pub(crate) enum Expression {
 
 impl Expression {
     pub(crate) fn ty(&self) -> Option<Type> {
+        use Expression::*;
+
         match self {
-            Expression::Lit { ty, .. } => *ty,
-            Expression::Ident { ty, .. } => *ty,
-            Expression::BinOp { ty, .. } => *ty,
-            Expression::UnOp { ty, .. } => *ty,
-            Expression::Call { ty, .. } => *ty,
-            Expression::Cond { ty, .. } => *ty,
+            Lit { ty, .. } => *ty,
+            Ident { ty, .. } => *ty,
+            BinOp { ty, .. } => *ty,
+            UnOp { ty, .. } => *ty,
+            Call { ty, .. } => *ty,
+            Cond { ty, .. } => *ty,
         }
+    }
+
+    pub(crate) fn is_num_literal(&self) -> bool {
+        matches!(
+            self,
+            Expression::Lit {
+                value: Literal::Int8(_)
+                    | Literal::Int16(_)
+                    | Literal::Int32(_)
+                    | Literal::Int64(_)
+                    | Literal::UInt8(_)
+                    | Literal::UInt16(_)
+                    | Literal::UInt32(_)
+                    | Literal::UInt64(_)
+                    | Literal::Float(_)
+                    | Literal::Double(_),
+                ..
+            }
+        )
     }
 }
 
 #[derive(Debug, PartialEq, Serialize)]
+// XXX
+#[allow(dead_code)]
 pub(crate) enum Literal {
+    Int8(i8),
+    Int16(i16),
     Int32(i32),
     Int64(i64),
+    UInt8(u8),
+    UInt16(u16),
     UInt32(u32),
     UInt64(u64),
     Float(f32),
     Double(f64),
-    Bool(bool)
+    Bool(bool),
 }
 
 #[derive(Debug, PartialEq, Serialize)]
 pub(crate) struct Prototype {
     pub(crate) name: String,
     pub(crate) args: Vec<(String, Type)>,
-    pub(crate) ret_type: Option<Type>,
+    pub(crate) ret_ty: Option<Type>,
 }
 
 // Immutable visitor interface

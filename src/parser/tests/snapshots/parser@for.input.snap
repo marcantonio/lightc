@@ -13,7 +13,7 @@ input_file: src/parser/tests/inputs/for.input
               start_expr:
                 Lit:
                   value:
-                    Int32: 1
+                    UInt64: 1
                   ty: ~
               cond_expr:
                 BinOp:
@@ -27,13 +27,13 @@ input_file: src/parser/tests/inputs/for.input
                     Expr:
                       Lit:
                         value:
-                          Int32: 10
+                          UInt64: 10
                         ty: ~
                   ty: ~
               step_expr:
                 Lit:
                   value:
-                    Int32: 1
+                    UInt64: 1
                   ty: ~
               body:
                 - Expr:

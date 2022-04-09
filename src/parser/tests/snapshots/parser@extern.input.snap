@@ -13,7 +13,7 @@ input_file: src/parser/tests/inputs/extern.input
                 args:
                   - - x
                     - Float
-                ret_type: ~
+                ret_ty: ~
               body: ~
   - "(define (cos x:float))"
 

@@ -13,13 +13,13 @@ input_file: src/parser/tests/inputs/bin_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 20
+                      UInt64: 20
                     ty: ~
               rhs:
                 Expr:
                   Lit:
                     value:
-                      Int32: 19
+                      UInt64: 19
                     ty: ~
               ty: ~
   - (- 20 19)

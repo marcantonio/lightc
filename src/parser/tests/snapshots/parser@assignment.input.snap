@@ -27,7 +27,7 @@ input_file: src/parser/tests/inputs/assignment.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 1
+                            UInt64: 1
                           ty: ~
                     ty: ~
               ty: ~

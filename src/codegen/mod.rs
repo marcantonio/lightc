@@ -114,6 +114,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create alloca and return it
         match ty {
+            int8_types!() => builder.build_alloca(self.context.i8_type(), name),
+            int16_types!() => builder.build_alloca(self.context.i16_type(), name),
             int32_types!() => builder.build_alloca(self.context.i32_type(), name),
             int64_types!() => builder.build_alloca(self.context.i64_type(), name),
             Type::Float => builder.build_alloca(self.context.f32_type(), name),
@@ -168,6 +170,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .map(|x| {
                 let (_, ty) = x;
                 match ty {
+                    int8_types!() => BasicMetadataTypeEnum::IntType(self.context.i8_type()),
+                    int16_types!() => BasicMetadataTypeEnum::IntType(self.context.i16_type()),
                     int32_types!() => BasicMetadataTypeEnum::IntType(self.context.i32_type()),
                     int64_types!() => BasicMetadataTypeEnum::IntType(self.context.i64_type()),
                     Type::Float => BasicMetadataTypeEnum::FloatType(self.context.f32_type()),
@@ -181,7 +185,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         // Generate function based on return type
-        let func_type = match proto.ret_type {
+        let func_type = match proto.ret_ty {
+            Some(int8_types!()) => self.context.i8_type().fn_type(&args_type, false),
+            Some(int16_types!()) => self.context.i16_type().fn_type(&args_type, false),
             Some(int32_types!()) => self.context.i32_type().fn_type(&args_type, false),
             Some(int64_types!()) => self.context.i64_type().fn_type(&args_type, false),
             Some(Type::Float) => self.context.f32_type().fn_type(&args_type, false),
@@ -238,7 +244,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
 
         // Build the return function based on the prototype's return value and the last statement
-        match (proto.ret_type, last_node_val) {
+        match (proto.ret_ty, last_node_val) {
             (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
             (Some(rt), None) => {
                 return Err(format!(
@@ -386,6 +392,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     unreachable!("NONCANBE: void type for init expr in codegen_let()");
                 }
             }
+            (int8_types!(), None) => {
+                Some(self.context.i8_type().const_zero().as_basic_value_enum())
+            }
+            (int16_types!(), None) => {
+                Some(self.context.i16_type().const_zero().as_basic_value_enum())
+            }
             (int32_types!(), None) => {
                 Some(self.context.i32_type().const_zero().as_basic_value_enum())
             }
@@ -431,38 +443,60 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     fn codegen_lit(&self, value: &Literal) -> ExprResult<'ctx> {
+        use Literal::*;
+
         Ok(match value {
-            Literal::Int32(v) => self
+            Int8(v) => self
+                .context
+                .i8_type()
+                .const_int(*v as u64, true)
+                .as_basic_value_enum(),
+            Int16(v) => self
+                .context
+                .i16_type()
+                .const_int(*v as u64, true)
+                .as_basic_value_enum(),
+            Int32(v) => self
                 .context
                 .i32_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            Literal::Int64(v) => self
+            Int64(v) => self
                 .context
                 .i64_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            Literal::UInt32(v) => self
+            UInt8(v) => self
+                .context
+                .i8_type()
+                .const_int(*v as u64, false)
+                .as_basic_value_enum(),
+            UInt16(v) => self
+                .context
+                .i16_type()
+                .const_int(*v as u64, false)
+                .as_basic_value_enum(),
+            UInt32(v) => self
                 .context
                 .i32_type()
                 .const_int(*v as u64, false)
                 .as_basic_value_enum(),
-            Literal::UInt64(v) => self
+            UInt64(v) => self
                 .context
                 .i64_type()
                 .const_int(*v, false)
                 .as_basic_value_enum(),
-            Literal::Float(v) => self
+            Float(v) => self
                 .context
                 .f32_type()
                 .const_float(*v as f64)
                 .as_basic_value_enum(),
-            Literal::Double(v) => self
+            Double(v) => self
                 .context
                 .f64_type()
                 .const_float(*v)
                 .as_basic_value_enum(),
-            Literal::Bool(v) => self
+            Bool(v) => self
                 .context
                 .bool_type()
                 .const_int(*v as u64, true)
@@ -676,6 +710,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn build_phi_for_type(&self, ty: Type, name: &str) -> PhiValue<'ctx> {
         let name = name.to_owned();
         match ty {
+            int8_types!() => self
+                .builder
+                .build_phi(self.context.i8_type(), &(name + ".int8")),
+            int16_types!() => self
+                .builder
+                .build_phi(self.context.i16_type(), &(name + ".int16")),
             int32_types!() => self
                 .builder
                 .build_phi(self.context.i32_type(), &(name + ".int32")),
@@ -722,10 +762,7 @@ mod test {
     use inkwell::passes::PassManager;
     use inkwell::values::FunctionValue;
     use inkwell::{context::Context, values::AnyValue};
-    use insta::{assert_yaml_snapshot, glob, with_settings};
-    use std::fs::File;
     use std::io::BufRead;
-    use std::io::BufReader;
 
     use super::*;
     use crate::lexer::Lexer;
@@ -742,10 +779,10 @@ mod test {
 
     #[test]
     fn test_codegen() {
-        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            glob!("tests/inputs/*.input", |path| {
-                let file = File::open(path).expect("Error reading input file");
-                let reader = BufReader::new(file);
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::glob!("tests/inputs/*.input", |path| {
+                let file = std::fs::File::open(path).expect("Error reading input file");
+                let reader = std::io::BufReader::new(file);
 
                 // Each line of the input files is meant to be a separate test
                 // case. Treat each as its own AST. Including `ast_string` in the
@@ -765,7 +802,7 @@ mod test {
                         code_to_string(codegen.walk(&ast))
                     })
                     .collect::<Vec<_>>();
-                assert_yaml_snapshot!(ir);
+                insta::assert_yaml_snapshot!(ir);
             });
         });
     }

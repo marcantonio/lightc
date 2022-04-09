@@ -1,3 +1,4 @@
+use std::num::IntErrorKind;
 use std::{iter::Peekable, slice::Iter};
 
 use self::{errors::ParseError, precedence::OpPrec};
@@ -324,7 +325,7 @@ impl<'a> Parser<'a> {
         Ok(Prototype {
             name: fn_name.to_string(),
             args,
-            ret_type,
+            ret_ty: ret_type,
         })
     }
 
@@ -335,42 +336,33 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    // Literal numbers are u64 or f64
+    // TODO: Revisit when we have literal annotations, i.e., 78int64.
     fn parse_num(&self, num: &str, token: &Token) -> ParseResult {
-        if let Ok(n) = num.parse::<i32>() {
-            Ok(Node::Expr(Expression::Lit {
-                value: Literal::Int32(n),
-                ty: None,
-            }))
-        } else if let Ok(n) = num.parse::<i64>() {
-            Ok(Node::Expr(Expression::Lit {
-                value: Literal::Int64(n),
-                ty: None,
-            }))
-        } else if let Ok(n) = num.parse::<u32>() {
-            Ok(Node::Expr(Expression::Lit {
-                value: Literal::UInt32(n),
-                ty: None,
-            }))
-        } else if let Ok(n) = num.parse::<u64>() {
-            Ok(Node::Expr(Expression::Lit {
+        match num.parse::<u64>() {
+            Ok(n) => Ok(Node::Expr(Expression::Lit {
                 value: Literal::UInt64(n),
                 ty: None,
-            }))
-        } else if let Ok(n) = num.parse::<f32>() {
-            Ok(Node::Expr(Expression::Lit {
-                value: Literal::Float(n),
-                ty: None,
-            }))
-        } else if let Ok(n) = num.parse::<f64>() {
-            Ok(Node::Expr(Expression::Lit {
-                value: Literal::Double(n),
-                ty: None,
-            }))
-        } else {
-            Err(ParseError::from((
-                format!("Invalid number literal: {}", token),
-                token,
-            )))
+            })),
+            Err(e)
+                if e.kind() == &IntErrorKind::PosOverflow
+                    || e.kind() == &IntErrorKind::NegOverflow =>
+            {
+                Err(ParseError::from((
+                    format!("Numeric literal out of integer range: {}", token),
+                    token,
+                )))
+            }
+            _ => match num.parse::<f32>() {
+                Ok(n) => Ok(Node::Expr(Expression::Lit {
+                    value: Literal::Float(n),
+                    ty: None,
+                })),
+                Err(_) => Err(ParseError::from((
+                    format!("Invalid numeric literal: {}", token),
+                    token,
+                ))),
+            },
         }
     }
 
@@ -502,17 +494,10 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
-    use insta::{assert_yaml_snapshot, glob, with_settings};
-    use std::{
-        fs::File,
-        io::{BufRead, BufReader},
-    };
+    use std::io::BufRead;
 
-    use crate::{
-        ast::{Ast, Node},
-        lexer::Lexer,
-        parser::{ParseError, Parser},
-    };
+    use super::*;
+    use crate::lexer::Lexer;
 
     fn ast_to_string(ast: Result<&Ast<Node>, &ParseError>) -> String {
         match ast {
@@ -523,10 +508,10 @@ mod test {
 
     #[test]
     fn test_parser() {
-        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            glob!("tests/inputs/*.input", |path| {
-                let file = File::open(path).expect("Error reading input file");
-                let reader = BufReader::new(file);
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::glob!("tests/inputs/*.input", |path| {
+                let file = std::fs::File::open(path).expect("Error reading input file");
+                let reader = std::io::BufReader::new(file);
 
                 // Each line of the input files is meant to be a separate test
                 // case. Treat each as its own AST. Including `ast_string` in the
@@ -541,7 +526,7 @@ mod test {
                         (ast, ast_string)
                     })
                     .collect::<Vec<_>>();
-                assert_yaml_snapshot!(asts);
+                insta::assert_yaml_snapshot!(asts);
             });
         });
     }

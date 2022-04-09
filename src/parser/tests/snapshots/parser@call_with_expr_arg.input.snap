@@ -22,7 +22,7 @@ input_file: src/parser/tests/inputs/call_with_expr_arg.input
                         Expr:
                           Lit:
                             value:
-                              Int32: 1
+                              UInt64: 1
                             ty: ~
                       ty: ~
                 - Expr:
@@ -41,13 +41,13 @@ input_file: src/parser/tests/inputs/call_with_expr_arg.input
                               Expr:
                                 Lit:
                                   value:
-                                    Int32: 2
+                                    UInt64: 2
                                   ty: ~
                             rhs:
                               Expr:
                                 Lit:
                                   value:
-                                    Int32: 4
+                                    UInt64: 4
                                   ty: ~
                             ty: ~
                       ty: ~

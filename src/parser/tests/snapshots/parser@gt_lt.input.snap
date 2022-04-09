@@ -28,7 +28,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 40
+                      UInt64: 40
                     ty: ~
               ty: ~
   - (> (+ a b) 40)
@@ -55,7 +55,7 @@ input_file: src/parser/tests/inputs/gt_lt.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 40
+                            UInt64: 40
                           ty: ~
                     ty: ~
               ty: ~

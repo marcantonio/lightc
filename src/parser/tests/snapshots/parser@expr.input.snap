@@ -17,7 +17,7 @@ input_file: src/parser/tests/inputs/expr.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 19
+                            UInt64: 19
                           ty: ~
                     rhs:
                       Expr:
@@ -29,7 +29,7 @@ input_file: src/parser/tests/inputs/expr.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 40
+                      UInt64: 40
                     ty: ~
               ty: ~
   - (+ (+ 19 a) 40)

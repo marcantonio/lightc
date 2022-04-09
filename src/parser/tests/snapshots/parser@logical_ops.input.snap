@@ -18,7 +18,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 1
+                      UInt64: 1
                     ty: ~
               ty: ~
   - (== x 1)
@@ -36,7 +36,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 1
+                      UInt64: 1
                     ty: ~
               ty: ~
   - (&& x 1)
@@ -54,7 +54,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                 Expr:
                   Lit:
                     value:
-                      Int32: 1
+                      UInt64: 1
                     ty: ~
               ty: ~
   - (|| x 1)
@@ -80,7 +80,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 1
+                                  UInt64: 1
                                 ty: ~
                           ty: ~
                     rhs:
@@ -96,7 +96,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 2
+                                  UInt64: 2
                                 ty: ~
                           ty: ~
                     ty: ~
@@ -113,7 +113,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 3
+                            UInt64: 3
                           ty: ~
                     ty: ~
               ty: ~
@@ -136,7 +136,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 1
+                            UInt64: 1
                           ty: ~
                     ty: ~
               rhs:
@@ -156,7 +156,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 2
+                                  UInt64: 2
                                 ty: ~
                           ty: ~
                     rhs:
@@ -172,7 +172,7 @@ input_file: src/parser/tests/inputs/logical_ops.input
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 3
+                                  UInt64: 3
                                 ty: ~
                           ty: ~
                     ty: ~

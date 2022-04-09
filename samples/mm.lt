@@ -1,34 +1,37 @@
 extern putchar(x: int)
 
-fn print_dot() {
+fn printDot() {
     putchar(46)
     putchar(10)
 }
 
-fn print_int(x: int) {
+fn printInt(x: int, y: int8) {
     putchar(x + 48)
     putchar(10)
 }
 
-fn print_bang() {
+fn printBang() {
     putchar(33)
     putchar(10)
 }
 
-fn print_eq() {
+fn printEq() {
     putchar(61)
     putchar(10)
 }
 
 fn main() {
-    let x: int = -3
-    let y: float = 2.0
-    let b: bool = false
-    if x == -3 {
-        print_eq()
-    } else {
-        print_dot()
-    }
+    let x: int8 = 1
+    x = x + 3
+    printInt(3, 40)
+    // let x: int8 = 3
+    // let y: float = 2.0
+    // let b: bool = false
+    // if x == 3 {
+    //     printEq()
+    // } else {
+    //     printDot()
+    // }
 
-    print_bang()
+    // printBang()
 }

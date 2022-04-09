@@ -17,13 +17,13 @@ input_file: src/parser/tests/inputs/multi_num.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 19
+                            UInt64: 19
                           ty: ~
                     rhs:
                       Expr:
                         Lit:
                           value:
-                            Int32: 21
+                            UInt64: 21
                           ty: ~
                     ty: ~
               rhs:
@@ -34,7 +34,7 @@ input_file: src/parser/tests/inputs/multi_num.input
                       Expr:
                         Lit:
                           value:
-                            Int32: 40
+                            UInt64: 40
                           ty: ~
                     ty: ~
               ty: ~

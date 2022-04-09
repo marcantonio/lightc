@@ -19,6 +19,7 @@
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
 - [ ] Ensure conditionals are bools
+- [ ] Block scope
 
 # Roadmap
 - [ ] Formalize grammar

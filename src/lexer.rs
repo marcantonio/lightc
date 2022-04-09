@@ -64,13 +64,18 @@ impl Lexer {
                 "extern" => TokenType::Extern,
                 "true" => TokenType::Bool(true),
                 "false" => TokenType::Bool(false),
+                "int8" => TokenType::VarType(Type::Int8),
+                "int16" => TokenType::VarType(Type::Int16),
                 "int32" => TokenType::VarType(Type::Int32),
                 "int64" => TokenType::VarType(Type::Int64),
+                "uint8" => TokenType::VarType(Type::UInt8),
+                "uint16" => TokenType::VarType(Type::UInt16),
                 "uint32" => TokenType::VarType(Type::UInt32),
                 "uint64" => TokenType::VarType(Type::UInt64),
                 "float" => TokenType::VarType(Type::Float),
                 "double" => TokenType::VarType(Type::Double),
                 "bool" => TokenType::VarType(Type::Bool),
+                "char" => TokenType::VarType(Type::UInt8),
                 // TODO: don't hardcode these
                 "int" => TokenType::VarType(Type::Int32),
                 "uint" => TokenType::VarType(Type::UInt32),
@@ -264,17 +269,14 @@ impl<T> From<(String, ContextPoint<T>)> for LexError {
 
 #[cfg(test)]
 mod test {
-    use insta::{assert_yaml_snapshot, glob, with_settings};
-    use std::fs;
-
     use super::*;
 
     #[test]
     fn test_lexer() {
-        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            glob!("tests/inputs/lexer/*.input", |path| {
-                let input = fs::read_to_string(path).unwrap();
-                assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>());
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::glob!("tests/inputs/lexer/*.input", |path| {
+                let input = std::fs::read_to_string(path).unwrap();
+                insta::assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>());
             });
         });
     }

@@ -14,6 +14,7 @@ impl Display for Node {
 impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Statement::*;
+
         match self {
             For {
                 start_name,
@@ -57,6 +58,7 @@ impl Display for Statement {
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Expression::*;
+
         match self {
             Lit { value, .. } => write!(f, "{}", value),
             BinOp { sym, lhs, rhs, .. } => write!(f, "({} {} {})", sym, lhs, rhs),
@@ -109,14 +111,20 @@ impl Display for Prototype {
 
 impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Literal::*;
+
         match self {
-            Literal::Int32(v) => write!(f, "{}", v),
-            Literal::Int64(v) => write!(f, "{}", v),
-            Literal::UInt32(v) => write!(f, "{}", v),
-            Literal::UInt64(v) => write!(f, "{}", v),
-            Literal::Float(v) => write!(f, "{}", v),
-            Literal::Double(v) => write!(f, "{}", v),
-            Literal::Bool(v) => write!(f, "{}", v),
+            Int8(v) => write!(f, "{}", v),
+            Int16(v) => write!(f, "{}", v),
+            Int32(v) => write!(f, "{}", v),
+            Int64(v) => write!(f, "{}", v),
+            UInt8(v) => write!(f, "{}", v),
+            UInt16(v) => write!(f, "{}", v),
+            UInt32(v) => write!(f, "{}", v),
+            UInt64(v) => write!(f, "{}", v),
+            Float(v) => write!(f, "{}", v),
+            Double(v) => write!(f, "{}", v),
+            Bool(v) => write!(f, "{}", v),
         }
     }
 }
