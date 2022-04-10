@@ -1,0 +1,53 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 505
+expression: ir
+input_file: src/type_checker/tests/inputs/call.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: plusOne
+              args:
+                - - x
+                  - Int32
+              ret_ty: Int32
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Ident:
+                          name: x
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    ty: Int32
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              - Expr:
+                  Call:
+                    name: plusOne
+                    args:
+                      - Expr:
+                          Lit:
+                            value:
+                              Int32: 1
+                            ty: Int32
+                    ty: Int32
+- Err: "Call to undefined function: `plusThree`"
+- Err: "Type mismatch in arg 1 of call to plusOne: int32 != float"
+- Err: Call to plusOne takes 1 args and 2 were given
+

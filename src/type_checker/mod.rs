@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::token::{Symbol, Type};
+use lightc::*;
 
 macro_rules! convert_num {
     ($lit:expr, $val:expr, $variant:ident, $ty:ty) => {{
@@ -96,6 +97,7 @@ impl TypeChecker {
         }
     }
 
+    // Check function definitions. This function also does the proto.
     // TODO: Variable shadowing
     fn check_func(
         &mut self,
@@ -123,12 +125,12 @@ impl TypeChecker {
             None => return Ok(()),
         };
 
-        // Insert args
+        // Insert args into the local symbol table
         for (name, ty) in &proto.args {
             self.variable_table.insert(name.to_owned(), *ty);
         }
 
-        // Check the body
+        // Check the body. Ensure statements always eval to void.
         let mut body_ty = Type::Void;
         for node in body.iter_mut() {
             body_ty = match node {
@@ -140,28 +142,37 @@ impl TypeChecker {
             }
         }
 
-        // Ensure main always returns a 0 if nothing is specified
+        // Ensure main is always an int32 and returns a 0 if nothing is
+        // specified
         //
         // TODO: Should go into a desugar phase
-        let ret_ty = func_entry.ret_ty;
-        if proto.name == "main" && body_ty == Type::Void {
-            body.push(Node::Expr(Expression::Lit {
-                value: Literal::Int32(0),
-                ty: Some(Type::Int32),
-            }));
+        if proto.name == "main" {
+            // If the last statement isn't an int, insert one
+            match body_ty {
+                int_types!() => {}
+                _ => {
+                    body.push(Node::Expr(Expression::Lit {
+                        value: Literal::Int32(0),
+                        ty: Some(Type::Int32),
+                    }));
+                }
+            }
             body_ty = Type::Int32;
             func_entry.ret_ty = body_ty;
             proto.ret_ty = Some(body_ty);
             self.function_table
-                .insert(proto.name.to_owned(), func_entry);
+                .insert(proto.name.to_owned(), func_entry.clone());
+        } else {
+            // Make sure these are in sync since there's no `check_proto()`
+            proto.ret_ty = Some(func_entry.ret_ty);
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void, for now.
-        if ret_ty != body_ty && ret_ty != Type::Void {
+        if func_entry.ret_ty != body_ty && func_entry.ret_ty != Type::Void {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
-                proto.name, ret_ty, body_ty
+                proto.name, func_entry.ret_ty, body_ty
             ));
         }
 
@@ -182,7 +193,7 @@ impl TypeChecker {
         step_expr: &mut Expression,
         body: &mut [Node],
     ) -> Result<(), String> {
-        let start_ty = self.check_expr(start_expr, None)?;
+        let start_ty = self.check_expr(start_expr, Some(start_antn))?;
         if start_antn != start_ty {
             return Err(format!(
                 "Initial type mismatch in for statement. Annotated with `{}` but value is `{}`",
@@ -194,10 +205,12 @@ impl TypeChecker {
         self.variable_table
             .insert(start_name.to_owned(), start_antn);
 
-        // ignore conditional type; it should always be bool
-        self.check_expr(cond_expr, None)?;
+        let cond_ty = self.check_expr(cond_expr, None)?;
+        if cond_ty != Type::Bool {
+            return Err("For loop conditional should always be a bool".to_string());
+        }
 
-        let step_ty = self.check_expr(step_expr, None)?;
+        let step_ty = self.check_expr(step_expr, Some(start_ty))?;
         if step_ty != start_ty {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
@@ -280,12 +293,18 @@ impl TypeChecker {
                     Type::UInt16 => convert_num!(lit, v, UInt16, u16),
                     Type::UInt32 => convert_num!(lit, v, UInt32, u32),
                     Type::UInt64 => convert_num!(lit, v, UInt64, u64),
+                    float_types!() => {
+                        return Err("Literal is an integer in a float context".to_string())
+                    }
                     _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
                 },
                 Float(v) => match hint {
                     Type::Float => convert_num!(lit, v, Float, f32),
                     Type::Double => convert_num!(lit, v, Double, f64),
-                    _ => return Err("NONCANBE: Internal float conversion error".to_string()),
+                    int_types!() => {
+                        return Err("Literal is a float in an integer context".to_string())
+                    }
+                    _ => unreachable!("NONCANBE: Internal float conversion error"),
                 },
                 Double(_) => Type::Double,
                 Bool(_) => Type::Bool,
@@ -298,7 +317,7 @@ impl TypeChecker {
                 }
                 Float(_) => Type::Float,
                 Bool(_) => Type::Bool,
-                x => return Err(format!("NONCANBE: Internal numeric conversion error for {}", x)),
+                x => unreachable!("NONCANBE: Internal numeric conversion error for {}", x),
             },
         };
 
@@ -307,6 +326,8 @@ impl TypeChecker {
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
+        println!("{:?}", name);
+        println!("{:?}", self.variable_table);
         let ident_ty = *self
             .variable_table
             .get(name)
@@ -330,13 +351,20 @@ impl TypeChecker {
         // Pull out the function arg types
         let fe_arg_tys: Vec<Type> = func_entry.arg_tys.to_vec();
 
+        // Check arg length
+        let fe_args_len = fe_arg_tys.len();
+        let args_len = args.len();
+        if fe_arg_tys.len() != args.len() {
+            return Err(format!("Call to {} takes {} args and {} were given", name, fe_args_len, args_len));
+        }
+
         // Update expression type
         let ret_ty = func_entry.ret_ty;
         *ty = Some(ret_ty);
 
         // Check all args and record their types. Use the function entry arg
         // types as type hints.
-        let mut arg_tys = Vec::with_capacity(args.len());
+        let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.iter_mut().enumerate() {
             arg_tys.push((idx, self.check_expr(*expr, Some(fe_arg_tys[idx]))?));
         }
@@ -396,7 +424,7 @@ impl TypeChecker {
 
         let new_ty = match sym {
             Symbol::And | Symbol::Eq | Symbol::Gt | Symbol::Lt | Symbol::Not | Symbol::Or => {
-                Type::UInt32 // XXX
+                Type::Bool
             }
             _ => lhs_ty,
         };
@@ -407,6 +435,7 @@ impl TypeChecker {
     }
 
     fn check_unop(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
+        println!(">>>{:?}", rhs);
         let rhs_ty = self.check_expr(rhs, None)?;
         *ty = Some(rhs_ty);
         Ok(rhs_ty)
@@ -419,7 +448,11 @@ impl TypeChecker {
         else_block: &mut Option<Vec<&mut Expression>>,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
-        self.check_expr(cond_expr, None)?;
+        let cond_ty = self.check_expr(cond_expr, None)?;
+        if cond_ty != Type::Bool {
+            return Err("Conditional should always be a bool".to_string());
+        }
+
 
         let mut then_ty = Type::Void;
         for node in then_block {
@@ -447,15 +480,39 @@ impl TypeChecker {
 
 #[cfg(test)]
 mod test {
-    use insta::{with_settings, glob};
+    use std::io::BufRead;
 
-    use super::{Literal::*, TypeChecker};
-    use crate::{
-        ast::{Expression, Literal},
-        token::{Symbol, Type}, lexer::Lexer, parser::Parser,
-    };
+    use super::*;
+    use crate::{lexer::Lexer, parser::Parser};
+    use Literal::*;
 
     const ERR_STR: &str = "Numeric literal out of range";
+
+    #[test]
+    fn test_type_checker() {
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::glob!("tests/inputs/*.input", |path| {
+                let file = std::fs::File::open(path).expect("Error reading input file");
+                let reader = std::io::BufReader::new(file);
+
+                // Each line of the input files is meant to be a separate test
+                // case.
+                let ir = reader
+                    .lines()
+                    .map(|line| {
+                        let line = line.expect("Error reading input line");
+                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
+                        let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
+                        match TypeChecker::new().walk(&mut ast) {
+                            Ok(_) => Ok(ast),
+                            Err(e) => Err(e),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                insta::assert_yaml_snapshot!(ir);
+            });
+        });
+    }
 
     #[test]
     fn test_tyc_int_no_hint() {
@@ -561,35 +618,5 @@ mod test {
         test_lit_hint_binop_int!(UInt64);
         test_lit_hint_binop_float!(Float);
         test_lit_hint_binop_float!(Double);
-    }
-
-    #[test]
-    fn test_codegen() {
-        with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            glob!("tests/inputs/*.input", |path| {
-                let file = std::fs::File::open(path).expect("Error reading input file");
-                let reader = std::io::BufReader::new(file);
-
-                // Each line of the input files is meant to be a separate test
-                // case. Treat each as its own AST. Including `ast_string` in the
-                // output makes it more readable.
-                let ir = reader
-                    .lines()
-                    .map(|line| {
-                        let line = line.expect("Error reading input line");
-                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
-                        let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
-                        TypeChecker::new().walk(&mut ast).unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
-                        let context = Context::create();
-                        let builder = context.create_builder();
-                        let module = context.create_module("main_mod");
-                        let fpm = PassManager::create(&module);
-                        let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
-                        code_to_string(codegen.walk(&ast))
-                    })
-                    .collect::<Vec<_>>();
-                assert_yaml_snapshot!(ir);
-            });
-        });
     }
 }

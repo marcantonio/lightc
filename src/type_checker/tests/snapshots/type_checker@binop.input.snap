@@ -1,0 +1,213 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 505
+expression: ir
+input_file: src/type_checker/tests/inputs/binop.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 2
+                          ty: Int32
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  Let:
+                    name: a
+                    antn: Int32
+                    init:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Ident:
+                          name: a
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 2
+                          ty: Int32
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  Let:
+                    name: a
+                    antn: Int32
+                    init:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: a
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                sym: Div
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 2
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 4
+                                      ty: Int32
+                                ty: Int32
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        BinOp:
+                          sym: Mul
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          ty: Int32
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: plusOne
+              args:
+                - - x
+                  - Int32
+              ret_ty: Int32
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Ident:
+                          name: x
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    ty: Int32
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Call:
+                          name: plusOne
+                          args:
+                            - Expr:
+                                Lit:
+                                  value:
+                                    Int32: 3
+                                  ty: Int32
+                          ty: Int32
+                    ty: Int32
+- Err: "Mismatched types in binop: `float` != `int32`"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Eq
+                    lhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 2
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    ty: Bool
+

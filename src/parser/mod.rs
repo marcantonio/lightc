@@ -494,8 +494,6 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
-    use std::io::BufRead;
-
     use super::*;
     use crate::lexer::Lexer;
 
@@ -516,8 +514,7 @@ mod test {
                 // Each line of the input files is meant to be a separate test
                 // case. Treat each as its own AST. Including `ast_string` in the
                 // output makes it more readable.
-                let asts = reader
-                    .lines()
+                let asts = std::io::BufRead::lines(reader)
                     .map(|line| {
                         let line = line.expect("Error reading input line");
                         let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();

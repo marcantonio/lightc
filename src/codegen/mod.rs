@@ -13,9 +13,8 @@ use crate::ast::{Ast, Expression, Literal};
 use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
 use crate::token::{Symbol, Type};
+use lightc::*;
 
-#[macro_use]
-mod macros;
 mod ops;
 
 type StmtResult<'ctx> = Result<(), String>;
@@ -246,7 +245,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_ty, last_node_val) {
             (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
-            (Some(rt), None) => {
+            (Some(rt), None) if rt != Type::Void => {
                 return Err(format!(
                     "Function should return {} but last statement is void",
                     rt
@@ -785,8 +784,7 @@ mod test {
                 let reader = std::io::BufReader::new(file);
 
                 // Each line of the input files is meant to be a separate test
-                // case. Treat each as its own AST. Including `ast_string` in the
-                // output makes it more readable.
+                // case.
                 let ir = reader
                     .lines()
                     .map(|line| {

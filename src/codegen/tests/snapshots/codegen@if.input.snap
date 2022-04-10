@@ -1,18 +1,18 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 768
+assertion_line: 803
 expression: ir
 input_file: src/codegen/tests/inputs/if.input
 ---
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- "define void @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  ret void\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- "define void @main() {\nentry:\n  ret void\n}\n"
-- "define void @main() {\nentry:\n  ret void\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret i32 7\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret i32 7\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  %. = select i1 %eq.int, i32 7, i32 1\n  ret i32 %.\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 8\n  %. = select i1 %eq.int, i32 7, i32 1\n  ret i32 %.\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 2\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 2\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 3\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  %if.else.phi.int32 = phi i32 [ 2, %if.else ], [ 7, %entry ]\n  ret i32 %if.else.phi.int32\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  %if.else.phi.int32 = phi i32 [ 2, %if.else ], [ 7, %entry ]\n  ret i32 %if.else.phi.int32\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 7\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 2\n}\n"
 

@@ -1,0 +1,43 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 498
+expression: ir
+input_file: src/type_checker/tests/inputs/let.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  Let:
+                    name: x
+                    antn: Int32
+                    init:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 3
+                          ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  Let:
+                    name: x
+                    antn: Int32
+                    init: ~
+- Err: Literal is a float in an integer context
+- Err: "Types don't match in let statement. Annotated with `int32` but initial value is `float`"
+- Err: Numeric literal out of range
+

@@ -133,7 +133,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            int_types!() => Ok(self
+            // XXX: just bools in cmp?
+            Type::Bool | int_types!() => Ok(self
                 .builder
                 .build_or(lhs.0.into_int_value(), rhs.0.into_int_value(), "or.int")
                 .as_basic_value_enum()),

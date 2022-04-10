@@ -1,0 +1,12 @@
+fn foo() { 1 } // basic
+fn bar() { } fn foo() { bar() } // void ret and body
+fn foo(a: int) { a + 1 } // void ret; expr body
+fn foo(a: int, b: float) { } // multiple args
+fn foo(a: int, b: float) -> int { } // expected int in last statement
+fn foo(a: int, b: float) -> int { 1.0 } // expected int in last statement
+fn foo() { } fn foo() { } // can't redefine
+extern foo() // extern
+fn foo() { let a: int8 = 1 } // statement at end of body
+fn main() { } // main exits as int32
+fn main() { 1 } // main exits as int32
+fn main() -> float { 1.0 } // main exits as int32

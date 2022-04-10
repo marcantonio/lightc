@@ -1,0 +1,55 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 605
+expression: ir
+input_file: src/type_checker/tests/inputs/for.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  For:
+                    start_name: x
+                    start_antn: Int8
+                    start_expr:
+                      Lit:
+                        value:
+                          Int8: 1
+                        ty: Int8
+                    cond_expr:
+                      BinOp:
+                        sym: Lt
+                        lhs:
+                          Expr:
+                            Ident:
+                              name: x
+                              ty: Int8
+                        rhs:
+                          Expr:
+                            Lit:
+                              value:
+                                Int8: 2
+                              ty: Int8
+                        ty: Bool
+                    step_expr:
+                      Lit:
+                        value:
+                          Int8: 1
+                        ty: Int8
+                    body:
+                      - Expr:
+                          Ident:
+                            name: x
+                            ty: Int8
+- Err: Literal is a float in an integer context
+- Err: "Initial type mismatch in for statement. Annotated with `int32` but value is `int8`"
+- Err: For loop conditional should always be a bool
+- Err: Literal is a float in an integer context
+- Err: "Step type mismatch in for statement. Step is `int8` but `x` is `int32`"
+

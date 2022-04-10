@@ -1,0 +1,159 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 601
+expression: ir
+input_file: src/type_checker/tests/inputs/def_func.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Expr:
+                  Lit:
+                    value:
+                      Int32: 1
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: bar
+              args: []
+              ret_ty: Void
+            body: []
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Expr:
+                  Call:
+                    name: bar
+                    args: []
+                    ty: Void
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args:
+                - - a
+                  - Int32
+              ret_ty: Void
+            body:
+              - Expr:
+                  BinOp:
+                    sym: Add
+                    lhs:
+                      Expr:
+                        Ident:
+                          name: a
+                          ty: Int32
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args:
+                - - a
+                  - Int32
+                - - b
+                  - Float
+              ret_ty: Void
+            body: []
+- Err: "Function `foo` should return type `int32` but last statement is `void`"
+- Err: "Function `foo` should return type `int32` but last statement is `float`"
+- Err: "Function `foo` can't be redefined"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: ~
+            body: ~
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Stmt:
+                  Let:
+                    name: a
+                    antn: Int8
+                    init:
+                      Expr:
+                        Lit:
+                          value:
+                            Int8: 1
+                          ty: Int8
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              - Expr:
+                  Lit:
+                    value:
+                      Int32: 0
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              - Expr:
+                  Lit:
+                    value:
+                      Int32: 1
+                    ty: Int32
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              - Expr:
+                  Lit:
+                    value:
+                      Float: 1.0
+                    ty: Float
+              - Expr:
+                  Lit:
+                    value:
+                      Int32: 0
+                    ty: Int32
+

@@ -1,0 +1,28 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 508
+expression: ir
+input_file: src/type_checker/tests/inputs/unop.input
+---
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              - Expr:
+                  UnOp:
+                    sym: Sub
+                    rhs:
+                      Expr:
+                        Lit:
+                          value:
+                            Int32: 3
+                          ty: Int32
+                    ty: Int32
+- Ok:
+    nodes: []
+
