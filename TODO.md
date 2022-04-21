@@ -1,7 +1,7 @@
 - [x] Better tests for IR
 - [x] Make else blocks optional
 - [ ] Handle semicolons for multiple expressions
-- [ ] Handle empty function bodies
+- [x] Handle empty function bodies
 - [x] Create parse_block() abstraction
 - [x] Reorganize
 - [x] Test for all lexer errors
@@ -14,15 +14,18 @@
 - [ ] Desugar for loops
 - [x] Fix main exit code
 - [ ] Decide on redundant errors in codegen and the type checker
-- [ ] Force comparisons to be bools (parser)
+- [x] Force comparisons to be bools (parser)
 - [ ] Extensive testing of binops, especially compares
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
 - [ ] Ensure conditionals are bools
 - [ ] Block scope
+- [ ] Token output should be line based
+- [ ] Token output should include source text
+- [ ] Token output should include context info
 
 # Roadmap
-- [ ] Formalize grammar
+- [x] Formalize grammar
 - [ ] Parser error recovery
 - [x] Add primitive types
 - [ ] Add string type
