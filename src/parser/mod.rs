@@ -517,7 +517,7 @@ mod test {
                 let asts = std::io::BufRead::lines(reader)
                     .map(|line| {
                         let line = line.expect("Error reading input line");
-                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
+                        let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let ast = Parser::new(&tokens).parse();
                         let ast_string = ast_to_string(ast.as_ref());
                         (ast, ast_string)

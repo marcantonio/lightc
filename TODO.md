@@ -20,9 +20,8 @@
 - [ ] Contextual type checking errors
 - [ ] Ensure conditionals are bools
 - [ ] Block scope
-- [ ] Token output should be line based
-- [ ] Token output should include source text
-- [ ] Token output should include context info
+- [x] Token output should be line based
+- [x] Token output should include context info
 
 # Roadmap
 - [x] Formalize grammar

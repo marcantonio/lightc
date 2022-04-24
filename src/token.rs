@@ -14,6 +14,16 @@ impl Token {
     pub(crate) fn new(tt: TokenType, line: usize, column: usize) -> Self {
         Token { tt, line, column }
     }
+
+    pub(crate) fn is_eof(&self) -> bool {
+        matches!(
+            self,
+            Token {
+                tt: TokenType::Eof,
+                ..
+            }
+        )
+    }
 }
 
 impl std::fmt::Display for Token {
@@ -24,7 +34,7 @@ impl std::fmt::Display for Token {
 
 impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.tt)
+        write!(f, "{:?} ({}:{})", self.tt, self.line, self.column)
     }
 }
 

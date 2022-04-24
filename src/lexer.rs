@@ -7,13 +7,27 @@ type LexResult = std::result::Result<Token, LexError>;
 
 pub(crate) struct Lexer {
     stream: Peekable<StreamIter<char>>,
+    pub tokens: Vec<Token>,
 }
 
 impl Lexer {
     pub fn new(input: &str) -> Self {
         Lexer {
             stream: StreamIter::new(input).peekable(),
+            tokens: vec![],
         }
+    }
+
+    // Scan all input
+    pub fn scan(mut self) -> Result<Vec<Token>, LexError> {
+        loop {
+            let token = self.lex()?;
+            if token.is_eof() {
+                break;
+            }
+            self.tokens.push(token);
+        }
+        Ok(self.tokens)
     }
 
     // Recursively process enough characters to produce one token
@@ -23,6 +37,7 @@ impl Lexer {
             None => return Ok(Token::default()),
         };
 
+        // Ignore whitespace
         if cur.value.is_ascii_whitespace() {
             while let Some(c) = self.stream.peek() {
                 if !c.value.is_ascii_whitespace() {
@@ -33,7 +48,7 @@ impl Lexer {
             return self.lex(); // Eat trailing newline
         }
 
-        // Comments
+        // Single line comments
         if cur == '/' && matches!(self.stream.peek(), Some(c) if *c == '/') {
             while let Some(c) = self.stream.next() {
                 if c == '\n' {
@@ -43,7 +58,7 @@ impl Lexer {
             return self.lex(); // Eat trailing comment
         }
 
-        // Identifiers: keywords, function names, and variables
+        // Keywords, types, and identifiers
         if cur.value.is_ascii_alphabetic() {
             let mut identifier = String::from(cur.value);
             while let Some(c) = self.stream.peek() {
@@ -150,30 +165,17 @@ impl Lexer {
     }
 }
 
-impl Iterator for Lexer {
-    type Item = LexResult;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.lex() {
-            Ok(Token {
-                tt: TokenType::Eof, ..
-            }) => None,
-            x => Some(x),
-        }
-    }
-}
-
 // Provides additional context for each source character
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct ContextPoint<T> {
+struct ContextElement<T> {
     value: T,
     line: usize,
     column: usize,
 }
 
-impl<T> ContextPoint<T> {
+impl<T> ContextElement<T> {
     fn new(value: T, line: usize, column: usize) -> Self {
-        ContextPoint {
+        ContextElement {
             value,
             line: line + 1,
             column: column + 1,
@@ -181,14 +183,14 @@ impl<T> ContextPoint<T> {
     }
 }
 
-impl PartialEq<char> for ContextPoint<char> {
+impl PartialEq<char> for ContextElement<char> {
     fn eq(&self, other: &char) -> bool {
         self.value == *other
     }
 }
 
-impl<T> From<(TokenType, ContextPoint<T>)> for Token {
-    fn from((ty, ContextPoint { line, column, .. }): (TokenType, ContextPoint<T>)) -> Self {
+impl<T> From<(TokenType, ContextElement<T>)> for Token {
+    fn from((ty, ContextElement { line, column, .. }): (TokenType, ContextElement<T>)) -> Self {
         Token {
             tt: ty,
             line,
@@ -218,19 +220,19 @@ impl StreamIter<char> {
 }
 
 impl Iterator for StreamIter<char> {
-    type Item = ContextPoint<char>;
+    type Item = ContextElement<char>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let line = self.lines.get(self.line);
-        let cc = line?
+        let line = self.lines.get(self.line)?;
+        let cc = line
             .get(self.column)
-            .map(|c| ContextPoint::new(*c, self.line, self.column))
+            .map(|c| ContextElement::new(*c, self.line, self.column))
             .or_else(|| {
                 self.line += 1;
                 self.column = 0;
                 self.lines.get(self.line).and_then(|line| {
                     line.get(self.column)
-                        .map(|c| ContextPoint::new(*c, self.line, self.column))
+                        .map(|c| ContextElement::new(*c, self.line, self.column))
                 })
             });
         self.column += 1;
@@ -257,8 +259,8 @@ impl std::fmt::Display for LexError {
 
 impl std::error::Error for LexError {}
 
-impl<T> From<(String, ContextPoint<T>)> for LexError {
-    fn from((msg, cp): (String, ContextPoint<T>)) -> Self {
+impl<T> From<(String, ContextElement<T>)> for LexError {
+    fn from((msg, cp): (String, ContextElement<T>)) -> Self {
         LexError {
             message: msg,
             line: cp.line,
@@ -276,7 +278,7 @@ mod test {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             insta::glob!("tests/inputs/lexer/*.input", |path| {
                 let input = std::fs::read_to_string(path).unwrap();
-                insta::assert_yaml_snapshot!(Lexer::new(&input).collect::<Result<Vec<_>, _>>());
+                insta::assert_yaml_snapshot!(Lexer::new(&input).scan());
             });
         });
     }
@@ -289,18 +291,18 @@ def
 ghi
 ";
         let mut stream = StreamIter::new(input);
-        assert_eq!(ContextPoint::new('a', 0, 0), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('b', 0, 1), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('c', 0, 2), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('\n', 0, 3), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('d', 1, 0), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('e', 1, 1), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('f', 1, 2), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('\n', 1, 3), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('g', 2, 0), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('h', 2, 1), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('i', 2, 2), stream.next().unwrap());
-        assert_eq!(ContextPoint::new('\n', 2, 3), stream.next().unwrap());
+        assert_eq!(ContextElement::new('a', 0, 0), stream.next().unwrap());
+        assert_eq!(ContextElement::new('b', 0, 1), stream.next().unwrap());
+        assert_eq!(ContextElement::new('c', 0, 2), stream.next().unwrap());
+        assert_eq!(ContextElement::new('\n', 0, 3), stream.next().unwrap());
+        assert_eq!(ContextElement::new('d', 1, 0), stream.next().unwrap());
+        assert_eq!(ContextElement::new('e', 1, 1), stream.next().unwrap());
+        assert_eq!(ContextElement::new('f', 1, 2), stream.next().unwrap());
+        assert_eq!(ContextElement::new('\n', 1, 3), stream.next().unwrap());
+        assert_eq!(ContextElement::new('g', 2, 0), stream.next().unwrap());
+        assert_eq!(ContextElement::new('h', 2, 1), stream.next().unwrap());
+        assert_eq!(ContextElement::new('i', 2, 2), stream.next().unwrap());
+        assert_eq!(ContextElement::new('\n', 2, 3), stream.next().unwrap());
         assert_eq!(None, stream.next());
         assert_eq!(None, stream.next());
     }

@@ -11,13 +11,13 @@ impl OpPrec {
         use Symbol::*;
         match op {
             Pow => Ok(OpPrec::Right(8)),
-            Mul | Div => Ok(OpPrec::Left(7)),
-            Add | Sub => Ok(OpPrec::Left(6)),
-            Gt | Lt => Ok(OpPrec::Left(5)),
+            Mul | Div => Ok(OpPrec::Left(6)),
+            Add | Sub => Ok(OpPrec::Left(5)),
+            Gt | Lt => Ok(OpPrec::Left(4)),
             Eq => Ok(OpPrec::Left(4)),
             And => Ok(OpPrec::Left(3)),
-            Assign => Ok(OpPrec::Left(2)),
-            Or => Ok(OpPrec::Left(1)),
+            Or => Ok(OpPrec::Left(2)),
+            Assign => Ok(OpPrec::Left(1)),
             x => Err(format!("Unknown binary operator: {}", x)),
         }
     }
@@ -25,8 +25,8 @@ impl OpPrec {
     pub(crate) fn un_prec(op: Symbol) -> Result<u8, String> {
         use Symbol::*;
         match op {
-            Not => Ok(9),
-            Sub => Ok(8),
+            Not => Ok(7),
+            Sub => Ok(7),
             x => Err(format!("Unknown unary operator: {}", x)),
         }
     }

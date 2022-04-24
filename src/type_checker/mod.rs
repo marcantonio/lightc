@@ -326,8 +326,6 @@ impl TypeChecker {
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
-        println!("{:?}", name);
-        println!("{:?}", self.variable_table);
         let ident_ty = *self
             .variable_table
             .get(name)
@@ -355,7 +353,10 @@ impl TypeChecker {
         let fe_args_len = fe_arg_tys.len();
         let args_len = args.len();
         if fe_arg_tys.len() != args.len() {
-            return Err(format!("Call to {} takes {} args and {} were given", name, fe_args_len, args_len));
+            return Err(format!(
+                "Call to {} takes {} args and {} were given",
+                name, fe_args_len, args_len
+            ));
         }
 
         // Update expression type
@@ -453,7 +454,6 @@ impl TypeChecker {
             return Err("Conditional should always be a bool".to_string());
         }
 
-
         let mut then_ty = Type::Void;
         for node in then_block {
             then_ty = self.check_node(node)?;
@@ -501,7 +501,7 @@ mod test {
                     .lines()
                     .map(|line| {
                         let line = line.expect("Error reading input line");
-                        let tokens = Lexer::new(&line).collect::<Result<Vec<_>, _>>().unwrap();
+                        let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         match TypeChecker::new().walk(&mut ast) {
                             Ok(_) => Ok(ast),
