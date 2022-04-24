@@ -4,6 +4,7 @@ Stmt        ::= LetStmt
               | ForStmt
               | FnDecl
               | ExternDecl
+              | Block
               | Expr ;
 Block       ::= '{' StmtList? '}' ;
 FnDecl      ::= Prototype Block ;

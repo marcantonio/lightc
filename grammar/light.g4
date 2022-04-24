@@ -6,6 +6,7 @@ stmt            : let_stmt
                 | for_stmt
                 | fn_decl
                 | extern_decl
+                | block
                 | expr;
 block           : '{' stmt_list? '}';
 fn_decl         : proto block;
