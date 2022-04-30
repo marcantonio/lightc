@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/let.input
 ---
-- - Ok:
+- - "let x: int = 1"
+  - Ok:
       nodes:
         - Stmt:
             Let:
@@ -17,7 +18,8 @@ input_file: src/parser/tests/inputs/let.input
                       UInt64: 1
                     ty: ~
   - "(let x:int32 1)"
-- - Ok:
+- - "let x: float = 1.0"
+  - Ok:
       nodes:
         - Stmt:
             Let:
@@ -30,12 +32,14 @@ input_file: src/parser/tests/inputs/let.input
                       Float: 1.0
                     ty: ~
   - "(let x:float 1)"
-- - Err:
+- - "let x: int ="
+  - Err:
       message: Premature end of expression
       line: 0
       column: 0
   - "Parsing error: Premature end of expression"
-- - Ok:
+- - "let x: int"
+  - Ok:
       nodes:
         - Stmt:
             Let:
@@ -43,17 +47,20 @@ input_file: src/parser/tests/inputs/let.input
               antn: Int32
               init: ~
   - "(let x:int32)"
-- - Err:
+- - "let x:"
+  - Err:
       message: Type annotation required in let statement. Got EOF
       line: 0
       column: 0
   - "Parsing error: Type annotation required in let statement. Got EOF"
-- - Err:
+- - let x
+  - Err:
       message: Expecting colon in let statement. Got EOF
       line: 0
       column: 0
   - "Parsing error: Expecting colon in let statement. Got EOF"
-- - Err:
+- - let
+  - Err:
       message: Expecting identifier after let. Got EOF
       line: 0
       column: 0

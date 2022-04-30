@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/unary_ops.input
 ---
-- - Ok:
+- - "-21"
+  - Ok:
       nodes:
         - Expr:
             UnOp:
@@ -17,7 +18,8 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     ty: ~
               ty: ~
   - (- 21)
-- - Ok:
+- - "-a * 2"
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -40,7 +42,8 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     ty: ~
               ty: ~
   - (* (- a) 2)
-- - Ok:
+- - 3 - -21
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -64,7 +67,8 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     ty: ~
               ty: ~
   - (- 3 (- 21))
-- - Ok:
+- - "-4 ^ 2"
+  - Ok:
       nodes:
         - Expr:
             UnOp:
@@ -88,7 +92,8 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     ty: ~
               ty: ~
   - (- (^ 4 2))
-- - Ok:
+- - "--21"
+  - Ok:
       nodes:
         - Expr:
             UnOp:
@@ -106,7 +111,8 @@ input_file: src/parser/tests/inputs/unary_ops.input
                     ty: ~
               ty: ~
   - (- (- 21))
-- - Err:
+- - "*2"
+  - Err:
       message: "Unknown unary operator: *"
       line: 0
       column: 0

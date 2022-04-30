@@ -1,0 +1,76 @@
+---
+source: src/lexer.rs
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
+input_file: src/tests/inputs/lexer/semi.input
+---
+Ok:
+  - tt:
+      Ident: a
+    line: 1
+    column: 1
+  - tt:
+      Semicolon: true
+    line: 1
+    column: 2
+  - tt:
+      Num: "1"
+    line: 2
+    column: 1
+  - tt:
+      Semicolon: true
+    line: 2
+    column: 2
+  - tt:
+      Ident: a
+    line: 3
+    column: 1
+  - tt: OpenParen
+    line: 3
+    column: 2
+  - tt: CloseParen
+    line: 3
+    column: 3
+  - tt:
+      Semicolon: true
+    line: 3
+    column: 4
+  - tt: OpenBrace
+    line: 4
+    column: 1
+  - tt:
+      Ident: a
+    line: 4
+    column: 3
+  - tt: CloseBrace
+    line: 4
+    column: 5
+  - tt:
+      Semicolon: true
+    line: 4
+    column: 6
+  - tt: Let
+    line: 5
+    column: 1
+  - tt:
+      Ident: a
+    line: 5
+    column: 5
+  - tt: Colon
+    line: 5
+    column: 6
+  - tt:
+      VarType: Int32
+    line: 5
+    column: 8
+  - tt:
+      Semicolon: true
+    line: 5
+    column: 11
+  - tt: Let
+    line: 6
+    column: 1
+  - tt: Fn
+    line: 7
+    column: 1
+

@@ -6,7 +6,6 @@ stmt            : let_stmt
                 | for_stmt
                 | fn_decl
                 | extern_decl
-                | block
                 | expr;
 block           : '{' stmt_list? '}';
 fn_decl         : proto block;
@@ -26,6 +25,7 @@ primary_expr    : cond_expr
                 | lit_expr
                 | ident_expr
                 | assignment
+                | block
                 | paren_expr;
 assignment      : ident_expr '=' expr;
 unop_expr       : primary_expr

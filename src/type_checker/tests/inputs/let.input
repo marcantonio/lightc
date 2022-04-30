@@ -1,5 +1,5 @@
 fn foo() { let x: int = 3 } // basic
 fn foo() { let x: int } // basic; no init
 fn foo() { let x: int = 3.0 } // lit antn mismatch
-fn foo() { let y: float = 1.0 let x: int = y } // antn mismatch
+fn foo() { let y: float = 1.0; let x: int = y } // antn mismatch
 fn foo() { let i: int = 2147483648 } // lit range

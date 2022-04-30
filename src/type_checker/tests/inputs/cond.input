@@ -1,4 +1,4 @@
 fn foo() { if 1 > 2 { 1 } else { 2 } } // basic
-fn foo() { let x: int8 = 1 let y: int16 = 2 if x < y { 1 } } // bad cond
+fn foo() { let x: int8 = 1; let y: int16 = 2; if x < y { 1 } } // bad cond
 fn foo() { if 1.0 { 1 } } // bad cond
 fn foo() { if 1 > 2 { 1 } else { 2.0 } } // mismatch arms

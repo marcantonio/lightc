@@ -1,7 +1,7 @@
 ---
 source: src/lexer.rs
-assertion_line: 274
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/fn.input
 ---
 Ok:
@@ -69,7 +69,15 @@ Ok:
       Num: "2"
     line: 2
     column: 14
+  - tt:
+      Semicolon: true
+    line: 2
+    column: 15
   - tt: CloseBrace
     line: 3
     column: 1
+  - tt:
+      Semicolon: true
+    line: 3
+    column: 2
 

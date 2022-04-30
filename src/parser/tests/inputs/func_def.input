@@ -1,5 +1,5 @@
 fn a(b: int, c: int) -> int { 19 + a + 40 }
-fn a(b: int, c: int) -> int { 19 + a + 40 b + a }
+fn a(b: int, c: int) -> int { 19 + a + 40; b + a }
 fn a(b: int) { b }
 fn a(b: int) - { b }
 fn a(b: int) -> { b }

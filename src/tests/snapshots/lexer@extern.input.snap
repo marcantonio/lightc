@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 265
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/extern.input
-
 ---
 Ok:
   - tt: Extern
@@ -23,4 +22,8 @@ Ok:
   - tt: CloseParen
     line: 1
     column: 13
+  - tt:
+      Semicolon: true
+    line: 1
+    column: 14
 

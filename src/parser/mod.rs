@@ -41,14 +41,24 @@ impl<'a> Parser<'a> {
             .peek()
             .ok_or_else(|| "Premature end of statement".to_string())?;
 
-        let expr = match &token.tt {
+        let stmt = match &token.tt {
             TokenType::For => self.parse_for()?,
             TokenType::Let => self.parse_let()?,
             TokenType::Fn => self.parse_function()?,
             TokenType::Extern => self.parse_extern()?,
             _ => self.parse_expression(0)?,
         };
-        Ok(expr)
+
+        // Semicolon is optional when next token is a '}'
+        if !matches!(self.tokens.peek(), Some(&Token { tt: TokenType::CloseBrace, .. })) {
+            expect_next_token!(
+                self.tokens,
+                TokenType::Semicolon(_),
+                "Missing semicolon to end statement"
+            );
+        }
+
+        Ok(stmt)
     }
 
     fn parse_for(&mut self) -> ParseResult {
@@ -79,16 +89,14 @@ impl<'a> Parser<'a> {
         );
 
         let start_node = self.parse_expression(0)?;
-        expect_next_token!(
+        expect_explicit_semi!(
             self.tokens,
-            TokenType::Semicolon,
             "Expecting ';' after start"
         );
 
         let cond_node = self.parse_expression(0)?;
-        expect_next_token!(
+        expect_explicit_semi!(
             self.tokens,
-            TokenType::Semicolon,
             "Expecting ';' after condition"
         );
 
@@ -145,6 +153,7 @@ impl<'a> Parser<'a> {
             .ok_or_else(|| "Premature end of expression".to_string())?;
 
         let expr = match &token.tt {
+            // XXX: consider parse_lit rather than parse_bool, etc
             TokenType::If => self.parse_cond()?,
             TokenType::Bool(b) => self.parse_bool(*b)?,
             TokenType::Num(num) => self.parse_num(num, token)?,
@@ -172,6 +181,7 @@ impl<'a> Parser<'a> {
             let sym = match next.tt {
                 TokenType::Op(s) => s,
                 // Start a new expression if we see two primaries in a row
+                // XXX: really?
                 _ => break,
             };
 
@@ -274,12 +284,16 @@ impl<'a> Parser<'a> {
             let ty = expect_next_token!(
                 self.tokens,
                 TokenType::VarType(_),
-                "Expecting vartype in prototype"
+                "Expecting variable type in prototype"
             );
 
             args.push((id.to_string(), *ty));
 
-            match self.tokens.peek() {
+            // This rustic mess checks for a ',' or a ')' in the argument
+            // list. If one isn't found we try to create a new "error token"
+            // with the right context for the error message. If the bad token is
+            // an implicit semicolon, take the next one in the list or use EOF.
+            match self.tokens.peek().cloned() {
                 Some(Token {
                     tt: TokenType::CloseParen,
                     ..
@@ -288,17 +302,24 @@ impl<'a> Parser<'a> {
                     tt: TokenType::Comma,
                     ..
                 }) => self.tokens.next(), // Eat comma
-                Some(x) => {
+                Some(t) => {
+                    let new_t = Token::new(TokenType::Eof, t.line, t.column);
+                    let err_token = if t.is_implicit_semi() {
+                        self.tokens.next(); // Eat semicolon
+                        let next = self.tokens.peek();
+                        match next {
+                            Some(n) if !n.is_eof() => (*n).clone(),
+                            _ => new_t,
+                        }
+                    } else {
+                        t.clone()
+                    };
                     return Err(ParseError::from((
-                        format!("Expecting ',' or ')' in prototype. Got {}", x),
-                        *x,
+                        format!("Expecting ',' or ')' in prototype. Got {}", &err_token),
+                        &err_token,
                     )))
                 }
-                None => {
-                    return Err(ParseError::from(String::from(
-                        "Expecting one of [',', ')', ':']. Got EOF",
-                    )))
-                }
+                None => unreachable!("NONCANBE: token can't be None in prototype")
             };
         }
 
@@ -520,7 +541,7 @@ mod test {
                         let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let ast = Parser::new(&tokens).parse();
                         let ast_string = ast_to_string(ast.as_ref());
-                        (ast, ast_string)
+                        (line, ast, ast_string)
                     })
                     .collect::<Vec<_>>();
                 insta::assert_yaml_snapshot!(asts);

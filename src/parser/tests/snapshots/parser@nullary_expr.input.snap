@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/nullary_expr.input
 ---
-- - Ok:
+- - a()
+  - Ok:
       nodes:
         - Expr:
             Call:

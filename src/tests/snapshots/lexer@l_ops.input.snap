@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 265
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/l_ops.input
-
 ---
 Ok:
   - tt:
@@ -19,6 +18,10 @@ Ok:
     line: 1
     column: 6
   - tt:
+      Semicolon: true
+    line: 1
+    column: 7
+  - tt:
       Ident: x
     line: 2
     column: 1
@@ -31,6 +34,10 @@ Ok:
     line: 2
     column: 6
   - tt:
+      Semicolon: true
+    line: 2
+    column: 7
+  - tt:
       Ident: x
     line: 3
     column: 1
@@ -42,4 +49,8 @@ Ok:
       Ident: y
     line: 3
     column: 6
+  - tt:
+      Semicolon: true
+    line: 3
+    column: 7
 

@@ -4,7 +4,6 @@ Stmt        ::= LetStmt
               | ForStmt
               | FnDecl
               | ExternDecl
-              | Block
               | Expr ;
 Block       ::= '{' StmtList? '}' ;
 FnDecl      ::= Prototype Block ;
@@ -24,6 +23,7 @@ PrimaryExpr ::= CondExpr
               | LitExpr
               | IdentExpr
               | Assignment
+              | Block
               | ParenExpr ;
 Assignment  ::= IdentExpr '=' Expr ;
 UnopExpr    ::= PrimaryExpr

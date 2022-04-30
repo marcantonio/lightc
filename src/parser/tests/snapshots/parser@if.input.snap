@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 544
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/if.input
 ---
-- - Ok:
+- - "if a > b { foo }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -30,7 +31,8 @@ input_file: src/parser/tests/inputs/if.input
               else_block: ~
               ty: ~
   - (if (> a b) foo)
-- - Ok:
+- - "if a > b { foo } else { bar }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -60,7 +62,8 @@ input_file: src/parser/tests/inputs/if.input
                       ty: ~
               ty: ~
   - (if (> a b) foo bar)
-- - Ok:
+- - "if a > b { foo } else if c < a { bar }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -109,7 +112,8 @@ input_file: src/parser/tests/inputs/if.input
                       ty: ~
               ty: ~
   - (if (> a b) foo (if (< c a) bar))
-- - Ok:
+- - "if a > b { foo } else if c < a { bar } else { baz }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -162,7 +166,8 @@ input_file: src/parser/tests/inputs/if.input
                       ty: ~
               ty: ~
   - (if (> a b) foo (if (< c a) bar baz))
-- - Ok:
+- - "if true { foo } else { bar }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -183,7 +188,8 @@ input_file: src/parser/tests/inputs/if.input
                       ty: ~
               ty: ~
   - (if true foo bar)
-- - Ok:
+- - "if false { foo } else { bar }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -204,7 +210,8 @@ input_file: src/parser/tests/inputs/if.input
                       ty: ~
               ty: ~
   - (if false foo bar)
-- - Err:
+- - "if a > b { foo } else bar"
+  - Err:
       message: "Expecting 'if' or '{' after else"
       line: 1
       column: 23

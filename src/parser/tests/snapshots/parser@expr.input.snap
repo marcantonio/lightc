@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/expr.input
 ---
-- - Ok:
+- - 19 + a + 40
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -33,22 +34,26 @@ input_file: src/parser/tests/inputs/expr.input
                     ty: ~
               ty: ~
   - (+ (+ 19 a) 40)
-- - Err:
+- - 20 -
+  - Err:
       message: Premature end of expression
       line: 0
       column: 0
   - "Parsing error: Premature end of expression"
-- - Err:
+- - 20 - else
+  - Err:
       message: Expecting primary expression. Got Else
       line: 1
       column: 6
   - "Parsing error: Expecting primary expression. Got Else at 1:6"
-- - Err:
+- - ()
+  - Err:
       message: Expecting primary expression. Got CloseParen
       line: 1
       column: 2
   - "Parsing error: Expecting primary expression. Got CloseParen at 1:2"
-- - Err:
+- - (
+  - Err:
       message: Premature end of expression
       line: 0
       column: 0

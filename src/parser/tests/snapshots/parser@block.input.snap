@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 535
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/block.input
 ---
-- - Ok:
+- - "if foo { bar }"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -20,7 +21,8 @@ input_file: src/parser/tests/inputs/block.input
               else_block: ~
               ty: ~
   - (if foo bar)
-- - Ok:
+- - "if foo {}"
+  - Ok:
       nodes:
         - Expr:
             Cond:
@@ -32,12 +34,14 @@ input_file: src/parser/tests/inputs/block.input
               else_block: ~
               ty: ~
   - (if foo)
-- - Err:
+- - if foo
+  - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '{' to start block. Got EOF"
-- - Err:
+- - "if foo {"
+  - Err:
       message: "Expecting '}' to terminate block"
       line: 0
       column: 0

@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/extern.input
 ---
-- - Ok:
+- - "extern cos(x: float)"
+  - Ok:
       nodes:
         - Stmt:
             Fn:

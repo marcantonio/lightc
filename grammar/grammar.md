@@ -56,6 +56,9 @@ whitespace  ::= [ \t\r\n] ;
 comment     ::= '//' [^\r\n]* [\r\n] ;
 ```
 
+## Exceptions
+`StmtList ::= ( Stmt ';' )+ ;` - A semicolon is optional when a closing '}' is present. This allows for concise one-liners.
+
 ## Testing and changes
 The grammar is also present in `light.g4` for testing and validation. Testing can be done by running `./test-grammar.sh` in this directory.
 

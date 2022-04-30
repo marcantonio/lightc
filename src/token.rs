@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(PartialEq, Serialize)]
+#[derive(PartialEq, Clone, Serialize)]
 pub(crate) struct Token {
     pub(crate) tt: TokenType,
     pub(crate) line: usize,
@@ -22,6 +22,17 @@ impl Token {
                 tt: TokenType::Eof,
                 ..
             }
+        )
+    }
+
+    // Return true when the semicolon is one we inserted during lexing
+    pub(crate) fn is_implicit_semi(&self) -> bool {
+        matches!(
+            self,
+            Token {
+                tt: TokenType::Semicolon(i),
+                ..
+            } if *i
         )
     }
 }
@@ -67,7 +78,7 @@ pub(crate) enum TokenType {
     Op(Symbol),
     OpenBrace,
     OpenParen,
-    Semicolon,
+    Semicolon(bool), // implicit
     VarType(Type),
 }
 

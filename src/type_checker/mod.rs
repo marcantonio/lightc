@@ -436,7 +436,6 @@ impl TypeChecker {
     }
 
     fn check_unop(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
-        println!(">>>{:?}", rhs);
         let rhs_ty = self.check_expr(rhs, None)?;
         *ty = Some(rhs_ty);
         Ok(rhs_ty)

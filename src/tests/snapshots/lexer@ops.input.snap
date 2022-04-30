@@ -1,7 +1,7 @@
 ---
 source: src/lexer.rs
-assertion_line: 268
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/ops.input
 ---
 Ok:
@@ -39,4 +39,8 @@ Ok:
       Num: "4"
     line: 1
     column: 15
+  - tt:
+      Semicolon: true
+    line: 1
+    column: 16
 

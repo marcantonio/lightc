@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 262
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/for.input
-
 ---
 Ok:
   - tt: For
@@ -24,7 +23,8 @@ Ok:
       Num: "1"
     line: 1
     column: 13
-  - tt: Semicolon
+  - tt:
+      Semicolon: false
     line: 1
     column: 14
   - tt:
@@ -39,7 +39,8 @@ Ok:
       Num: "10"
     line: 1
     column: 20
-  - tt: Semicolon
+  - tt:
+      Semicolon: false
     line: 1
     column: 22
   - tt:
@@ -63,7 +64,15 @@ Ok:
   - tt: CloseParen
     line: 2
     column: 12
+  - tt:
+      Semicolon: true
+    line: 2
+    column: 13
   - tt: CloseBrace
     line: 3
     column: 1
+  - tt:
+      Semicolon: true
+    line: 3
+    column: 2
 

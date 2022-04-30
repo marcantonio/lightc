@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/logical_ops.input
 ---
-- - Ok:
+- - x == 1
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -22,7 +23,8 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     ty: ~
               ty: ~
   - (== x 1)
-- - Ok:
+- - x && 1
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -40,7 +42,8 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     ty: ~
               ty: ~
   - (&& x 1)
-- - Ok:
+- - x || 1
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -58,7 +61,8 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     ty: ~
               ty: ~
   - (|| x 1)
-- - Ok:
+- - x == 1 && y == 2 || z == 3
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -118,7 +122,8 @@ input_file: src/parser/tests/inputs/logical_ops.input
                     ty: ~
               ty: ~
   - (|| (&& (== x 1) (== y 2)) (== z 3))
-- - Ok:
+- - x == 1 && (y == 2 || z == 3)
+  - Ok:
       nodes:
         - Expr:
             BinOp:

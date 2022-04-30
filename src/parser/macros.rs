@@ -1,55 +1,87 @@
 #[macro_export]
 macro_rules! expect_next_token {
     // Matches patterns like TokenType::Let
-    ($ts:expr, $( $e:tt::$v:tt )|+ , $err:expr) => {
+    ($ts:expr, $( TokenType::$v:tt )|+ , $err:expr) => {
         let t = $ts.next();
         match t {
-            $( Some(Token { tt: $e::$v, .. }) => (), )+
-            _ => {
-                return Err(ParseError::from((
-                    format!(
-                        "{}. Got {}",
-                        $err.to_string(),
-                        t.map_or(TokenType::Eof, |x| x.tt.clone())
-                    ),
-                    t.unwrap_or(&Token::default())
-                )))
-            }
-        }
-    };
-
-    // Matches patterns like TokenType::Op(Symbol::Assign)
-    ($ts:expr, $( $e:tt::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
-        let t = $ts.next();
-        match t {
-            $( Some(Token { tt: $e::$v(Symbol::$s), .. }) => (), )+
-            _ => {
-                return Err(ParseError::from((
-                    format!(
-                        "{}. Got {}",
-                        $err.to_string(),
-                        t.map_or(TokenType::Eof, |x| x.tt.clone())
-                    ),
-                    t.unwrap_or(&Token::default())
-                )))
-            }
-        }
-    };
-
-    // Matches patterns like TokenType::Ident(_) and used for return value
-    ($ts:expr, $t:tt::$v:tt($_:tt), $err:expr) => {
-        {
-            let t = $ts.next();
-            match t {
-                Some(Token { tt: $t::$v(t), .. }) => t,
+            $( Some(Token { tt: TokenType::$v, .. }) => (), )+
                 _ => {
+                    // Default to EOF. Make sure that we ignore inserted
+                    // semicolons.
+                    let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
                     return Err(ParseError::from((
                         format!(
                             "{}. Got {}",
                             $err.to_string(),
-                            t.map_or(TokenType::Eof, |x| x.tt.clone())
+                            new_t.tt
                         ),
-                        t.unwrap_or(&Token::default())
+                        &new_t
+                    )))
+                }
+        }
+    };
+
+    // Matches patterns like TokenType::Op(Symbol::Assign)
+    ($ts:expr, $( TokenType::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
+        let t = $ts.next();
+        match t {
+            $( Some(Token { tt: TokenType::$v(Symbol::$s), .. }) => (), )+
+                _ => {
+                    // Default to EOF. Make sure that we ignore inserted
+                    // semicolons.
+                    let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
+                    return Err(ParseError::from((
+                        format!(
+                            "{}. Got {}",
+                            $err.to_string(),
+                            new_t.tt
+                        ),
+                        &new_t
+                    )))
+                }
+        }
+    };
+
+    // Matches patterns like TokenType::Ident(_) and used for return value
+    ($ts:expr, TokenType::$v:tt($_:tt), $err:expr) => {
+        {
+            let t = $ts.next();
+            match t {
+                Some(Token { tt: TokenType::$v(inner), .. }) => inner,
+                _ => {
+                    // Default to EOF. Make sure that we ignore inserted
+                    // semicolons.
+                    let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
+                    return Err(ParseError::from((
+                        format!(
+                            "{}. Got {}",
+                            $err.to_string(),
+                            new_t.tt
+                        ),
+                        &new_t
+                    )))
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! expect_explicit_semi {
+    ($ts:expr, $err:expr) => {
+        {
+            let t = $ts.next();
+            match t {
+                Some(Token { tt: TokenType::Semicolon(false), .. }) => (),
+                _ => {
+                    let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
+                    return Err(ParseError::from((
+                        format!(
+                            "{}. Got {}",
+                            $err.to_string(),
+                            new_t.tt
+                        ),
+                        &new_t
                     )))
                 }
             }

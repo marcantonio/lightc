@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/gt_lt.input
 ---
-- - Ok:
+- - a + b > 40
+  - Ok:
       nodes:
         - Expr:
             BinOp:
@@ -32,7 +33,8 @@ input_file: src/parser/tests/inputs/gt_lt.input
                     ty: ~
               ty: ~
   - (> (+ a b) 40)
-- - Ok:
+- - a < b / 40
+  - Ok:
       nodes:
         - Expr:
             BinOp:

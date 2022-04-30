@@ -1,11 +1,11 @@
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 5 { 7 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else { 1 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 8 { 7 } else { 1 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 3 { 2 } else { 1 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 1 { 2 } }
-fn plus_one(x: int) -> int { x + 1 } fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else { 1 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 8 { 7 } else { 1 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 3 { 2 } else { 1 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 1 { 2 } }
+fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } }
 fn main() { if true { 7 } else { 2 } }
 fn main() { if false { 7 } else { 2 } }

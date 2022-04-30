@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 262
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/trailing_comment.input
-
 ---
 Ok:
   - tt: Let
@@ -21,4 +20,8 @@ Ok:
       Num: "13"
     line: 1
     column: 11
+  - tt:
+      Semicolon: true
+    line: 1
+    column: 13
 

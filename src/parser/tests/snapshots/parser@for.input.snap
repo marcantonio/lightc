@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 564
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 ---
-- - Ok:
+- - "for x: int = 1; x < 10; 1 { foo }"
+  - Ok:
       nodes:
         - Stmt:
             For:
@@ -41,32 +42,38 @@ input_file: src/parser/tests/inputs/for.input
                       name: foo
                       ty: ~
   - "(for (x: int32 1) (< x 10) 1 foo)"
-- - Err:
+- - for
+  - Err:
       message: Expecting identifier after for. Got EOF
       line: 0
       column: 0
   - "Parsing error: Expecting identifier after for. Got EOF"
-- - Err:
+- - for a
+  - Err:
       message: Expecting colon in initial statement. Got EOF
       line: 0
       column: 0
   - "Parsing error: Expecting colon in initial statement. Got EOF"
-- - Err:
+- - "for a:"
+  - Err:
       message: Type annotation required in intial statement. Got EOF
       line: 0
       column: 0
   - "Parsing error: Type annotation required in intial statement. Got EOF"
-- - Err:
+- - "for a: int"
+  - Err:
       message: "Expecting '=' after identifer. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '=' after identifer. Got EOF"
-- - Err:
+- - "for a: int ="
+  - Err:
       message: Premature end of expression
       line: 0
       column: 0
   - "Parsing error: Premature end of expression"
-- - Err:
+- - "for a: int = 1"
+  - Err:
       message: "Expecting ';' after start. Got EOF"
       line: 0
       column: 0

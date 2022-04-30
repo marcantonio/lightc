@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 542
+assertion_line: 555
 expression: asts
 input_file: src/parser/tests/inputs/call_expr.input
 ---
-- - Ok:
+- - "a(b, c)"
+  - Ok:
       nodes:
         - Expr:
             Call:
@@ -20,22 +21,26 @@ input_file: src/parser/tests/inputs/call_expr.input
                       ty: ~
               ty: ~
   - (a b c)
-- - Err:
+- - a(
+  - Err:
       message: "Expecting ')' in function call. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting ')' in function call. Got EOF"
-- - Err:
+- - a(a
+  - Err:
       message: "Expecting ',' or ')' in function call. Got identifier: a"
       line: 1
       column: 3
   - "Parsing error: Expecting ',' or ')' in function call. Got identifier: a at 1:3"
-- - Err:
+- - "a(a,"
+  - Err:
       message: "Expecting ')' in function call. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting ')' in function call. Got EOF"
-- - Err:
+- - a(b b)
+  - Err:
       message: "Expecting ',' or ')' in function call. Got identifier: b"
       line: 1
       column: 3

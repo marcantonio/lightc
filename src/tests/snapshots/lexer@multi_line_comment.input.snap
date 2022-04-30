@@ -1,9 +1,8 @@
 ---
 source: src/lexer.rs
-assertion_line: 262
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/multi_line_comment.input
-
 ---
 Ok:
   - tt: Let
@@ -22,7 +21,15 @@ Ok:
     line: 1
     column: 11
   - tt:
+      Semicolon: true
+    line: 1
+    column: 13
+  - tt:
       Ident: foo
     line: 4
     column: 1
+  - tt:
+      Semicolon: true
+    line: 4
+    column: 4
 

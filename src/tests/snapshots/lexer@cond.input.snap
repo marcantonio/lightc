@@ -1,7 +1,7 @@
 ---
 source: src/lexer.rs
-assertion_line: 268
-expression: "Lexer::new(&input).collect::<Result<Vec<_>, _>>()"
+assertion_line: 337
+expression: "Lexer::new(&input).scan()"
 input_file: src/tests/inputs/lexer/cond.input
 ---
 Ok:
@@ -41,6 +41,10 @@ Ok:
   - tt: CloseParen
     line: 2
     column: 12
+  - tt:
+      Semicolon: true
+    line: 2
+    column: 13
   - tt: CloseBrace
     line: 3
     column: 1
@@ -60,9 +64,17 @@ Ok:
   - tt: CloseParen
     line: 4
     column: 10
+  - tt:
+      Semicolon: true
+    line: 4
+    column: 11
   - tt: CloseBrace
     line: 5
     column: 1
+  - tt:
+      Semicolon: true
+    line: 5
+    column: 2
   - tt: If
     line: 7
     column: 1
@@ -95,6 +107,10 @@ Ok:
   - tt: CloseParen
     line: 8
     column: 12
+  - tt:
+      Semicolon: true
+    line: 8
+    column: 13
   - tt: CloseBrace
     line: 9
     column: 1
@@ -129,6 +145,10 @@ Ok:
   - tt: CloseParen
     line: 10
     column: 10
+  - tt:
+      Semicolon: true
+    line: 10
+    column: 11
   - tt: CloseBrace
     line: 11
     column: 1
@@ -142,7 +162,15 @@ Ok:
       Ident: z
     line: 12
     column: 5
+  - tt:
+      Semicolon: true
+    line: 12
+    column: 6
   - tt: CloseBrace
     line: 13
     column: 1
+  - tt:
+      Semicolon: true
+    line: 13
+    column: 2
 

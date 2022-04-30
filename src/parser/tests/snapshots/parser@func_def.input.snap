@@ -1,10 +1,11 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 536
+assertion_line: 564
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 ---
-- - Ok:
+- - "fn a(b: int, c: int) -> int { 19 + a + 40 }"
+  - Ok:
       nodes:
         - Stmt:
             Fn:
@@ -44,7 +45,8 @@ input_file: src/parser/tests/inputs/func_def.input
                             ty: ~
                       ty: ~
   - "(define (a b:int32 c:int32) (+ (+ 19 a) 40))"
-- - Ok:
+- - "fn a(b: int, c: int) -> int { 19 + a + 40; b + a }"
+  - Ok:
       nodes:
         - Stmt:
             Fn:
@@ -98,7 +100,8 @@ input_file: src/parser/tests/inputs/func_def.input
                             ty: ~
                       ty: ~
   - "(define (a b:int32 c:int32) (+ (+ 19 a) 40) (+ b a))"
-- - Ok:
+- - "fn a(b: int) { b }"
+  - Ok:
       nodes:
         - Stmt:
             Fn:
@@ -114,22 +117,26 @@ input_file: src/parser/tests/inputs/func_def.input
                       name: b
                       ty: ~
   - "(define (a b:int32) b)"
-- - Err:
+- - "fn a(b: int) - { b }"
+  - Err:
       message: "Expecting '{' to start block. Got -"
       line: 1
       column: 14
   - "Parsing error: Expecting '{' to start block. Got - at 1:14"
-- - Err:
+- - "fn a(b: int) -> { b }"
+  - Err:
       message: Expecting vartype as return after ->. Got OpenBrace
       line: 1
       column: 17
   - "Parsing error: Expecting vartype as return after ->. Got OpenBrace at 1:17"
-- - Err:
+- - "fn a(b: int) -> a { b }"
+  - Err:
       message: "Expecting vartype as return after ->. Got identifier: a"
       line: 1
       column: 17
   - "Parsing error: Expecting vartype as return after ->. Got identifier: a at 1:17"
-- - Ok:
+- - "fn a() {}"
+  - Ok:
       nodes:
         - Stmt:
             Fn:
@@ -139,57 +146,68 @@ input_file: src/parser/tests/inputs/func_def.input
                 ret_ty: ~
               body: []
   - (define (a))
-- - Err:
+- - "fn (a: int, c: int) { 1 + 2 }"
+  - Err:
       message: Expecting function name in prototype. Got OpenParen
       line: 1
       column: 4
   - "Parsing error: Expecting function name in prototype. Got OpenParen at 1:4"
-- - Err:
+- - fn a
+  - Err:
       message: "Expecting '(' in prototype. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '(' in prototype. Got EOF"
-- - Err:
+- - "fn a( {}"
+  - Err:
       message: "Expecting ')' or identifier in prototype. Got OpenBrace"
       line: 1
       column: 7
   - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:7"
-- - Err:
+- - "fn a(a: int, {}"
+  - Err:
       message: "Expecting ')' or identifier in prototype. Got OpenBrace"
       line: 1
       column: 14
   - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:14"
-- - Err:
+- - "fn a(b: int b: int)"
+  - Err:
       message: "Expecting ',' or ')' in prototype. Got identifier: b"
       line: 1
       column: 13
   - "Parsing error: Expecting ',' or ')' in prototype. Got identifier: b at 1:13"
-- - Err:
+- - fn a(
+  - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '{' to start block. Got EOF"
-- - Err:
+- - "fn a(a: int, {}"
+  - Err:
       message: "Expecting ')' or identifier in prototype. Got OpenBrace"
       line: 1
       column: 14
   - "Parsing error: Expecting ')' or identifier in prototype. Got OpenBrace at 1:14"
-- - Err:
-      message: "Expecting one of [',', ')', ':']. Got EOF"
-      line: 0
-      column: 0
-  - "Parsing error: Expecting one of [',', ')', ':']. Got EOF"
-- - Err:
+- - "fn a(a: int"
+  - Err:
+      message: "Expecting ',' or ')' in prototype. Got EOF"
+      line: 1
+      column: 10
+  - "Parsing error: Expecting ',' or ')' in prototype. Got EOF at 1:10"
+- - "fn a(a: int,"
+  - Err:
       message: "Expecting '{' to start block. Got EOF"
       line: 0
       column: 0
   - "Parsing error: Expecting '{' to start block. Got EOF"
-- - Err:
-      message: Expecting vartype in prototype. Got CloseParen
+- - "fn a(b:)"
+  - Err:
+      message: Expecting variable type in prototype. Got CloseParen
       line: 1
       column: 8
-  - "Parsing error: Expecting vartype in prototype. Got CloseParen at 1:8"
-- - Err:
+  - "Parsing error: Expecting variable type in prototype. Got CloseParen at 1:8"
+- - fn a(b)
+  - Err:
       message: "Expecting ':' in prototype. Got CloseParen"
       line: 1
       column: 7

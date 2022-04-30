@@ -34,14 +34,35 @@ impl Lexer {
     fn lex(&mut self) -> LexResult {
         let cur = match self.stream.next() {
             Some(cur) => cur,
-            None => return Ok(Token::default()),
+            None => unreachable!("NONCANBE: can't lex nothing"),
         };
+
+        // Inject a semicolon if certain tokens occur at the end of the line or
+        // EOF. IF EOF, make sure the context is right.
+        if cur.value == '\n' && self.should_add_semicolon() {
+            return Ok(Token::from((TokenType::Semicolon(true), cur)));
+        } else if cur.is_eof() {
+            if self.should_add_semicolon() {
+                let semi = match self.tokens.last() {
+                    Some(t) => Token::new(
+                        TokenType::Semicolon(true),
+                        t.line,
+                        t.column + 1,
+                    ),
+                    None => Token::default(),
+                };
+                self.tokens.push(semi);
+            }
+            return Ok(Token::from((TokenType::Eof, cur)));
+        }
 
         // Ignore whitespace
         if cur.value.is_ascii_whitespace() {
             while let Some(c) = self.stream.peek() {
                 if !c.value.is_ascii_whitespace() {
                     return self.lex();
+                } else if c.is_eof() {
+                    break;
                 }
                 self.stream.next();
             }
@@ -53,6 +74,8 @@ impl Lexer {
             while let Some(c) = self.stream.next() {
                 if c == '\n' {
                     return self.lex();
+                } else if c.is_eof() {
+                    break;
                 }
             }
             return self.lex(); // Eat trailing comment
@@ -155,13 +178,27 @@ impl Lexer {
             ',' => TokenType::Comma,
             '{' => TokenType::OpenBrace,
             '(' => TokenType::OpenParen,
-            ';' => TokenType::Semicolon,
+            ';' => TokenType::Semicolon(false),
             c => {
                 return Err(LexError::from((format!("Unknown character: {}", c), cur)));
             }
         };
 
         Ok(Token::from((tt, cur)))
+    }
+
+    // Add a semicolon for these tokens
+    fn should_add_semicolon(&self) -> bool {
+        use TokenType::*;
+
+        if let Some(t) = self.tokens.last() {
+            matches!(
+                t.tt,
+                Bool(_) | CloseBrace | CloseParen | Ident(_) | Num(_) | VarType(_)
+            )
+        } else {
+            false
+        }
     }
 }
 
@@ -180,6 +217,13 @@ impl<T> ContextElement<T> {
             line: line + 1,
             column: column + 1,
         }
+    }
+}
+
+impl ContextElement<char> {
+    // Will cause lexing to stop if there's a null byte in the file
+    fn is_eof(&self) -> bool {
+        self.value == 0 as char
     }
 }
 
@@ -223,7 +267,11 @@ impl Iterator for StreamIter<char> {
     type Item = ContextElement<char>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let line = self.lines.get(self.line)?;
+        let opt = self.lines.get(self.line);
+        let line = match opt {
+            Some(l) => l,
+            None => return Some(ContextElement::new(0 as char, self.line, self.column - 1)),
+        };
         let cc = line
             .get(self.column)
             .map(|c| ContextElement::new(*c, self.line, self.column))
@@ -236,7 +284,7 @@ impl Iterator for StreamIter<char> {
                 })
             });
         self.column += 1;
-        cc
+        cc.or_else(|| Some(ContextElement::new(0 as char, self.line, self.column - 1)))
     }
 }
 
@@ -303,12 +351,12 @@ ghi
         assert_eq!(ContextElement::new('h', 2, 1), stream.next().unwrap());
         assert_eq!(ContextElement::new('i', 2, 2), stream.next().unwrap());
         assert_eq!(ContextElement::new('\n', 2, 3), stream.next().unwrap());
-        assert_eq!(None, stream.next());
-        assert_eq!(None, stream.next());
+        assert_eq!(ContextElement::new(0 as char, 3, 0), stream.next().unwrap());
+        assert_eq!(ContextElement::new(0 as char, 3, 0), stream.next().unwrap());
     }
 
     #[test]
-    fn test_lex() {
+    fn test_lex_one() {
         use Symbol::*;
         use TokenType::*;
 
@@ -329,6 +377,6 @@ baz
             lexer.lex()
         );
         assert_eq!(Ok(Token::new(Ident("baz".to_string()), 4, 1)), lexer.lex());
-        assert_eq!(Ok(Token::default()), lexer.lex());
+        assert_eq!(Ok(Token::new(Eof, 5, 1)), lexer.lex());
     }
 }
