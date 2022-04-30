@@ -496,19 +496,20 @@ mod test {
 
                 // Each line of the input files is meant to be a separate test
                 // case.
-                let ir = reader
+                let asts = reader
                     .lines()
                     .map(|line| {
                         let line = line.expect("Error reading input line");
                         let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
-                        match TypeChecker::new().walk(&mut ast) {
+                        let res = match TypeChecker::new().walk(&mut ast) {
                             Ok(_) => Ok(ast),
                             Err(e) => Err(e),
-                        }
+                        };
+                        (line, res)
                     })
                     .collect::<Vec<_>>();
-                insta::assert_yaml_snapshot!(ir);
+                insta::assert_yaml_snapshot!(asts);
             });
         });
     }

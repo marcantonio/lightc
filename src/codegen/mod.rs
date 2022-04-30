@@ -797,7 +797,7 @@ mod test {
                         let module = context.create_module("main_mod");
                         let fpm = PassManager::create(&module);
                         let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
-                        code_to_string(codegen.walk(&ast))
+                        (line, code_to_string(codegen.walk(&ast)))
                     })
                     .collect::<Vec<_>>();
                 insta::assert_yaml_snapshot!(ir);

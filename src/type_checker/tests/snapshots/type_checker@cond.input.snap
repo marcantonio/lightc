@@ -4,47 +4,51 @@ assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/cond.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Expr:
-                  Cond:
-                    cond_expr:
-                      BinOp:
-                        sym: Gt
-                        lhs:
-                          Expr:
+- - "fn foo() { if 1 > 2 { 1 } else { 2 } } // basic"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Expr:
+                    Cond:
+                      cond_expr:
+                        BinOp:
+                          sym: Gt
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          ty: Bool
+                      then_block:
+                        - Expr:
                             Lit:
                               value:
                                 Int32: 1
                               ty: Int32
-                        rhs:
-                          Expr:
+                      else_block:
+                        - Expr:
                             Lit:
                               value:
                                 Int32: 2
                               ty: Int32
-                        ty: Bool
-                    then_block:
-                      - Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                    else_block:
-                      - Expr:
-                          Lit:
-                            value:
-                              Int32: 2
-                            ty: Int32
-                    ty: Int32
-- Err: "Mismatched types in binop: `int8` != `int16`"
-- Err: Conditional should always be a bool
-- Err: "Both arms of conditional must be the same type: `then` == int32; `else` == float"
+                      ty: Int32
+- - "fn foo() { let x: int8 = 1; let y: int16 = 2; if x < y { 1 } } // bad cond"
+  - Err: "Mismatched types in binop: `int8` != `int16`"
+- - "fn foo() { if 1.0 { 1 } } // bad cond"
+  - Err: Conditional should always be a bool
+- - "fn foo() { if 1 > 2 { 1 } else { 2.0 } } // mismatch arms"
+  - Err: "Both arms of conditional must be the same type: `then` == int32; `else` == float"
 

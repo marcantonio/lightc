@@ -1,55 +1,61 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 605
+assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/for.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Stmt:
-                  For:
-                    start_name: x
-                    start_antn: Int8
-                    start_expr:
-                      Lit:
-                        value:
-                          Int8: 1
-                        ty: Int8
-                    cond_expr:
-                      BinOp:
-                        sym: Lt
-                        lhs:
-                          Expr:
+- - "fn foo() { for x: int8 = 1; x < 2; 1 { x } } // basic"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Stmt:
+                    For:
+                      start_name: x
+                      start_antn: Int8
+                      start_expr:
+                        Lit:
+                          value:
+                            Int8: 1
+                          ty: Int8
+                      cond_expr:
+                        BinOp:
+                          sym: Lt
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Int8
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int8: 2
+                                ty: Int8
+                          ty: Bool
+                      step_expr:
+                        Lit:
+                          value:
+                            Int8: 1
+                          ty: Int8
+                      body:
+                        - Expr:
                             Ident:
                               name: x
                               ty: Int8
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Int8: 2
-                              ty: Int8
-                        ty: Bool
-                    step_expr:
-                      Lit:
-                        value:
-                          Int8: 1
-                        ty: Int8
-                    body:
-                      - Expr:
-                          Ident:
-                            name: x
-                            ty: Int8
-- Err: Literal is a float in an integer context
-- Err: "Initial type mismatch in for statement. Annotated with `int32` but value is `int8`"
-- Err: For loop conditional should always be a bool
-- Err: Literal is a float in an integer context
-- Err: "Step type mismatch in for statement. Step is `int8` but `x` is `int32`"
+- - "fn foo() { for x: int8 = 1.0; x < 2; 1 { x } } // antn mismatch"
+  - Err: Literal is a float in an integer context
+- - "fn foo() { let y: int8 = 2; for x: int = y; x < 2; 1 { x } } // antn mismatch"
+  - Err: "Initial type mismatch in for statement. Annotated with `int32` but value is `int8`"
+- - "fn foo() { for x: int = 1; 2.0; 1 { x } } // cond should be bool"
+  - Err: For loop conditional should always be a bool
+- - "fn foo() { for x: int = 1; x < 3; 1.0 { x } } // literal step mismatch"
+  - Err: Literal is a float in an integer context
+- - "fn foo() { let y: int8 = 2; for x: int = 1; x < 3; y { x } } // step mismatch"
+  - Err: "Step type mismatch in for statement. Step is `int8` but `x` is `int32`"
 

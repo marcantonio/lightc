@@ -1,23 +1,25 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 498
+assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/ident.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args:
-                - - x
-                  - Int32
-              ret_ty: Void
-            body:
-              - Expr:
-                  Ident:
-                    name: x
-                    ty: Int32
-- Err: "Unknown variable: y"
+- - "fn foo(x: int) { x } // basic"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args:
+                  - - x
+                    - Int32
+                ret_ty: Void
+              body:
+                - Expr:
+                    Ident:
+                      name: x
+                      ty: Int32
+- - "fn foo(x: int) { y } // unknown var"
+  - Err: "Unknown variable: y"
 

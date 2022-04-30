@@ -1,43 +1,48 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 498
+assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/let.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Stmt:
-                  Let:
-                    name: x
-                    antn: Int32
-                    init:
-                      Expr:
-                        Lit:
-                          value:
-                            Int32: 3
-                          ty: Int32
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Stmt:
-                  Let:
-                    name: x
-                    antn: Int32
-                    init: ~
-- Err: Literal is a float in an integer context
-- Err: "Types don't match in let statement. Annotated with `int32` but initial value is `float`"
-- Err: Numeric literal out of range
+- - "fn foo() { let x: int = 3 } // basic"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Stmt:
+                    Let:
+                      name: x
+                      antn: Int32
+                      init:
+                        Expr:
+                          Lit:
+                            value:
+                              Int32: 3
+                            ty: Int32
+- - "fn foo() { let x: int } // basic; no init"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Stmt:
+                    Let:
+                      name: x
+                      antn: Int32
+                      init: ~
+- - "fn foo() { let x: int = 3.0 } // lit antn mismatch"
+  - Err: Literal is a float in an integer context
+- - "fn foo() { let y: float = 1.0; let x: int = y } // antn mismatch"
+  - Err: "Types don't match in let statement. Annotated with `int32` but initial value is `float`"
+- - "fn foo() { let i: int = 2147483648 } // lit range"
+  - Err: Numeric literal out of range
 

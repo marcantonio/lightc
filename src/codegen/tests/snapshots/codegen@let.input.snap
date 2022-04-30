@@ -1,10 +1,13 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 768
+assertion_line: 803
 expression: ir
 input_file: src/codegen/tests/inputs/let.input
 ---
-- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
-- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
-- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- - "fn main() { let x: int = 1 }"
+  - "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- - "fn main() { let x: float }"
+  - "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- - "fn main() { let x: bool }"
+  - "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
 

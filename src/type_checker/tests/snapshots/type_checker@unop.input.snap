@@ -1,28 +1,30 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 508
+assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/unop.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Expr:
-                  UnOp:
-                    sym: Sub
-                    rhs:
-                      Expr:
-                        Lit:
-                          value:
-                            Int32: 3
-                          ty: Int32
-                    ty: Int32
-- Ok:
-    nodes: []
+- - "fn foo() { -3 }"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Expr:
+                    UnOp:
+                      sym: Sub
+                      rhs:
+                        Expr:
+                          Lit:
+                            value:
+                              Int32: 3
+                            ty: Int32
+                      ty: Int32
+- - "//fn foo() { let xy: int8 = 1 -xy }"
+  - Ok:
+      nodes: []
 

@@ -1,159 +1,171 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 601
+assertion_line: 512
 expression: ir
 input_file: src/type_checker/tests/inputs/def_func.input
 ---
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Expr:
-                  Lit:
-                    value:
-                      Int32: 1
-                    ty: Int32
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: bar
-              args: []
-              ret_ty: Void
-            body: []
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Expr:
-                  Call:
-                    name: bar
-                    args: []
-                    ty: Void
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args:
-                - - a
-                  - Int32
-              ret_ty: Void
-            body:
-              - Expr:
-                  BinOp:
-                    sym: Add
-                    lhs:
-                      Expr:
-                        Ident:
-                          name: a
-                          ty: Int32
-                    rhs:
-                      Expr:
-                        Lit:
-                          value:
-                            Int32: 1
-                          ty: Int32
-                    ty: Int32
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args:
-                - - a
-                  - Int32
-                - - b
-                  - Float
-              ret_ty: Void
-            body: []
-- Err: "Function `foo` should return type `int32` but last statement is `void`"
-- Err: "Function `foo` should return type `int32` but last statement is `float`"
-- Err: "Function `foo` can't be redefined"
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: ~
-            body: ~
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
-              args: []
-              ret_ty: Void
-            body:
-              - Stmt:
-                  Let:
-                    name: a
-                    antn: Int8
-                    init:
-                      Expr:
-                        Lit:
-                          value:
-                            Int8: 1
-                          ty: Int8
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: main
-              args: []
-              ret_ty: Int32
-            body:
-              - Expr:
-                  Lit:
-                    value:
-                      Int32: 0
-                    ty: Int32
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: main
-              args: []
-              ret_ty: Int32
-            body:
-              - Expr:
-                  Lit:
-                    value:
-                      Int32: 1
-                    ty: Int32
-- Ok:
-    nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: main
-              args: []
-              ret_ty: Int32
-            body:
-              - Expr:
-                  Lit:
-                    value:
-                      Float: 1.0
-                    ty: Float
-              - Expr:
-                  Lit:
-                    value:
-                      Int32: 0
-                    ty: Int32
+- - "fn foo() { 1 } // basic"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Expr:
+                    Lit:
+                      value:
+                        Int32: 1
+                      ty: Int32
+- - "fn bar() { }; fn foo() { bar() } // void ret and body"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: bar
+                args: []
+                ret_ty: Void
+              body: []
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Expr:
+                    Call:
+                      name: bar
+                      args: []
+                      ty: Void
+- - "fn foo(a: int) { a + 1 } // void ret; expr body"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args:
+                  - - a
+                    - Int32
+                ret_ty: Void
+              body:
+                - Expr:
+                    BinOp:
+                      sym: Add
+                      lhs:
+                        Expr:
+                          Ident:
+                            name: a
+                            ty: Int32
+                      rhs:
+                        Expr:
+                          Lit:
+                            value:
+                              Int32: 1
+                            ty: Int32
+                      ty: Int32
+- - "fn foo(a: int, b: float) { } // multiple args"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args:
+                  - - a
+                    - Int32
+                  - - b
+                    - Float
+                ret_ty: Void
+              body: []
+- - "fn foo(a: int, b: float) -> int { } // expected int in last statement"
+  - Err: "Function `foo` should return type `int32` but last statement is `void`"
+- - "fn foo(a: int, b: float) -> int { 1.0 } // expected int in last statement"
+  - Err: "Function `foo` should return type `int32` but last statement is `float`"
+- - "fn foo() { }; fn foo() { } // can't redefine"
+  - Err: "Function `foo` can't be redefined"
+- - extern foo() // extern
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: ~
+              body: ~
+- - "fn foo() { let a: int8 = 1 } // statement at end of body"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                - Stmt:
+                    Let:
+                      name: a
+                      antn: Int8
+                      init:
+                        Expr:
+                          Lit:
+                            value:
+                              Int8: 1
+                            ty: Int8
+- - "fn main() { } // main exits as int32"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args: []
+                ret_ty: Int32
+              body:
+                - Expr:
+                    Lit:
+                      value:
+                        Int32: 0
+                      ty: Int32
+- - "fn main() { 1 } // main exits as int32"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args: []
+                ret_ty: Int32
+              body:
+                - Expr:
+                    Lit:
+                      value:
+                        Int32: 1
+                      ty: Int32
+- - "fn main() -> float { 1.0 } // main exits as int32"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args: []
+                ret_ty: Int32
+              body:
+                - Expr:
+                    Lit:
+                      value:
+                        Float: 1.0
+                      ty: Float
+                - Expr:
+                    Lit:
+                      value:
+                        Int32: 0
+                      ty: Int32
 
