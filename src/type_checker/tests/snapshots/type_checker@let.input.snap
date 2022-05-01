@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/let.input
 ---
 - - "fn foo() { let x: int = 3 } // basic"
@@ -14,16 +14,19 @@ input_file: src/type_checker/tests/inputs/let.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    Let:
-                      name: x
-                      antn: Int32
-                      init:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 3
-                            ty: Int32
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 3
+                                ty: Int32
+                  ty: Void
 - - "fn foo() { let x: int } // basic; no init"
   - Ok:
       nodes:
@@ -34,11 +37,14 @@ input_file: src/type_checker/tests/inputs/let.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    Let:
-                      name: x
-                      antn: Int32
-                      init: ~
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init: ~
+                  ty: Void
 - - "fn foo() { let x: int = 3.0 } // lit antn mismatch"
   - Err: Literal is a float in an integer context
 - - "fn foo() { let y: float = 1.0; let x: int = y } // antn mismatch"

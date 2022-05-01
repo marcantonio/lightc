@@ -21,7 +21,7 @@ fn printEq() {
 }
 
 fn main() {
-    let x: int8 = 1
+    let x: int = 1
     -x
     // x = x + 3
     // printInt(3, 40)
@@ -34,5 +34,5 @@ fn main() {
     //     printDot()
     // }
 
-    // printBang()
+    printBang()
 }

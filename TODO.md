@@ -1,6 +1,6 @@
 - [x] Better tests for IR
 - [x] Make else blocks optional
-- [ ] Handle semicolons for multiple expressions
+- [x] Handle semicolons for multiple expressions
 - [x] Handle empty function bodies
 - [x] Create parse_block() abstraction
 - [x] Reorganize
@@ -16,9 +16,9 @@
 - [ ] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)
 - [ ] Extensive testing of binops, especially compares
+- [ ] Ensure conditionals are bools
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
-- [ ] Ensure conditionals are bools
 - [ ] Block scope
 - [x] Token output should be line based
 - [x] Token output should include context info

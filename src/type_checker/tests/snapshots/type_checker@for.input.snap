@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/for.input
 ---
 - - "fn foo() { for x: int8 = 1; x < 2; 1 { x } } // basic"
@@ -14,40 +14,46 @@ input_file: src/type_checker/tests/inputs/for.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    For:
-                      start_name: x
-                      start_antn: Int8
-                      start_expr:
-                        Lit:
-                          value:
-                            Int8: 1
-                          ty: Int8
-                      cond_expr:
-                        BinOp:
-                          sym: Lt
-                          lhs:
-                            Expr:
-                              Ident:
-                                name: x
-                                ty: Int8
-                          rhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  Int8: 2
-                                ty: Int8
-                          ty: Bool
-                      step_expr:
-                        Lit:
-                          value:
-                            Int8: 1
-                          ty: Int8
-                      body:
-                        - Expr:
-                            Ident:
-                              name: x
+                Block:
+                  list:
+                    - Stmt:
+                        For:
+                          start_name: x
+                          start_antn: Int8
+                          start_expr:
+                            Lit:
+                              value:
+                                Int8: 1
                               ty: Int8
+                          cond_expr:
+                            BinOp:
+                              sym: Lt
+                              lhs:
+                                Expr:
+                                  Ident:
+                                    name: x
+                                    ty: Int8
+                              rhs:
+                                Expr:
+                                  Lit:
+                                    value:
+                                      Int8: 2
+                                    ty: Int8
+                              ty: Bool
+                          step_expr:
+                            Lit:
+                              value:
+                                Int8: 1
+                              ty: Int8
+                          body:
+                            Block:
+                              list:
+                                - Expr:
+                                    Ident:
+                                      name: x
+                                      ty: Int8
+                              ty: Int8
+                  ty: Void
 - - "fn foo() { for x: int8 = 1.0; x < 2; 1 { x } } // antn mismatch"
   - Err: Literal is a float in an integer context
 - - "fn foo() { let y: int8 = 2; for x: int = y; x < 2; 1 { x } } // antn mismatch"

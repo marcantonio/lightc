@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 564
+assertion_line: 571
 expression: asts
 input_file: src/parser/tests/inputs/func_def.input
 ---
@@ -18,33 +18,36 @@ input_file: src/parser/tests/inputs/func_def.input
                     - Int32
                 ret_ty: Int32
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          BinOp:
-                            sym: Add
-                            lhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    UInt64: 19
-                                  ty: ~
-                            rhs:
-                              Expr:
-                                Ident:
-                                  name: a
-                                  ty: ~
-                            ty: ~
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              UInt64: 40
-                            ty: ~
-                      ty: ~
-  - "(define (a b:int32 c:int32) (+ (+ 19 a) 40))"
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              BinOp:
+                                sym: Add
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 19
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Ident:
+                                      name: a
+                                      ty: ~
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 40
+                                ty: ~
+                          ty: ~
+                  ty: ~
+  - "(define (a b:int32 c:int32) '((+ (+ 19 a) 40)))"
 - - "fn a(b: int, c: int) -> int { 19 + a + 40; b + a }"
   - Ok:
       nodes:
@@ -59,47 +62,50 @@ input_file: src/parser/tests/inputs/func_def.input
                     - Int32
                 ret_ty: Int32
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          BinOp:
-                            sym: Add
-                            lhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    UInt64: 19
-                                  ty: ~
-                            rhs:
-                              Expr:
-                                Ident:
-                                  name: a
-                                  ty: ~
-                            ty: ~
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              UInt64: 40
-                            ty: ~
-                      ty: ~
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Ident:
-                            name: b
-                            ty: ~
-                      rhs:
-                        Expr:
-                          Ident:
-                            name: a
-                            ty: ~
-                      ty: ~
-  - "(define (a b:int32 c:int32) (+ (+ 19 a) 40) (+ b a))"
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              BinOp:
+                                sym: Add
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 19
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Ident:
+                                      name: a
+                                      ty: ~
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 40
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: b
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Ident:
+                                name: a
+                                ty: ~
+                          ty: ~
+                  ty: ~
+  - "(define (a b:int32 c:int32) '((+ (+ 19 a) 40) (+ b a)))"
 - - "fn a(b: int) { b }"
   - Ok:
       nodes:
@@ -112,11 +118,14 @@ input_file: src/parser/tests/inputs/func_def.input
                     - Int32
                 ret_ty: ~
               body:
-                - Expr:
-                    Ident:
-                      name: b
-                      ty: ~
-  - "(define (a b:int32) b)"
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: b
+                          ty: ~
+                  ty: ~
+  - "(define (a b:int32) '(b))"
 - - "fn a(b: int) - { b }"
   - Err:
       message: "Expecting '{' to start block. Got -"
@@ -144,8 +153,11 @@ input_file: src/parser/tests/inputs/func_def.input
                 name: a
                 args: []
                 ret_ty: ~
-              body: []
-  - (define (a))
+              body:
+                Block:
+                  list: []
+                  ty: ~
+  - "(define (a) '()))"
 - - "fn (a: int, c: int) { 1 + 2 }"
   - Err:
       message: Expecting function name in prototype. Got OpenParen

@@ -24,14 +24,10 @@ impl Display for Statement {
                 step_expr,
                 body,
             } => {
-                let mut s = format!(
-                    "(for ({}: {} {}) {} {}",
-                    start_name, start_antn, start_expr, cond_expr, step_expr
+                let s = format!(
+                    "(for ({}: {} {}) {} {} {}",
+                    start_name, start_antn, start_expr, cond_expr, step_expr, body
                 );
-                s += &body.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
                 write!(f, "{})", s)
             }
             Let { name, antn, init } => {
@@ -42,13 +38,7 @@ impl Display for Statement {
                 write!(f, "{})", s)
             }
             Fn { proto, body } => match body {
-                Some(body) if !body.is_empty() => {
-                    let s = body.iter().fold(String::new(), |mut acc, n| {
-                        acc += &format!(" {}", n);
-                        acc
-                    });
-                    write!(f, "(define {}{})", proto, s)
-                }
+                Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
         }
@@ -79,19 +69,19 @@ impl Display for Expression {
                 else_block,
                 ..
             } => {
-                let mut s = format!("(if {}", cond_expr);
-                s += &then_block.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!(" {}", n);
-                    acc
-                });
-
+                let mut s = format!("(if {} {}", cond_expr, then_block);
                 if let Some(alt) = else_block {
-                    s += &alt.iter().fold(String::new(), |mut acc, n| {
-                        acc += &format!(" {}", n);
-                        acc
-                    });
+                    s += &format!(" {}", alt);
                 }
                 write!(f, "{})", s)
+            }
+            Block { list, .. } => {
+                let mut s = "'(".to_string();
+                s += &list.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!("{} ", n);
+                    acc
+                });
+                write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             }
         }
     }

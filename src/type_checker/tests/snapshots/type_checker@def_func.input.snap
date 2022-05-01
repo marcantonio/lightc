@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/def_func.input
 ---
 - - "fn foo() { 1 } // basic"
@@ -14,11 +14,14 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Void
               body:
-                - Expr:
-                    Lit:
-                      value:
-                        Int32: 1
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                  ty: Int32
 - - "fn bar() { }; fn foo() { bar() } // void ret and body"
   - Ok:
       nodes:
@@ -28,7 +31,10 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 name: bar
                 args: []
                 ret_ty: Void
-              body: []
+              body:
+                Block:
+                  list: []
+                  ty: Void
         - Stmt:
             Fn:
               proto:
@@ -36,11 +42,14 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Void
               body:
-                - Expr:
-                    Call:
-                      name: bar
-                      args: []
-                      ty: Void
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: bar
+                          args: []
+                          ty: Void
+                  ty: Void
 - - "fn foo(a: int) { a + 1 } // void ret; expr body"
   - Ok:
       nodes:
@@ -53,21 +62,24 @@ input_file: src/type_checker/tests/inputs/def_func.input
                     - Int32
                 ret_ty: Void
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Ident:
-                            name: a
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: a
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn foo(a: int, b: float) { } // multiple args"
   - Ok:
       nodes:
@@ -81,7 +93,10 @@ input_file: src/type_checker/tests/inputs/def_func.input
                   - - b
                     - Float
                 ret_ty: Void
-              body: []
+              body:
+                Block:
+                  list: []
+                  ty: Void
 - - "fn foo(a: int, b: float) -> int { } // expected int in last statement"
   - Err: "Function `foo` should return type `int32` but last statement is `void`"
 - - "fn foo(a: int, b: float) -> int { 1.0 } // expected int in last statement"
@@ -108,16 +123,19 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    Let:
-                      name: a
-                      antn: Int8
-                      init:
-                        Expr:
-                          Lit:
-                            value:
-                              Int8: 1
-                            ty: Int8
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: a
+                          antn: Int8
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                  ty: Void
 - - "fn main() { } // main exits as int32"
   - Ok:
       nodes:
@@ -128,11 +146,14 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Int32
               body:
-                - Expr:
-                    Lit:
-                      value:
-                        Int32: 0
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Void
 - - "fn main() { 1 } // main exits as int32"
   - Ok:
       nodes:
@@ -143,11 +164,14 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Int32
               body:
-                - Expr:
-                    Lit:
-                      value:
-                        Int32: 1
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                  ty: Int32
 - - "fn main() -> float { 1.0 } // main exits as int32"
   - Ok:
       nodes:
@@ -158,14 +182,17 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: Int32
               body:
-                - Expr:
-                    Lit:
-                      value:
-                        Float: 1.0
-                      ty: Float
-                - Expr:
-                    Lit:
-                      value:
-                        Int32: 0
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Lit:
+                          value:
+                            Float: 1.0
+                          ty: Float
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Float
 

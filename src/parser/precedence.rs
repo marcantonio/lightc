@@ -17,7 +17,7 @@ impl OpPrec {
             Eq => Ok(OpPrec::Left(4)),
             And => Ok(OpPrec::Left(3)),
             Or => Ok(OpPrec::Left(2)),
-            Assign => Ok(OpPrec::Left(1)),
+            Assign => Ok(OpPrec::Right(1)), // XXX: right
             x => Err(format!("Unknown binary operator: {}", x)),
         }
     }

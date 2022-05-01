@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 555
+assertion_line: 571
 expression: asts
 input_file: src/parser/tests/inputs/block.input
 ---
@@ -14,13 +14,16 @@ input_file: src/parser/tests/inputs/block.input
                   name: foo
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: bar
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
               else_block: ~
               ty: ~
-  - (if foo bar)
+  - "(if foo '(bar))"
 - - "if foo {}"
   - Ok:
       nodes:
@@ -30,10 +33,13 @@ input_file: src/parser/tests/inputs/block.input
                 Ident:
                   name: foo
                   ty: ~
-              then_block: []
+              then_block:
+                Block:
+                  list: []
+                  ty: ~
               else_block: ~
               ty: ~
-  - (if foo)
+  - "(if foo '()))"
 - - if foo
   - Err:
       message: "Expecting '{' to start block. Got EOF"

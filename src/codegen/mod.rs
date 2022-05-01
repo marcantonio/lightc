@@ -158,7 +158,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 body,
             ),
             Let { name, antn, init } => self.codegen_let(name, *antn, &init.as_expr()?),
-            Fn { proto, body } => self.codegen_func(proto, body),
+            Fn { proto, body } => self.codegen_func(proto, &body.as_deref()),
         }
     }
 
@@ -206,7 +206,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(func)
     }
 
-    fn codegen_func(&mut self, proto: &Prototype, body: &Option<Vec<Node>>) -> StmtResult<'ctx> {
+    fn codegen_func(&mut self, proto: &Prototype, body: &Option<&Expression>) -> StmtResult<'ctx> {
         let function = self.codegen_proto(proto)?;
         // If body is None assume call is an extern
         let body = match body {
@@ -228,22 +228,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             self.local_vars.insert(proto.args[i].0.to_owned(), alloca);
         }
 
-        // Generate and add all expressions in the body. Save the last to one to
-        // use with the ret instruction. Note: We can't use codegen_node() here
-        // because we need the return value.
-        let mut last_node_val = None;
-        for node in body {
-            last_node_val = match node {
-                Node::Stmt(s) => {
-                    self.codegen_stmt(s)?;
-                    None
-                }
-                Node::Expr(e) => self.codegen_expr(e)?,
-            }
-        }
+        let body_val = self.codegen_expr(body)?;
 
         // Build the return function based on the prototype's return value and the last statement
-        match (proto.ret_ty, last_node_val) {
+        match (proto.ret_ty, body_val) {
             (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
             (Some(rt), None) if rt != Type::Void => {
                 return Err(format!(
@@ -282,7 +270,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     // for start; cond; step { body }
-    // start == let var_name = x
     fn codegen_for(
         &mut self,
         start_name: &str,
@@ -290,7 +277,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         start_expr: &Expression,
         cond_expr: &Expression,
         step_expr: &Expression,
-        body: &[Node],
+        body: &Expression,
     ) -> StmtResult<'ctx> {
         let parent = self
             .builder
@@ -315,9 +302,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.local_vars.insert(start_name.to_owned(), start_alloca);
 
         // Generate all body expressions
-        for node in body {
-            self.codegen_node(node)?;
-        }
+        self.codegen_expr(body)?;
 
         // Codegen step value and end cond
         let step_code = self.codegen_expr(step_expr)?;
@@ -436,9 +421,21 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 then_block,
                 else_block,
                 ty,
-            } => Some(self.codegen_cond(cond_expr, then_block, else_block, ty.unwrap())),
+            } => {
+                Some(self.codegen_cond(cond_expr, then_block, &else_block.as_deref(), ty.unwrap()))
+            }
+            Block { list, .. } => self.codegen_block(list).transpose(),
         }
         .transpose()
+    }
+
+    // TODO: Should have local scope
+    fn codegen_block(&mut self, list: &[Node]) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+        let mut node_val = None;
+        for node in list {
+            node_val = self.codegen_node(node)?;
+        }
+        Ok(node_val)
     }
 
     fn codegen_lit(&self, value: &Literal) -> ExprResult<'ctx> {
@@ -606,8 +603,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn codegen_cond(
         &mut self,
         cond_expr: &Expression,
-        then_block: &[Node],
-        else_block: &Option<Vec<Node>>,
+        then_block: &Expression,
+        else_block: &Option<&Expression>,
         ty: Type,
     ) -> ExprResult<'ctx> {
         // Should never be used. Useful for an unused phi branch.
@@ -654,12 +651,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(then_bb);
 
         // Codegen the then block. Save the last value for phi.
-        let mut last_then_val = undef_val;
-        for node in then_block {
-            if let Some(val) = self.codegen_node(node)? {
-                last_then_val = val;
-            }
-        }
+        let then_val = match self.codegen_expr(then_block)? {
+            Some(v) => v,
+            None => undef_val,
+        };
 
         // Make sure the consequent returns to the end block after its
         // execution. Don't forget to reset `then_bb` in case codegen moved it.
@@ -675,13 +670,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let val;
         // Codegen the else block if we have one
         if let Some(else_block) = else_block {
-            // Codegen the then block. Save the last value for phi.
-            let mut last_else_val = undef_val;
-            for node in else_block {
-                if let Some(val) = self.codegen_node(node)? {
-                    last_else_val = val;
-                }
-            }
+            // Codegen the else block. Save the last value for phi.
+            let else_val = match self.codegen_expr(else_block)? {
+                Some(v) => v,
+                None => undef_val,
+            };
 
             // Make sure the alternative returns to the end block after its
             // execution. Don't forget to reset `then_bb` in case codegen moved it.
@@ -696,11 +689,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
             // Create the phi node and insert code/value pairs
             let phi = self.build_phi_for_type(ty, "if.else.phi");
-            phi.add_incoming(&[(&last_then_val, then_bb), (&last_else_val, else_bb)]);
+            phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
             val = phi.as_basic_value();
         } else {
             let phi = self.build_phi_for_type(ty, "if.phi");
-            phi.add_incoming(&[(&last_then_val, then_bb), (&undef_val, entry_bb)]);
+            phi.add_incoming(&[(&then_val, then_bb), (&undef_val, entry_bb)]);
             val = phi.as_basic_value();
         }
         Ok(val)

@@ -93,7 +93,7 @@ impl TypeChecker {
                 body,
             ),
             Let { name, antn, init } => self.check_let(name, *antn, &mut init.as_expr_mut()?),
-            Fn { proto, body } => self.check_func(proto, body),
+            Fn { proto, body } => self.check_func(proto, &mut body.as_deref_mut()),
         }
     }
 
@@ -102,7 +102,7 @@ impl TypeChecker {
     fn check_func(
         &mut self,
         proto: &mut Prototype,
-        body: &mut Option<Vec<Node>>,
+        body: &mut Option<&mut Expression>,
     ) -> Result<(), String> {
         let mut func_entry = FunctionEntry {
             ret_ty: proto.ret_ty.unwrap_or(Type::Void),
@@ -130,17 +130,7 @@ impl TypeChecker {
             self.variable_table.insert(name.to_owned(), *ty);
         }
 
-        // Check the body. Ensure statements always eval to void.
-        let mut body_ty = Type::Void;
-        for node in body.iter_mut() {
-            body_ty = match node {
-                Node::Stmt(s) => {
-                    self.check_stmt(s)?;
-                    Type::Void
-                }
-                Node::Expr(e) => self.check_expr(e, None)?,
-            }
-        }
+        let mut body_ty = self.check_expr(body, None)?;
 
         // Ensure main is always an int32 and returns a 0 if nothing is
         // specified
@@ -151,10 +141,12 @@ impl TypeChecker {
             match body_ty {
                 int_types!() => {}
                 _ => {
-                    body.push(Node::Expr(Expression::Lit {
-                        value: Literal::Int32(0),
-                        ty: Some(Type::Int32),
-                    }));
+                    if let Expression::Block { list, .. } = body {
+                        list.push(Node::Expr(Expression::Lit {
+                            value: Literal::Int32(0),
+                            ty: Some(Type::Int32),
+                        }));
+                    }
                 }
             }
             body_ty = Type::Int32;
@@ -191,7 +183,7 @@ impl TypeChecker {
         start_expr: &mut Expression,
         cond_expr: &mut Expression,
         step_expr: &mut Expression,
-        body: &mut [Node],
+        body: &mut Expression,
     ) -> Result<(), String> {
         let start_ty = self.check_expr(start_expr, Some(start_antn))?;
         if start_antn != start_ty {
@@ -218,9 +210,8 @@ impl TypeChecker {
             ));
         }
 
-        for node in body {
-            self.check_node(node)?;
-        }
+        // Check body
+        self.check_expr(body, None)?;
 
         self.variable_table.remove(start_name);
 
@@ -262,8 +253,19 @@ impl TypeChecker {
                 then_block,
                 else_block,
                 ty,
-            } => self.check_cond(cond_expr, then_block, &mut else_block.as_expr_mut()?, ty),
+            } => self.check_cond(cond_expr, then_block, &mut else_block.as_deref_mut(), ty),
+            Block { list, ty } => self.check_block(list, ty),
         }
+    }
+
+    // Check the block expressions. Ensures statements always eval to void.
+    fn check_block(&mut self, list: &mut [Node], ty: &mut Option<Type>) -> Result<Type, String> {
+        let mut list_ty = Type::Void;
+        for node in list {
+            list_ty = self.check_node(node)?;
+        }
+        *ty = Some(list_ty);
+        Ok(list_ty)
     }
 
     fn check_lit(
@@ -444,8 +446,8 @@ impl TypeChecker {
     fn check_cond(
         &mut self,
         cond_expr: &mut Expression,
-        then_block: &mut [Node],
-        else_block: &mut Option<Vec<&mut Expression>>,
+        then_block: &mut Expression,
+        else_block: &mut Option<&mut Expression>,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         let cond_ty = self.check_expr(cond_expr, None)?;
@@ -453,16 +455,10 @@ impl TypeChecker {
             return Err("Conditional should always be a bool".to_string());
         }
 
-        let mut then_ty = Type::Void;
-        for node in then_block {
-            then_ty = self.check_node(node)?;
-        }
+        let then_ty = self.check_expr(then_block, None)?;
 
         if let Some(else_block) = else_block {
-            let mut else_ty = Type::Void;
-            for expr in else_block {
-                else_ty = self.check_expr(*expr, None)?;
-            }
+            let else_ty = self.check_expr(else_block, Some(then_ty))?;
 
             if then_ty != else_ty {
                 return Err(format!(

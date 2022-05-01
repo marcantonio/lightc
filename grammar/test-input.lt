@@ -25,6 +25,8 @@ fn main() {
     } else {
         -!-x;
     };
+
+    let y: int;
 };
 
 // foo $ bar

@@ -49,7 +49,7 @@ pub(crate) enum Statement {
         start_expr: Box<Expression>,
         cond_expr: Box<Expression>,
         step_expr: Box<Expression>,
-        body: Vec<Node>,
+        body: Box<Expression>,
     },
     Let {
         name: String,
@@ -58,7 +58,7 @@ pub(crate) enum Statement {
     },
     Fn {
         proto: Box<Prototype>,
-        body: Option<Vec<Node>>,
+        body: Option<Box<Expression>>,
     },
 }
 
@@ -66,7 +66,7 @@ pub(crate) enum Statement {
 pub(crate) enum Expression {
     Lit {
         value: Literal,
-        ty: Option<Type>, // XXX: Remove option and default to void?
+        ty: Option<Type>,
     },
     Ident {
         name: String,
@@ -90,8 +90,12 @@ pub(crate) enum Expression {
     },
     Cond {
         cond_expr: Box<Expression>,
-        then_block: Vec<Node>,
-        else_block: Option<Vec<Node>>,
+        then_block: Box<Expression>,
+        else_block: Option<Box<Expression>>,
+        ty: Option<Type>,
+    },
+    Block {
+        list: Vec<Node>,
         ty: Option<Type>,
     },
 }
@@ -107,6 +111,7 @@ impl Expression {
             UnOp { ty, .. } => *ty,
             Call { ty, .. } => *ty,
             Cond { ty, .. } => *ty,
+            Block { ty, .. } => *ty,
         }
     }
 
@@ -131,8 +136,6 @@ impl Expression {
 }
 
 #[derive(Debug, PartialEq, Serialize)]
-// XXX
-#[allow(dead_code)]
 pub(crate) enum Literal {
     Int8(i8),
     Int16(i16),

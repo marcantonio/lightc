@@ -44,11 +44,7 @@ impl Lexer {
         } else if cur.is_eof() {
             if self.should_add_semicolon() {
                 let semi = match self.tokens.last() {
-                    Some(t) => Token::new(
-                        TokenType::Semicolon(true),
-                        t.line,
-                        t.column + 1,
-                    ),
+                    Some(t) => Token::new(TokenType::Semicolon(true), t.line, t.column + 1),
                     None => Token::default(),
                 };
                 self.tokens.push(semi);

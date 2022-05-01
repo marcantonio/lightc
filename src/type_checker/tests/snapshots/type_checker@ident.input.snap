@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/ident.input
 ---
 - - "fn foo(x: int) { x } // basic"
@@ -16,10 +16,13 @@ input_file: src/type_checker/tests/inputs/ident.input
                     - Int32
                 ret_ty: Void
               body:
-                - Expr:
-                    Ident:
-                      name: x
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: x
+                          ty: Int32
+                  ty: Int32
 - - "fn foo(x: int) { y } // unknown var"
   - Err: "Unknown variable: y"
 

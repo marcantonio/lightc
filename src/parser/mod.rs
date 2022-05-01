@@ -27,6 +27,8 @@ impl<'a> Parser<'a> {
     }
 
     // Parse each token using recursive descent
+    //
+    // StmtList ::= ( Stmt ';' )+ ;
     pub(crate) fn parse(mut self) -> Result<Ast<Node>, ParseError> {
         while self.tokens.peek().is_some() {
             let node = self.parse_statement()?;
@@ -35,6 +37,7 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
+    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | Expr ;
     fn parse_statement(&mut self) -> ParseResult {
         let token = self
             .tokens
@@ -50,7 +53,13 @@ impl<'a> Parser<'a> {
         };
 
         // Semicolon is optional when next token is a '}'
-        if !matches!(self.tokens.peek(), Some(&Token { tt: TokenType::CloseBrace, .. })) {
+        if !matches!(
+            self.tokens.peek(),
+            Some(&Token {
+                tt: TokenType::CloseBrace,
+                ..
+            })
+        ) {
             expect_next_token!(
                 self.tokens,
                 TokenType::Semicolon(_),
@@ -61,6 +70,7 @@ impl<'a> Parser<'a> {
         Ok(stmt)
     }
 
+    // ForStmt ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
     fn parse_for(&mut self) -> ParseResult {
         self.tokens.next(); // Eat for
 
@@ -89,16 +99,10 @@ impl<'a> Parser<'a> {
         );
 
         let start_node = self.parse_expression(0)?;
-        expect_explicit_semi!(
-            self.tokens,
-            "Expecting ';' after start"
-        );
+        expect_explicit_semi!(self.tokens, "Expecting ';' after start");
 
         let cond_node = self.parse_expression(0)?;
-        expect_explicit_semi!(
-            self.tokens,
-            "Expecting ';' after condition"
-        );
+        expect_explicit_semi!(self.tokens, "Expecting ';' after condition");
 
         let step_node = self.parse_expression(0)?;
 
@@ -108,10 +112,11 @@ impl<'a> Parser<'a> {
             start_expr: Box::new(start_node.to_expr()?),
             cond_expr: Box::new(cond_node.to_expr()?),
             step_expr: Box::new(step_node.to_expr()?),
-            body: self.parse_block()?,
+            body: Box::new(self.parse_block()?.to_expr()?),
         }))
     }
 
+    // LetStmt ::= 'let' TypedDecl ( '=' Expr  )? ;
     fn parse_let(&mut self) -> ParseResult {
         self.tokens.next(); // Eat let
 
@@ -145,36 +150,14 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // Consume token and dispatch. These are all considered primary expressions.
-    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
-        let token = self
-            .tokens
-            .next()
-            .ok_or_else(|| "Premature end of expression".to_string())?;
-
-        let expr = match &token.tt {
-            // XXX: consider parse_lit rather than parse_bool, etc
-            TokenType::If => self.parse_cond()?,
-            TokenType::Bool(b) => self.parse_bool(*b)?,
-            TokenType::Num(num) => self.parse_num(num, token)?,
-            TokenType::Ident(id) => self.parse_ident(id)?,
-            TokenType::OpenParen => self.parse_paren()?,
-            TokenType::Op(sym) => self.parse_unop(*sym)?,
-            x => {
-                return Err(ParseError::from((
-                    format!("Expecting primary expression. Got {}", x),
-                    token,
-                )))
-            }
-        };
-
-        // Check for binop and process or return
-        self.parse_binop(expr, min_p)
-    }
-
-    // Parses arbitrary length binary expressions. Uses Pratt with op
+    // Parses arbitrary length binary expressions. Uses Pratt with operator
     // precedence parsing.
-    fn parse_binop(&mut self, mut lhs: Node, min_p: u8) -> ParseResult {
+    //
+    // Expr ::= PrimaryExpr | Expr mul_op Expr | Expr add_op Expr | Expr rel_op Expr
+    //        | Expr '&&' Expr | Expr '||' Expr | IdentExpr '=' Expr ;
+    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
+        let mut lhs = self.parse_primary()?;
+
         // Peek at the next token, otherwise return current lhs
         while let Some(next) = self.tokens.peek() {
             // Should always be an operator after a primary
@@ -221,6 +204,7 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
+    // UnopExpr ::= ( '-' | '!' ) Expr ;
     fn parse_unop(&mut self, sym: Symbol) -> ParseResult {
         let p = OpPrec::un_prec(sym)?;
         let rhs = self.parse_expression(p)?;
@@ -232,16 +216,43 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | Assignment | Block | ParenExpr ;
+    fn parse_primary(&mut self) -> ParseResult {
+        let token = self
+            .tokens
+            .next()
+            .ok_or_else(|| "Premature end of expression".to_string())?;
+
+        let expr = match &token.tt {
+            TokenType::If => self.parse_cond()?,
+            TokenType::Bool(b) => self.parse_bool(*b)?,
+            TokenType::Num(num) => self.parse_num(num, token)?,
+            TokenType::Ident(id) => self.parse_ident(id)?,
+            //TokenType::OpenBrace => self.parse_block()?,
+            TokenType::OpenParen => self.parse_paren()?,
+            TokenType::Op(sym) => self.parse_unop(*sym)?,
+            x => {
+                return Err(ParseError::from((
+                    format!("Expecting primary expression. Got {}", x),
+                    token,
+                )))
+            }
+        };
+        Ok(expr)
+    }
+
+    // FnDecl ::= Prototype Block ;
     fn parse_function(&mut self) -> ParseResult {
         // Eat 'fn'
         self.tokens.next();
 
         Ok(Node::Stmt(Statement::Fn {
             proto: Box::new(self.parse_proto()?),
-            body: Some(self.parse_block()?),
+            body: Some(Box::new(self.parse_block()?.to_expr()?)),
         }))
     }
 
+    // ExternDecl ::= 'extern' Prototype ;
     fn parse_extern(&mut self) -> ParseResult {
         // Eat 'extern'
         self.tokens.next();
@@ -252,6 +263,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' type )? ;
     fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
         let fn_name = expect_next_token!(
             self.tokens,
@@ -317,9 +329,9 @@ impl<'a> Parser<'a> {
                     return Err(ParseError::from((
                         format!("Expecting ',' or ')' in prototype. Got {}", &err_token),
                         &err_token,
-                    )))
+                    )));
                 }
-                None => unreachable!("NONCANBE: token can't be None in prototype")
+                None => unreachable!("NONCANBE: token can't be None in prototype"),
             };
         }
 
@@ -350,6 +362,7 @@ impl<'a> Parser<'a> {
         })
     }
 
+    // Literal bool
     fn parse_bool(&self, val: bool) -> ParseResult {
         Ok(Node::Expr(Expression::Lit {
             value: Literal::Bool(val),
@@ -388,6 +401,9 @@ impl<'a> Parser<'a> {
     }
 
     // Variable or function call
+    //
+    // IdentExpr ::= ident ;
+    // ident     ::= letter ( letter | digit | '_' )*;
     fn parse_ident(&mut self, id: &str) -> ParseResult {
         let node = Expression::Ident {
             name: id.to_owned(),
@@ -447,12 +463,14 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    // ParenExpr ::= '(' Expr ')' ;
     fn parse_paren(&mut self) -> ParseResult {
         let lhs = self.parse_expression(0);
         self.tokens.next(); // Eat ')'
         lhs
     }
 
+    // CondExpr ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
     fn parse_cond(&mut self) -> ParseResult {
         let cond_node = self.parse_expression(0)?;
         let then_block = self.parse_block()?;
@@ -472,22 +490,25 @@ impl<'a> Parser<'a> {
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
-                vec![self.parse_expression(0)?]
+                Expression::Block {
+                    list: vec![self.parse_expression(0)?],
+                    ty: None,
+                }
             } else {
-                self.parse_block()?
+                self.parse_block()?.to_expr()?
             }
         });
 
         Ok(Node::Expr(Expression::Cond {
             cond_expr: Box::new(cond_node.to_expr()?),
-            then_block,
-            else_block,
+            then_block: Box::new(then_block.to_expr()?),
+            else_block: else_block.map(Box::new),
             ty: None,
         }))
     }
 
     // Helper to collect a bunch of expressions enclosed by braces into a Vec<T>
-    fn parse_block(&mut self) -> Result<Vec<Node>, ParseError> {
+    fn parse_block(&mut self) -> ParseResult {
         let mut block: Vec<Node> = vec![];
 
         expect_next_token!(
@@ -500,7 +521,10 @@ impl<'a> Parser<'a> {
             match t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(block);
+                    return Ok(Node::Expr(Expression::Block {
+                        list: block,
+                        ty: None,
+                    }));
                 }
                 _ => block.push(self.parse_statement()?),
             }

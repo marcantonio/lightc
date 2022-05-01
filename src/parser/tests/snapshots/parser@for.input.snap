@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 564
+assertion_line: 571
 expression: asts
 input_file: src/parser/tests/inputs/for.input
 ---
@@ -37,11 +37,14 @@ input_file: src/parser/tests/inputs/for.input
                     UInt64: 1
                   ty: ~
               body:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
-  - "(for (x: int32 1) (< x 10) 1 foo)"
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
+  - "(for (x: int32 1) (< x 10) 1 '(foo))"
 - - for
   - Err:
       message: Expecting identifier after for. Got EOF

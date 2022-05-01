@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/binop.input
 ---
 - - "fn foo() { 1 + 2 } // basic"
@@ -14,22 +14,25 @@ input_file: src/type_checker/tests/inputs/binop.input
                 args: []
                 ret_ty: Void
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 2
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn foo() { let a: int = 1; a + 2 } // basic with var"
   - Ok:
       nodes:
@@ -40,31 +43,34 @@ input_file: src/type_checker/tests/inputs/binop.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    Let:
-                      name: a
-                      antn: Int32
-                      init:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Ident:
-                            name: a
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 2
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: a
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: a
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn foo() { let a: int = 1; a + 2 / 4 + (2 * 2) } // complex"
   - Ok:
       nodes:
@@ -75,64 +81,67 @@ input_file: src/type_checker/tests/inputs/binop.input
                 args: []
                 ret_ty: Void
               body:
-                - Stmt:
-                    Let:
-                      name: a
-                      antn: Int32
-                      init:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          BinOp:
-                            sym: Add
-                            lhs:
-                              Expr:
-                                Ident:
-                                  name: a
-                                  ty: Int32
-                            rhs:
-                              Expr:
-                                BinOp:
-                                  sym: Div
-                                  lhs:
-                                    Expr:
-                                      Lit:
-                                        value:
-                                          Int32: 2
-                                        ty: Int32
-                                  rhs:
-                                    Expr:
-                                      Lit:
-                                        value:
-                                          Int32: 4
-                                        ty: Int32
-                                  ty: Int32
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          BinOp:
-                            sym: Mul
-                            lhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    Int32: 2
-                                  ty: Int32
-                            rhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    Int32: 2
-                                  ty: Int32
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: a
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              BinOp:
+                                sym: Add
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: a
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    BinOp:
+                                      sym: Div
+                                      lhs:
+                                        Expr:
+                                          Lit:
+                                            value:
+                                              Int32: 2
+                                            ty: Int32
+                                      rhs:
+                                        Expr:
+                                          Lit:
+                                            value:
+                                              Int32: 4
+                                            ty: Int32
+                                      ty: Int32
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                sym: Mul
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 2
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 2
+                                      ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn plusOne(x: int) -> int { x + 1 }; fn main() { 1 + plusOne(3) } // func call"
   - Ok:
       nodes:
@@ -145,21 +154,24 @@ input_file: src/type_checker/tests/inputs/binop.input
                     - Int32
                 ret_ty: Int32
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Ident:
-                            name: x
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
         - Stmt:
             Fn:
               proto:
@@ -167,27 +179,30 @@ input_file: src/type_checker/tests/inputs/binop.input
                 args: []
                 ret_ty: Int32
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Call:
-                            name: plusOne
-                            args:
-                              - Expr:
-                                  Lit:
-                                    value:
-                                      Int32: 3
-                                    ty: Int32
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Call:
+                                name: plusOne
+                                args:
+                                  - Expr:
+                                      Lit:
+                                        value:
+                                          Int32: 3
+                                        ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn foo() { 2.0 + 1 } // mismatch"
   - Err: "Mismatched types in binop: `float` != `int32`"
 - - "fn foo() { 2 == 1 } // bool"
@@ -200,20 +215,23 @@ input_file: src/type_checker/tests/inputs/binop.input
                 args: []
                 ret_ty: Void
               body:
-                - Expr:
-                    BinOp:
-                      sym: Eq
-                      lhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 2
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      ty: Bool
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Bool
+                  ty: Bool
 

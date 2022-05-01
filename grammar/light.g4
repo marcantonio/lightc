@@ -11,25 +11,23 @@ block           : '{' stmt_list? '}';
 fn_decl         : proto block;
 extern_decl     : 'extern' proto;
 proto           : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' TYPE)?;
-for_stmt        : 'for' var_decl ';' expr ';' NUMBER? block;
-let_stmt        : 'let' var_decl;
-var_decl        : typed_decl '=' expr;
+for_stmt        : 'for' typed_decl '=' expr ';' expr ';' NUMBER? block;
+let_stmt        : 'let' typed_decl ('=' expr)?;
 typed_decl      : IDENT ':' TYPE;
-expr            : unop_expr
-                | expr ('*' | '/') unop_expr
-                | expr ('+' | '-') unop_expr
-                | expr ('>' | '<' | '==') unop_expr
-                | expr '&&' unop_expr
-                | expr '||' unop_expr;
+expr            : primary_expr
+                | expr ('*' | '/') expr
+                | expr ('+' | '-') expr
+                | expr ('>' | '<' | '==') expr
+                | expr '&&' expr
+                | expr '||' expr
+                | ident_expr '=' expr;
 primary_expr    : cond_expr
                 | lit_expr
                 | ident_expr
-                | assignment
                 | block
-                | paren_expr;
-assignment      : ident_expr '=' expr;
-unop_expr       : primary_expr
-                | ('-' | '!') unop_expr;
+                | paren_expr
+                | unop_expr;
+unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
                 | BOOL;
 ident_expr      : IDENT;

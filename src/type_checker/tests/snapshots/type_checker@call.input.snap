@@ -1,7 +1,7 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 512
-expression: ir
+assertion_line: 528
+expression: asts
 input_file: src/type_checker/tests/inputs/call.input
 ---
 - - "fn plusOne(x: int) -> int { x + 1 }; fn main() { plusOne(1) } // basic"
@@ -16,21 +16,24 @@ input_file: src/type_checker/tests/inputs/call.input
                     - Int32
                 ret_ty: Int32
               body:
-                - Expr:
-                    BinOp:
-                      sym: Add
-                      lhs:
-                        Expr:
-                          Ident:
-                            name: x
-                            ty: Int32
-                      rhs:
-                        Expr:
-                          Lit:
-                            value:
-                              Int32: 1
-                            ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
         - Stmt:
             Fn:
               proto:
@@ -38,16 +41,19 @@ input_file: src/type_checker/tests/inputs/call.input
                 args: []
                 ret_ty: Int32
               body:
-                - Expr:
-                    Call:
-                      name: plusOne
-                      args:
-                        - Expr:
-                            Lit:
-                              value:
-                                Int32: 1
-                              ty: Int32
-                      ty: Int32
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: plusOne
+                          args:
+                            - Expr:
+                                Lit:
+                                  value:
+                                    Int32: 1
+                                  ty: Int32
+                          ty: Int32
+                  ty: Int32
 - - "fn plusOne(x: int) -> int { x + 1 }; fn main() { plusThree(1) } // undefined function"
   - Err: "Call to undefined function: `plusThree`"
 - - "fn plusOne(x: int) -> int { x + 1 }; fn main() { let x: float = 1.0; plusOne(x) } // mismatch arg type"

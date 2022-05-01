@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 555
+assertion_line: 571
 expression: asts
 input_file: src/parser/tests/inputs/if.input
 ---
@@ -24,13 +24,16 @@ input_file: src/parser/tests/inputs/if.input
                         ty: ~
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
               else_block: ~
               ty: ~
-  - (if (> a b) foo)
+  - "(if (> a b) '(foo))"
 - - "if a > b { foo } else { bar }"
   - Ok:
       nodes:
@@ -51,17 +54,23 @@ input_file: src/parser/tests/inputs/if.input
                         ty: ~
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
               else_block:
-                - Expr:
-                    Ident:
-                      name: bar
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
               ty: ~
-  - (if (> a b) foo bar)
+  - "(if (> a b) '(foo) '(bar))"
 - - "if a > b { foo } else if c < a { bar }"
   - Ok:
       nodes:
@@ -82,36 +91,45 @@ input_file: src/parser/tests/inputs/if.input
                         ty: ~
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
-              else_block:
-                - Expr:
-                    Cond:
-                      cond_expr:
-                        BinOp:
-                          sym: Lt
-                          lhs:
-                            Expr:
-                              Ident:
-                                name: c
-                                ty: ~
-                          rhs:
-                            Expr:
-                              Ident:
-                                name: a
-                                ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
                           ty: ~
-                      then_block:
-                        - Expr:
-                            Ident:
-                              name: bar
+                  ty: ~
+              else_block:
+                Block:
+                  list:
+                    - Expr:
+                        Cond:
+                          cond_expr:
+                            BinOp:
+                              sym: Lt
+                              lhs:
+                                Expr:
+                                  Ident:
+                                    name: c
+                                    ty: ~
+                              rhs:
+                                Expr:
+                                  Ident:
+                                    name: a
+                                    ty: ~
                               ty: ~
-                      else_block: ~
-                      ty: ~
+                          then_block:
+                            Block:
+                              list:
+                                - Expr:
+                                    Ident:
+                                      name: bar
+                                      ty: ~
+                              ty: ~
+                          else_block: ~
+                          ty: ~
+                  ty: ~
               ty: ~
-  - (if (> a b) foo (if (< c a) bar))
+  - "(if (> a b) '(foo) '((if (< c a) '(bar))))"
 - - "if a > b { foo } else if c < a { bar } else { baz }"
   - Ok:
       nodes:
@@ -132,40 +150,52 @@ input_file: src/parser/tests/inputs/if.input
                         ty: ~
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
-              else_block:
-                - Expr:
-                    Cond:
-                      cond_expr:
-                        BinOp:
-                          sym: Lt
-                          lhs:
-                            Expr:
-                              Ident:
-                                name: c
-                                ty: ~
-                          rhs:
-                            Expr:
-                              Ident:
-                                name: a
-                                ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
                           ty: ~
-                      then_block:
-                        - Expr:
-                            Ident:
-                              name: bar
+                  ty: ~
+              else_block:
+                Block:
+                  list:
+                    - Expr:
+                        Cond:
+                          cond_expr:
+                            BinOp:
+                              sym: Lt
+                              lhs:
+                                Expr:
+                                  Ident:
+                                    name: c
+                                    ty: ~
+                              rhs:
+                                Expr:
+                                  Ident:
+                                    name: a
+                                    ty: ~
                               ty: ~
-                      else_block:
-                        - Expr:
-                            Ident:
-                              name: baz
+                          then_block:
+                            Block:
+                              list:
+                                - Expr:
+                                    Ident:
+                                      name: bar
+                                      ty: ~
                               ty: ~
-                      ty: ~
+                          else_block:
+                            Block:
+                              list:
+                                - Expr:
+                                    Ident:
+                                      name: baz
+                                      ty: ~
+                              ty: ~
+                          ty: ~
+                  ty: ~
               ty: ~
-  - (if (> a b) foo (if (< c a) bar baz))
+  - "(if (> a b) '(foo) '((if (< c a) '(bar) '(baz))))"
 - - "if true { foo } else { bar }"
   - Ok:
       nodes:
@@ -177,17 +207,23 @@ input_file: src/parser/tests/inputs/if.input
                     Bool: true
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
               else_block:
-                - Expr:
-                    Ident:
-                      name: bar
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
               ty: ~
-  - (if true foo bar)
+  - "(if true '(foo) '(bar))"
 - - "if false { foo } else { bar }"
   - Ok:
       nodes:
@@ -199,17 +235,23 @@ input_file: src/parser/tests/inputs/if.input
                     Bool: false
                   ty: ~
               then_block:
-                - Expr:
-                    Ident:
-                      name: foo
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
               else_block:
-                - Expr:
-                    Ident:
-                      name: bar
-                      ty: ~
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
               ty: ~
-  - (if false foo bar)
+  - "(if false '(foo) '(bar))"
 - - "if a > b { foo } else bar"
   - Err:
       message: "Expecting 'if' or '{' after else"
