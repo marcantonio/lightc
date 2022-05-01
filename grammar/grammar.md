@@ -3,7 +3,7 @@ Formal grammar for light. It's written as a modified form of EBNF. Deviations fr
 
 Note that while semicolons are part of the formal grammar for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
 
-```ebnf:light.ebnf
+```ebnf:grammar/light.ebnf
 ```
 
 ## Exceptions

@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 555
+assertion_line: 589
 expression: asts
 input_file: src/parser/tests/inputs/expr.input
 ---
@@ -54,8 +54,14 @@ input_file: src/parser/tests/inputs/expr.input
   - "Parsing error: Expecting primary expression. Got CloseParen at 1:2"
 - - (
   - Err:
-      message: Premature end of expression
+      message: "Expecting ')' to close paren expression. Got EOF"
       line: 0
       column: 0
-  - "Parsing error: Premature end of expression"
+  - "Parsing error: Expecting ')' to close paren expression. Got EOF"
+- - (19 + 21
+  - Err:
+      message: "Expecting ')' to close paren expression. Got EOF"
+      line: 0
+      column: 0
+  - "Parsing error: Expecting ')' to close paren expression. Got EOF"
 

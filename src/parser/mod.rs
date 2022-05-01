@@ -206,6 +206,8 @@ impl<'a> Parser<'a> {
 
     // UnopExpr ::= ( '-' | '!' ) Expr ;
     fn parse_unop(&mut self, sym: Symbol) -> ParseResult {
+        self.tokens.next(); // Eat symbol
+
         let p = OpPrec::un_prec(sym)?;
         let rhs = self.parse_expression(p)?;
         let ty = rhs.ty()?;
@@ -220,7 +222,8 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> ParseResult {
         let token = self
             .tokens
-            .next()
+            .peek()
+            .cloned()
             .ok_or_else(|| "Premature end of expression".to_string())?;
 
         let expr = match &token.tt {
@@ -228,7 +231,7 @@ impl<'a> Parser<'a> {
             TokenType::Bool(b) => self.parse_bool(*b)?,
             TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
-            //TokenType::OpenBrace => self.parse_block()?,
+            TokenType::OpenBrace => self.parse_block()?,
             TokenType::OpenParen => self.parse_paren()?,
             TokenType::Op(sym) => self.parse_unop(*sym)?,
             x => {
@@ -363,7 +366,9 @@ impl<'a> Parser<'a> {
     }
 
     // Literal bool
-    fn parse_bool(&self, val: bool) -> ParseResult {
+    fn parse_bool(&mut self, val: bool) -> ParseResult {
+        self.tokens.next(); // Eat bool
+
         Ok(Node::Expr(Expression::Lit {
             value: Literal::Bool(val),
             ty: None,
@@ -372,7 +377,9 @@ impl<'a> Parser<'a> {
 
     // Literal numbers are u64 or f64
     // TODO: Revisit when we have literal annotations, i.e., 78int64.
-    fn parse_num(&self, num: &str, token: &Token) -> ParseResult {
+    fn parse_num(&mut self, num: &str, token: &Token) -> ParseResult {
+        self.tokens.next(); // Eat num
+
         match num.parse::<u64>() {
             Ok(n) => Ok(Node::Expr(Expression::Lit {
                 value: Literal::UInt64(n),
@@ -405,6 +412,8 @@ impl<'a> Parser<'a> {
     // IdentExpr ::= ident ;
     // ident     ::= letter ( letter | digit | '_' )*;
     fn parse_ident(&mut self, id: &str) -> ParseResult {
+        self.tokens.next(); // Eat ident
+
         let node = Expression::Ident {
             name: id.to_owned(),
             ty: None,
@@ -465,13 +474,20 @@ impl<'a> Parser<'a> {
 
     // ParenExpr ::= '(' Expr ')' ;
     fn parse_paren(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat '('
         let lhs = self.parse_expression(0);
-        self.tokens.next(); // Eat ')'
+        expect_next_token!(
+            self.tokens,
+            TokenType::CloseParen,
+            "Expecting ')' to close paren expression"
+        );
         lhs
     }
 
     // CondExpr ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
     fn parse_cond(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat if
+
         let cond_node = self.parse_expression(0)?;
         let then_block = self.parse_block()?;
 
@@ -511,6 +527,8 @@ impl<'a> Parser<'a> {
     fn parse_block(&mut self) -> ParseResult {
         let mut block: Vec<Node> = vec![];
 
+        // Be explicit because `parse_block()` is called outside of
+        // `parse_primary()`.
         expect_next_token!(
             self.tokens,
             TokenType::OpenBrace,

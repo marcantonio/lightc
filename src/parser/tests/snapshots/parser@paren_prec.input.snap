@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 555
+assertion_line: 589
 expression: asts
 input_file: src/parser/tests/inputs/paren_prec.input
 ---

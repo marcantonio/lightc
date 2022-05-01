@@ -1,0 +1,28 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 508
+expression: asts
+input_file: src/type_checker/tests/inputs/block.input
+---
+- - "let x: int = { 1 }"
+  - Ok:
+      nodes:
+        - Stmt:
+            Let:
+              name: x
+              antn: Int32
+              init:
+                Expr:
+                  Block:
+                    list:
+                      - Expr:
+                          Lit:
+                            value:
+                              Int32: 1
+                            ty: Int32
+                    ty: Int32
+- - "let x: int = { 1.0 }"
+  - Err: "Types don't match in let statement. Annotated with `int32` but initial value is `float`"
+- - "fn foo() {}; let x: int = { 1; 1.0; foo() }"
+  - Err: "Types don't match in let statement. Annotated with `int32` but initial value is `void`"
+

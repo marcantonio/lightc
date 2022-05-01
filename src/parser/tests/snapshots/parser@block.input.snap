@@ -1,6 +1,6 @@
 ---
 source: src/parser/mod.rs
-assertion_line: 571
+assertion_line: 589
 expression: asts
 input_file: src/parser/tests/inputs/block.input
 ---
@@ -52,4 +52,77 @@ input_file: src/parser/tests/inputs/block.input
       line: 0
       column: 0
   - "Parsing error: Expecting '}' to terminate block"
+- - "let x: int = { 1 }"
+  - Ok:
+      nodes:
+        - Stmt:
+            Let:
+              name: x
+              antn: Int32
+              init:
+                Expr:
+                  Block:
+                    list:
+                      - Expr:
+                          Lit:
+                            value:
+                              UInt64: 1
+                            ty: ~
+                    ty: ~
+  - "(let x:int32 '(1))"
+- - "y = { 1 + 4; foo(); 4 / 2 }"
+  - Ok:
+      nodes:
+        - Expr:
+            BinOp:
+              sym: Assign
+              lhs:
+                Expr:
+                  Ident:
+                    name: y
+                    ty: ~
+              rhs:
+                Expr:
+                  Block:
+                    list:
+                      - Expr:
+                          BinOp:
+                            sym: Add
+                            lhs:
+                              Expr:
+                                Lit:
+                                  value:
+                                    UInt64: 1
+                                  ty: ~
+                            rhs:
+                              Expr:
+                                Lit:
+                                  value:
+                                    UInt64: 4
+                                  ty: ~
+                            ty: ~
+                      - Expr:
+                          Call:
+                            name: foo
+                            args: []
+                            ty: ~
+                      - Expr:
+                          BinOp:
+                            sym: Div
+                            lhs:
+                              Expr:
+                                Lit:
+                                  value:
+                                    UInt64: 4
+                                  ty: ~
+                            rhs:
+                              Expr:
+                                Lit:
+                                  value:
+                                    UInt64: 2
+                                  ty: ~
+                            ty: ~
+                    ty: ~
+              ty: ~
+  - "(= y '((+ 1 4) (foo) (/ 4 2)))"
 
