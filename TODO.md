@@ -6,7 +6,8 @@
 - [x] Reorganize
 - [x] Test for all lexer errors
 - [x] Test for all parser errors
-- [ ] Test for all ir_gen errors
+- [ ] Test for all type_checker errors
+- [ ] Test for all codegen errors
 - [x] More context in parser errors
 - [x] More context in codegen errors
 - [ ] Include file name in error
@@ -19,9 +20,11 @@
 - [ ] Ensure conditionals are bools
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
+- [x] Type checker variable shadowing
 - [ ] Block scope
 - [x] Token output should be line based
 - [x] Token output should include context info
+- [ ] Convert Err(NONCANBE)'s to panic
 
 # Roadmap
 - [x] Formalize grammar

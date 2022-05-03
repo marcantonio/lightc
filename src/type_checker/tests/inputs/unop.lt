@@ -1,0 +1,10 @@
+// lit
+fn foo() { -3 }
+#test_delim#
+
+// var
+fn foo() {
+    let xy: int8 = 1
+    -xy
+}
+#test_delim#

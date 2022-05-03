@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/ident.input
+input_file: src/type_checker/tests/inputs/ident.lt
 ---
-- - "fn foo(x: int) { x } // basic"
+- - "// basic\nfn foo(x: int) { x }\n"
   - Ok:
       nodes:
         - Stmt:
@@ -23,6 +23,6 @@ input_file: src/type_checker/tests/inputs/ident.input
                           name: x
                           ty: Int32
                   ty: Int32
-- - "fn foo(x: int) { y } // unknown var"
-  - Err: "Unknown variable: y"
+- - "\n// unknown var\nfn foo(x: int) { y }\n"
+  - Err: "Symbol `y` not found in table"
 

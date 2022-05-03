@@ -1,0 +1,40 @@
+// basic
+fn foo() {
+    1 + 2
+}
+#test_delim#
+
+// basic with var
+fn foo() {
+    let a: int = 1
+    a + 2
+}
+#test_delim#
+
+// complex
+fn foo() {
+    let a: int = 1
+    a + 2 / 4 + (2 * 2)
+}
+#test_delim#
+
+// func call
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    1 + plusOne(3)
+}
+#test_delim#
+
+// mismatch
+fn foo() {
+    2.0 + 1
+}
+#test_delim#
+
+// bool
+fn foo() {
+    2 == 1
+}
+#test_delim#

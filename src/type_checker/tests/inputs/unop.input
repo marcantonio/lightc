@@ -1,2 +1,0 @@
-fn foo() { -3 }
-//fn foo() { let xy: int8 = 1 -xy }

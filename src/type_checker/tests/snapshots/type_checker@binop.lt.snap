@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/binop.input
+input_file: src/type_checker/tests/inputs/binop.lt
 ---
-- - "fn foo() { 1 + 2 } // basic"
+- - "// basic\nfn foo() {\n    1 + 2\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -33,7 +33,7 @@ input_file: src/type_checker/tests/inputs/binop.input
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn foo() { let a: int = 1; a + 2 } // basic with var"
+- - "\n// basic with var\nfn foo() {\n    let a: int = 1\n    a + 2\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -71,7 +71,7 @@ input_file: src/type_checker/tests/inputs/binop.input
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn foo() { let a: int = 1; a + 2 / 4 + (2 * 2) } // complex"
+- - "\n// complex\nfn foo() {\n    let a: int = 1\n    a + 2 / 4 + (2 * 2)\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -142,7 +142,7 @@ input_file: src/type_checker/tests/inputs/binop.input
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn plusOne(x: int) -> int { x + 1 }; fn main() { 1 + plusOne(3) } // func call"
+- - "\n// func call\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    1 + plusOne(3)\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -203,9 +203,9 @@ input_file: src/type_checker/tests/inputs/binop.input
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn foo() { 2.0 + 1 } // mismatch"
+- - "\n// mismatch\nfn foo() {\n    2.0 + 1\n}\n"
   - Err: "Mismatched types in binop: `float` != `int32`"
-- - "fn foo() { 2 == 1 } // bool"
+- - "\n// bool\nfn foo() {\n    2 == 1\n}\n"
   - Ok:
       nodes:
         - Stmt:

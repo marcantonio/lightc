@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/cond.input
+input_file: src/type_checker/tests/inputs/cond.lt
 ---
-- - "fn foo() { if 1 > 2 { 1 } else { 2 } } // basic"
+- - "// basic\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2\n    }\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -54,10 +54,10 @@ input_file: src/type_checker/tests/inputs/cond.input
                               ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn foo() { let x: int8 = 1; let y: int16 = 2; if x < y { 1 } } // bad cond"
+- - "\n// bad cond\nfn foo() {\n    let x: int8 = 1\n    let y: int16 = 2\n    if x < y {\n        1\n    }\n}\n"
   - Err: "Mismatched types in binop: `int8` != `int16`"
-- - "fn foo() { if 1.0 { 1 } } // bad cond"
+- - "\n// bad cond\nfn foo() {\n    if 1.0 {\n        1\n    }\n}\n"
   - Err: Conditional should always be a bool
-- - "fn foo() { if 1 > 2 { 1 } else { 2.0 } } // mismatch arms"
+- - "\n// mismatch arms\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2.0\n    }\n}\n"
   - Err: "Both arms of conditional must be the same type: `then` == int32; `else` == float"
 

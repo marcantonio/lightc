@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/call.input
+input_file: src/type_checker/tests/inputs/call.lt
 ---
-- - "fn plusOne(x: int) -> int { x + 1 }; fn main() { plusOne(1) } // basic"
+- - "// basic\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1)\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -54,10 +54,10 @@ input_file: src/type_checker/tests/inputs/call.input
                                   ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn plusOne(x: int) -> int { x + 1 }; fn main() { plusThree(1) } // undefined function"
+- - "\n// undefined function\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusThree(1)\n}\n"
   - Err: "Call to undefined function: `plusThree`"
-- - "fn plusOne(x: int) -> int { x + 1 }; fn main() { let x: float = 1.0; plusOne(x) } // mismatch arg type"
+- - "\n// mismatch arg type\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    let x: float = 1.0\n    plusOne(x)\n}\n"
   - Err: "Type mismatch in arg 1 of call to plusOne: int32 != float"
-- - "fn plusOne(x: int) -> int { x + 1 }; fn main() { plusOne(1, 2) } // mismatch arg num"
+- - "\n// mismatch arg num\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1, 2)\n}\n"
   - Err: Call to plusOne takes 1 args and 2 were given
 

@@ -1,0 +1,37 @@
+// basic
+fn foo() {
+    if 1 > 2 {
+        1
+    } else {
+        2
+    }
+}
+#test_delim#
+
+// bad cond
+fn foo() {
+    let x: int8 = 1
+    let y: int16 = 2
+    if x < y {
+        1
+    }
+}
+#test_delim#
+
+// bad cond
+fn foo() {
+    if 1.0 {
+        1
+    }
+}
+#test_delim#
+
+// mismatch arms
+fn foo() {
+    if 1 > 2 {
+        1
+    } else {
+        2.0
+    }
+}
+#test_delim#

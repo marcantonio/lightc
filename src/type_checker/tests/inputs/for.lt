@@ -1,0 +1,59 @@
+// basic
+fn foo() {
+    for x: int8 = 1; x < 2; 1 {
+        x
+    }
+}
+#test_delim#
+
+// for shadowing
+fn foo() {
+    let x: int32 = 1
+    for x: int8 = 1; x < 2; 1 {
+        x
+    }
+    x
+}
+#test_delim#
+
+// antn mismatch
+fn foo() {
+    for x: int8 = 1.0; x < 2; 1 {
+        x
+    }
+}
+#test_delim#
+
+// antn mismatch
+fn foo() {
+    let y: int8 = 2
+    for x: int = y; x < 2; 1 {
+        x
+    }
+}
+#test_delim#
+
+// cond should be bool
+fn foo() {
+    for x: int = 1; 2.0; 1 {
+        x
+    }
+}
+#test_delim#
+
+// literal step mismatch
+fn foo() {
+    for x: int = 1; x < 3; 1.0 {
+        x
+    }
+}
+#test_delim#
+
+// step mismatch
+fn foo() {
+    let y: int8 = 2
+    for x: int = 1; x < 3; y {
+        x
+    }
+}
+#test_delim#

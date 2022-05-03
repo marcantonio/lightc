@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
+use self::symbol_table::SymbolTable;
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::token::{Symbol, Type};
 use lightc::*;
+
+mod symbol_table;
 
 macro_rules! convert_num {
     ($lit:expr, $val:expr, $variant:ident, $ty:ty) => {{
@@ -30,7 +33,7 @@ struct FunctionEntry {
 
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, FunctionEntry>,
-    variable_table: HashMap<String, Type>,
+    symbol_table: SymbolTable,
 }
 
 impl AstVisitorMut for TypeChecker {
@@ -50,7 +53,7 @@ impl TypeChecker {
     pub(crate) fn new() -> Self {
         TypeChecker {
             function_table: HashMap::new(),
-            variable_table: HashMap::new(),
+            symbol_table: SymbolTable::new(),
         }
     }
 
@@ -98,7 +101,6 @@ impl TypeChecker {
     }
 
     // Check function definitions. This function also does the proto.
-    // TODO: Variable shadowing
     fn check_func(
         &mut self,
         proto: &mut Prototype,
@@ -127,7 +129,7 @@ impl TypeChecker {
 
         // Insert args into the local symbol table
         for (name, ty) in &proto.args {
-            self.variable_table.insert(name.to_owned(), *ty);
+            self.symbol_table.insert(name, *ty)?;
         }
 
         let mut body_ty = self.check_expr(body, None)?;
@@ -160,7 +162,7 @@ impl TypeChecker {
         }
 
         // Make sure function return type and the last statement match. Ignore
-        // body type when proto is void, for now.
+        // body type when proto is void.
         if func_entry.ret_ty != body_ty && func_entry.ret_ty != Type::Void {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
@@ -170,7 +172,7 @@ impl TypeChecker {
 
         // Pop args
         for (name, _) in &proto.args {
-            self.variable_table.remove(name);
+            self.symbol_table.remove(name);
         }
 
         Ok(())
@@ -193,9 +195,8 @@ impl TypeChecker {
             ));
         }
 
-        // XXX shadowing
-        self.variable_table
-            .insert(start_name.to_owned(), start_antn);
+        let old_var = self.symbol_table.remove(start_name);
+        self.symbol_table.insert(start_name, start_antn)?;
 
         let cond_ty = self.check_expr(cond_expr, None)?;
         if cond_ty != Type::Bool {
@@ -213,7 +214,11 @@ impl TypeChecker {
         // Check body
         self.check_expr(body, None)?;
 
-        self.variable_table.remove(start_name);
+        // XXX check for None?
+        self.symbol_table.remove(start_name);
+        if let Some(v) = old_var {
+            self.symbol_table.insert(start_name, v)?;
+        }
 
         Ok(())
     }
@@ -233,7 +238,7 @@ impl TypeChecker {
                 ));
             }
         }
-        self.variable_table.insert(name.to_owned(), antn);
+        self.symbol_table.insert(name, antn)?;
         Ok(())
     }
 
@@ -260,11 +265,18 @@ impl TypeChecker {
 
     // Check the block expressions. Ensures statements always eval to void.
     fn check_block(&mut self, list: &mut [Node], ty: &mut Option<Type>) -> Result<Type, String> {
+        // Drop scope
+        self.symbol_table.down_scope();
+
         let mut list_ty = Type::Void;
         for node in list {
             list_ty = self.check_node(node)?;
         }
         *ty = Some(list_ty);
+
+        // Pop up 1 level. Drops old scope.
+        self.symbol_table.up_scope()?;
+
         Ok(list_ty)
     }
 
@@ -328,10 +340,7 @@ impl TypeChecker {
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
-        let ident_ty = *self
-            .variable_table
-            .get(name)
-            .ok_or(format!("Unknown variable: {}", name))?; // XXX unify with codegen error
+        let ident_ty = self.symbol_table.get(name)?;
         *ty = Some(ident_ty);
         Ok(ident_ty)
     }
@@ -486,25 +495,28 @@ mod test {
     #[test]
     fn test_type_checker() {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            insta::glob!("tests/inputs/*.input", |path| {
+            insta::glob!("tests/inputs/*.lt", |path| {
                 let file = std::fs::File::open(path).expect("Error reading input file");
                 let reader = std::io::BufReader::new(file);
 
-                // Each line of the input files is meant to be a separate test
-                // case.
-                let asts = reader
-                    .lines()
-                    .map(|line| {
-                        let line = line.expect("Error reading input line");
-                        let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
+                // Test are delimited by `#test_delim#`
+                let mut asts = vec![];
+                let mut test = String::new();
+                for line in reader.lines() {
+                    let line = line.unwrap_or_else(|_| panic!("Error reading input line in `{:?}`", path));
+                    if line != "#test_delim#" {
+                        test += &(line + "\n");
+                    } else {
+                        let tokens = Lexer::new(&test).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let res = match TypeChecker::new().walk(&mut ast) {
                             Ok(_) => Ok(ast),
                             Err(e) => Err(e),
                         };
-                        (line, res)
-                    })
-                    .collect::<Vec<_>>();
+                        asts.push((test.clone(), res));
+                        test.clear();
+                    }
+                }
                 insta::assert_yaml_snapshot!(asts);
             });
         });

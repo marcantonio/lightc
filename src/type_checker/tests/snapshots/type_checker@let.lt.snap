@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/let.input
+input_file: src/type_checker/tests/inputs/let.lt
 ---
-- - "fn foo() { let x: int = 3 } // basic"
+- - "// basic\nfn foo() {\n    let x: int = 3\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -27,7 +27,7 @@ input_file: src/type_checker/tests/inputs/let.input
                                   Int32: 3
                                 ty: Int32
                   ty: Void
-- - "fn foo() { let x: int } // basic; no init"
+- - "\n// basic; no init\nfn foo() {\n    let x: int\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -45,10 +45,10 @@ input_file: src/type_checker/tests/inputs/let.input
                           antn: Int32
                           init: ~
                   ty: Void
-- - "fn foo() { let x: int = 3.0 } // lit antn mismatch"
+- - "\n// lit antn mismatch\nfn foo() {\n    let x: int = 3.0\n}\n"
   - Err: Literal is a float in an integer context
-- - "fn foo() { let y: float = 1.0; let x: int = y } // antn mismatch"
+- - "\n// antn mismatch\nfn foo() {\n    let y: float = 1.0\n    let x: int = y\n}\n"
   - Err: "Types don't match in let statement. Annotated with `int32` but initial value is `float`"
-- - "fn foo() { let i: int = 2147483648 } // lit range"
+- - "\n// lit range\nfn foo() {\n    let i: int = 2147483648\n}\n"
   - Err: Numeric literal out of range
 

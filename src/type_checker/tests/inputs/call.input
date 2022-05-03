@@ -1,4 +1,0 @@
-fn plusOne(x: int) -> int { x + 1 }; fn main() { plusOne(1) } // basic
-fn plusOne(x: int) -> int { x + 1 }; fn main() { plusThree(1) } // undefined function
-fn plusOne(x: int) -> int { x + 1 }; fn main() { let x: float = 1.0; plusOne(x) } // mismatch arg type
-fn plusOne(x: int) -> int { x + 1 }; fn main() { plusOne(1, 2) } // mismatch arg num

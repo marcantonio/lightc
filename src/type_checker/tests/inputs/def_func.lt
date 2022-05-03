@@ -1,0 +1,59 @@
+// basic
+fn foo() {
+    1
+}
+#test_delim#
+
+// void ret and body
+fn bar() { }
+fn foo() {
+    bar()
+}
+#test_delim#
+
+// void ret; expr body
+fn foo(a: int) {
+    a + 1
+}
+#test_delim#
+
+// multiple args
+fn foo(a: int, b: float) { }
+#test_delim#
+
+// expected int in last statement
+fn foo(a: int, b: float) -> int { }
+#test_delim#
+
+// expected int in last statement
+fn foo(a: int, b: float) -> int {
+    1.0
+}
+#test_delim#
+
+// can't redefine
+fn foo() { }
+fn foo() { }
+#test_delim#
+
+// extern
+extern foo()
+#test_delim#
+
+// statement at end of body
+fn foo() {
+    let a: int8 = 1
+}
+#test_delim#
+
+// main exits as int32
+fn main() { }
+#test_delim#
+
+// main exits as int32
+fn main() { 1 }
+#test_delim#
+
+// main exits as int32
+fn main() -> float { 1.0 }
+#test_delim#

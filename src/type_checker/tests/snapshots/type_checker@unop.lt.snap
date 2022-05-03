@@ -1,0 +1,62 @@
+---
+source: src/type_checker/mod.rs
+assertion_line: 517
+expression: asts
+input_file: src/type_checker/tests/inputs/unop.lt
+---
+- - "// lit\nfn foo() { -3 }\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                Block:
+                  list:
+                    - Expr:
+                        UnOp:
+                          sym: Sub
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 3
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
+- - "\n// var\nfn foo() {\n    let xy: int8 = 1\n    -xy\n}\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: foo
+                args: []
+                ret_ty: Void
+              body:
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: xy
+                          antn: Int8
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                    - Expr:
+                        UnOp:
+                          sym: Sub
+                          rhs:
+                            Expr:
+                              Ident:
+                                name: xy
+                                ty: Int8
+                          ty: Int8
+                  ty: Int8
+

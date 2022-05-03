@@ -1,0 +1,36 @@
+// basic
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    plusOne(1)
+}
+#test_delim#
+
+// undefined function
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    plusThree(1)
+}
+#test_delim#
+
+// mismatch arg type
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    let x: float = 1.0
+    plusOne(x)
+}
+#test_delim#
+
+// mismatch arg num
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    plusOne(1, 2)
+}
+#test_delim#

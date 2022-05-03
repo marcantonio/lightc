@@ -1,2 +1,0 @@
-fn foo(x: int) { x } // basic
-fn foo(x: int) { y } // unknown var

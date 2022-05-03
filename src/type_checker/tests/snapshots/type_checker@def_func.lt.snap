@@ -1,10 +1,10 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 528
+assertion_line: 517
 expression: asts
-input_file: src/type_checker/tests/inputs/def_func.input
+input_file: src/type_checker/tests/inputs/def_func.lt
 ---
-- - "fn foo() { 1 } // basic"
+- - "// basic\nfn foo() {\n    1\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -22,7 +22,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                             Int32: 1
                           ty: Int32
                   ty: Int32
-- - "fn bar() { }; fn foo() { bar() } // void ret and body"
+- - "\n// void ret and body\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -50,7 +50,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                           args: []
                           ty: Void
                   ty: Void
-- - "fn foo(a: int) { a + 1 } // void ret; expr body"
+- - "\n// void ret; expr body\nfn foo(a: int) {\n    a + 1\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -80,7 +80,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-- - "fn foo(a: int, b: float) { } // multiple args"
+- - "\n// multiple args\nfn foo(a: int, b: float) { }\n"
   - Ok:
       nodes:
         - Stmt:
@@ -97,13 +97,13 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 Block:
                   list: []
                   ty: Void
-- - "fn foo(a: int, b: float) -> int { } // expected int in last statement"
+- - "\n// expected int in last statement\nfn foo(a: int, b: float) -> int { }\n"
   - Err: "Function `foo` should return type `int32` but last statement is `void`"
-- - "fn foo(a: int, b: float) -> int { 1.0 } // expected int in last statement"
+- - "\n// expected int in last statement\nfn foo(a: int, b: float) -> int {\n    1.0\n}\n"
   - Err: "Function `foo` should return type `int32` but last statement is `float`"
-- - "fn foo() { }; fn foo() { } // can't redefine"
+- - "\n// can't redefine\nfn foo() { }\nfn foo() { }\n"
   - Err: "Function `foo` can't be redefined"
-- - extern foo() // extern
+- - "\n// extern\nextern foo()\n"
   - Ok:
       nodes:
         - Stmt:
@@ -113,7 +113,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                 args: []
                 ret_ty: ~
               body: ~
-- - "fn foo() { let a: int8 = 1 } // statement at end of body"
+- - "\n// statement at end of body\nfn foo() {\n    let a: int8 = 1\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -136,7 +136,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                                   Int8: 1
                                 ty: Int8
                   ty: Void
-- - "fn main() { } // main exits as int32"
+- - "\n// main exits as int32\nfn main() { }\n"
   - Ok:
       nodes:
         - Stmt:
@@ -154,7 +154,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                             Int32: 0
                           ty: Int32
                   ty: Void
-- - "fn main() { 1 } // main exits as int32"
+- - "\n// main exits as int32\nfn main() { 1 }\n"
   - Ok:
       nodes:
         - Stmt:
@@ -172,7 +172,7 @@ input_file: src/type_checker/tests/inputs/def_func.input
                             Int32: 1
                           ty: Int32
                   ty: Int32
-- - "fn main() -> float { 1.0 } // main exits as int32"
+- - "\n// main exits as int32\nfn main() -> float { 1.0 }\n"
   - Ok:
       nodes:
         - Stmt:

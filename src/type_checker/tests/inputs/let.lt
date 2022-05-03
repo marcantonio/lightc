@@ -1,0 +1,30 @@
+// basic
+fn foo() {
+    let x: int = 3
+}
+#test_delim#
+
+// basic; no init
+fn foo() {
+    let x: int
+}
+#test_delim#
+
+// lit antn mismatch
+fn foo() {
+    let x: int = 3.0
+}
+#test_delim#
+
+// antn mismatch
+fn foo() {
+    let y: float = 1.0
+    let x: int = y
+}
+#test_delim#
+
+// lit range
+fn foo() {
+    let i: int = 2147483648
+}
+#test_delim#

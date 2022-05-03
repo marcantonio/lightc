@@ -1,0 +1,33 @@
+// basic shadowing
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let b: bool = false
+    }
+    b
+}
+#test_delim#
+
+// nested shadowing
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let b: bool = false
+        let a: float = {
+            let b: float = 1.0
+            b
+        }
+    }
+    b
+}
+#test_delim#
+
+// delete scope
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let c: int = 2
+    }
+    c
+}
+#test_delim#

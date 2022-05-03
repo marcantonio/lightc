@@ -1,0 +1,17 @@
+let x: int = {
+    1
+}
+#test_delim#
+
+let x: int = {
+    1.0
+}
+#test_delim#
+
+fn foo() {
+    let x: int = {
+        11.0
+        foo()
+    }
+}
+#test_delim#

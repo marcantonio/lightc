@@ -3,7 +3,55 @@ Formal grammar for light. It's written as a modified form of EBNF. Deviations fr
 
 Note that while semicolons are part of the formal grammar for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
 
-```ebnf:grammar/light.ebnf
+```ebnf
+Program     ::= StmtList ;
+StmtList    ::= ( Stmt ';' )+ ;
+Stmt        ::= LetStmt
+              | ForStmt
+              | FnDecl
+              | ExternDecl
+              | Expr ;
+Block       ::= '{' StmtList? '}' ;
+FnDecl      ::= Prototype Block ;
+ExternDecl  ::= 'extern' Prototype ;
+Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' type )? ;
+ForStmt     ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
+LetStmt     ::= 'let' TypedDecl ( '=' Expr  )? ;
+TypedDecl   ::= ident ':' type ;
+Expr        ::= PrimaryExpr
+              | Expr mul_op Expr
+              | Expr add_op Expr
+              | Expr rel_op Expr
+              | Expr '&&' Expr
+              | Expr '||' Expr
+              | IdentExpr '=' Expr ;
+PrimaryExpr ::= CondExpr
+              | LitExpr
+              | IdentExpr
+              | Block
+              | ParenExpr
+              | UnopExpr ;
+UnopExpr    ::= ( '-' | '!' ) Expr ;
+LitExpr     ::= number | bool ;
+IdentExpr   ::= ident ;
+ParenExpr   ::= '(' Expr ')' ;
+CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
+
+type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
+              | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
+              | 'float' | 'double' | 'bool' | 'char' ;
+bool        ::= 'true' | 'false' ;
+ident       ::= letter ( letter | digit | '_' )*;
+rel_op      ::= '>' | '<' | '==' ;
+add_op      ::= '+' | '-' ;
+mul_op      ::= '*' | '/' ;
+number      ::= integer | float ;
+integer     ::= digit+ ;
+float       ::= digit '.' digit ;
+letter      ::= [a-zA-Z] ;
+digit       ::= [0-9] ;
+whitespace  ::= [ \t\r\n] ;
+comment     ::= '//' [^\r\n]* [\r\n] ;
 ```
 
 ## Exceptions

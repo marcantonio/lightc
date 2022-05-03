@@ -21,7 +21,7 @@ fn printEq() {
 }
 
 fn main() {
-    let x: int = 1
+    let x: int8 = 5
     -x
     // x = x + 3
     // printInt(3, 40)
@@ -35,4 +35,10 @@ fn main() {
     // }
 
     printBang()
+
+    let y: int32 = 3
+    for y: int8 = 1; y < x; 1 {
+        y
+    }
+    y
 }
