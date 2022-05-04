@@ -31,3 +31,30 @@ fn foo(a: int) -> int {
     c
 }
 #test_delim#
+
+// for scope
+let x: float = 1.0
+for x: int = 1; x < 10; 1 {
+    x
+}
+x
+#test_delim#
+
+// if scope
+let x: float = 1.0
+if x < 2.0 {
+    let y: int = 2
+    x
+}
+y
+#test_delim#
+
+// if else scope
+let x: float = 1.0
+if x < 2.0 {
+    let y: int = 2
+    x
+} else {
+    -y
+}
+#test_delim#

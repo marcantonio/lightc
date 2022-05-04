@@ -8,6 +8,8 @@ use lightc::*;
 
 mod symbol_table;
 
+// Try to convert `$v` to `$ty`. Store result wrapped in `Literal::$variant` and
+// assign to `$lit`. Return `Type::$variant`.
 macro_rules! convert_num {
     ($lit:expr, $val:expr, $variant:ident, $ty:ty) => {{
         let v = <$ty>::try_from(*$val).map_err(|_| "Numeric literal out of range")?;
@@ -195,14 +197,17 @@ impl TypeChecker {
             ));
         }
 
+        // Remove old variable. Ignore failure. Insert starting variable.
         let old_var = self.symbol_table.remove(start_name);
         self.symbol_table.insert(start_name, start_antn)?;
 
+        // Ensure the loop cond is always a bool
         let cond_ty = self.check_expr(cond_expr, None)?;
         if cond_ty != Type::Bool {
             return Err("For loop conditional should always be a bool".to_string());
         }
 
+        // Make sure the step type matches the starting variable
         let step_ty = self.check_expr(step_expr, Some(start_ty))?;
         if step_ty != start_ty {
             return Err(format!(
@@ -214,7 +219,7 @@ impl TypeChecker {
         // Check body
         self.check_expr(body, None)?;
 
-        // XXX check for None?
+        // Reset shadowed variable if present
         self.symbol_table.remove(start_name);
         if let Some(v) = old_var {
             self.symbol_table.insert(start_name, v)?;
@@ -229,6 +234,7 @@ impl TypeChecker {
         antn: Type,
         init: &mut Option<&mut Expression>,
     ) -> Result<(), String> {
+        // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
             let init_ty = self.check_expr(init, Some(antn))?;
             if antn != init_ty {
@@ -238,6 +244,7 @@ impl TypeChecker {
                 ));
             }
         }
+
         self.symbol_table.insert(name, antn)?;
         Ok(())
     }
@@ -268,6 +275,7 @@ impl TypeChecker {
         // Drop scope
         self.symbol_table.down_scope();
 
+        // The block type is set to the final node's type
         let mut list_ty = Type::Void;
         for node in list {
             list_ty = self.check_node(node)?;
@@ -280,6 +288,8 @@ impl TypeChecker {
         Ok(list_ty)
     }
 
+    // If there's a type hint, use it or fail. If not, use the literal's
+    // type. Update `lit` with the result and return the type.
     fn check_lit(
         &self,
         lit: &mut Literal,
@@ -352,6 +362,7 @@ impl TypeChecker {
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         // Pull the function for the call from table
+        // XXX: Move these to the symbol table
         let func_entry = self
             .function_table
             .get(name)
@@ -412,6 +423,8 @@ impl TypeChecker {
         let lhs_ty;
         let rhs_ty;
 
+        // First check if either sida is a numeric literal. If so use the other
+        // side as a type hint for the literal type.
         match (lhs.is_num_literal(), rhs.is_num_literal()) {
             (true, false) => {
                 rhs_ty = self.check_expr(rhs, None)?;
@@ -427,6 +440,7 @@ impl TypeChecker {
             }
         }
 
+        // Both sides must match
         if lhs_ty != rhs_ty {
             return Err(format!(
                 "Mismatched types in binop: `{}` != `{}`",
@@ -434,6 +448,8 @@ impl TypeChecker {
             ));
         }
 
+        // Set the expression's type to either bool for comparision operators or
+        // to the lhs expression
         let new_ty = match sym {
             Symbol::And | Symbol::Eq | Symbol::Gt | Symbol::Lt | Symbol::Not | Symbol::Or => {
                 Type::Bool
@@ -442,7 +458,6 @@ impl TypeChecker {
         };
 
         *ty = Some(new_ty);
-
         Ok(new_ty)
     }
 
@@ -466,6 +481,7 @@ impl TypeChecker {
 
         let then_ty = self.check_expr(then_block, None)?;
 
+        // Consequent and alternate must match if else exists
         if let Some(else_block) = else_block {
             let else_ty = self.check_expr(else_block, Some(then_ty))?;
 
