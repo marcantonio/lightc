@@ -607,8 +607,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         else_block: &Option<&Expression>,
         ty: Type,
     ) -> ExprResult<'ctx> {
-        // Should never be used. Useful for an unused phi branch.
-        let undef_val = self.context.i32_type().get_undef().as_basic_value_enum();
+        // Should never be used. Useful for an unused phi branch. Note: undef
+        // value must be in sync with phi type.
+        let undef_val = make_undef_value!(self.context, ty);
 
         // Get the current function for insertion
         let parent = self
@@ -688,45 +689,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             self.builder.position_at_end(end_bb);
 
             // Create the phi node and insert code/value pairs
-            let phi = self.build_phi_for_type(ty, "if.else.phi");
+            let phi = make_phi_for_type!(self.builder, self.context, ty, "if.else.phi");
             phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
             val = phi.as_basic_value();
         } else {
-            let phi = self.build_phi_for_type(ty, "if.phi");
+            let phi = make_phi_for_type!(self.builder, self.context, ty, "if.phi");
             phi.add_incoming(&[(&then_val, then_bb), (&undef_val, entry_bb)]);
             val = phi.as_basic_value();
         }
         Ok(val)
-    }
-
-    fn build_phi_for_type(&self, ty: Type, name: &str) -> PhiValue<'ctx> {
-        let name = name.to_owned();
-        match ty {
-            int8_types!() => self
-                .builder
-                .build_phi(self.context.i8_type(), &(name + ".int8")),
-            int16_types!() => self
-                .builder
-                .build_phi(self.context.i16_type(), &(name + ".int16")),
-            int32_types!() => self
-                .builder
-                .build_phi(self.context.i32_type(), &(name + ".int32")),
-            int64_types!() => self
-                .builder
-                .build_phi(self.context.i64_type(), &(name + ".int64")),
-            Type::Float => self
-                .builder
-                .build_phi(self.context.f32_type(), &(name + ".float")),
-            Type::Double => self
-                .builder
-                .build_phi(self.context.f64_type(), &(name + ".double")),
-            Type::Bool => self
-                .builder
-                .build_phi(self.context.bool_type(), &(name + ".bool")),
-            Type::Void => self
-                .builder
-                .build_phi(self.context.i32_type(), &(name + ".void")),
-        }
     }
 }
 
