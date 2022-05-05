@@ -1,0 +1,4 @@
+fn main(x: int) {
+    x + 1 = 1
+}
+#test_delim#

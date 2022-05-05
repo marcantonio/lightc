@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct SymbolTable<T> {
-    table: HashMap<i32, HashMap<String, T>>,
+    table: HashMap<i32, HashMap<String, T>>, // XXX &str
     depth: i32,
 }
 
@@ -45,17 +45,17 @@ impl<T: Clone> SymbolTable<T> {
 
     // Starting at the current scope depth, locate `name`. Keep walking up the
     // tables.
-    pub(crate) fn get(&self, name: &str) -> Result<T, String> {
+    pub(crate) fn get(&self, name: &str) -> Option<T> {
         let mut ty = None;
         for depth in (0..=self.depth).rev() {
             let table = self
                 .table
                 .get(&depth)
-                .ok_or(format!("NONCANBE: No table found at depth `{}`", depth))?;
+                .unwrap_or_else(|| panic!("NONCANBE: No table found at depth `{}`", depth));
             ty = table.get(name).cloned();
             if ty.is_none() {
                 if depth == 0 {
-                    return Err(format!("Symbol `{}` not found in table", name));
+                    return None;
                 } else {
                     continue;
                 }
@@ -63,37 +63,31 @@ impl<T: Clone> SymbolTable<T> {
                 break;
             }
         }
-        Ok(ty.unwrap())
+        ty
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{token::Type, symbol_table::SymbolTable};
+    use crate::{symbol_table::SymbolTable, token::Type};
 
     #[test]
     fn test_st() {
         let mut st = SymbolTable::new();
         assert_eq!(st.depth, 0);
         assert_eq!(st.insert("foo", Type::Bool), Ok(()));
-        assert_eq!(st.get("foo"), Ok(Type::Bool));
+        assert_eq!(st.get("foo"), Some(Type::Bool));
         assert_eq!(st.down_scope(), 1);
         assert_eq!(st.insert("foo", Type::Int32), Ok(()));
         assert_eq!(st.down_scope(), 2);
-        assert_eq!(st.get("foo"), Ok(Type::Int32));
-        assert_eq!(
-            st.get("bar"),
-            Err("Symbol `bar` not found in table".to_string())
-        );
+        assert_eq!(st.get("foo"), Some(Type::Int32));
+        assert_eq!(st.get("bar"), None);
         assert_eq!(st.up_scope(), Ok(1));
-        assert_eq!(st.get("foo"), Ok(Type::Int32));
+        assert_eq!(st.get("foo"), Some(Type::Int32));
         assert_eq!(st.up_scope(), Ok(0));
-        assert_eq!(st.get("foo"), Ok(Type::Bool));
+        assert_eq!(st.get("foo"), Some(Type::Bool));
         assert_eq!(st.remove("foo"), Some(Type::Bool));
         assert_eq!(st.remove("foo"), None);
-        assert_eq!(
-            st.get("foo"),
-            Err("Symbol `foo` not found in table".to_string())
-        );
+        assert_eq!(st.get("foo"), None);
     }
 }

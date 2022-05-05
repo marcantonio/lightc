@@ -1,29 +1,29 @@
 ---
 source: src/codegen/mod.rs
-assertion_line: 803
+assertion_line: 811
 expression: ir
-input_file: src/codegen/tests/inputs/if.input
+input_file: src/codegen/tests/inputs/if.lt
 ---
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } }"
+- - "// basic\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 7 {\n        7\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret i32 7\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } }"
+- - "\n// cond success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 5 {\n        7\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret i32 7\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else { 1 } }"
+- - "\n// if else cond success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 7 {\n        7\n    } else {\n        1\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  %. = select i1 %eq.int, i32 7, i32 1\n  ret i32 %.\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 8 { 7 } else { 1 } }"
+- - "\n// if else cond fail\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 8 {\n        7\n    } else {\n        1\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 8\n  %. = select i1 %eq.int, i32 7, i32 1\n  ret i32 %.\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }"
+- - "\n// if else if else cond success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 7 {\n        7\n    } else if plus_one(1) == 2 {\n        2\n    } else {\n        1\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 2\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } else { 1 } }"
+- - "\n// if else if else cond 2 success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 5 {\n        7\n    } else if plus_one(1) == 2 {\n        2\n    } else {\n        1\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 2\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 3 { 2 } else { 1 } }"
+- - "\n// if else if else conds fail\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 5 {\n        7\n    } else if plus_one(1) == 3 {\n        2\n    } else {\n        1\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %if.else, %entry\n  %if.else.phi.int327 = phi i32 [ 7, %entry ], [ %., %if.else ]\n  ret i32 %if.else.phi.int327\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  %eq.int2 = icmp eq i32 %call_plus_one1, 3\n  %. = select i1 %eq.int2, i32 2, i32 1\n  br label %if.end\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 7 { 7 } else if plus_one(1) == 1 { 2 } }"
+- - "\n// if else if cond success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 7 {\n        7\n    } else if plus_one(1) == 1 {\n        2\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 7\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  %if.else.phi.int32 = phi i32 [ 2, %if.else ], [ 7, %entry ]\n  ret i32 %if.else.phi.int32\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- - "fn plus_one(x: int) -> int { x + 1 }; fn main() { if plus_one(6) == 5 { 7 } else if plus_one(1) == 2 { 2 } }"
+- - "\n// if else if cond 2 success\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 5 {\n        7\n    } else if plus_one(1) == 2 {\n        2\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  %eq.int = icmp eq i32 %call_plus_one, 5\n  br i1 %eq.int, label %if.end, label %if.else\n\nif.end:                                           ; preds = %entry, %if.else\n  %if.else.phi.int32 = phi i32 [ 2, %if.else ], [ 7, %entry ]\n  ret i32 %if.else.phi.int32\n\nif.else:                                          ; preds = %entry\n  %call_plus_one1 = call i32 @plus_one(i32 1)\n  br label %if.end\n}\n"
-- - "fn main() { if true { 7 } else { 2 } }"
+- - "\n// true lit\nfn main() {\n    if true {\n        7\n    } else {\n        2\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  ret i32 7\n}\n"
-- - "fn main() { if false { 7 } else { 2 } }"
+- - "\n// false lit\nfn main() {\n    if false {\n        7\n    } else {\n        2\n    }\n}\n"
   - "define i32 @main() {\nentry:\n  ret i32 2\n}\n"
 

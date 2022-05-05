@@ -348,7 +348,10 @@ impl TypeChecker {
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
-        let ident_ty = self.symbol_table.get(name)?;
+        let ident_ty = self
+            .symbol_table
+            .get(name)
+            .ok_or(format!("Unknown variable: `{}`", name))?;
         *ty = Some(ident_ty);
         Ok(ident_ty)
     }

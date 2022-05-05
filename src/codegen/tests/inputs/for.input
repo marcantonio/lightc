@@ -1,1 +1,0 @@
-extern putchar(x: int) -> int; fn main() { let x: int = 3; for y: int = 0; y < x; 1 { putchar(46) }; putchar(10) }

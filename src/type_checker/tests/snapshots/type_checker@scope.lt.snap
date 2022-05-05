@@ -1,6 +1,6 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 521
+assertion_line: 537
 expression: asts
 input_file: src/type_checker/tests/inputs/scope.lt
 ---
@@ -114,7 +114,7 @@ input_file: src/type_checker/tests/inputs/scope.lt
                           ty: Int32
                   ty: Int32
 - - "\n// delete scope\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let c: int = 2\n    }\n    c\n}\n"
-  - Err: "Symbol `c` not found in table"
+  - Err: "Unknown variable: `c`"
 - - "\n// for scope\nlet x: float = 1.0\nfor x: int = 1; x < 10; 1 {\n    x\n}\nx\n"
   - Ok:
       nodes:
@@ -170,7 +170,7 @@ input_file: src/type_checker/tests/inputs/scope.lt
               name: x
               ty: Float
 - - "\n// if scope\nlet x: float = 1.0\nif x < 2.0 {\n    let y: int = 2\n    x\n}\ny\n"
-  - Err: "Symbol `y` not found in table"
+  - Err: "Unknown variable: `y`"
 - - "\n// if else scope\nlet x: float = 1.0\nif x < 2.0 {\n    let y: int = 2\n    x\n} else {\n    -y\n}\n"
-  - Err: "Symbol `y` not found in table"
+  - Err: "Unknown variable: `y`"
 

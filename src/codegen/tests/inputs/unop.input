@@ -1,1 +1,0 @@
-fn test(x: int) -> int { x + 1 }; fn main() -> int { test(-40) }

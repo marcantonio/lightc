@@ -4,17 +4,19 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PhiValue, PointerValue};
+use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
-use std::collections::HashMap;
 
 use crate::ast::conversion::AsExpr;
 use crate::ast::{Ast, Expression, Literal};
 use crate::ast::{AstVisitor, Prototype, Visitable};
 use crate::ast::{Node, Statement};
+use crate::symbol_table::SymbolTable;
 use crate::token::{Symbol, Type};
 use lightc::*;
 
+#[macro_use]
+mod macros;
 mod ops;
 
 type StmtResult<'ctx> = Result<(), String>;
@@ -28,7 +30,7 @@ pub(crate) struct Codegen<'a, 'ctx> {
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
     fpm: &'a PassManager<FunctionValue<'ctx>>,
-    local_vars: HashMap<String, PointerValue<'ctx>>,
+    symbol_table: SymbolTable<PointerValue<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     skip_verify: bool,
@@ -56,8 +58,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         opt_level: usize,
         skip_verify: bool,
     ) -> Self {
-        let values = HashMap::new();
-
         if opt_level > 0 {
             fpm.add_instruction_combining_pass();
             fpm.add_reassociate_pass();
@@ -75,7 +75,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             builder,
             module,
             fpm,
-            local_vars: values,
+            symbol_table: SymbolTable::new(),
             main: None,
             opt_level,
             skip_verify,
@@ -220,12 +220,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(bb);
 
         // Allocate space for the function's arguments on the stack
-        self.local_vars.reserve(proto.args.len());
         for (i, arg) in function.get_param_iter().enumerate() {
             let (x, y) = &proto.args[i];
             let alloca = self.create_entry_block_alloca(x, *y, &function);
             self.builder.build_store(alloca, arg);
-            self.local_vars.insert(proto.args[i].0.to_owned(), alloca);
+            self.symbol_table.insert(&proto.args[i].0, alloca)?;
         }
 
         let body_val = self.codegen_expr(body)?;
@@ -242,13 +241,18 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             _ => self.builder.build_return(None),
         };
 
+        // Remove arguments from the table
+        for (i, _) in function.get_param_iter().enumerate() {
+            self.symbol_table.remove(&proto.args[i].0);
+        }
+
         // Identify main
         let func_name = function.get_name().to_str().unwrap();
         if func_name == "main" {
             self.main = Some(function);
         }
 
-        // Some times it's useful to skip verification just so we can see the
+        // Some times it's useful to skip verification just so we can see the IR
         if !self.skip_verify {
             // Make sure we didn't miss anything
             // TODO: Should this allow llvm to print or use a verbose flag, or are
@@ -298,8 +302,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Save the variable value if we are shadowing and insert alloca into
         // local map
-        let old_var = self.local_vars.remove(start_name);
-        self.local_vars.insert(start_name.to_owned(), start_alloca);
+        let old_var = self.symbol_table.remove(start_name);
+        self.symbol_table.insert(start_name, start_alloca)?;
 
         // Generate all body expressions
         self.codegen_expr(body)?;
@@ -346,9 +350,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(after_bb);
 
         // Reset shadowed variable
-        self.local_vars.remove(start_name);
+        self.symbol_table.remove(start_name);
         if let Some(v) = old_var {
-            self.local_vars.insert(start_name.to_owned(), v);
+            self.symbol_table.insert(start_name, v)?;
         }
 
         Ok(())
@@ -400,7 +404,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
         self.builder.build_store(init_alloca, init_code.value()?);
-        self.local_vars.insert(name.to_owned(), init_alloca);
+        self.symbol_table.insert(name, init_alloca)?;
 
         Ok(())
     }
@@ -429,12 +433,18 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         .transpose()
     }
 
-    // TODO: Should have local scope
     fn codegen_block(&mut self, list: &[Node]) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+        // Drop scope
+        self.symbol_table.down_scope();
+
         let mut node_val = None;
         for node in list {
             node_val = self.codegen_node(node)?;
         }
+
+        // Pop up 1 level. Drops old scope.
+        self.symbol_table.up_scope()?;
+
         Ok(node_val)
     }
 
@@ -502,10 +512,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
-        match self.local_vars.get(name) {
-            Some(var) => Ok(self.builder.build_load(*var, name)),
-            None => Err(format!("Unknown variable: {}", name)),
-        }
+        let var = self
+            .symbol_table
+            .get(name)
+            .ok_or(format!("Unknown variable: `{}`", name))?; // XXX
+        Ok(self.builder.build_load(var, name))
     }
 
     fn codegen_call(
@@ -547,6 +558,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     ) -> ExprResult<'ctx> {
         use Symbol::*;
 
+        // XXX: Should this block go in the type checker?
         // If assignment, make sure lvalue is a variable and store rhs there
         if op == Assign {
             let l_var = match lhs {
@@ -556,7 +568,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
             let r_val = self.codegen_expr(rhs)?.value()?;
             let l_var = self
-                .local_vars
+                .symbol_table
                 .get(l_var)
                 .ok_or(format!("Unknown variable in assignment: {}", l_var))?
                 .to_owned();
@@ -743,17 +755,19 @@ mod test {
     #[test]
     fn test_codegen() {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            insta::glob!("tests/inputs/*.input", |path| {
+            insta::glob!("tests/inputs/*.lt", |path| {
                 let file = std::fs::File::open(path).expect("Error reading input file");
                 let reader = std::io::BufReader::new(file);
 
-                // Each line of the input files is meant to be a separate test
-                // case.
-                let ir = reader
-                    .lines()
-                    .map(|line| {
-                        let line = line.expect("Error reading input line");
-                        let tokens = Lexer::new(&line).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
+                // Test are delimited by `#test_delim#`
+                let mut ir = vec![];
+                let mut test = String::new();
+                for line in reader.lines() {
+                    let line = line.unwrap_or_else(|_| panic!("Error reading input line in `{:?}`", path));
+                    if line != "#test_delim#" {
+                        test += &(line + "\n");
+                    } else {
+                        let tokens = Lexer::new(&test).scan().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let mut ast = Parser::new(&tokens).parse().unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         TypeChecker::new().walk(&mut ast).unwrap_or_else(|err| panic!("test failure in `{:?}`: {}", path, err));
                         let context = Context::create();
@@ -761,9 +775,11 @@ mod test {
                         let module = context.create_module("main_mod");
                         let fpm = PassManager::create(&module);
                         let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
-                        (line, code_to_string(codegen.walk(&ast)))
-                    })
-                    .collect::<Vec<_>>();
+                        let res = (test.clone(), code_to_string(codegen.walk(&ast)));
+                        ir.push(res);
+                        test.clear();
+                    }
+                }
                 insta::assert_yaml_snapshot!(ir);
             });
         });

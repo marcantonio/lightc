@@ -1,9 +1,0 @@
----
-source: src/codegen/mod.rs
-assertion_line: 803
-expression: ir
-input_file: src/codegen/tests/inputs/basic.input
----
-- - "fn main() -> int { 19 + 21 + 40; };"
-  - "define i32 @main() {\nentry:\n  ret i32 80\n}\n"
-

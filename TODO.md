@@ -21,7 +21,7 @@
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
 - [x] Type checker variable shadowing
-- [ ] Block scope
+- [x] Block scope
 - [x] Token output should be line based
 - [x] Token output should include context info
 - [ ] Convert Err(NONCANBE)'s to panic

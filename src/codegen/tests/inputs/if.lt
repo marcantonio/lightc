@@ -1,0 +1,120 @@
+// basic
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 7 {
+        7
+    }
+}
+#test_delim#
+
+// cond success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 5 {
+        7
+    }
+}
+#test_delim#
+
+// if else cond success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 7 {
+        7
+    } else {
+        1
+    }
+}
+#test_delim#
+
+// if else cond fail
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 8 {
+        7
+    } else {
+        1
+    }
+}
+#test_delim#
+
+// if else if else cond success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 7 {
+        7
+    } else if plus_one(1) == 2 {
+        2
+    } else {
+        1
+    }
+}
+#test_delim#
+
+// if else if else cond 2 success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 5 {
+        7
+    } else if plus_one(1) == 2 {
+        2
+    } else {
+        1
+    }
+}
+#test_delim#
+
+// if else if else conds fail
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 5 {
+        7
+    } else if plus_one(1) == 3 {
+        2
+    } else {
+        1
+    }
+}
+#test_delim#
+
+// if else if cond success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 7 {
+        7
+    } else if plus_one(1) == 1 {
+        2
+    }
+}
+#test_delim#
+
+// if else if cond 2 success
+fn plus_one(x: int) -> int { x + 1 }
+fn main() {
+    if plus_one(6) == 5 {
+        7
+    } else if plus_one(1) == 2 {
+        2
+    }
+}
+#test_delim#
+
+// true lit
+fn main() {
+    if true {
+        7
+    } else {
+        2
+    }
+}
+#test_delim#
+
+// false lit
+fn main() {
+    if false {
+        7
+    } else {
+        2
+    }
+}
+#test_delim#

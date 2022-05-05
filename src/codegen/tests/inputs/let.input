@@ -1,3 +1,0 @@
-fn main() { let x: int = 1 }
-fn main() { let x: float }
-fn main() { let x: bool }
