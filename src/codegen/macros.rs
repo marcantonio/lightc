@@ -25,7 +25,7 @@ macro_rules! make_phi_for_type {
             Type::Float => $bldr.build_phi($ctx.f32_type(), &($name.to_owned() + ".float")),
             Type::Double => $bldr.build_phi($ctx.f64_type(), &($name.to_owned() + ".double")),
             Type::Bool => $bldr.build_phi($ctx.bool_type(), &($name.to_owned() + ".bool")),
-            Type::Void => $bldr.build_phi($ctx.i32_type(), &($name.to_owned() + ".void")),
+            Type::Void => $bldr.build_phi($ctx.i8_type(), &($name.to_owned() + ".void")),
         }
     };
 }
