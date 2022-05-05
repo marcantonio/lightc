@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use crate::token::Type;
-
 #[derive(Debug)]
-pub(crate) struct SymbolTable {
-    table: HashMap<i32, HashMap<String, Type>>,
+pub(crate) struct SymbolTable<T> {
+    table: HashMap<i32, HashMap<String, T>>,
     depth: i32,
 }
 
-impl SymbolTable {
+impl<T: Clone> SymbolTable<T> {
     pub(crate) fn new() -> Self {
         let mut table = HashMap::new();
         table.insert(0, HashMap::new());
@@ -33,21 +31,21 @@ impl SymbolTable {
     }
 
     // Insert symbol at current scope depth
-    pub(crate) fn insert(&mut self, name: &str, ty: Type) -> Result<(), String> {
+    pub(crate) fn insert(&mut self, name: &str, ty: T) -> Result<(), String> {
         let cur = self.table.get_mut(&self.depth).ok_or("Unknown depth")?;
         cur.insert(name.to_owned(), ty);
         Ok(())
     }
 
     // Remove symbol at current scope depth
-    pub(crate) fn remove(&mut self, name: &str) -> Option<Type> {
+    pub(crate) fn remove(&mut self, name: &str) -> Option<T> {
         let cur = self.table.get_mut(&self.depth).unwrap(); //.ok_or("Unknown depth"); // NONCANBE
         cur.remove(name)
     }
 
     // Starting at the current scope depth, locate `name`. Keep walking up the
     // tables.
-    pub(crate) fn get(&self, name: &str) -> Result<Type, String> {
+    pub(crate) fn get(&self, name: &str) -> Result<T, String> {
         let mut ty = None;
         for depth in (0..=self.depth).rev() {
             let table = self
@@ -71,7 +69,7 @@ impl SymbolTable {
 
 #[cfg(test)]
 mod test {
-    use crate::{token::Type, type_checker::symbol_table::SymbolTable};
+    use crate::{token::Type, symbol_table::SymbolTable};
 
     #[test]
     fn test_st() {

@@ -3,6 +3,7 @@ mod codegen;
 mod jit_externs;
 mod lexer;
 mod parser;
+mod symbol_table;
 mod token;
 mod type_checker;
 

@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-use self::symbol_table::SymbolTable;
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
+use crate::symbol_table::SymbolTable;
 use crate::token::{Symbol, Type};
 use lightc::*;
-
-mod symbol_table;
 
 // Try to convert `$v` to `$ty`. Store result wrapped in `Literal::$variant` and
 // assign to `$lit`. Return `Type::$variant`.
@@ -35,7 +33,7 @@ struct FunctionEntry {
 
 pub(crate) struct TypeChecker {
     function_table: HashMap<String, FunctionEntry>,
-    symbol_table: SymbolTable,
+    symbol_table: SymbolTable<Type>,
 }
 
 impl AstVisitorMut for TypeChecker {
