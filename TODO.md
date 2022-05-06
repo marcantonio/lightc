@@ -17,14 +17,14 @@
 - [ ] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)
 - [ ] Extensive testing of binops, especially compares
-- [ ] Ensure conditionals are bools
+- [x] Ensure conditionals are bools
 - [x] Add parser test for else if
 - [ ] Contextual type checking errors
 - [x] Type checker variable shadowing
 - [x] Block scope
 - [x] Token output should be line based
 - [x] Token output should include context info
-- [ ] Convert Err(NONCANBE)'s to panic
+- [ ] Convert Err(NONCANBE)'s to fatal
 
 # Roadmap
 - [x] Formalize grammar

@@ -1,6 +1,6 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 517
+assertion_line: 567
 expression: asts
 input_file: src/type_checker/tests/inputs/binop.lt
 ---
@@ -234,4 +234,56 @@ input_file: src/type_checker/tests/inputs/binop.lt
                                 ty: Int32
                           ty: Bool
                   ty: Bool
+- - "\n// bad lhs in assign\nfn main(x: int) {\n    x + 1 = 1\n}\n"
+  - Err: Expected LHS to be a variable for assignment
+- - "\n// bools in cmp 1\nfn main(x: int) {\n    true || false\n}\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args:
+                  - - x
+                    - Int32
+                ret_ty: Int32
+              body:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Or
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: true
+                                ty: Bool
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: false
+                                ty: Bool
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
+- - "\n// bools in cmp 2\nfn main(x: int) {\n    x && x\n}\n"
+  - Err: "Expected bools on either side of `&&`, got lhs: `int32`, rhs: `int32`"
+- - "\n// bools in cmp 3\nfn main(x: int) {\n    true && x\n}\n"
+  - Err: "Expected bools on either side of `&&`, got lhs: `bool`, rhs: `int32`"
+- - "\n// bools in cmp 4\nfn main(x: int) {\n    x || false\n}\n"
+  - Err: "Expected bools on either side of `||`, got lhs: `int32`, rhs: `bool`"
+- - "\n// bad lit int\nfn main(x: int) {\n    true && 1\n}\n"
+  - Err: Literal is an integer in a bool context
+- - "\n// bad lit float\nfn main(x: int) {\n    1.0 || true\n}\n"
+  - Err: Literal is a float in a bool context
+- - "\n// bad cmp types\nfn main(x: int) {\n    true > true\n}\n"
+  - Err: "Expected numeric type on either side of `>`, got lhs: `bool`, rhs: `bool`"
+- - "\n// bad math types\nfn main(x: int) {\n    true + false\n}\n"
+  - Err: "Expected numeric type on either side of `+`, got lhs: `bool`, rhs: `bool`"
 

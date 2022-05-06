@@ -91,41 +91,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.main.ok_or_else(|| "main() not found".to_string())
     }
 
-    // Helper to create an alloca in the entry block for local variables
-    fn create_entry_block_alloca(
-        &self,
-        name: &str,
-        ty: Type,
-        func: &FunctionValue,
-    ) -> PointerValue<'ctx> {
-        // Create a temporary builder
-        let builder = self.context.create_builder();
-
-        // Get the first block of the current function
-        let entry = func.get_first_basic_block().unwrap();
-
-        // Rewind to the first instruction and insert before it or at the end if
-        // empty
-        match entry.get_first_instruction() {
-            Some(inst) => builder.position_before(&inst),
-            None => builder.position_at_end(entry),
-        }
-
-        // Create alloca and return it
-        match ty {
-            int8_types!() => builder.build_alloca(self.context.i8_type(), name),
-            int16_types!() => builder.build_alloca(self.context.i16_type(), name),
-            int32_types!() => builder.build_alloca(self.context.i32_type(), name),
-            int64_types!() => builder.build_alloca(self.context.i64_type(), name),
-            Type::Float => builder.build_alloca(self.context.f32_type(), name),
-            Type::Double => builder.build_alloca(self.context.f64_type(), name),
-            Type::Void => unreachable!(
-                "NONCANBE: void type for stack variable in create_entry_block_alloca()"
-            ),
-            Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-        }
-    }
-
     // Helper function for when we don't know if we have a statement or an
     // expression
     fn codegen_node(&mut self, node: &Node) -> Result<Option<BasicValueEnum<'ctx>>, String> {
@@ -216,6 +181,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create new block for function
         let bb = self.context.append_basic_block(function, "entry");
+
         // Make sure the builder will insert new instructions at the end
         self.builder.position_at_end(bb);
 
@@ -515,7 +481,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let var = self
             .symbol_table
             .get(name)
-            .ok_or(format!("Unknown variable: `{}`", name))?; // XXX
+            .unwrap_or_else(|| unreachable!("Fatal: codegen failed to resolve `{}`", name));
         Ok(self.builder.build_load(var, name))
     }
 
@@ -558,26 +524,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     ) -> ExprResult<'ctx> {
         use Symbol::*;
 
-        // XXX: Should this block go in the type checker?
-        // If assignment, make sure lvalue is a variable and store rhs there
-        if op == Assign {
-            let l_var = match lhs {
-                Expression::Ident { name, .. } => name,
-                _ => return Err("Expected LHS to be a variable for assignment".to_string()),
-            };
-
-            let r_val = self.codegen_expr(rhs)?.value()?;
-            let l_var = self
-                .symbol_table
-                .get(l_var)
-                .ok_or(format!("Unknown variable in assignment: {}", l_var))?
-                .to_owned();
-
-            self.builder.build_store(l_var, r_val);
-
-            return Ok(r_val);
-        }
-
         let lhs_val = self.codegen_expr(lhs)?.value()?;
         let lhs_ty = lhs.ty().unwrap_or_else(|| {
             unreachable!("NONCANBE: missing type for lhs expr in codegen_binop()")
@@ -595,6 +541,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Div => self.div((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             And => self.and((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Or => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Assign => self.assign(lhs, rhs_val),
             op @ (Gt | Lt | Eq) => self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             x => Err(format!("Unknown binary operator: {}", x)),
         }
@@ -710,6 +657,41 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             val = phi.as_basic_value();
         }
         Ok(val)
+    }
+
+    // Helper to create an alloca in the entry block for local variables
+    fn create_entry_block_alloca(
+        &self,
+        name: &str,
+        ty: Type,
+        func: &FunctionValue,
+    ) -> PointerValue<'ctx> {
+        // Create a temporary builder
+        let builder = self.context.create_builder();
+
+        // Get the first block of the current function
+        let entry = func.get_first_basic_block().unwrap();
+
+        // Rewind to the first instruction and insert before it or at the end if
+        // empty
+        match entry.get_first_instruction() {
+            Some(inst) => builder.position_before(&inst),
+            None => builder.position_at_end(entry),
+        }
+
+        // Create alloca and return it
+        match ty {
+            int8_types!() => builder.build_alloca(self.context.i8_type(), name),
+            int16_types!() => builder.build_alloca(self.context.i16_type(), name),
+            int32_types!() => builder.build_alloca(self.context.i32_type(), name),
+            int64_types!() => builder.build_alloca(self.context.i64_type(), name),
+            Type::Float => builder.build_alloca(self.context.f32_type(), name),
+            Type::Double => builder.build_alloca(self.context.f64_type(), name),
+            Type::Void => unreachable!(
+                "NONCANBE: void type for stack variable in create_entry_block_alloca()"
+            ),
+            Type::Bool => builder.build_alloca(self.context.bool_type(), name),
+        }
     }
 }
 

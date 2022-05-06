@@ -4,17 +4,9 @@ use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::symbol_table::SymbolTable;
 use crate::token::{Symbol, Type};
-use lightc::*;
 
-// Try to convert `$v` to `$ty`. Store result wrapped in `Literal::$variant` and
-// assign to `$lit`. Return `Type::$variant`.
-macro_rules! convert_num {
-    ($lit:expr, $val:expr, $variant:ident, $ty:ty) => {{
-        let v = <$ty>::try_from(*$val).map_err(|_| "Numeric literal out of range")?;
-        *$lit = Literal::$variant(v);
-        Type::$variant
-    }};
-}
+#[macro_use]
+mod macros;
 
 // Current performs the following tasks:
 // - applies types to all expressions
@@ -32,6 +24,7 @@ struct FunctionEntry {
 }
 
 pub(crate) struct TypeChecker {
+    // XXX: Move these to the symbol table?
     function_table: HashMap<String, FunctionEntry>,
     symbol_table: SymbolTable<Type>,
 }
@@ -318,6 +311,7 @@ impl TypeChecker {
                     float_types!() => {
                         return Err("Literal is an integer in a float context".to_string())
                     }
+                    Type::Bool => return Err("Literal is an integer in a bool context".to_string()),
                     _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
                 },
                 Float(v) => match hint {
@@ -326,6 +320,7 @@ impl TypeChecker {
                     int_types!() => {
                         return Err("Literal is a float in an integer context".to_string())
                     }
+                    Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     _ => unreachable!("NONCANBE: Internal float conversion error"),
                 },
                 Double(_) => Type::Double,
@@ -363,7 +358,6 @@ impl TypeChecker {
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         // Pull the function for the call from table
-        // XXX: Move these to the symbol table
         let func_entry = self
             .function_table
             .get(name)
@@ -421,11 +415,17 @@ impl TypeChecker {
         rhs: &mut Expression,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
+        use Symbol::*;
+
+        // Make sure LHS is a var in assignments
+        if sym == Assign && !matches!(lhs, Expression::Ident { .. }) {
+            return Err("Expected LHS to be a variable for assignment".to_string());
+        }
+
+        // Check if either side is a numeric literal. If so use the other side
+        // as a type hint for the literal type.
         let lhs_ty;
         let rhs_ty;
-
-        // First check if either sida is a numeric literal. If so use the other
-        // side as a type hint for the literal type.
         match (lhs.is_num_literal(), rhs.is_num_literal()) {
             (true, false) => {
                 rhs_ty = self.check_expr(rhs, None)?;
@@ -441,6 +441,45 @@ impl TypeChecker {
             }
         }
 
+        // Check the operand types based on the operator used and set the
+        // expression type accordingly
+        let new_ty = match sym {
+            And | Or => {
+                if lhs_ty != Type::Bool || rhs_ty != Type::Bool {
+                    return Err(format!(
+                        "Expected bools on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        sym, lhs_ty, rhs_ty
+                    ));
+                }
+                Type::Bool
+            }
+            Eq | Gt | Lt | Not => {
+                match (lhs_ty, rhs_ty) {
+                    (numeric_types!(), numeric_types!()) => (),
+                    _ => {
+                        return Err(format!(
+                            "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                            sym, lhs_ty, rhs_ty
+                        ))
+                    }
+                };
+                Type::Bool
+            }
+            Add | Div | Mul | Pow | Sub => {
+                match (lhs_ty, rhs_ty) {
+                    (numeric_types!(), numeric_types!()) => (),
+                    _ => {
+                        return Err(format!(
+                            "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                            sym, lhs_ty, rhs_ty
+                        ))
+                    }
+                };
+                lhs_ty
+            }
+            _ => Type::Void,
+        };
+
         // Both sides must match
         if lhs_ty != rhs_ty {
             return Err(format!(
@@ -448,15 +487,6 @@ impl TypeChecker {
                 lhs_ty, rhs_ty
             ));
         }
-
-        // Set the expression's type to either bool for comparision operators or
-        // to the lhs expression
-        let new_ty = match sym {
-            Symbol::And | Symbol::Eq | Symbol::Gt | Symbol::Lt | Symbol::Not | Symbol::Or => {
-                Type::Bool
-            }
-            _ => lhs_ty,
-        };
 
         *ty = Some(new_ty);
         Ok(new_ty)

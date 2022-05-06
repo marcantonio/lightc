@@ -1,9 +1,0 @@
----
-source: src/codegen/mod.rs
-assertion_line: 811
-expression: ir
-input_file: src/codegen/tests/inputs/bad_l_value.lt
----
-- - "fn main(x: int) {\n    x + 1 = 1\n}\n"
-  - Expected LHS to be a variable for assignment
-

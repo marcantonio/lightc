@@ -103,26 +103,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            int_types!() => Ok(self
+            Type::Bool => Ok(self
                 .builder
                 .build_and(lhs.0.into_int_value(), rhs.0.into_int_value(), "and.int")
                 .as_basic_value_enum()),
-            float_types!() => {
-                let lhs = self.builder.build_float_to_signed_int(
-                    lhs.0.into_float_value(),
-                    self.context.i64_type(),
-                    "and.lhs.float",
-                );
-                let rhs = self.builder.build_float_to_signed_int(
-                    rhs.0.into_float_value(),
-                    self.context.i64_type(),
-                    "and.rhs.float",
-                );
-                Ok(self
-                    .builder
-                    .build_and(lhs, rhs, "and.float")
-                    .as_basic_value_enum())
-            }
             _ => Err("Unsupported type in `and` operation".to_string()),
         }
     }
@@ -133,27 +117,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            // TODO: restrict cmp to bools
-            Type::Bool | int_types!() => Ok(self
+            Type::Bool => Ok(self
                 .builder
                 .build_or(lhs.0.into_int_value(), rhs.0.into_int_value(), "or.int")
                 .as_basic_value_enum()),
-            float_types!() => {
-                let lhs = self.builder.build_float_to_signed_int(
-                    lhs.0.into_float_value(),
-                    self.context.i64_type(),
-                    "or.lhs.float",
-                );
-                let rhs = self.builder.build_float_to_signed_int(
-                    rhs.0.into_float_value(),
-                    self.context.i64_type(),
-                    "or.rhs.float",
-                );
-                Ok(self
-                    .builder
-                    .build_or(lhs, rhs, "or.float")
-                    .as_basic_value_enum())
-            }
             _ => Err("Unsupported type in `or` operation".to_string()),
         }
     }
@@ -227,6 +194,23 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .builder
             .build_int_cast(inst, self.context.bool_type(), "cmp.bool")
             .as_basic_value_enum())
+    }
+
+    pub(super) fn assign(&self, lhs: &Expression, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+        let lhs_name = match lhs {
+            Expression::Ident { name, .. } => name,
+            _ => unreachable!("Fatal: Bad LHS in codegen assignment: `{}`", lhs),
+        };
+
+        let lhs_var = self
+            .symbol_table
+            .get(lhs_name)
+            .ok_or(format!("Unknown variable in assignment: {}", lhs_name))?
+            .to_owned();
+
+        self.builder.build_store(lhs_var, rhs);
+
+        Ok(rhs)
     }
 
     // Unary operations
