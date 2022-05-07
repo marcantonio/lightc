@@ -62,6 +62,7 @@ impl Default for Token {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub(crate) enum TokenType {
     Bool(bool),
+    Char(String),
     CloseBrace,
     CloseParen,
     Colon,
@@ -150,6 +151,7 @@ pub(crate) enum Type {
     Float,
     Double,
     Bool,
+    Char,
     Void,
 }
 

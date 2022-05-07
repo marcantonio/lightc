@@ -1,0 +1,22 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 528
+expression: "(input, Lexer::new(input).scan())"
+---
+- "{ a }"
+- Ok:
+    - tt: OpenBrace
+      line: 1
+      column: 1
+    - tt:
+        Ident: a
+      line: 1
+      column: 3
+    - tt: CloseBrace
+      line: 1
+      column: 5
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 6
+

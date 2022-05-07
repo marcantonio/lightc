@@ -438,7 +438,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .i64_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            UInt8(v) => self
+            UInt8(v) | Char(v) => self
                 .context
                 .i8_type()
                 .const_int(*v as u64, false)

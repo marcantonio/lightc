@@ -1,0 +1,11 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 389
+expression: "(input, Lexer::new(input).scan())"
+---
+- "'"
+- Err:
+    message: "Unterminated character literal. Expecting `'`, got `EOF`"
+    line: 1
+    column: 1
+

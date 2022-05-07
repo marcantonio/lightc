@@ -34,11 +34,11 @@ impl Lexer {
     fn lex(&mut self) -> LexResult {
         let cur = match self.stream.next() {
             Some(cur) => cur,
-            None => unreachable!("NONCANBE: can't lex nothing"),
+            None => unreachable!("fatal: can't lex nothing"),
         };
 
         // Inject a semicolon if certain tokens occur at the end of the line or
-        // EOF. IF EOF, make sure the context is right.
+        // EOF. If EOF, make sure the context is right.
         if cur.value == '\n' && self.should_add_semicolon() {
             return Ok(Token::from((TokenType::Semicolon(true), cur)));
         } else if cur.is_eof() {
@@ -134,6 +134,70 @@ impl Lexer {
             return Ok(Token::from((TokenType::Num(n), cur)));
         }
 
+        // XXX: partialeq + &str
+        // Literal char
+        if cur.value == '\'' {
+            let mut ch = String::new();
+            let next = self
+                .stream
+                .next()
+                .unwrap_or_else(|| unreachable!("fatal: lexed None when looking for char"));
+
+            match next.value {
+                // Control characters
+                '\\' => {
+                    if let Some(next) = self.stream.next() {
+                        match next.value {
+                            'n' => ch = String::from("\\n"),
+                            't' => ch = String::from("\\t"),
+                            '\'' => ch = String::from("'"),
+                            c => {
+                                return Err(LexError::from((
+                                    format!("Invalid character control sequence: `\\{}`", c),
+                                    next,
+                                )))
+                            }
+                        }
+                    }
+                }
+                // EOF
+                '\0' => {
+                    return Err(LexError::from((
+                        "Unterminated character literal. Expecting `'`, got `EOF`".to_string(),
+                        cur,
+                    )));
+                }
+                // Everything else
+                c => ch = String::from(c),
+            }
+
+            // Check for closing '\''
+            let last = self
+                .stream
+                .next()
+                .unwrap_or_else(|| unreachable!("fatal: lexed None when looking for `'`"));
+            match last.value {
+                '\'' => (),
+                '\0' => {
+                    return Err(LexError::from((
+                        "Unterminated character literal. Expecting `'`, got `EOF`".to_string(),
+                        last,
+                    )));
+                }
+                _ => {
+                    return Err(LexError::from((
+                        format!(
+                            "Invalid character sequence. Expecting `'`, got `{}`",
+                            last.value
+                        ),
+                        last,
+                    )));
+                }
+            }
+
+            return Ok(Token::from((TokenType::Char(ch), cur)));
+        }
+
         // Multi-character operators
         if let Some(next) = self.stream.peek() {
             match cur.value {
@@ -190,7 +254,7 @@ impl Lexer {
         if let Some(t) = self.tokens.last() {
             matches!(
                 t.tt,
-                Bool(_) | CloseBrace | CloseParen | Ident(_) | Num(_) | VarType(_)
+                Bool(_) | Char(_) | CloseBrace | CloseParen | Ident(_) | Num(_) | VarType(_)
             )
         } else {
             false
@@ -318,13 +382,178 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_lexer() {
+    fn test_char() {
+        let inputs = vec!["'c'", "'\\n'", "'c", "'mm'", "'", "'\\c'"];
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            insta::glob!("tests/inputs/*.lt", |path| {
-                let input = std::fs::read_to_string(path).unwrap();
-                insta::assert_yaml_snapshot!(Lexer::new(&input).scan());
-            });
+            for input in inputs {
+                insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+            }
         });
+    }
+
+    #[test]
+    fn test_cond() {
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            let inputs = vec![
+"if x > -3 {
+    print(x)
+}
+",
+"if x > -3 {
+    print(x)
+} else {
+    exit()
+}
+",
+"if x > 3 {
+    print(x)
+} else if y == 1 {
+    exit()
+} else {
+    z
+}
+"];
+            for input in inputs {
+                insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+            }
+        });
+    }
+
+    #[test]
+    fn test_extern() {
+        let input = "extern cos(x)";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_fn() {
+        let input = "\
+fn foo(a, b, c) -> int {
+    bar(a) + 2
+}";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_for() {
+        let input = "\
+for let x = 1; x < 10; 1 {
+    print(x)
+}";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_logical_ops() {
+        let inputs = vec!["x && y", "x || y", "x == y"];
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            for input in inputs {
+                insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+            }
+        });
+    }
+
+    #[test]
+    fn test_let() {
+        let inputs = vec![
+            "let a: int = 1",
+            "let b: int32 = 2",
+            "let b: int64 = 3",
+            "let b: uint = 4",
+            "let b: uint32 = 5",
+            "let b: uint64 = 6",
+            "let c: float = 7.0",
+            "let c: double = 8.0",
+            "let d: bool = true",
+            "let d: bool = false",
+            "let e: char = 'c'",
+            "let e: char = '\n'",
+        ];
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            for input in inputs {
+                insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+            }
+        });
+    }
+
+    #[test]
+    fn test_multi_line_comment() {
+        let input = "\
+let foo = 14
+// line1
+// line2
+foo
+";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_ops() {
+        let input = "(x + y) * 4 / 4";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_semi() {
+        let inputs = vec!["a", "1", "a()", "{ a }", "let a: int", "let", "fn", "'c'"];
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            for input in inputs {
+                insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+            }
+        });
+    }
+
+    #[test]
+    fn test_trailing_comment() {
+        let input = "\
+let foo = 13
+// line2";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_unknown_char() {
+        let input = "let foo = `1`";
+        insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
+            insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));
+        });
+    }
+
+    #[test]
+    fn test_lex_one() {
+        use Symbol::*;
+        use TokenType::*;
+
+        let input = "\
+foo + bar
+// bar
+/ not_a_comment
+baz
+";
+        let mut lexer = Lexer::new(input);
+
+        assert_eq!(lexer.lex(), Ok(Token::new(Ident("foo".to_string()), 1, 1)));
+        assert_eq!(lexer.lex(), Ok(Token::new(Op(Add), 1, 5)));
+        assert_eq!(lexer.lex(), Ok(Token::new(Ident("bar".to_string()), 1, 7)));
+        assert_eq!(lexer.lex(), Ok(Token::new(Op(Div), 3, 1)));
+        assert_eq!(
+            lexer.lex(),
+            Ok(Token::new(Ident("not_a_comment".to_string()), 3, 3))
+        );
+        assert_eq!(lexer.lex(), Ok(Token::new(Ident("baz".to_string()), 4, 1)));
+        assert_eq!(lexer.lex(), Ok(Token::new(Eof, 5, 1)));
     }
 
     #[test]
@@ -349,30 +578,5 @@ ghi
         assert_eq!(ContextElement::new('\n', 2, 3), stream.next().unwrap());
         assert_eq!(ContextElement::new(0 as char, 3, 0), stream.next().unwrap());
         assert_eq!(ContextElement::new(0 as char, 3, 0), stream.next().unwrap());
-    }
-
-    #[test]
-    fn test_lex_one() {
-        use Symbol::*;
-        use TokenType::*;
-
-        let input = "\
-foo + bar
-// bar
-/ not_a_comment
-baz
-";
-        let mut lexer = Lexer::new(input);
-
-        assert_eq!(Ok(Token::new(Ident("foo".to_string()), 1, 1)), lexer.lex());
-        assert_eq!(Ok(Token::new(Op(Add), 1, 5)), lexer.lex());
-        assert_eq!(Ok(Token::new(Ident("bar".to_string()), 1, 7)), lexer.lex());
-        assert_eq!(Ok(Token::new(Op(Div), 3, 1)), lexer.lex());
-        assert_eq!(
-            Ok(Token::new(Ident("not_a_comment".to_string()), 3, 3)),
-            lexer.lex()
-        );
-        assert_eq!(Ok(Token::new(Ident("baz".to_string()), 4, 1)), lexer.lex());
-        assert_eq!(Ok(Token::new(Eof, 5, 1)), lexer.lex());
     }
 }

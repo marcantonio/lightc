@@ -1,0 +1,29 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 433
+expression: "(input, Lexer::new(input).scan())"
+---
+- extern cos(x)
+- Ok:
+    - tt: Extern
+      line: 1
+      column: 1
+    - tt:
+        Ident: cos
+      line: 1
+      column: 8
+    - tt: OpenParen
+      line: 1
+      column: 11
+    - tt:
+        Ident: x
+      line: 1
+      column: 12
+    - tt: CloseParen
+      line: 1
+      column: 13
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 14
+

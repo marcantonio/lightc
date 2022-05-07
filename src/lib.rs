@@ -15,7 +15,7 @@ macro_rules! int_types {
 #[macro_export]
 macro_rules! int8_types {
     () => {
-        Type::Int8 | Type::UInt8
+        Type::Int8 | Type::UInt8 | Type::Char
     };
 }
 

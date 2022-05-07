@@ -1,0 +1,11 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 389
+expression: "(input, Lexer::new(input).scan())"
+---
+- "'mm'"
+- Err:
+    message: "Invalid character sequence. Expecting `'`, got `m`"
+    line: 1
+    column: 3
+

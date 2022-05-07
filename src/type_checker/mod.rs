@@ -325,6 +325,7 @@ impl TypeChecker {
                 },
                 Double(_) => Type::Double,
                 Bool(_) => Type::Bool,
+                Char(_) => Type::Char,
             },
             None => match lit {
                 UInt64(v) => {

@@ -1,0 +1,11 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 528
+expression: "(input, Lexer::new(input).scan())"
+---
+- let
+- Ok:
+    - tt: Let
+      line: 1
+      column: 1
+

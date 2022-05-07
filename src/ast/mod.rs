@@ -148,6 +148,7 @@ pub(crate) enum Literal {
     Float(f32),
     Double(f64),
     Bool(bool),
+    Char(u8),
 }
 
 #[derive(Debug, PartialEq, Serialize)]

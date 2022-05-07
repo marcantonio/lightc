@@ -1,3 +1,0 @@
-fn foo(a, b, c) -> int {
-    bar(a) + 2
-}

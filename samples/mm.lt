@@ -41,4 +41,6 @@ fn main() {
         y
     }
     y
+
+    let c: char = '\c'
 }

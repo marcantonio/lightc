@@ -1,0 +1,11 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 424
+expression: "(input, Lexer::new(input).scan())"
+---
+- "'\\c'"
+- Err:
+    message: "Invalid character control sequence: `c`"
+    line: 1
+    column: 3
+

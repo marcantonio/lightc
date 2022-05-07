@@ -115,6 +115,7 @@ impl Display for Literal {
             Float(v) => write!(f, "{}", v),
             Double(v) => write!(f, "{}", v),
             Bool(v) => write!(f, "{}", v),
+            Char(v) => write!(f, "{}", v),
         }
     }
 }

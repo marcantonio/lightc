@@ -1,0 +1,16 @@
+---
+source: src/lexer/mod.rs
+assertion_line: 389
+expression: "(input, Lexer::new(input).scan())"
+---
+- "'\\n'"
+- Ok:
+    - tt:
+        Char: "\\n"
+      line: 1
+      column: 1
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 2
+
