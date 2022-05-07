@@ -109,7 +109,7 @@ impl Lexer {
                 "float" => TokenType::VarType(Type::Float),
                 "double" => TokenType::VarType(Type::Double),
                 "bool" => TokenType::VarType(Type::Bool),
-                "char" => TokenType::VarType(Type::UInt8),
+                "char" => TokenType::VarType(Type::Char),
                 // TODO: don't hardcode these
                 "int" => TokenType::VarType(Type::Int32),
                 "uint" => TokenType::VarType(Type::UInt32),
@@ -320,7 +320,7 @@ mod test {
     #[test]
     fn test_lexer() {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
-            insta::glob!("tests/inputs/lexer/*.input", |path| {
+            insta::glob!("tests/inputs/*.lt", |path| {
                 let input = std::fs::read_to_string(path).unwrap();
                 insta::assert_yaml_snapshot!(Lexer::new(&input).scan());
             });
