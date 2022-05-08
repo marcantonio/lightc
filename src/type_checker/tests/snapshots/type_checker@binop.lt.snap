@@ -1,6 +1,6 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 567
+assertion_line: 577
 expression: asts
 input_file: src/type_checker/tests/inputs/binop.lt
 ---
@@ -205,7 +205,7 @@ input_file: src/type_checker/tests/inputs/binop.lt
                   ty: Int32
 - - "\n// mismatch\nfn foo() {\n    2.0 + 1\n}\n"
   - Err: "Mismatched types in binop: `float` != `int32`"
-- - "\n// bool\nfn foo() {\n    2 == 1\n}\n"
+- - "\n// bool ret\nfn foo() -> bool {\n    2 == 1\n}\n"
   - Ok:
       nodes:
         - Stmt:
@@ -213,7 +213,7 @@ input_file: src/type_checker/tests/inputs/binop.lt
               proto:
                 name: foo
                 args: []
-                ret_ty: Void
+                ret_ty: Bool
               body:
                 Block:
                   list:
@@ -272,12 +272,41 @@ input_file: src/type_checker/tests/inputs/binop.lt
                             Int32: 0
                           ty: Int32
                   ty: Bool
-- - "\n// bools in cmp 2\nfn main(x: int) {\n    x && x\n}\n"
-  - Err: "Expected bools on either side of `&&`, got lhs: `int32`, rhs: `int32`"
-- - "\n// bools in cmp 3\nfn main(x: int) {\n    true && x\n}\n"
-  - Err: "Expected bools on either side of `&&`, got lhs: `bool`, rhs: `int32`"
-- - "\n// bools in cmp 4\nfn main(x: int) {\n    x || false\n}\n"
-  - Err: "Expected bools on either side of `||`, got lhs: `int32`, rhs: `bool`"
+- - "\n// bools in cmp 2\nfn main(x: bool) {\n    x == false\n}\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args:
+                  - - x
+                    - Bool
+                ret_ty: Int32
+              body:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Eq
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Bool
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: false
+                                ty: Bool
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
 - - "\n// bad lit int\nfn main(x: int) {\n    true && 1\n}\n"
   - Err: Literal is an integer in a bool context
 - - "\n// bad lit float\nfn main(x: int) {\n    1.0 || true\n}\n"
@@ -286,4 +315,75 @@ input_file: src/type_checker/tests/inputs/binop.lt
   - Err: "Expected numeric type on either side of `>`, got lhs: `bool`, rhs: `bool`"
 - - "\n// bad math types\nfn main(x: int) {\n    true + false\n}\n"
   - Err: "Expected numeric type on either side of `+`, got lhs: `bool`, rhs: `bool`"
+- - "\n// lit char 1\nfn main(x: int) {\n    'a' > 'c'\n}\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args:
+                  - - x
+                    - Int32
+                ret_ty: Int32
+              body:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Gt
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Char: 97
+                                ty: Char
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Char: 99
+                                ty: Char
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
+- - "\n// lit char 2\nfn main(x: char) {\n    x > 'c'\n}\n"
+  - Ok:
+      nodes:
+        - Stmt:
+            Fn:
+              proto:
+                name: main
+                args:
+                  - - x
+                    - Char
+                ret_ty: Int32
+              body:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Gt
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Char
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Char: 99
+                                ty: Char
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
 

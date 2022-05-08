@@ -134,7 +134,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         use Symbol::*;
 
         let inst = match (lhs.1, op) {
-            (int_types!(), Eq) => self.builder.build_int_compare(
+            (int_types!() | Type::Bool | Type::Char, Eq) => self.builder.build_int_compare(
                 IntPredicate::EQ,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
@@ -152,13 +152,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 rhs.0.into_int_value(),
                 "slt.int",
             ),
-            (unsigned_int_types!(), Gt) => self.builder.build_int_compare(
+            (unsigned_int_types!() | Type::Char, Gt) => self.builder.build_int_compare(
                 IntPredicate::UGT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "ugt.int",
             ),
-            (unsigned_int_types!(), Lt) => self.builder.build_int_compare(
+            (unsigned_int_types!() | Type::Char, Lt) => self.builder.build_int_compare(
                 IntPredicate::ULT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
@@ -184,7 +184,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             ),
             (ty, op) => {
                 return Err(format!(
-                    "Unsupported type/op combination in `cmp`: `({} {})`",
+                    "Unsupported type/op combination in `cmp`: `(ty:{} / op:{})`",
                     ty, op
                 ))
             }

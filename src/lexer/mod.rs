@@ -134,9 +134,8 @@ impl Lexer {
             return Ok(Token::from((TokenType::Num(n), cur)));
         }
 
-        // XXX: partialeq + &str
         // Literal char
-        if cur.value == '\'' {
+        if cur == '\'' {
             let mut ch = String::new();
             let next = self
                 .stream
@@ -148,8 +147,8 @@ impl Lexer {
                 '\\' => {
                     if let Some(next) = self.stream.next() {
                         match next.value {
-                            'n' => ch = String::from("\\n"),
-                            't' => ch = String::from("\\t"),
+                            'n' => ch = String::from("\n"),
+                            't' => ch = String::from("\t"),
                             '\'' => ch = String::from("'"),
                             c => {
                                 return Err(LexError::from((
@@ -167,6 +166,13 @@ impl Lexer {
                         cur,
                     )));
                 }
+                '\'' => {
+                    return Err(LexError::from((
+                        "Character literal can't be empty".to_string(),
+                        cur,
+                    )))
+                }
+
                 // Everything else
                 c => ch = String::from(c),
             }
@@ -178,18 +184,15 @@ impl Lexer {
                 .unwrap_or_else(|| unreachable!("fatal: lexed None when looking for `'`"));
             match last.value {
                 '\'' => (),
-                '\0' => {
+                '\0' | '\n' => {
                     return Err(LexError::from((
-                        "Unterminated character literal. Expecting `'`, got `EOF`".to_string(),
+                        "Unterminated character literal. Expecting `'`".to_string(),
                         last,
                     )));
                 }
                 _ => {
                     return Err(LexError::from((
-                        format!(
-                            "Invalid character sequence. Expecting `'`, got `{}`",
-                            last.value
-                        ),
+                        format!("Invalid character sequence: `'{}{}'`", ch, last.value),
                         last,
                     )));
                 }
@@ -383,7 +386,7 @@ mod test {
 
     #[test]
     fn test_char() {
-        let inputs = vec!["'c'", "'\\n'", "'c", "'mm'", "'", "'\\c'"];
+        let inputs = vec!["'c'", "'\\n'", "'c", "'mm'", "'", "'\\c'", "''"];
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for input in inputs {
                 insta::assert_yaml_snapshot!((input, Lexer::new(input).scan()));

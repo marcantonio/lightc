@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use lightc::*;
+
 use crate::ast::conversion::AsExprMut;
 use crate::ast::*;
 use crate::symbol_table::SymbolTable;
@@ -11,7 +13,7 @@ mod macros;
 // Current performs the following tasks:
 // - applies types to all expressions
 // - checks for annotation consistency
-// - checks for type consistency in binops
+// - checks for type consistency and relevance in binops
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - ensures functions aren't redefined
@@ -249,7 +251,7 @@ impl TypeChecker {
             BinOp { sym, lhs, rhs, ty } => {
                 self.check_binop(*sym, lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty)
             }
-            UnOp { sym: _, rhs, ty } => self.check_unop(rhs.as_expr_mut()?, ty),
+            UnOp { sym, rhs, ty } => self.check_unop(*sym, rhs.as_expr_mut()?, ty),
             Call { name, args, ty } => self.check_call(name, &mut args.as_expr_mut()?, ty),
             Cond {
                 cond_expr,
@@ -312,6 +314,7 @@ impl TypeChecker {
                         return Err("Literal is an integer in a float context".to_string())
                     }
                     Type::Bool => return Err("Literal is an integer in a bool context".to_string()),
+                    Type::Char => return Err("Literal is an integer in a char context".to_string()),
                     _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
                 },
                 Float(v) => match hint {
@@ -321,6 +324,7 @@ impl TypeChecker {
                         return Err("Literal is a float in an integer context".to_string())
                     }
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
+                    Type::Char => return Err("Literal is a float in a char context".to_string()),
                     _ => unreachable!("NONCANBE: Internal float conversion error"),
                 },
                 Double(_) => Type::Double,
@@ -335,6 +339,7 @@ impl TypeChecker {
                 }
                 Float(_) => Type::Float,
                 Bool(_) => Type::Bool,
+                Char(_) => Type::Char,
                 x => unreachable!("NONCANBE: Internal numeric conversion error for {}", x),
             },
         };
@@ -442,6 +447,14 @@ impl TypeChecker {
             }
         }
 
+        // Both sides must match
+        if lhs_ty != rhs_ty {
+            return Err(format!(
+                "Mismatched types in binop: `{}` != `{}`",
+                lhs_ty, rhs_ty
+            ));
+        }
+
         // Check the operand types based on the operator used and set the
         // expression type accordingly
         let new_ty = match sym {
@@ -454,14 +467,29 @@ impl TypeChecker {
                 }
                 Type::Bool
             }
-            Eq | Gt | Lt | Not => {
+            Eq => {
                 match (lhs_ty, rhs_ty) {
-                    (numeric_types!(), numeric_types!()) => (),
+                    (
+                        numeric_types!() | Type::Bool | Type::Char,
+                        numeric_types!() | Type::Bool | Type::Char,
+                    ) => (),
                     _ => {
                         return Err(format!(
-                            "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
-                            sym, lhs_ty, rhs_ty
-                        ))
+                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        sym, lhs_ty, rhs_ty
+                    ))
+                    }
+                };
+                Type::Bool
+            }
+            Gt | Lt => {
+                match (lhs_ty, rhs_ty) {
+                    (numeric_types!() | Type::Char, numeric_types!() | Type::Char) => (),
+                    _ => {
+                        return Err(format!(
+                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        sym, lhs_ty, rhs_ty
+                    ))
                     }
                 };
                 Type::Bool
@@ -471,9 +499,9 @@ impl TypeChecker {
                     (numeric_types!(), numeric_types!()) => (),
                     _ => {
                         return Err(format!(
-                            "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
-                            sym, lhs_ty, rhs_ty
-                        ))
+                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        sym, lhs_ty, rhs_ty
+                    ))
                     }
                 };
                 lhs_ty
@@ -481,20 +509,26 @@ impl TypeChecker {
             _ => Type::Void,
         };
 
-        // Both sides must match
-        if lhs_ty != rhs_ty {
-            return Err(format!(
-                "Mismatched types in binop: `{}` != `{}`",
-                lhs_ty, rhs_ty
-            ));
-        }
-
         *ty = Some(new_ty);
         Ok(new_ty)
     }
 
-    fn check_unop(&mut self, rhs: &mut Expression, ty: &mut Option<Type>) -> Result<Type, String> {
+    fn check_unop(
+        &mut self,
+        sym: Symbol,
+        rhs: &mut Expression,
+        ty: &mut Option<Type>,
+    ) -> Result<Type, String> {
         let rhs_ty = self.check_expr(rhs, None)?;
+        match rhs_ty {
+            numeric_types!() => (),
+            _ => {
+                return Err(format!(
+                    "Expected numeric type in unary operation `{}`, got rhs: `{}`",
+                    sym, rhs_ty
+                ))
+            }
+        }
         *ty = Some(rhs_ty);
         Ok(rhs_ty)
     }
@@ -519,7 +553,7 @@ impl TypeChecker {
 
             if then_ty != else_ty {
                 return Err(format!(
-                    "Both arms of conditional must be the same type: `then` == {}; `else` == {}",
+                    "Both arms of conditional must be the same type: `then` == `{}`; `else` == `{}`",
                     then_ty, else_ty
                 ));
             }

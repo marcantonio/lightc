@@ -134,7 +134,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .map(|x| {
                 let (_, ty) = x;
                 match ty {
-                    int8_types!() => BasicMetadataTypeEnum::IntType(self.context.i8_type()),
+                    int8_types!() | Type::Char => {
+                        BasicMetadataTypeEnum::IntType(self.context.i8_type())
+                    }
                     int16_types!() => BasicMetadataTypeEnum::IntType(self.context.i16_type()),
                     int32_types!() => BasicMetadataTypeEnum::IntType(self.context.i32_type()),
                     int64_types!() => BasicMetadataTypeEnum::IntType(self.context.i64_type()),
@@ -150,7 +152,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Generate function based on return type
         let func_type = match proto.ret_ty {
-            Some(int8_types!()) => self.context.i8_type().fn_type(&args_type, false),
+            Some(int8_types!()) | Some(Type::Char) => {
+                self.context.i8_type().fn_type(&args_type, false)
+            }
             Some(int16_types!()) => self.context.i16_type().fn_type(&args_type, false),
             Some(int32_types!()) => self.context.i32_type().fn_type(&args_type, false),
             Some(int64_types!()) => self.context.i64_type().fn_type(&args_type, false),
@@ -298,7 +302,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             }
-            _ => unreachable!("NONCANBE: void type for step in codegen_for()"),
+            _ => unreachable!("NONCANBE: void type for step in codegen_for()"), // XXX: not just void
         };
 
         let cond_bool = self.builder.build_int_compare(
@@ -346,7 +350,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     unreachable!("NONCANBE: void type for init expr in codegen_let()");
                 }
             }
-            (int8_types!(), None) => {
+            (int8_types!() | Type::Char, None) => {
                 Some(self.context.i8_type().const_zero().as_basic_value_enum())
             }
             (int16_types!(), None) => {
@@ -681,7 +685,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create alloca and return it
         match ty {
-            int8_types!() => builder.build_alloca(self.context.i8_type(), name),
+            int8_types!() | Type::Char => builder.build_alloca(self.context.i8_type(), name),
             int16_types!() => builder.build_alloca(self.context.i16_type(), name),
             int32_types!() => builder.build_alloca(self.context.i32_type(), name),
             int64_types!() => builder.build_alloca(self.context.i64_type(), name),

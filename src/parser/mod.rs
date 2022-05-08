@@ -229,6 +229,7 @@ impl<'a> Parser<'a> {
         let expr = match &token.tt {
             TokenType::If => self.parse_cond()?,
             TokenType::Bool(b) => self.parse_bool(*b)?,
+            TokenType::Char(c) => self.parse_char(c, token)?,
             TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident(id)?,
             TokenType::OpenBrace => self.parse_block()?,
@@ -366,21 +367,37 @@ impl<'a> Parser<'a> {
     }
 
     // Literal bool
-    fn parse_bool(&mut self, val: bool) -> ParseResult {
+    fn parse_bool(&mut self, b: bool) -> ParseResult {
         self.tokens.next(); // Eat bool
 
         Ok(Node::Expr(Expression::Lit {
-            value: Literal::Bool(val),
+            value: Literal::Bool(b),
             ty: None,
         }))
     }
 
+    // Literal char
+    fn parse_char(&mut self, c: &str, token: &Token) -> ParseResult {
+        self.tokens.next(); // Eat char
+
+        match c.parse::<char>() {
+            Ok(c) => Ok(Node::Expr(Expression::Lit {
+                value: Literal::Char(c as u8),
+                ty: None,
+            })),
+            Err(_) => Err(ParseError::from((
+                format!("Invalid character literal: {}", token),
+                token,
+            ))),
+        }
+    }
+
     // Literal numbers are u64 or f64
     // TODO: Revisit when we have literal annotations, i.e., 78int64.
-    fn parse_num(&mut self, num: &str, token: &Token) -> ParseResult {
+    fn parse_num(&mut self, n: &str, token: &Token) -> ParseResult {
         self.tokens.next(); // Eat num
 
-        match num.parse::<u64>() {
+        match n.parse::<u64>() {
             Ok(n) => Ok(Node::Expr(Expression::Lit {
                 value: Literal::UInt64(n),
                 ty: None,
@@ -394,7 +411,7 @@ impl<'a> Parser<'a> {
                     token,
                 )))
             }
-            _ => match num.parse::<f32>() {
+            _ => match n.parse::<f32>() {
                 Ok(n) => Ok(Node::Expr(Expression::Lit {
                     value: Literal::Float(n),
                     ty: None,

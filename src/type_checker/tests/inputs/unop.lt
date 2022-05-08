@@ -8,3 +8,15 @@ fn foo() {
     -xy
 }
 #test_delim#
+
+// bad type 1
+fn foo() {
+    -false
+}
+#test_delim#
+
+// bad type 2
+fn foo() {
+    -'c'
+}
+#test_delim#

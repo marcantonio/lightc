@@ -1,0 +1,35 @@
+---
+source: src/parser/mod.rs
+assertion_line: 609
+expression: asts
+input_file: src/parser/tests/inputs/char.input
+---
+- - "let c: char = 'a'"
+  - Ok:
+      nodes:
+        - Stmt:
+            Let:
+              name: c
+              antn: Char
+              init:
+                Expr:
+                  Lit:
+                    value:
+                      Char: 97
+                    ty: ~
+  - "(let c:char a)"
+- - "let nl: char = '\\n'"
+  - Ok:
+      nodes:
+        - Stmt:
+            Let:
+              name: nl
+              antn: Char
+              init:
+                Expr:
+                  Lit:
+                    value:
+                      Char: 10
+                    ty: ~
+  - "(let nl:char \n)"
+

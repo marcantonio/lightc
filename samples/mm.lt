@@ -42,5 +42,6 @@ fn main() {
     }
     y
 
-    let c: char = '\c'
+    let c: char = 'c'
+    c == c
 }

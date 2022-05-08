@@ -1,11 +1,11 @@
 ---
 source: src/lexer/mod.rs
-assertion_line: 392
+assertion_line: 395
 expression: "(input, Lexer::new(input).scan())"
 ---
-- "'mm'"
+- "''"
 - Err:
-    message: "Invalid character sequence: `'mm'`"
+    message: "Character literal can't be empty"
     line: 1
-    column: 3
+    column: 1
 

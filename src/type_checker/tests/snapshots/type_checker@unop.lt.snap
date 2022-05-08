@@ -1,6 +1,6 @@
 ---
 source: src/type_checker/mod.rs
-assertion_line: 517
+assertion_line: 595
 expression: asts
 input_file: src/type_checker/tests/inputs/unop.lt
 ---
@@ -59,4 +59,8 @@ input_file: src/type_checker/tests/inputs/unop.lt
                                 ty: Int8
                           ty: Int8
                   ty: Int8
+- - "\n// bad type 1\nfn foo() {\n    -false\n}\n"
+  - Err: "Expected numeric type in unary operation `-`, got rhs: `bool`"
+- - "\n// bad type 2\nfn foo() {\n    -'c'\n}\n"
+  - Err: "Expected numeric type in unary operation `-`, got rhs: `char`"
 
