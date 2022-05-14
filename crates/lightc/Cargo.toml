@@ -1,0 +1,16 @@
+[package]
+name = "lightc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+codegen = { path = "../codegen" }
+common = { path = "../common" }
+lexer = { path = "../lexer" }
+parser = { path = "../parser" }
+type_checker = { path = "../type_checker" }
+
+clap = { version = "3.0.14", features = ["derive"] }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
+llvm-sys = "130"
+tempfile = "3.3.0"

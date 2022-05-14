@@ -1,7 +1,0 @@
-if a > b { foo }
-if a > b { foo } else { bar }
-if a > b { foo } else if c < a { bar }
-if a > b { foo } else if c < a { bar } else { baz }
-if true { foo } else { bar }
-if false { foo } else { bar }
-if a > b { foo } else bar

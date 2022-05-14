@@ -1,0 +1,44 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 156
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let a: int = 1\n    a + 2\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              Block:
+                list:
+                  - Stmt:
+                      Let:
+                        name: a
+                        antn: Int32
+                        init:
+                          Expr:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                  - Expr:
+                      BinOp:
+                        sym: Add
+                        lhs:
+                          Expr:
+                            Ident:
+                              name: a
+                              ty: Int32
+                        rhs:
+                          Expr:
+                            Lit:
+                              value:
+                                Int32: 2
+                              ty: Int32
+                        ty: Int32
+                ty: Int32
+

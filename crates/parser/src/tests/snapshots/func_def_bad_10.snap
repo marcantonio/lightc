@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 152
+expression: "(test[1], ast, ast_string)"
+---
+- "fn a(a: int"
+- Err:
+    message: "Expecting ',' or ')' in prototype. Got EOF"
+    line: 1
+    column: 10
+- "Parsing error: Expecting ',' or ')' in prototype. Got EOF at 1:10"
+

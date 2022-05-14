@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- a(b b)
+- Err:
+    message: "Expecting ',' or ')' in function call. Got identifier: b"
+    line: 1
+    column: 3
+- "Parsing error: Expecting ',' or ')' in function call. Got identifier: b at 1:3"
+

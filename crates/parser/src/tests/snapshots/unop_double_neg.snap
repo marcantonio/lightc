@@ -1,0 +1,25 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 265
+expression: "(test[1], ast, ast_string)"
+---
+- "--21"
+- Ok:
+    nodes:
+      - Expr:
+          UnOp:
+            sym: Sub
+            rhs:
+              Expr:
+                UnOp:
+                  sym: Sub
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 21
+                        ty: ~
+                  ty: ~
+            ty: ~
+- (- (- 21))
+

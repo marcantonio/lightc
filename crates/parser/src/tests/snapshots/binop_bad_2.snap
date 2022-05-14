@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- 20 - else
+- Err:
+    message: Expecting primary expression. Got Else
+    line: 1
+    column: 6
+- "Parsing error: Expecting primary expression. Got Else at 1:6"
+

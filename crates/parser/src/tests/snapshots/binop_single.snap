@@ -1,0 +1,15 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 45
+expression: "(test[1], ast, ast_string)"
+---
+- "19"
+- Ok:
+    nodes:
+      - Expr:
+          Lit:
+            value:
+              UInt64: 19
+            ty: ~
+- "19"
+

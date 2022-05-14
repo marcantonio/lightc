@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 467
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    for x: int = 1; 2.0; 1 {\n        x\n    }\n}\n"
+- Err: For loop conditional should always be a bool
+

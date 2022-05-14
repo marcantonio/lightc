@@ -1,0 +1,23 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 386
+expression: "(test[1], res)"
+---
+- "\nfn foo(a: int, b: float) { }\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args:
+                - - a
+                  - Int32
+                - - b
+                  - Float
+              ret_ty: Void
+            body:
+              Block:
+                list: []
+                ty: Void
+

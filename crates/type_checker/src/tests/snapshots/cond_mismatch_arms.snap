@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 295
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2.0\n    }\n}\n"
+- Err: "Both arms of conditional must be the same type: `then` == `int32`; `else` == `float`"
+

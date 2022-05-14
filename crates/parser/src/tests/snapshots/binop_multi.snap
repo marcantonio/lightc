@@ -1,0 +1,75 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 44
+expression: "(test[1], ast, ast_string)"
+---
+- 19 ^ 21 ^ 40; 19 - 21 * 20 + 40
+- Ok:
+    nodes:
+      - Expr:
+          BinOp:
+            sym: Pow
+            lhs:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 19
+                  ty: ~
+            rhs:
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 21
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 40
+                        ty: ~
+                  ty: ~
+            ty: ~
+      - Expr:
+          BinOp:
+            sym: Add
+            lhs:
+              Expr:
+                BinOp:
+                  sym: Sub
+                  lhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 19
+                        ty: ~
+                  rhs:
+                    Expr:
+                      BinOp:
+                        sym: Mul
+                        lhs:
+                          Expr:
+                            Lit:
+                              value:
+                                UInt64: 21
+                              ty: ~
+                        rhs:
+                          Expr:
+                            Lit:
+                              value:
+                                UInt64: 20
+                              ty: ~
+                        ty: ~
+                  ty: ~
+            rhs:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 40
+                  ty: ~
+            ty: ~
+- (^ 19 (^ 21 40))(+ (- 19 (* 21 20)) 40)
+

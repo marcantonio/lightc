@@ -1,15 +1,2 @@
-[package]
-name = "lightc"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
-llvm-sys = "130"
-clap = { version = "3.0.14", features = ["derive"] }
-tempfile = "3.3.0"
-serde = { version = "1.0.136", features = ["derive"] }
-either = "1.6.1"
-
-[dev-dependencies]
-insta = { version = "1.12.0", features = ["glob"] }
+[workspace]
+members = ["crates/*"]

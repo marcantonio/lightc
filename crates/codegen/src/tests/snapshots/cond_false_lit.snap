@@ -1,0 +1,8 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 220
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    if false {\n        7\n    } else {\n        2\n    }\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 2\n}\n"
+

@@ -1,0 +1,20 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 214
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: int = 1"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn: Int32
+            init:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+- "(let x:int32 1)"
+

@@ -1,0 +1,83 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 82
+expression: "(test[1], tokens)"
+---
+- "\nfn foo(a, b, c) -> int {\n    bar(a) + 2\n}\n"
+- Ok:
+    - tt: Fn
+      line: 2
+      column: 1
+    - tt:
+        Ident: foo
+      line: 2
+      column: 4
+    - tt: OpenParen
+      line: 2
+      column: 7
+    - tt:
+        Ident: a
+      line: 2
+      column: 8
+    - tt: Comma
+      line: 2
+      column: 9
+    - tt:
+        Ident: b
+      line: 2
+      column: 11
+    - tt: Comma
+      line: 2
+      column: 12
+    - tt:
+        Ident: c
+      line: 2
+      column: 14
+    - tt: CloseParen
+      line: 2
+      column: 15
+    - tt:
+        Op: RetType
+      line: 2
+      column: 17
+    - tt:
+        VarType: Int32
+      line: 2
+      column: 20
+    - tt: OpenBrace
+      line: 2
+      column: 24
+    - tt:
+        Ident: bar
+      line: 3
+      column: 5
+    - tt: OpenParen
+      line: 3
+      column: 8
+    - tt:
+        Ident: a
+      line: 3
+      column: 9
+    - tt: CloseParen
+      line: 3
+      column: 10
+    - tt:
+        Op: Add
+      line: 3
+      column: 12
+    - tt:
+        Num: "2"
+      line: 3
+      column: 14
+    - tt:
+        Semicolon: true
+      line: 3
+      column: 15
+    - tt: CloseBrace
+      line: 4
+      column: 1
+    - tt:
+        Semicolon: true
+      line: 4
+      column: 2
+

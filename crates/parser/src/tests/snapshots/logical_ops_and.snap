@@ -1,0 +1,25 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 226
+expression: "(test[1], ast, ast_string)"
+---
+- x && 1
+- Ok:
+    nodes:
+      - Expr:
+          BinOp:
+            sym: And
+            lhs:
+              Expr:
+                Ident:
+                  name: x
+                  ty: ~
+            rhs:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+            ty: ~
+- (&& x 1)
+

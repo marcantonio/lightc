@@ -1,0 +1,70 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 467
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: int32 = 1\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              Block:
+                list:
+                  - Stmt:
+                      Let:
+                        name: x
+                        antn: Int32
+                        init:
+                          Expr:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                  - Stmt:
+                      For:
+                        start_name: x
+                        start_antn: Int8
+                        start_expr:
+                          Lit:
+                            value:
+                              Int8: 1
+                            ty: Int8
+                        cond_expr:
+                          BinOp:
+                            sym: Lt
+                            lhs:
+                              Expr:
+                                Ident:
+                                  name: x
+                                  ty: Int8
+                            rhs:
+                              Expr:
+                                Lit:
+                                  value:
+                                    Int8: 2
+                                  ty: Int8
+                            ty: Bool
+                        step_expr:
+                          Lit:
+                            value:
+                              Int8: 1
+                            ty: Int8
+                        body:
+                          Block:
+                            list:
+                              - Expr:
+                                  Ident:
+                                    name: x
+                                    ty: Int8
+                            ty: Int8
+                  - Expr:
+                      Ident:
+                        name: x
+                        ty: Int32
+                ty: Int32
+

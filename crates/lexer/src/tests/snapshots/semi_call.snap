@@ -1,0 +1,22 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 172
+expression: "(test[1], tokens)"
+---
+- a()
+- Ok:
+    - tt:
+        Ident: a
+      line: 1
+      column: 1
+    - tt: OpenParen
+      line: 1
+      column: 2
+    - tt: CloseParen
+      line: 1
+      column: 3
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 4
+

@@ -1,0 +1,38 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 652
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let xy: int8 = 1\n    -xy\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+            body:
+              Block:
+                list:
+                  - Stmt:
+                      Let:
+                        name: xy
+                        antn: Int8
+                        init:
+                          Expr:
+                            Lit:
+                              value:
+                                Int8: 1
+                              ty: Int8
+                  - Expr:
+                      UnOp:
+                        sym: Sub
+                        rhs:
+                          Expr:
+                            Ident:
+                              name: xy
+                              ty: Int8
+                        ty: Int8
+                ty: Int8
+

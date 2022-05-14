@@ -1,0 +1,11 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 172
+expression: "(test[1], tokens)"
+---
+- let
+- Ok:
+    - tt: Let
+      line: 1
+      column: 1
+

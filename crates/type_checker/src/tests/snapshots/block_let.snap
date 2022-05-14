@@ -1,0 +1,23 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 190
+expression: "(test[1], res)"
+---
+- "\nlet x: int = {\n    1\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn: Int32
+            init:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 1
+                          ty: Int32
+                  ty: Int32
+

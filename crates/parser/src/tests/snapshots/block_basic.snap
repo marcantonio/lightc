@@ -1,0 +1,26 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- "if foo { bar }"
+- Ok:
+    nodes:
+      - Expr:
+          Cond:
+            cond_expr:
+              Ident:
+                name: foo
+                ty: ~
+            then_block:
+              Block:
+                list:
+                  - Expr:
+                      Ident:
+                        name: bar
+                        ty: ~
+                ty: ~
+            else_block: ~
+            ty: ~
+- "(if foo '(bar))"
+

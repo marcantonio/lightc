@@ -1,0 +1,8 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 332
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: float = 1.0\n    for x: int = 1; x < 10; 1 {\n        x\n    }\n    x\n}\nfn main() { foo() }\n"
+- "define i32 @main() {\nentry:\n  call void @foo()\n  ret i32 0\n}\n"
+

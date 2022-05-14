@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 190
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: int = {\n        11.0\n        foo()\n    }\n}\n"
+- Err: "Types don't match in let statement. Annotated with `int32` but initial value is `void`"
+

@@ -1,0 +1,24 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 386
+expression: "(test[1], res)"
+---
+- "\nfn main() { 1 }\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              Block:
+                list:
+                  - Expr:
+                      Lit:
+                        value:
+                          Int32: 1
+                        ty: Int32
+                ty: Int32
+

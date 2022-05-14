@@ -1,0 +1,16 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 25
+expression: "(test[1], tokens)"
+---
+- "'\\n'"
+- Ok:
+    - tt:
+        Char: "\n"
+      line: 1
+      column: 1
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 2
+

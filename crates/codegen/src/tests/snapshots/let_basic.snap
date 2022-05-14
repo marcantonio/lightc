@@ -1,0 +1,8 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 251
+expression: "(test[1], res)"
+---
+- "\n        fn main() {\n    let x: int = 1\n}\n"
+- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+

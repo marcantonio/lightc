@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- 20 ! 19
+- Err:
+    message: "Unknown binary operator: !"
+    line: 0
+    column: 0
+- "Parsing error: Unknown binary operator: !"
+

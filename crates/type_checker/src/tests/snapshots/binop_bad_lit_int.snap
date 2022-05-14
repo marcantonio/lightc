@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 156
+expression: "(test[1], res)"
+---
+- "\nfn main(x: int) {\n    true && 1\n}\n"
+- Err: Literal is an integer in a bool context
+

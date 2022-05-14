@@ -1,0 +1,11 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 26
+expression: "(test[1], tokens)"
+---
+- "let foo = `1`"
+- Err:
+    message: "Unknown character: `"
+    line: 1
+    column: 11
+

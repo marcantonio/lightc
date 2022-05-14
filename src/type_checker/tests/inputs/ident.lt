@@ -1,7 +1,0 @@
-// basic
-fn foo(x: int) { x }
-#test_delim#
-
-// unknown var
-fn foo(x: int) { y }
-#test_delim#

@@ -1,0 +1,20 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- "let c: char = 'a'"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: c
+            antn: Char
+            init:
+              Expr:
+                Lit:
+                  value:
+                    Char: 97
+                  ty: ~
+- "(let c:char a)"
+

@@ -1,0 +1,24 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- a(b(c))
+- Ok:
+    nodes:
+      - Expr:
+          Call:
+            name: a
+            args:
+              - Expr:
+                  Call:
+                    name: b
+                    args:
+                      - Expr:
+                          Ident:
+                            name: c
+                            ty: ~
+                    ty: ~
+            ty: ~
+- (a (b c))
+

@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 534
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let i: int = 2147483648\n}\n"
+- Err: Numeric literal out of range
+

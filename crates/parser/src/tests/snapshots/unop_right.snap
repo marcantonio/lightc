@@ -1,0 +1,31 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 265
+expression: "(test[1], ast, ast_string)"
+---
+- "-4 ^ 2"
+- Ok:
+    nodes:
+      - Expr:
+          UnOp:
+            sym: Sub
+            rhs:
+              Expr:
+                BinOp:
+                  sym: Pow
+                  lhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 4
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 2
+                        ty: ~
+                  ty: ~
+            ty: ~
+- (- (^ 4 2))
+

@@ -1,0 +1,36 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- 19 + a + 40
+- Ok:
+    nodes:
+      - Expr:
+          BinOp:
+            sym: Add
+            lhs:
+              Expr:
+                BinOp:
+                  sym: Add
+                  lhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 19
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Ident:
+                        name: a
+                        ty: ~
+                  ty: ~
+            rhs:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 40
+                  ty: ~
+            ty: ~
+- (+ (+ 19 a) 40)
+

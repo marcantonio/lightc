@@ -1,4 +1,0 @@
-fn main() -> int {
-    19 + 21 + 40
-}
-#test_delim#

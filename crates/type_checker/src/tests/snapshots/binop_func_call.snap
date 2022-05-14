@@ -1,0 +1,67 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 156
+expression: "(test[1], res)"
+---
+- "\nfn plusOne(x: int) -> int {\n    x + 1\n}\n\nfn main() {\n    1 + plusOne(3)\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: plusOne
+              args:
+                - - x
+                  - Int32
+              ret_ty: Int32
+            body:
+              Block:
+                list:
+                  - Expr:
+                      BinOp:
+                        sym: Add
+                        lhs:
+                          Expr:
+                            Ident:
+                              name: x
+                              ty: Int32
+                        rhs:
+                          Expr:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                        ty: Int32
+                ty: Int32
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              Block:
+                list:
+                  - Expr:
+                      BinOp:
+                        sym: Add
+                        lhs:
+                          Expr:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                        rhs:
+                          Expr:
+                            Call:
+                              name: plusOne
+                              args:
+                                - Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 3
+                                      ty: Int32
+                              ty: Int32
+                        ty: Int32
+                ty: Int32
+

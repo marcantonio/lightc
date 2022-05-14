@@ -1,0 +1,50 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 152
+expression: "(test[1], ast, ast_string)"
+---
+- "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: a
+              args:
+                - - b
+                  - Int32
+                - - c
+                  - Int32
+              ret_ty: Int32
+            body:
+              Block:
+                list:
+                  - Expr:
+                      BinOp:
+                        sym: Add
+                        lhs:
+                          Expr:
+                            BinOp:
+                              sym: Add
+                              lhs:
+                                Expr:
+                                  Lit:
+                                    value:
+                                      UInt64: 19
+                                    ty: ~
+                              rhs:
+                                Expr:
+                                  Ident:
+                                    name: a
+                                    ty: ~
+                              ty: ~
+                        rhs:
+                          Expr:
+                            Lit:
+                              value:
+                                UInt64: 40
+                              ty: ~
+                        ty: ~
+                ty: ~
+- "(define (a b:int32 c:int32) '((+ (+ 19 a) 40)))"
+

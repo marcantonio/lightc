@@ -1,0 +1,8 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 220
+expression: "(test[1], res)"
+---
+- "\nfn plus_one(x: int) -> int { x + 1 }\nfn main() {\n    if plus_one(6) == 7 {\n        7\n    }\n}\n"
+- "define i32 @main() {\nentry:\n  %call_plus_one = call i32 @plus_one(i32 6)\n  ret i32 7\n}\n"
+

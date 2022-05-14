@@ -1,0 +1,61 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 16
+expression: "(input, ast, ast_string)"
+---
+- "y = { 1 + 4; foo(); 4 / 2 }"
+- Ok:
+    nodes:
+      - Expr:
+          BinOp:
+            sym: Assign
+            lhs:
+              Expr:
+                Ident:
+                  name: y
+                  ty: ~
+            rhs:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 1
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 4
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        Call:
+                          name: foo
+                          args: []
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          sym: Div
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 4
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 2
+                                ty: ~
+                          ty: ~
+                  ty: ~
+            ty: ~
+- "(= y '((+ 1 4) (foo) (/ 4 2)))"
+
