@@ -77,7 +77,6 @@ impl<T: Clone> Default for SymbolTable<T> {
 mod test {
     use crate::{symbol_table::SymbolTable, Type};
 
-
     #[test]
     fn test_st() {
         let mut st = SymbolTable::new();

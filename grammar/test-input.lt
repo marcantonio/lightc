@@ -26,12 +26,22 @@ fn main() {
         -!-x;
     };
 
+    // let a: [int] = [];
+    // a = [1, 2, 3];
+    // x = a[0];
+    // x = a[1 + 1];
+
+    foo();
+    bar(x);
+    baz(x, y);
     let y: int;
+};
+
+fn foo() -> int {
+    3 + 3;
 };
 
 // foo $ bar
 fn bar(x: int) {};
 
-fn foo() -> int {
-    3 + 3;
-};
+fn baz(x: int, y: int) {};

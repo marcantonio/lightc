@@ -24,6 +24,7 @@ expr            : primary_expr
 primary_expr    : cond_expr
                 | lit_expr
                 | ident_expr
+                | call_expr
                 | block
                 | paren_expr
                 | unop_expr;
@@ -31,6 +32,7 @@ unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
                 | BOOL;
 ident_expr      : IDENT;
+call_expr       : IDENT '(' (expr (',' expr)*)? ')';
 paren_expr      : '(' expr ')';
 cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
 

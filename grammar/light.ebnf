@@ -22,12 +22,14 @@ Expr        ::= PrimaryExpr
 PrimaryExpr ::= CondExpr
               | LitExpr
               | IdentExpr
+              | CallExpr
               | Block
               | ParenExpr
               | UnopExpr ;
 UnopExpr    ::= ( '-' | '!' ) Expr ;
 LitExpr     ::= number | bool ;
 IdentExpr   ::= ident ;
+CallExpr    ::= ident '(' ( Expr ( ',' Expr )* )? ')' ;
 ParenExpr   ::= '(' Expr ')' ;
 CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
 

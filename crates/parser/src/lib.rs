@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | Assignment | Block | ParenExpr ;
+    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Assignment | Block | ParenExpr ;
     fn parse_primary(&mut self) -> ParseResult {
         let token = self
             .tokens
@@ -427,7 +427,7 @@ impl<'a> Parser<'a> {
     // Variable or function call
     //
     // IdentExpr ::= ident ;
-    // ident     ::= letter ( letter | digit | '_' )*;
+    // CallExpr  ::= ident '(' ( Expr ( ',' Expr )* )? ')' ;
     fn parse_ident(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 

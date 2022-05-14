@@ -11,5 +11,5 @@ antlr4 -o tmp light.g4
 javac -classpath $ANTLR_RT tmp/light*.java
 pushd tmp
 $GRUN_PATH light program -tokens -tree -gui < ../test-input.lt | tee test-output.new
-diff --color ../test-output test-output.new
+git diff --word-diff --no-index -- ../test-output test-output.new
 popd
