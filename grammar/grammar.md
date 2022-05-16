@@ -14,10 +14,11 @@ Stmt        ::= LetStmt
 Block       ::= '{' StmtList? '}' ;
 FnDecl      ::= Prototype Block ;
 ExternDecl  ::= 'extern' Prototype ;
-Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' type )? ;
+Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
 ForStmt     ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
 LetStmt     ::= 'let' TypedDecl ( '=' Expr  )? ;
-TypedDecl   ::= ident ':' type ;
+TypedDecl   ::= ident ':' TypeAntn ;
+TypeAntn    ::= type | '[' type ']' ;
 Expr        ::= PrimaryExpr
               | Expr mul_op Expr
               | Expr add_op Expr
@@ -28,18 +29,24 @@ Expr        ::= PrimaryExpr
 PrimaryExpr ::= CondExpr
               | LitExpr
               | IdentExpr
+              | CallExpr
               | Block
               | ParenExpr
-              | UnopExpr ;
+              | UnopExpr
+              | PrimaryExpr Index ;
 UnopExpr    ::= ( '-' | '!' ) Expr ;
-LitExpr     ::= number | bool ;
-IdentExpr   ::= ident ;
+LitExpr     ::= number | bool | ArrayLit ;
+CallExpr    ::= ident '(' ExprList? ')' ;
 ParenExpr   ::= '(' Expr ')' ;
 CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
+IdentExpr   ::= ident ;
+Index       ::= '[' Expr ']' ;
+ArrayLit    ::= '[' ExprList? ']';
+ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;
 
 type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
               | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
-              | 'float' | 'double' | 'bool' | 'char' ;
+              | 'float' | 'double' | 'bool' | 'char';
 bool        ::= 'true' | 'false' ;
 ident       ::= letter ( letter | digit | '_' )*;
 rel_op      ::= '>' | '<' | '==' ;
@@ -54,8 +61,8 @@ whitespace  ::= [ \t\r\n] ;
 comment     ::= '//' [^\r\n]* [\r\n] ;
 ```
 
-## Exceptions
-`StmtList ::= ( Stmt ';' )+ ;` - A semicolon is optional when a closing '}' is present. This allows for concise one-liners.
+## Notes
+- `StmtList ::= ( Stmt ';' )+ ;` - A semicolon is optional when a closing '}' is present. This allows for concise one-liners.
 
 ## Testing and changes
 The grammar is also present in `light.g4` for testing and validation. Testing can be done by running `./test-grammar.sh` in this directory.

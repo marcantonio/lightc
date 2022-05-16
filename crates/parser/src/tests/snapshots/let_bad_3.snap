@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 214
+assertion_line: 219
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x:"
 - Err:
-    message: Type annotation required in let statement. Got EOF
+    message: "Expecting type annotation in `let`. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Type annotation required in let statement. Got EOF"
+- "Parsing error: Expecting type annotation in `let`. Got `EOF`"
 

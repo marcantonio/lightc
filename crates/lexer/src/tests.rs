@@ -172,6 +172,12 @@ fn test_semi() {
 }
 
 #[test]
+fn test_array_type() {
+    let tests = [["basic", "[int]"]];
+    run_insta!("array_type", tests);
+}
+
+#[test]
 fn test_lex_one() {
     use Symbol::*;
     use TokenType::*;

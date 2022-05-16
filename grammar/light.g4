@@ -10,10 +10,12 @@ stmt            : let_stmt
 block           : '{' stmt_list? '}';
 fn_decl         : proto block;
 extern_decl     : 'extern' proto;
-proto           : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' TYPE)?;
+proto           : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' type_antn)?;
 for_stmt        : 'for' typed_decl '=' expr ';' expr ';' NUMBER? block;
 let_stmt        : 'let' typed_decl ('=' expr)?;
-typed_decl      : IDENT ':' TYPE;
+typed_decl      : IDENT ':' type_antn;
+type_antn       : TYPE
+                | '[' TYPE ']';
 expr            : primary_expr
                 | expr ('*' | '/') expr
                 | expr ('+' | '-') expr
@@ -27,14 +29,19 @@ primary_expr    : cond_expr
                 | call_expr
                 | block
                 | paren_expr
-                | unop_expr;
+                | unop_expr
+                | primary_expr index ;
 unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
-                | BOOL;
-ident_expr      : IDENT;
-call_expr       : IDENT '(' (expr (',' expr)*)? ')';
+                | BOOL
+                | array_lit;
+call_expr       : IDENT '(' expr_list? ')';
 paren_expr      : '(' expr ')';
 cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
+ident_expr      : IDENT;
+index           : '[' expr ']';
+array_lit       : '[' expr_list? ']';
+expr_list       : expr ','? | expr (',' expr)*;
 
 TYPE            : 'int'
                 | 'int8 '

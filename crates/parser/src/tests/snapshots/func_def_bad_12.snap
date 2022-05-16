@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b:)"
 - Err:
-    message: Expecting variable type in prototype. Got CloseParen
+    message: "Expecting `prototype` type annotation. Got `CloseParen`"
     line: 1
     column: 8
-- "Parsing error: Expecting variable type in prototype. Got CloseParen at 1:8"
+- "Parsing error: Expecting `prototype` type annotation. Got `CloseParen` at 1:8"
 

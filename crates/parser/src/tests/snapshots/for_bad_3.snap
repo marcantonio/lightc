@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 106
-expression: "(test[0], ast, ast_string)"
+assertion_line: 103
+expression: "(test[1], ast, ast_string)"
 ---
 - "for a:"
 - Err:
-    message: Type annotation required in intial statement. Got EOF
+    message: "Expecting type annotation in `for`. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Type annotation required in intial statement. Got EOF"
+- "Parsing error: Expecting type annotation in `for`. Got `EOF`"
 

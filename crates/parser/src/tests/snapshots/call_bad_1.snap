@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 74
+expression: "(test[1], ast, ast_string)"
 ---
 - a(
 - Err:
-    message: "Expecting ')' in function call. Got EOF"
+    message: "Expecting ')' in function call. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting ')' in function call. Got EOF"
+- "Parsing error: Expecting ')' in function call. Got `EOF`"
 

@@ -37,6 +37,12 @@ impl Token {
     }
 }
 
+impl PartialEq<TokenType> for Token {
+    fn eq(&self, other: &TokenType) -> bool {
+        self.tt == *other
+    }
+}
+
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.tt)
@@ -64,6 +70,7 @@ pub enum TokenType {
     Bool(bool),
     Char(String),
     CloseBrace,
+    CloseBracket,
     CloseParen,
     Colon,
     Comma,
@@ -78,6 +85,7 @@ pub enum TokenType {
     Num(String),
     Op(Symbol),
     OpenBrace,
+    OpenBracket,
     OpenParen,
     Semicolon(bool), // implicit
     VarType(Type),
@@ -138,21 +146,49 @@ impl std::fmt::Display for Symbol {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
-pub enum Type {
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    Float,
-    Double,
-    Bool,
-    Char,
-    Void,
+macro_rules! gen_type_enums {
+    ($e1:ident: [$($v1:ident),*], $e2:ident: [$($v2:ident),*]) => {
+        #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+        pub enum $e1 {
+            $(
+                $v1,
+            )*
+        }
+
+        #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+        pub enum $e2 {
+            $(
+                $v1,
+            )*
+            $(
+                $v2(PrimativeType),
+            )*
+        }
+    };
+}
+
+gen_type_enums!(PrimativeType: [Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64, Float, Double, Bool, Char, Void],
+                Type: [Array]);
+
+impl Type {
+    pub fn as_primative(self) -> PrimativeType {
+        match self {
+            Type::Int8 => PrimativeType::Int8,
+            Type::Int16 => PrimativeType::Int16,
+            Type::Int32 => PrimativeType::Int32,
+            Type::Int64 => PrimativeType::Int64,
+            Type::UInt8 => PrimativeType::UInt8,
+            Type::UInt16 => PrimativeType::UInt16,
+            Type::UInt32 => PrimativeType::UInt32,
+            Type::UInt64 => PrimativeType::UInt64,
+            Type::Float => PrimativeType::Float,
+            Type::Double => PrimativeType::Double,
+            Type::Bool => PrimativeType::Bool,
+            Type::Char => PrimativeType::Char,
+            Type::Void => PrimativeType::Void,
+            Type::Array(_) => unimplemented!("Array is not a primative type"),
+        }
+    }
 }
 
 impl std::fmt::Display for Type {

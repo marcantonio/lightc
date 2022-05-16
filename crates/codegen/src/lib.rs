@@ -147,7 +147,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     Type::Bool => BasicMetadataTypeEnum::IntType(self.context.bool_type()),
                     Type::Void => {
                         unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
-                    }
+                    }//XXX
+                    Type::Array(_) => todo!(),
                 }
             })
             .collect::<Vec<BasicMetadataTypeEnum>>();
@@ -369,7 +370,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 Some(self.context.f64_type().const_zero().as_basic_value_enum())
             }
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void, None) => {
+            (Type::Void | Type::Array(_), None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
         };
@@ -697,6 +698,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
+            Type::Array(_) => todo!(),
         }
     }
 }

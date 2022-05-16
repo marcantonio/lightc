@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 106
-expression: "(test[0], ast, ast_string)"
+assertion_line: 103
+expression: "(test[1], ast, ast_string)"
 ---
 - for a
 - Err:
-    message: Expecting colon in initial statement. Got EOF
+    message: "Expecting `:` after identifier in `for` typed declaration. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting colon in initial statement. Got EOF"
+- "Parsing error: Expecting `:` after identifier in `for` typed declaration. Got `EOF`"
 

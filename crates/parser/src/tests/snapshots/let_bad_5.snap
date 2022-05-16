@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 214
+assertion_line: 219
 expression: "(test[1], ast, ast_string)"
 ---
 - let
 - Err:
-    message: Expecting identifier after let. Got EOF
+    message: "Expecting identifier in `let` typed declaration. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting identifier after let. Got EOF"
+- "Parsing error: Expecting identifier in `let` typed declaration. Got `EOF`"
 

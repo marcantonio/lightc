@@ -10,6 +10,7 @@ macro_rules! make_undef_value {
             Type::Double => $ctx.f64_type().get_undef().as_basic_value_enum(),
             Type::Bool => $ctx.bool_type().get_undef().as_basic_value_enum(),
             Type::Void => $ctx.i8_type().get_undef().as_basic_value_enum(),
+            Type::Array(_) => todo!(),
         }
     };
 }
@@ -28,6 +29,7 @@ macro_rules! make_phi_for_type {
             Type::Double => $bldr.build_phi($ctx.f64_type(), &($name.to_owned() + ".double")),
             Type::Bool => $bldr.build_phi($ctx.bool_type(), &($name.to_owned() + ".bool")),
             Type::Void => $bldr.build_phi($ctx.i8_type(), &($name.to_owned() + ".void")),
+            Type::Array(_) => todo!(),
         }
     };
 }

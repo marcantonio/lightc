@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - fn a(b)
 - Err:
-    message: "Expecting ':' in prototype. Got CloseParen"
+    message: "Expecting `:` after identifier in `prototype` typed declaration. Got `CloseParen`"
     line: 1
     column: 7
-- "Parsing error: Expecting ':' in prototype. Got CloseParen at 1:7"
+- "Parsing error: Expecting `:` after identifier in `prototype` typed declaration. Got `CloseParen` at 1:7"
 

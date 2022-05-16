@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) -> { b }"
 - Err:
-    message: Expecting vartype as return after ->. Got OpenBrace
+    message: "Expecting `prototype` type annotation. Got `OpenBrace`"
     line: 1
     column: 17
-- "Parsing error: Expecting vartype as return after ->. Got OpenBrace at 1:17"
+- "Parsing error: Expecting `prototype` type annotation. Got `OpenBrace` at 1:17"
 

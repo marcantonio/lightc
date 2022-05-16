@@ -11,7 +11,7 @@ macro_rules! expect_next_token {
                     let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
                     return Err(ParseError::from((
                         format!(
-                            "{}. Got {}",
+                            "{}. Got `{}`",
                             $err.to_string(),
                             new_t.tt
                         ),
@@ -32,7 +32,7 @@ macro_rules! expect_next_token {
                     let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
                     return Err(ParseError::from((
                         format!(
-                            "{}. Got {}",
+                            "{}. Got `{}`",
                             $err.to_string(),
                             new_t.tt
                         ),
@@ -54,7 +54,7 @@ macro_rules! expect_next_token {
                     let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
                     return Err(ParseError::from((
                         format!(
-                            "{}. Got {}",
+                            "{}. Got `{}`",
                             $err.to_string(),
                             new_t.tt
                         ),
@@ -81,7 +81,7 @@ macro_rules! expect_explicit_semi {
                     .filter(|n| !n.is_implicit_semi())
                     .unwrap_or_default();
                 return Err(ParseError::from((
-                    format!("{}. Got {}", $err.to_string(), new_t.tt),
+                    format!("{}. Got `{}`", $err.to_string(), new_t.tt),
                     &new_t,
                 )));
             }

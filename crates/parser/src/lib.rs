@@ -41,6 +41,8 @@ impl<'a> Parser<'a> {
         Ok(self.ast)
     }
 
+    /// Statement productions
+
     // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | Expr ;
     fn parse_statement(&mut self) -> ParseResult {
         let token = self
@@ -78,23 +80,8 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self) -> ParseResult {
         self.tokens.next(); // Eat for
 
-        let name = expect_next_token!(
-            self.tokens,
-            TokenType::Ident(_),
-            "Expecting identifier after for"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::Colon,
-            "Expecting colon in initial statement"
-        );
-
-        let antn = expect_next_token!(
-            self.tokens,
-            TokenType::VarType(_),
-            "Type annotation required in intial statement"
-        );
+        // Get the name of the initial variable and its type annotation
+        let (name, antn) = self.parse_typed_decl("for")?;
 
         expect_next_token!(
             self.tokens,
@@ -111,8 +98,8 @@ impl<'a> Parser<'a> {
         let step_node = self.parse_expression(0)?;
 
         Ok(Node::Stmt(Statement::For {
-            start_name: name.to_owned(),
-            start_antn: *antn,
+            start_name: name,
+            start_antn: antn,
             start_expr: Box::new(start_node.to_expr()?),
             cond_expr: Box::new(cond_node.to_expr()?),
             step_expr: Box::new(step_node.to_expr()?),
@@ -124,23 +111,8 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> ParseResult {
         self.tokens.next(); // Eat let
 
-        let var_name = expect_next_token!(
-            self.tokens,
-            TokenType::Ident(_),
-            "Expecting identifier after let"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::Colon,
-            "Expecting colon in let statement"
-        );
-
-        let ty = expect_next_token!(
-            self.tokens,
-            TokenType::VarType(_),
-            "Type annotation required in let statement"
-        );
+        // Get the name of the variable and its type annotation
+        let (name, antn) = self.parse_typed_decl("let")?;
 
         let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
             self.tokens.next();
@@ -148,11 +120,35 @@ impl<'a> Parser<'a> {
         });
 
         Ok(Node::Stmt(Statement::Let {
-            name: var_name.to_owned(),
-            antn: *ty,
+            name,
+            antn,
             init: init.map(Box::new),
         }))
     }
+
+    // FnDecl ::= Prototype Block ;
+    fn parse_function(&mut self) -> ParseResult {
+        // Eat 'fn'
+        self.tokens.next();
+
+        Ok(Node::Stmt(Statement::Fn {
+            proto: Box::new(self.parse_proto()?),
+            body: Some(Box::new(self.parse_block()?.to_expr()?)),
+        }))
+    }
+
+    // ExternDecl ::= 'extern' Prototype ;
+    fn parse_extern(&mut self) -> ParseResult {
+        // Eat 'extern'
+        self.tokens.next();
+
+        Ok(Node::Stmt(Statement::Fn {
+            proto: Box::new(self.parse_proto()?),
+            body: None,
+        }))
+    }
+
+    /// Expression productions
 
     // Parses arbitrary length binary expressions. Uses Pratt with operator
     // precedence parsing.
@@ -235,135 +231,18 @@ impl<'a> Parser<'a> {
             TokenType::Bool(b) => self.parse_bool(*b)?,
             TokenType::Char(c) => self.parse_char(c, token)?,
             TokenType::Num(num) => self.parse_num(num, token)?,
-            TokenType::Ident(id) => self.parse_ident(id)?,
+            TokenType::Ident(id) => self.parse_ident_or_call(id)?,
             TokenType::OpenBrace => self.parse_block()?,
             TokenType::OpenParen => self.parse_paren()?,
             TokenType::Op(sym) => self.parse_unop(*sym)?,
             x => {
                 return Err(ParseError::from((
-                    format!("Expecting primary expression. Got {}", x),
+                    format!("Expecting primary expression. Got `{}`", x),
                     token,
                 )))
             }
         };
         Ok(expr)
-    }
-
-    // FnDecl ::= Prototype Block ;
-    fn parse_function(&mut self) -> ParseResult {
-        // Eat 'fn'
-        self.tokens.next();
-
-        Ok(Node::Stmt(Statement::Fn {
-            proto: Box::new(self.parse_proto()?),
-            body: Some(Box::new(self.parse_block()?.to_expr()?)),
-        }))
-    }
-
-    // ExternDecl ::= 'extern' Prototype ;
-    fn parse_extern(&mut self) -> ParseResult {
-        // Eat 'extern'
-        self.tokens.next();
-
-        Ok(Node::Stmt(Statement::Fn {
-            proto: Box::new(self.parse_proto()?),
-            body: None,
-        }))
-    }
-
-    // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' type )? ;
-    fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
-        let fn_name = expect_next_token!(
-            self.tokens,
-            TokenType::Ident(_),
-            "Expecting function name in prototype"
-        );
-
-        expect_next_token!(
-            self.tokens,
-            TokenType::OpenParen,
-            "Expecting '(' in prototype"
-        );
-
-        // Parse args list
-        let mut args: Vec<(String, Type)> = vec![];
-        while let Some(&next) = self.tokens.peek() {
-            // Matches immediate ')'
-            if next.tt == TokenType::CloseParen {
-                break;
-            }
-
-            let id = expect_next_token!(
-                self.tokens,
-                TokenType::Ident(_),
-                "Expecting ')' or identifier in prototype"
-            );
-
-            expect_next_token!(self.tokens, TokenType::Colon, "Expecting ':' in prototype");
-
-            let ty = expect_next_token!(
-                self.tokens,
-                TokenType::VarType(_),
-                "Expecting variable type in prototype"
-            );
-
-            args.push((id.to_string(), *ty));
-
-            // This rustic mess checks for a ',' or a ')' in the argument
-            // list. If one isn't found we try to create a new "error token"
-            // with the right context for the error message. If the bad token is
-            // an implicit semicolon, take the next one in the list or use EOF.
-            match self.tokens.peek().cloned() {
-                Some(Token {
-                    tt: TokenType::CloseParen,
-                    ..
-                }) => break,
-                Some(Token {
-                    tt: TokenType::Comma,
-                    ..
-                }) => self.tokens.next(), // Eat comma
-                Some(t) => {
-                    let new_t = Token::new(TokenType::Eof, t.line, t.column);
-                    let err_token = if t.is_implicit_semi() {
-                        self.tokens.next(); // Eat semicolon
-                        let next = self.tokens.peek();
-                        match next {
-                            Some(n) if !n.is_eof() => (*n).clone(),
-                            _ => new_t,
-                        }
-                    } else {
-                        t.clone()
-                    };
-                    return Err(ParseError::from((
-                        format!("Expecting ',' or ')' in prototype. Got {}", &err_token),
-                        &err_token,
-                    )));
-                }
-                None => unreachable!("NONCANBE: token can't be None in prototype"),
-            };
-        }
-
-        // Eat close paren
-        self.tokens.next();
-
-        // Parse return type
-        let mut ret_type = None;
-        if let Some(next) = self.tokens.peek() {
-            ret_type = match next.tt {
-                TokenType::Op(Symbol::RetType) => {
-                    self.tokens.next();
-                    let t = expect_next_token!(
-                        self.tokens,
-                        TokenType::VarType(_),
-                        "Expecting vartype as return after ->"
-                    );
-                    Some(*t)
-                }
-                _ => None,
-            };
-        }
-
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type))
     }
 
     // Literal bool
@@ -425,10 +304,11 @@ impl<'a> Parser<'a> {
     }
 
     // Variable or function call
+    // TODO: break these up
     //
     // IdentExpr ::= ident ;
     // CallExpr  ::= ident '(' ( Expr ( ',' Expr )* )? ')' ;
-    fn parse_ident(&mut self, id: &str) -> ParseResult {
+    fn parse_ident_or_call(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 
         let node = Expression::Ident {
@@ -448,32 +328,8 @@ impl<'a> Parser<'a> {
         // Eat open paren
         self.tokens.next();
 
-        let mut args: Vec<Node> = vec![];
-        while let Some(&next) = self.tokens.peek() {
-            // Matches immediate ')'
-            if next.tt == TokenType::CloseParen {
-                break;
-            }
-
-            args.push(self.parse_expression(0)?);
-
-            match self.tokens.peek() {
-                Some(Token {
-                    tt: TokenType::CloseParen,
-                    ..
-                }) => break,
-                Some(Token {
-                    tt: TokenType::Comma,
-                    ..
-                }) => self.tokens.next(), // Eat comma
-                _ => {
-                    return Err(ParseError::from((
-                        format!("Expecting ',' or ')' in function call. Got {}", next),
-                        next,
-                    )))
-                }
-            };
-        }
+        // Parse argument list
+        let args = self.parse_expr_list(TokenType::CloseParen, "function call argument list")?;
 
         // Eat close paren
         expect_next_token!(
@@ -569,5 +425,182 @@ impl<'a> Parser<'a> {
         Err(ParseError::from(
             "Expecting '}' to terminate block".to_string(),
         ))
+    }
+
+    /// Misc productions
+
+    // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
+    fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
+        let fn_name = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting function name in prototype"
+        );
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::OpenParen,
+            "Expecting '(' in prototype"
+        );
+
+        // Parse args list
+        let mut args: Vec<(String, Type)> = vec![];
+        while let Some(&next) = self.tokens.peek() {
+            // Matches immediate ')'
+            if next.tt == TokenType::CloseParen {
+                break;
+            }
+
+            // Get the name of the argument and its type annotation
+            let (name, antn) = self.parse_typed_decl("prototype")?;
+
+            args.push((name.to_string(), antn));
+
+            // This rustic mess checks for a ',' or a ')' in the argument
+            // list. If one isn't found we try to create a new "error token"
+            // with the right context for the error message. If the bad token is
+            // an implicit semicolon, take the next one in the list or use EOF.
+            match self.tokens.peek().cloned() {
+                Some(Token {
+                    tt: TokenType::CloseParen,
+                    ..
+                }) => break,
+                Some(Token {
+                    tt: TokenType::Comma,
+                    ..
+                }) => self.tokens.next(), // Eat comma
+                Some(t) => {
+                    let new_t = Token::new(TokenType::Eof, t.line, t.column);
+                    let err_token = if t.is_implicit_semi() {
+                        self.tokens.next(); // Eat semicolon
+                        let next = self.tokens.peek();
+                        match next {
+                            Some(n) if !n.is_eof() => (*n).clone(),
+                            _ => new_t,
+                        }
+                    } else {
+                        t.clone()
+                    };
+                    return Err(ParseError::from((
+                        format!("Expecting ',' or ')' in prototype. Got `{}`", &err_token),
+                        &err_token,
+                    )));
+                }
+                None => unreachable!("NONCANBE: token can't be None in prototype"),
+            };
+        }
+
+        // Eat close paren
+        self.tokens.next();
+
+        // Parse return type
+        let mut ret_type = None;
+        if let Some(next) = self.tokens.peek() {
+            ret_type = match next.tt {
+                TokenType::Op(Symbol::RetType) => {
+                    self.tokens.next();
+                    Some(self.parse_type_antn("prototype")?)
+                }
+                _ => None,
+            };
+        }
+
+        Ok(Prototype::new(fn_name.to_string(), args, ret_type))
+    }
+
+    // TypeAntn ::= type | '[' type ']' ;
+    fn parse_type_antn(&mut self, caller: &str) -> Result<Type, ParseError> {
+        let ty = match self.tokens.next() {
+            Some(Token {
+                tt: TokenType::OpenBracket,
+                ..
+            }) => {
+                let ty = expect_next_token!(
+                    self.tokens,
+                    TokenType::VarType(_),
+                    format!("Expecting type after `[` in `{}` type annotation", caller)
+                );
+                expect_next_token!(
+                    self.tokens,
+                    TokenType::CloseBracket,
+                    format!("Missing `]` in `{}` type annotation", caller)
+                );
+                ty
+            }
+            Some(Token {
+                tt: TokenType::VarType(ty),
+                ..
+            }) => ty,
+            Some(next) => {
+                return Err(ParseError::from((
+                    format!("Expecting `{}` type annotation. Got `{}`", caller, next),
+                    next,
+                )))
+            }
+            None => {
+                return Err(ParseError::from((
+                    format!("Expecting type annotation in `{}`. Got `EOF`", caller),
+                    Token::default(),
+                )))
+            }
+        };
+        Ok(*ty)
+    }
+
+    // TypedDecl ::= ident ':' TypeAntn ;
+    fn parse_typed_decl(&mut self, caller: &str) -> Result<(String, Type), ParseError> {
+        let err = match caller {
+            "prototype" => format!(
+                "Expecting identifier or `)` in `{}` typed declaration",
+                caller
+            ),
+            _ => format!("Expecting identifier in `{}` typed declaration", caller),
+        };
+
+        let name = expect_next_token!(self.tokens, TokenType::Ident(_), err);
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::Colon,
+            format!(
+                "Expecting `:` after identifier in `{}` typed declaration",
+                caller
+            )
+        );
+        Ok((name.to_owned(), self.parse_type_antn(caller)?))
+    }
+
+    // ExprList ::= Expr ','? | Expr ( ',' Expr )* ;
+    fn parse_expr_list(&mut self, term: TokenType, in_err: &str) -> Result<Vec<Node>, ParseError> {
+        let mut args: Vec<Node> = vec![];
+        while let Some(&next) = self.tokens.peek() {
+            // Matches immediate terminator
+            if next.tt == term {
+                break;
+            }
+
+            args.push(self.parse_expression(0)?);
+
+            match self.tokens.peek() {
+                Some(Token {
+                    tt: TokenType::CloseParen,
+                    ..
+                }) => break,
+                Some(Token {
+                    tt: TokenType::Comma,
+                    ..
+                }) => self.tokens.next(), // Eat comma
+                _ => {
+                    return Err(ParseError::from((
+                        format!(
+                            "Expecting `,` or `{}` in `{}`. Got `{}`",
+                            term, in_err, next
+                        ),
+                        next,
+                    )))
+                }
+            };
+        }
+        Ok(args)
     }
 }

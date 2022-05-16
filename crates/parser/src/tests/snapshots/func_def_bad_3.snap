@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) -> a { b }"
 - Err:
-    message: "Expecting vartype as return after ->. Got identifier: a"
+    message: "Expecting `prototype` type annotation. Got `identifier: a`"
     line: 1
     column: 17
-- "Parsing error: Expecting vartype as return after ->. Got identifier: a at 1:17"
+- "Parsing error: Expecting `prototype` type annotation. Got `identifier: a` at 1:17"
 

@@ -22,6 +22,16 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
+impl From<(String, Token)> for ParseError {
+    fn from((msg, t): (String, Token)) -> Self {
+        ParseError {
+            message: msg,
+            line: t.line,
+            column: t.column,
+        }
+    }
+}
+
 impl From<(String, &Token)> for ParseError {
     fn from((msg, t): (String, &Token)) -> Self {
         ParseError {

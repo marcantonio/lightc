@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 46
+expression: "(test[1], ast, ast_string)"
 ---
 - (19 + 21
 - Err:
-    message: "Expecting ')' to close paren expression. Got EOF"
+    message: "Expecting ')' to close paren expression. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting ')' to close paren expression. Got EOF"
+- "Parsing error: Expecting ')' to close paren expression. Got `EOF`"
 
