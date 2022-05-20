@@ -228,13 +228,14 @@ impl<'a> Parser<'a> {
 
         let expr = match &token.tt {
             TokenType::If => self.parse_cond()?,
-            TokenType::Bool(b) => self.parse_bool(*b)?,
-            TokenType::Char(c) => self.parse_char(c, token)?,
-            TokenType::Num(num) => self.parse_num(num, token)?,
             TokenType::Ident(id) => self.parse_ident_or_call(id)?,
             TokenType::OpenBrace => self.parse_block()?,
             TokenType::OpenParen => self.parse_paren()?,
             TokenType::Op(sym) => self.parse_unop(*sym)?,
+            // LitExpr ::= number | bool | CharLit | ArrayLit ;
+            TokenType::Bool(b) => self.parse_lit_bool(*b)?,
+            TokenType::Char(c) => self.parse_lit_char(c, token)?,
+            TokenType::Num(num) => self.parse_lit_num(num, token)?,
             x => {
                 return Err(ParseError::from((
                     format!("Expecting primary expression. Got `{}`", x),
@@ -245,69 +246,12 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // Literal bool
-    fn parse_bool(&mut self, b: bool) -> ParseResult {
-        self.tokens.next(); // Eat bool
-
-        Ok(Node::Expr(Expression::Lit {
-            value: Literal::Bool(b),
-            ty: None,
-        }))
-    }
-
-    // Literal char
-    fn parse_char(&mut self, c: &str, token: &Token) -> ParseResult {
-        self.tokens.next(); // Eat char
-
-        match c.parse::<char>() {
-            Ok(c) => Ok(Node::Expr(Expression::Lit {
-                value: Literal::Char(c as u8),
-                ty: None,
-            })),
-            Err(_) => Err(ParseError::from((
-                format!("Invalid character literal: {}", token),
-                token,
-            ))),
-        }
-    }
-
-    // Literal numbers are u64 or f64
-    // TODO: Revisit when we have literal annotations, i.e., 78int64.
-    fn parse_num(&mut self, n: &str, token: &Token) -> ParseResult {
-        self.tokens.next(); // Eat num
-
-        match n.parse::<u64>() {
-            Ok(n) => Ok(Node::Expr(Expression::Lit {
-                value: Literal::UInt64(n),
-                ty: None,
-            })),
-            Err(e)
-                if e.kind() == &IntErrorKind::PosOverflow
-                    || e.kind() == &IntErrorKind::NegOverflow =>
-            {
-                Err(ParseError::from((
-                    format!("Numeric literal out of integer range: {}", token),
-                    token,
-                )))
-            }
-            _ => match n.parse::<f32>() {
-                Ok(n) => Ok(Node::Expr(Expression::Lit {
-                    value: Literal::Float(n),
-                    ty: None,
-                })),
-                Err(_) => Err(ParseError::from((
-                    format!("Invalid numeric literal: {}", token),
-                    token,
-                ))),
-            },
-        }
-    }
-
     // Variable or function call
     // TODO: break these up
     //
     // IdentExpr ::= ident ;
     // CallExpr  ::= ident '(' ( Expr ( ',' Expr )* )? ')' ;
+    // ident     ::= letter ( letter | digit | '_' )* ;
     fn parse_ident_or_call(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 
@@ -335,7 +279,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(
             self.tokens,
             TokenType::CloseParen,
-            "Expecting ')' in function call"
+            "Expecting `)` in function call"
         );
 
         Ok(Node::Expr(Expression::Call {
@@ -396,7 +340,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // Helper to collect a bunch of expressions enclosed by braces into a Vec<T>
+    // Block ::= '{' StmtList? '}' ;
     fn parse_block(&mut self) -> ParseResult {
         let mut block: Vec<Node> = vec![];
 
@@ -425,6 +369,86 @@ impl<'a> Parser<'a> {
         Err(ParseError::from(
             "Expecting '}' to terminate block".to_string(),
         ))
+    }
+
+    /// Literals
+
+    // bool ::= 'true' | 'false' ;
+    fn parse_lit_bool(&mut self, b: bool) -> ParseResult {
+        self.tokens.next(); // Eat bool
+
+        Ok(Node::Expr(Expression::Lit {
+            value: Literal::Bool(b),
+            ty: None,
+        }))
+    }
+
+    // CharLit ::= char ;
+    // char    ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
+    fn parse_lit_char(&mut self, c: &str, token: &Token) -> ParseResult {
+        self.tokens.next(); // Eat char
+
+        match c.parse::<char>() {
+            Ok(c) => Ok(Node::Expr(Expression::Lit {
+                value: Literal::Char(c as u8),
+                ty: None,
+            })),
+            Err(_) => Err(ParseError::from((
+                format!("Invalid character literal: {}", token),
+                token,
+            ))),
+        }
+    }
+
+    // Literal numbers are u64 or f64
+    // TODO: Revisit when we have literal annotations, i.e., 78int64.
+    //
+    // number  ::= integer | float ;
+    // integer ::= digit+ ;
+    // float   ::= digit '.' digit ;
+    // digit   ::= [0-9] ;
+    fn parse_lit_num(&mut self, n: &str, token: &Token) -> ParseResult {
+        self.tokens.next(); // Eat num
+
+        match n.parse::<u64>() {
+            Ok(n) => Ok(Node::Expr(Expression::Lit {
+                value: Literal::UInt64(n),
+                ty: None,
+            })),
+            Err(e)
+                if e.kind() == &IntErrorKind::PosOverflow
+                    || e.kind() == &IntErrorKind::NegOverflow =>
+            {
+                Err(ParseError::from((
+                    format!("Numeric literal out of integer range: {}", token),
+                    token,
+                )))
+            }
+            _ => match n.parse::<f32>() {
+                Ok(n) => Ok(Node::Expr(Expression::Lit {
+                    value: Literal::Float(n),
+                    ty: None,
+                })),
+                Err(_) => Err(ParseError::from((
+                    format!("Invalid numeric literal: {}", token),
+                    token,
+                ))),
+            },
+        }
+    }
+
+    fn parse_lit_array(&mut self, n: &str, token: &Token) -> ParseResult {
+        self.tokens.next(); // Eat open bracket
+
+        let elements = self.parse_expr_list(TokenType::CloseBracket, "function call argument list")?;
+
+        // Eat close bracket
+        expect_next_token!(
+            self.tokens,
+            TokenType::CloseBracket,
+            "Expecting `]` in array literal"
+        );
+
     }
 
     /// Misc productions
@@ -525,12 +549,12 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                ty
+                Type::Array(ty.as_primative())
             }
             Some(Token {
                 tt: TokenType::VarType(ty),
                 ..
-            }) => ty,
+            }) => *ty,
             Some(next) => {
                 return Err(ParseError::from((
                     format!("Expecting `{}` type annotation. Got `{}`", caller, next),
@@ -544,7 +568,7 @@ impl<'a> Parser<'a> {
                 )))
             }
         };
-        Ok(*ty)
+        Ok(ty)
     }
 
     // TypedDecl ::= ident ':' TypeAntn ;

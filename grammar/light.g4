@@ -34,6 +34,7 @@ primary_expr    : cond_expr
 unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
                 | BOOL
+                | char_lit
                 | array_lit;
 call_expr       : IDENT '(' expr_list? ')';
 paren_expr      : '(' expr ')';
@@ -41,6 +42,7 @@ cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
 ident_expr      : IDENT;
 index           : '[' expr ']';
 array_lit       : '[' expr_list? ']';
+char_lit        : CHAR;
 expr_list       : expr ','? | expr (',' expr)*;
 
 TYPE            : 'int'
@@ -62,7 +64,8 @@ IDENT           : LETTER (LETTER | DIGIT | '_')*;
 NUMBER          : INTEGER | FLOAT;
 INTEGER         : DIGIT+;
 FLOAT           : DIGIT '.' DIGIT;
-LETTER          : [a-zA-Z];
 DIGIT           : [0-9];
+CHAR            : '\'' (~['\\\r\n\t] | '\\' [n0]) '\'';
+LETTER          : [a-zA-Z];
 WHITESPACE      : [ \t\r\n] -> skip;
 COMMENT         : '//' ~[\r\n]* [\r\n] -> skip;

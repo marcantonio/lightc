@@ -172,9 +172,9 @@ fn test_semi() {
 }
 
 #[test]
-fn test_array_type() {
-    let tests = [["basic", "[int]"]];
-    run_insta!("array_type", tests);
+fn test_array() {
+    let tests = [["type", "[int]"], ["lit", "[1, 2, 3]"]];
+    run_insta!("array", tests);
 }
 
 #[test]

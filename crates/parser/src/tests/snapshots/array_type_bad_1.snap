@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 279
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: [int"
+- Err:
+    message: "Missing `]` in `let` type annotation. Got `EOF`"
+    line: 0
+    column: 0
+- "Parsing error: Missing `]` in `let` type annotation. Got `EOF`"
+

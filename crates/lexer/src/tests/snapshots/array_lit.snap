@@ -1,0 +1,36 @@
+---
+source: crates/lexer/src/tests.rs
+assertion_line: 177
+expression: "(test[1], tokens)"
+---
+- "[1, 2, 3]"
+- Ok:
+    - tt: OpenBracket
+      line: 1
+      column: 1
+    - tt:
+        Num: "1"
+      line: 1
+      column: 2
+    - tt: Comma
+      line: 1
+      column: 3
+    - tt:
+        Num: "2"
+      line: 1
+      column: 5
+    - tt: Comma
+      line: 1
+      column: 6
+    - tt:
+        Num: "3"
+      line: 1
+      column: 8
+    - tt: CloseBracket
+      line: 1
+      column: 9
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 10
+

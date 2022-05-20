@@ -267,3 +267,15 @@ fn test_unop() {
     ];
     run_insta!("unop", tests);
 }
+
+#[test]
+fn test_array() {
+    let tests = [
+        ["type", "let x: [int]"],
+        ["type_bad_1", "let x: [int"],
+        ["type_bad_2", "let x: ["],
+        ["lit", "let x: [int] = [1, 2, 3]"]
+    ];
+
+    run_insta!("array", tests)
+}

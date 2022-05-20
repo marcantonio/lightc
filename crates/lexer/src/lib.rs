@@ -282,7 +282,7 @@ impl Lexer {
         if let Some(t) = self.tokens.last() {
             matches!(
                 t.tt,
-                Bool(_) | Char(_) | CloseBrace | CloseParen | Ident(_) | Num(_) | VarType(_)
+                Bool(_) | Char(_) | CloseBrace | CloseParen | CloseBracket | Ident(_) | Num(_) | VarType(_)
             )
         } else {
             false

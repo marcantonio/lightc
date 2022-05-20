@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 279
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: ["
+- Err:
+    message: "Expecting type after `[` in `let` type annotation. Got `EOF`"
+    line: 0
+    column: 0
+- "Parsing error: Expecting type after `[` in `let` type annotation. Got `EOF`"
+

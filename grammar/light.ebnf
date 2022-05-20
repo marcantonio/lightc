@@ -29,27 +29,29 @@ PrimaryExpr ::= CondExpr
               | UnopExpr
               | PrimaryExpr Index ;
 UnopExpr    ::= ( '-' | '!' ) Expr ;
-LitExpr     ::= number | bool | ArrayLit ;
+LitExpr     ::= number | bool | CharLit | ArrayLit ;
 CallExpr    ::= ident '(' ExprList? ')' ;
 ParenExpr   ::= '(' Expr ')' ;
 CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
 IdentExpr   ::= ident ;
 Index       ::= '[' Expr ']' ;
-ArrayLit    ::= '[' ExprList? ']';
+ArrayLit    ::= '[' ExprList? ']' ;
+CharLit     ::= char ;
 ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;
 
 type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
               | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
-              | 'float' | 'double' | 'bool' | 'char';
+              | 'float' | 'double' | 'bool' | 'char' ;
 bool        ::= 'true' | 'false' ;
-ident       ::= letter ( letter | digit | '_' )*;
+ident       ::= letter ( letter | digit | '_' )* ;
 rel_op      ::= '>' | '<' | '==' ;
 add_op      ::= '+' | '-' ;
 mul_op      ::= '*' | '/' ;
 number      ::= integer | float ;
 integer     ::= digit+ ;
 float       ::= digit '.' digit ;
-letter      ::= [a-zA-Z] ;
 digit       ::= [0-9] ;
+char        ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
+letter      ::= [a-zA-Z] ;
 whitespace  ::= [ \t\r\n] ;
 comment     ::= '//' [^\r\n]* [\r\n] ;
