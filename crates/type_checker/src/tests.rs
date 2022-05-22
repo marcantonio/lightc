@@ -711,7 +711,7 @@ fn test_tyc_int_with_hint() {
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
         let mut tc = TypeChecker::new();
-        tc.check_let("x", $variant, &mut None).unwrap();
+        tc.check_let::<Expression>("x", $variant, None).unwrap();
         let mut lhs = Expression::Ident {
             name: "x".to_string(),
             ty: None,
@@ -730,7 +730,7 @@ macro_rules! test_lit_hint_binop_int {
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
         let mut tc = TypeChecker::new();
-        tc.check_let("x", $variant, &mut None).unwrap();
+        tc.check_let::<Expression>("x", $variant, None).unwrap();
         let mut lhs = Expression::Ident {
             name: "x".to_string(),
             ty: None,

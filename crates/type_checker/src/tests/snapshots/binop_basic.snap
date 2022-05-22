@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 156
+assertion_line: 154
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    1 + 2\n}\n"
@@ -13,23 +13,24 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
             body:
-              Block:
-                list:
-                  - Expr:
-                      BinOp:
-                        sym: Add
-                        lhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Int32: 1
-                              ty: Int32
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Int32: 2
-                              ty: Int32
-                        ty: Int32
-                ty: Int32
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 2
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

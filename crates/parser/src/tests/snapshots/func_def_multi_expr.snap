@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n    b + a\n}\n"
@@ -17,48 +17,49 @@ expression: "(test[1], ast, ast_string)"
                   - Int32
               ret_ty: Int32
             body:
-              Block:
-                list:
-                  - Expr:
-                      BinOp:
-                        sym: Add
-                        lhs:
-                          Expr:
-                            BinOp:
-                              sym: Add
-                              lhs:
-                                Expr:
-                                  Lit:
-                                    value:
-                                      UInt64: 19
-                                    ty: ~
-                              rhs:
-                                Expr:
-                                  Ident:
-                                    name: a
-                                    ty: ~
-                              ty: ~
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                UInt64: 40
-                              ty: ~
-                        ty: ~
-                  - Expr:
-                      BinOp:
-                        sym: Add
-                        lhs:
-                          Expr:
-                            Ident:
-                              name: b
-                              ty: ~
-                        rhs:
-                          Expr:
-                            Ident:
-                              name: a
-                              ty: ~
-                        ty: ~
-                ty: ~
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              BinOp:
+                                sym: Add
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 19
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Ident:
+                                      name: a
+                                      ty: ~
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 40
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          sym: Add
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: b
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Ident:
+                                name: a
+                                ty: ~
+                          ty: ~
+                  ty: ~
 - "(define (a b:int32 c:int32) '((+ (+ 19 a) 40) (+ b a)))"
 

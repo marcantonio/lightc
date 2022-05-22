@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 614
+assertion_line: 612
 expression: "(test[1], res)"
 ---
 - "\nlet x: float = 1.0\nfor x: int = 1; x < 10; 1 {\n    x\n}\nx\n"
@@ -21,38 +21,42 @@ expression: "(test[1], res)"
             start_name: x
             start_antn: Int32
             start_expr:
-              Lit:
-                value:
-                  Int32: 1
-                ty: Int32
+              Expr:
+                Lit:
+                  value:
+                    Int32: 1
+                  ty: Int32
             cond_expr:
-              BinOp:
-                sym: Lt
-                lhs:
-                  Expr:
-                    Ident:
-                      name: x
-                      ty: Int32
-                rhs:
-                  Expr:
-                    Lit:
-                      value:
-                        Int32: 10
-                      ty: Int32
-                ty: Bool
-            step_expr:
-              Lit:
-                value:
-                  Int32: 1
-                ty: Int32
-            body:
-              Block:
-                list:
-                  - Expr:
+              Expr:
+                BinOp:
+                  sym: Lt
+                  lhs:
+                    Expr:
                       Ident:
                         name: x
                         ty: Int32
-                ty: Int32
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          Int32: 10
+                        ty: Int32
+                  ty: Bool
+            step_expr:
+              Expr:
+                Lit:
+                  value:
+                    Int32: 1
+                  ty: Int32
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: x
+                          ty: Int32
+                  ty: Int32
       - Expr:
           Ident:
             name: x

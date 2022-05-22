@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 386
+assertion_line: 384
 expression: "(test[1], res)"
 ---
 - "\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
@@ -13,9 +13,10 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
             body:
-              Block:
-                list: []
-                ty: Void
+              Expr:
+                Block:
+                  list: []
+                  ty: Void
       - Stmt:
           Fn:
             proto:
@@ -23,12 +24,13 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
             body:
-              Block:
-                list:
-                  - Expr:
-                      Call:
-                        name: bar
-                        args: []
-                        ty: Void
-                ty: Void
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: bar
+                          args: []
+                          ty: Void
+                  ty: Void
 

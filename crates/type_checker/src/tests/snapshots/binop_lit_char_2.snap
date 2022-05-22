@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 156
+assertion_line: 154
 expression: "(test[1], res)"
 ---
 - "\nfn main(x: char) {\n    x > 'c'\n}\n"
@@ -15,27 +15,28 @@ expression: "(test[1], res)"
                   - Char
               ret_ty: Int32
             body:
-              Block:
-                list:
-                  - Expr:
-                      BinOp:
-                        sym: Gt
-                        lhs:
-                          Expr:
-                            Ident:
-                              name: x
-                              ty: Char
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Char: 99
-                              ty: Char
-                        ty: Bool
-                  - Expr:
-                      Lit:
-                        value:
-                          Int32: 0
-                        ty: Int32
-                ty: Bool
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Gt
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty: Char
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Char: 99
+                                ty: Char
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
 

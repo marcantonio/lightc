@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 200
+assertion_line: 205
 expression: "(test[1], ast, ast_string)"
 ---
 - "if false { foo } else { bar }"
@@ -9,26 +9,29 @@ expression: "(test[1], ast, ast_string)"
       - Expr:
           Cond:
             cond_expr:
-              Lit:
-                value:
-                  Bool: false
-                ty: ~
+              Expr:
+                Lit:
+                  value:
+                    Bool: false
+                  ty: ~
             then_block:
-              Block:
-                list:
-                  - Expr:
-                      Ident:
-                        name: foo
-                        ty: ~
-                ty: ~
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
             else_block:
-              Block:
-                list:
-                  - Expr:
-                      Ident:
-                        name: bar
-                        ty: ~
-                ty: ~
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
             ty: ~
 - "(if false '(foo) '(bar))"
 

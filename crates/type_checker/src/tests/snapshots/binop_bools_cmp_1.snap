@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 156
+assertion_line: 154
 expression: "(test[1], res)"
 ---
 - "\nfn main(x: int) {\n    true || false\n}\n"
@@ -15,28 +15,29 @@ expression: "(test[1], res)"
                   - Int32
               ret_ty: Int32
             body:
-              Block:
-                list:
-                  - Expr:
-                      BinOp:
-                        sym: Or
-                        lhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Bool: true
-                              ty: Bool
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                Bool: false
-                              ty: Bool
-                        ty: Bool
-                  - Expr:
-                      Lit:
-                        value:
-                          Int32: 0
-                        ty: Int32
-                ty: Bool
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          sym: Or
+                          lhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: true
+                                ty: Bool
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: false
+                                ty: Bool
+                          ty: Bool
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: Bool
 

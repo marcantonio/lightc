@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ast::conversion::AsExprMut;
+use ast::convert::AsExprMut;
 use ast::{Ast, AstVisitorMut, Expression, Literal, Node, Prototype, Statement, VisitableMut};
 use common::symbol_table;
 use common::{Symbol, Type};
@@ -92,16 +92,16 @@ impl TypeChecker {
                 step_expr,
                 body,
             ),
-            Let { name, antn, init } => self.check_let(name, *antn, &mut init.as_expr_mut()?),
+            Let { name, antn, init } => self.check_let(name, *antn, init.as_deref_mut()),
             Fn { proto, body } => self.check_func(proto, &mut body.as_deref_mut()),
         }
     }
 
     // Check function definitions. This function also does the proto.
-    fn check_func(
+    fn check_func<T: AsExprMut<Expression>>(
         &mut self,
         proto: &mut Prototype,
-        body: &mut Option<&mut Expression>,
+        body: &mut Option<&mut T>,
     ) -> Result<(), String> {
         let mut func_entry = FunctionEntry {
             ret_ty: proto.ret_ty().unwrap_or(Type::Void),
@@ -124,7 +124,7 @@ impl TypeChecker {
 
         // If body is None, this is an extern and no checking is needed
         let body = match body {
-            Some(body) => body,
+            Some(body) => body.as_expr_mut(),
             None => return Ok(()),
         };
 
@@ -144,7 +144,7 @@ impl TypeChecker {
             match body_ty {
                 int_types!() => {}
                 _ => {
-                    if let Expression::Block { list, .. } = body {
+                    if let Expression::Block { list, .. } = body.as_expr_mut() {
                         list.push(Node::Expr(Expression::Lit {
                             value: Literal::Int32(0),
                             ty: Some(Type::Int32),
@@ -181,14 +181,14 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_for(
+    fn check_for<T: AsExprMut<Expression>>(
         &mut self,
         start_name: &str,
         start_antn: Type,
-        start_expr: &mut Expression,
-        cond_expr: &mut Expression,
-        step_expr: &mut Expression,
-        body: &mut Expression,
+        start_expr: &mut T,
+        cond_expr: &mut T,
+        step_expr: &mut T,
+        body: &mut T,
     ) -> Result<(), String> {
         let start_ty = self.check_expr(start_expr, Some(start_antn))?;
         if start_antn != start_ty {
@@ -229,11 +229,11 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_let(
+    fn check_let<T: AsExprMut<Expression>>(
         &mut self,
         name: &str,
         antn: Type,
-        init: &mut Option<&mut Expression>,
+        init: Option<&mut T>,
     ) -> Result<(), String> {
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
@@ -250,23 +250,25 @@ impl TypeChecker {
         Ok(())
     }
 
-    fn check_expr(&mut self, expr: &mut Expression, ty_hint: Option<Type>) -> Result<Type, String> {
+    fn check_expr<T: AsExprMut<Expression>>(
+        &mut self,
+        expr: &mut T,
+        ty_hint: Option<Type>,
+    ) -> Result<Type, String> {
         use Expression::*;
 
-        match expr {
+        match expr.as_expr_mut() {
             Lit { value, ty } => self.check_lit(value, ty, ty_hint),
             Ident { name, ty } => self.check_ident(name, ty),
-            BinOp { sym, lhs, rhs, ty } => {
-                self.check_binop(*sym, lhs.as_expr_mut()?, rhs.as_expr_mut()?, ty)
-            }
-            UnOp { sym, rhs, ty } => self.check_unop(*sym, rhs.as_expr_mut()?, ty),
-            Call { name, args, ty } => self.check_call(name, &mut args.as_expr_mut()?, ty),
+            BinOp { sym, lhs, rhs, ty } => self.check_binop(*sym, lhs, rhs, ty),
+            UnOp { sym, rhs, ty } => self.check_unop(*sym, rhs, ty),
+            Call { name, args, ty } => self.check_call(name, args, ty),
             Cond {
                 cond_expr,
                 then_block,
                 else_block,
                 ty,
-            } => self.check_cond(cond_expr, then_block, &mut else_block.as_deref_mut(), ty),
+            } => self.check_cond(cond_expr, then_block, else_block.as_mut(), ty),
             Block { list, ty } => self.check_block(list, ty),
         }
     }
@@ -365,10 +367,10 @@ impl TypeChecker {
         Ok(ident_ty)
     }
 
-    fn check_call(
+    fn check_call<T: AsExprMut<Expression>>(
         &mut self,
         name: &str,
-        args: &mut [&mut Expression],
+        args: &mut [T],
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         // Pull the function for the call from table
@@ -398,7 +400,7 @@ impl TypeChecker {
         // types as type hints.
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.iter_mut().enumerate() {
-            arg_tys.push((idx, self.check_expr(*expr, Some(fe_arg_tys[idx]))?));
+            arg_tys.push((idx, self.check_expr(expr, Some(fe_arg_tys[idx]))?));
         }
 
         // Make sure the function args and the call args jive
@@ -422,14 +424,17 @@ impl TypeChecker {
         Ok(ret_ty)
     }
 
-    fn check_binop(
+    fn check_binop<T: AsExprMut<Expression>>(
         &mut self,
         sym: Symbol,
-        lhs: &mut Expression,
-        rhs: &mut Expression,
+        lhs: &mut T,
+        rhs: &mut T,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         use Symbol::*;
+
+        let lhs = lhs.as_expr_mut();
+        let rhs = rhs.as_expr_mut();
 
         // Make sure LHS is a var in assignments
         if sym == Assign && !matches!(lhs, Expression::Ident { .. }) {
@@ -521,13 +526,13 @@ impl TypeChecker {
         Ok(new_ty)
     }
 
-    fn check_unop(
+    fn check_unop<T: AsExprMut<Expression>>(
         &mut self,
         sym: Symbol,
-        rhs: &mut Expression,
+        rhs: &mut T,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
-        let rhs_ty = self.check_expr(rhs, None)?;
+        let rhs_ty = self.check_expr(rhs.as_expr_mut(), None)?;
         match rhs_ty {
             numeric_types!() => (),
             _ => {
@@ -541,11 +546,11 @@ impl TypeChecker {
         Ok(rhs_ty)
     }
 
-    fn check_cond(
+    fn check_cond<T: AsExprMut<Expression>>(
         &mut self,
-        cond_expr: &mut Expression,
-        then_block: &mut Expression,
-        else_block: &mut Option<&mut Expression>,
+        cond_expr: &mut T,
+        then_block: &mut T,
+        else_block: Option<&mut T>,
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         let cond_ty = self.check_expr(cond_expr, None)?;

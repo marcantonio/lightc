@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 295
+assertion_line: 293
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2\n    }\n}\n"
@@ -13,44 +13,48 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
             body:
-              Block:
-                list:
-                  - Expr:
-                      Cond:
-                        cond_expr:
-                          BinOp:
-                            sym: Gt
-                            lhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    Int32: 1
-                                  ty: Int32
-                            rhs:
-                              Expr:
-                                Lit:
-                                  value:
-                                    Int32: 2
-                                  ty: Int32
-                            ty: Bool
-                        then_block:
-                          Block:
-                            list:
-                              - Expr:
-                                  Lit:
-                                    value:
-                                      Int32: 1
-                                    ty: Int32
-                            ty: Int32
-                        else_block:
-                          Block:
-                            list:
-                              - Expr:
-                                  Lit:
-                                    value:
-                                      Int32: 2
-                                    ty: Int32
-                            ty: Int32
-                        ty: Int32
-                ty: Int32
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Cond:
+                          cond_expr:
+                            Expr:
+                              BinOp:
+                                sym: Gt
+                                lhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 2
+                                      ty: Int32
+                                ty: Bool
+                          then_block:
+                            Expr:
+                              Block:
+                                list:
+                                  - Expr:
+                                      Lit:
+                                        value:
+                                          Int32: 1
+                                        ty: Int32
+                                ty: Int32
+                          else_block:
+                            Expr:
+                              Block:
+                                list:
+                                  - Expr:
+                                      Lit:
+                                        value:
+                                          Int32: 2
+                                        ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

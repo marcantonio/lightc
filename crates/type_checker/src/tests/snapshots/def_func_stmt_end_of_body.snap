@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 386
+assertion_line: 384
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    let a: int8 = 1\n}\n"
@@ -13,17 +13,18 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
             body:
-              Block:
-                list:
-                  - Stmt:
-                      Let:
-                        name: a
-                        antn: Int8
-                        init:
-                          Expr:
-                            Lit:
-                              value:
-                                Int8: 1
-                              ty: Int8
-                ty: Void
+              Expr:
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: a
+                          antn: Int8
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                  ty: Void
 

@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn a(b: int) {\n    b\n}\n"
@@ -15,12 +15,13 @@ expression: "(test[1], ast, ast_string)"
                   - Int32
               ret_ty: ~
             body:
-              Block:
-                list:
-                  - Expr:
-                      Ident:
-                        name: b
-                        ty: ~
-                ty: ~
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: b
+                          ty: ~
+                  ty: ~
 - "(define (a b:int32) '(b))"
 

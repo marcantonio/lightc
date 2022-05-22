@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 152
+assertion_line: 157
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a() {}"
@@ -13,8 +13,9 @@ expression: "(test[1], ast, ast_string)"
               args: []
               ret_ty: ~
             body:
-              Block:
-                list: []
-                ty: ~
+              Expr:
+                Block:
+                  list: []
+                  ty: ~
 - "(define (a) '()))"
 

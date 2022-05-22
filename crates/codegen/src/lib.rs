@@ -7,8 +7,8 @@ use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 
-use ast::conversion::AsExpr;
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::convert::AsExpr;
 use common::symbol_table::SymbolTable;
 use common::{Symbol, Type};
 
@@ -124,7 +124,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 step_expr,
                 body,
             ),
-            Let { name, antn, init } => self.codegen_let(name, *antn, &init.as_expr()?),
+            Let { name, antn, init } => self.codegen_let(name, *antn, init.as_deref()),
             Fn { proto, body } => self.codegen_func(proto, &body.as_deref()),
         }
     }
@@ -148,7 +148,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     Type::Void => {
                         unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
                     }//XXX
-                    Type::Array(_) => todo!(),
+                    //Type::Array(_) => todo!(),
                 }
             })
             .collect::<Vec<BasicMetadataTypeEnum>>();
@@ -178,11 +178,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(func)
     }
 
-    fn codegen_func(&mut self, proto: &Prototype, body: &Option<&Expression>) -> StmtResult<'ctx> {
+    fn codegen_func<T: AsExpr<Expression>>(
+        &mut self,
+        proto: &Prototype,
+        body: &Option<&T>,
+    ) -> StmtResult<'ctx> {
         let function = self.codegen_proto(proto)?;
         // If body is None assume call is an extern
         let body = match body {
-            Some(body) => body,
+            Some(body) => body.as_expr(),
             None => return Ok(()),
         };
 
@@ -247,14 +251,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     // for start; cond; step { body }
-    fn codegen_for(
+    fn codegen_for<T: AsExpr<Expression>>(
         &mut self,
         start_name: &str,
         start_antn: Type,
-        start_expr: &Expression,
-        cond_expr: &Expression,
-        step_expr: &Expression,
-        body: &Expression,
+        start_expr: &T,
+        cond_expr: &T,
+        step_expr: &T,
+        body: &T,
     ) -> StmtResult<'ctx> {
         let parent = self
             .builder
@@ -288,7 +292,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
         let cur = self.builder.build_load(start_alloca, start_name);
-        match start_expr.ty() {
+        match start_expr.as_expr().ty() {
             Some(int_types!()) => {
                 let next = self.builder.build_int_add(
                     cur.into_int_value(),
@@ -331,11 +335,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(())
     }
 
-    fn codegen_let(
+    fn codegen_let<T: AsExpr<Expression>>(
         &mut self,
         name: &str,
         ty: Type,
-        init: &Option<&Expression>,
+        init: Option<&T>,
     ) -> StmtResult<'ctx> {
         let parent = self
             .builder
@@ -347,10 +351,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // initialize with 0.
         let init_code = match (ty, init) {
             (_, Some(init)) => {
-                if init.ty() == Some(ty) {
+                if init.as_expr().ty() == Some(ty) {
                     self.codegen_expr(init)?
                 } else {
-                    unreachable!("NONCANBE: void type for init expr in codegen_let()");
+                    unreachable!("fatal: void type for init expr in codegen_let()");
                 }
             }
             (int8_types!() | Type::Char, None) => {
@@ -370,7 +374,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 Some(self.context.f64_type().const_zero().as_basic_value_enum())
             }
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::Array(_), None) => {
+            (Type::Void, None) => {
+                //}| Type::Array(_), None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
         };
@@ -382,24 +387,27 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(())
     }
 
-    fn codegen_expr(&mut self, expr: &Expression) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+    fn codegen_expr<T: AsExpr<Expression>>(
+        &mut self,
+        expr: &T,
+    ) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         use Expression::*;
 
-        match expr {
+        match expr.as_expr() {
             Lit { value, .. } => Some(self.codegen_lit(value)),
             Ident { name, .. } => Some(self.codegen_ident(name)),
             BinOp { sym, lhs, rhs, .. } => {
-                Some(self.codegen_binop(*sym, lhs.as_expr()?, rhs.as_expr()?))
+                Some(self.codegen_binop(*sym, lhs, rhs))
             }
-            UnOp { sym, rhs, .. } => Some(self.codegen_unop(*sym, rhs.as_expr()?)),
-            Call { name, args, .. } => self.codegen_call(name, &args.as_expr()?).transpose(),
+            UnOp { sym, rhs, .. } => Some(self.codegen_unop(*sym, rhs)),
+            Call { name, args, .. } => self.codegen_call(name, args).transpose(),
             Cond {
                 cond_expr,
                 then_block,
                 else_block,
                 ty,
             } => {
-                Some(self.codegen_cond(cond_expr, then_block, &else_block.as_deref(), ty.unwrap()))
+                Some(self.codegen_cond(cond_expr, then_block, else_block.as_ref(), ty.unwrap()))
             }
             Block { list, .. } => self.codegen_block(list).transpose(),
         }
@@ -492,10 +500,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(self.builder.build_load(var, name))
     }
 
-    fn codegen_call(
+    fn codegen_call<T: AsExpr<Expression>>(
         &mut self,
         name: &str,
-        args: &[&Expression],
+        args: &[T],
     ) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         // Look up the function. Error if it's not been defined.
         let func = self
@@ -523,21 +531,24 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         })
     }
 
-    fn codegen_binop(
+    fn codegen_binop<T: AsExpr<Expression>>(
         &mut self,
         op: Symbol,
-        lhs: &Expression,
-        rhs: &Expression,
+        lhs: &T,
+        rhs: &T,
     ) -> ExprResult<'ctx> {
         use Symbol::*;
 
+        let lhs = lhs.as_expr();
+        let rhs = rhs.as_expr();
+
         let lhs_val = self.codegen_expr(lhs)?.value()?;
         let lhs_ty = lhs.ty().unwrap_or_else(|| {
-            unreachable!("NONCANBE: missing type for lhs expr in codegen_binop()")
+            unreachable!("fatal: missing type for lhs expr in codegen_binop()")
         });
         let rhs_val = self.codegen_expr(rhs)?.value()?;
         let rhs_ty = rhs.ty().unwrap_or_else(|| {
-            unreachable!("NONCANBE: missing type for rhs expr in codegen_binop()")
+            unreachable!("fatal: missing type for rhs expr in codegen_binop()")
         });
 
         // Generate the proper instruction for each op
@@ -554,11 +565,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
     }
 
-    fn codegen_unop(&mut self, op: Symbol, rhs: &Expression) -> ExprResult<'ctx> {
+    fn codegen_unop<T: AsExpr<Expression>>(&mut self, op: Symbol, rhs: &T) -> ExprResult<'ctx> {
         use Symbol::*;
 
         let rhs_val = self.codegen_expr(rhs)?.value()?;
-        let rhs_ty = rhs.ty().unwrap();
+        let rhs_ty = rhs.as_expr().ty().unwrap();
         match op {
             Sub => self.neg((rhs_val, rhs_ty)),
             x => Err(format!("Unknown unary operator: {}", x)),
@@ -566,11 +577,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     // if then optional else
-    fn codegen_cond(
+    fn codegen_cond<T: AsExpr<Expression>>(
         &mut self,
-        cond_expr: &Expression,
-        then_block: &Expression,
-        else_block: &Option<&Expression>,
+        cond_expr: &T,
+        then_block: &T,
+        else_block: Option<&T>,
         ty: Type,
     ) -> ExprResult<'ctx> {
         // Should never be used. Useful for an unused phi branch. Note: undef
@@ -698,7 +709,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-            Type::Array(_) => todo!(),
+            //Type::Array(_) => todo!(),
         }
     }
 }

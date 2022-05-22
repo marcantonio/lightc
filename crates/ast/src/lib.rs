@@ -1,9 +1,9 @@
 use serde::Serialize;
 
-use self::conversion::AsExpr;
 use common::{Symbol, Type};
+use convert::AsExpr;
 
-pub mod conversion;
+pub mod convert;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -42,8 +42,8 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn ty(&self) -> Result<Option<Type>, String> {
-        self.as_expr().map(|e| e.ty())
+    pub fn ty(&self) -> Option<Type> {
+        self.as_expr().ty()
     }
 }
 
@@ -52,10 +52,10 @@ pub enum Statement {
     For {
         start_name: String,
         start_antn: Type,
-        start_expr: Box<Expression>,
-        cond_expr: Box<Expression>,
-        step_expr: Box<Expression>,
-        body: Box<Expression>,
+        start_expr: Box<Node>,
+        cond_expr: Box<Node>,
+        step_expr: Box<Node>,
+        body: Box<Node>,
     },
     Let {
         name: String,
@@ -64,7 +64,7 @@ pub enum Statement {
     },
     Fn {
         proto: Box<Prototype>,
-        body: Option<Box<Expression>>,
+        body: Option<Box<Node>>,
     },
 }
 
@@ -95,9 +95,9 @@ pub enum Expression {
         ty: Option<Type>,
     },
     Cond {
-        cond_expr: Box<Expression>,
-        then_block: Box<Expression>,
-        else_block: Option<Box<Expression>>,
+        cond_expr: Box<Node>,
+        then_block: Box<Node>,
+        else_block: Option<Box<Node>>,
         ty: Option<Type>,
     },
     Block {
@@ -155,6 +155,7 @@ pub enum Literal {
     Double(f64),
     Bool(bool),
     Char(u8),
+    //    Array(Vec<Literal>),
 }
 
 #[derive(Debug, PartialEq, Serialize)]

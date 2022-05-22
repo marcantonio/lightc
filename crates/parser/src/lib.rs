@@ -4,7 +4,6 @@ use std::slice::Iter;
 
 use self::errors::ParseError;
 use self::precedence::OpPrec;
-use ast::conversion::ToExpr;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
 use common::{Symbol, Token, TokenType, Type};
 
@@ -100,10 +99,10 @@ impl<'a> Parser<'a> {
         Ok(Node::Stmt(Statement::For {
             start_name: name,
             start_antn: antn,
-            start_expr: Box::new(start_node.to_expr()?),
-            cond_expr: Box::new(cond_node.to_expr()?),
-            step_expr: Box::new(step_node.to_expr()?),
-            body: Box::new(self.parse_block()?.to_expr()?),
+            start_expr: Box::new(start_node),
+            cond_expr: Box::new(cond_node),
+            step_expr: Box::new(step_node),
+            body: Box::new(self.parse_block()?),
         }))
     }
 
@@ -133,7 +132,7 @@ impl<'a> Parser<'a> {
 
         Ok(Node::Stmt(Statement::Fn {
             proto: Box::new(self.parse_proto()?),
-            body: Some(Box::new(self.parse_block()?.to_expr()?)),
+            body: Some(Box::new(self.parse_block()?)),
         }))
     }
 
@@ -210,11 +209,10 @@ impl<'a> Parser<'a> {
 
         let p = OpPrec::un_prec(sym)?;
         let rhs = self.parse_expression(p)?;
-        let ty = rhs.ty()?;
         Ok(Node::Expr(Expression::UnOp {
             sym,
             rhs: Box::new(rhs),
-            ty,
+            ty: None,
         }))
     }
 
@@ -323,18 +321,18 @@ impl<'a> Parser<'a> {
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
-                Expression::Block {
+                Node::Expr(Expression::Block {
                     list: vec![self.parse_expression(0)?],
                     ty: None,
-                }
+                })
             } else {
-                self.parse_block()?.to_expr()?
+                self.parse_block()?
             }
         });
 
         Ok(Node::Expr(Expression::Cond {
-            cond_expr: Box::new(cond_node.to_expr()?),
-            then_block: Box::new(then_block.to_expr()?),
+            cond_expr: Box::new(cond_node),
+            then_block: Box::new(then_block),
             else_block: else_block.map(Box::new),
             ty: None,
         }))
