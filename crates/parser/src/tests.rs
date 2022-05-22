@@ -274,7 +274,7 @@ fn test_array() {
         ["type", "let x: [int]"],
         ["type_bad_1", "let x: [int"],
         ["type_bad_2", "let x: ["],
-        ["lit", "let x: [int] = [1, 2, 3]"]
+        ["lit", "let x: [int] = [1, 2, 3]"],
     ];
 
     run_insta!("array", tests)

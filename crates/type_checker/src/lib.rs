@@ -85,14 +85,9 @@ impl TypeChecker {
                 step_expr,
                 body,
             } => self.check_for(
-                start_name,
-                *start_antn,
-                start_expr,
-                cond_expr,
-                step_expr,
-                body,
+                start_name, start_antn, start_expr, cond_expr, step_expr, body,
             ),
-            Let { name, antn, init } => self.check_let(name, *antn, init.as_deref_mut()),
+            Let { name, antn, init } => self.check_let(name, antn, init.as_deref_mut()),
             Fn { proto, body } => self.check_func(proto, &mut body.as_deref_mut()),
         }
     }
@@ -104,11 +99,11 @@ impl TypeChecker {
         body: &mut Option<&mut T>,
     ) -> Result<(), String> {
         let mut func_entry = FunctionEntry {
-            ret_ty: proto.ret_ty().unwrap_or(Type::Void),
+            ret_ty: proto.ret_ty().cloned().unwrap_or(Type::Void),
             arg_tys: proto
                 .args()
                 .iter()
-                .map(|&(_, ty)| ty)
+                .map(|(_, ty)| ty.clone())
                 .collect::<Vec<Type>>(),
         };
 
@@ -130,7 +125,7 @@ impl TypeChecker {
 
         // Insert args into the local symbol table
         for (name, ty) in proto.args() {
-            self.symbol_table.insert(name, *ty)?;
+            self.symbol_table.insert(name, ty.clone())?;
         }
 
         let mut body_ty = self.check_expr(body, None)?;
@@ -153,13 +148,13 @@ impl TypeChecker {
                 }
             }
             body_ty = Type::Int32;
-            func_entry.ret_ty = body_ty;
-            proto.set_ret_ty(Some(body_ty));
+            func_entry.ret_ty = Type::Int32;
+            proto.set_ret_ty(Some(Type::Int32));
             self.function_table
                 .insert(proto.name().to_owned(), func_entry.clone());
         } else {
             // Make sure these are in sync since there's no `check_proto()`
-            proto.set_ret_ty(Some(func_entry.ret_ty));
+            proto.set_ret_ty(Some(func_entry.ret_ty.clone()));
         }
 
         // Make sure function return type and the last statement match. Ignore
@@ -184,14 +179,14 @@ impl TypeChecker {
     fn check_for<T: AsExprMut<Expression>>(
         &mut self,
         start_name: &str,
-        start_antn: Type,
+        start_antn: &mut Type,
         start_expr: &mut T,
         cond_expr: &mut T,
         step_expr: &mut T,
         body: &mut T,
     ) -> Result<(), String> {
         let start_ty = self.check_expr(start_expr, Some(start_antn))?;
-        if start_antn != start_ty {
+        if start_antn != &start_ty {
             return Err(format!(
                 "Initial type mismatch in for statement. Annotated with `{}` but value is `{}`",
                 start_antn, start_ty
@@ -200,7 +195,7 @@ impl TypeChecker {
 
         // Remove old variable. Ignore failure. Insert starting variable.
         let old_var = self.symbol_table.remove(start_name);
-        self.symbol_table.insert(start_name, start_antn)?;
+        self.symbol_table.insert(start_name, start_antn.clone())?;
 
         // Ensure the loop cond is always a bool
         let cond_ty = self.check_expr(cond_expr, None)?;
@@ -209,7 +204,7 @@ impl TypeChecker {
         }
 
         // Make sure the step type matches the starting variable
-        let step_ty = self.check_expr(step_expr, Some(start_ty))?;
+        let step_ty = self.check_expr(step_expr, Some(&start_ty))?;
         if step_ty != start_ty {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
@@ -232,13 +227,13 @@ impl TypeChecker {
     fn check_let<T: AsExprMut<Expression>>(
         &mut self,
         name: &str,
-        antn: Type,
+        antn: &Type,
         init: Option<&mut T>,
     ) -> Result<(), String> {
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
             let init_ty = self.check_expr(init, Some(antn))?;
-            if antn != init_ty {
+            if antn != &init_ty {
                 return Err(format!(
                     "Types don't match in let statement. Annotated with `{}` but initial value is `{}`",
                     antn, init_ty
@@ -246,14 +241,14 @@ impl TypeChecker {
             }
         }
 
-        self.symbol_table.insert(name, antn)?;
+        self.symbol_table.insert(name, antn.clone())?;
         Ok(())
     }
 
     fn check_expr<T: AsExprMut<Expression>>(
         &mut self,
         expr: &mut T,
-        ty_hint: Option<Type>,
+        ty_hint: Option<&Type>,
     ) -> Result<Type, String> {
         use Expression::*;
 
@@ -283,7 +278,7 @@ impl TypeChecker {
         for node in list {
             list_ty = self.check_node(node)?;
         }
-        *ty = Some(list_ty);
+        *ty = Some(list_ty.clone());
 
         // Pop up 1 level. Drops old scope.
         self.symbol_table.up_scope()?;
@@ -297,7 +292,7 @@ impl TypeChecker {
         &self,
         lit: &mut Literal,
         ty: &mut Option<Type>,
-        ty_hint: Option<Type>,
+        ty_hint: Option<&Type>,
     ) -> Result<Type, String> {
         use Literal::*;
 
@@ -354,7 +349,7 @@ impl TypeChecker {
             },
         };
 
-        *ty = Some(lit_ty);
+        *ty = Some(lit_ty.clone());
         Ok(lit_ty)
     }
 
@@ -363,7 +358,7 @@ impl TypeChecker {
             .symbol_table
             .get(name)
             .ok_or(format!("Unknown variable: `{}`", name))?;
-        *ty = Some(ident_ty);
+        *ty = Some(ident_ty.clone());
         Ok(ident_ty)
     }
 
@@ -392,23 +387,20 @@ impl TypeChecker {
             ));
         }
 
-        // Update expression type
-        let ret_ty = func_entry.ret_ty;
-        *ty = Some(ret_ty);
-
         // Check all args and record their types. Use the function entry arg
         // types as type hints.
+        let ret_ty = func_entry.ret_ty.clone();
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.iter_mut().enumerate() {
-            arg_tys.push((idx, self.check_expr(expr, Some(fe_arg_tys[idx]))?));
+            arg_tys.push((idx, self.check_expr(expr, Some(&fe_arg_tys[idx]))?));
         }
 
         // Make sure the function args and the call args jive
         fe_arg_tys
             .iter()
             .zip(arg_tys)
-            .try_for_each(|(&fa_ty, (idx, ca_ty))| {
-                if fa_ty != ca_ty {
+            .try_for_each(|(fa_ty, (idx, ca_ty))| {
+                if fa_ty != &ca_ty {
                     Err(format!(
                         "Type mismatch in arg {} of call to {}: {} != {}",
                         idx + 1,
@@ -421,6 +413,7 @@ impl TypeChecker {
                 }
             })?;
 
+        *ty = Some(ret_ty.clone());
         Ok(ret_ty)
     }
 
@@ -448,11 +441,11 @@ impl TypeChecker {
         match (lhs.is_num_literal(), rhs.is_num_literal()) {
             (true, false) => {
                 rhs_ty = self.check_expr(rhs, None)?;
-                lhs_ty = self.check_expr(lhs, Some(rhs_ty))?;
+                lhs_ty = self.check_expr(lhs, Some(&rhs_ty))?;
             }
             (false, true) => {
                 lhs_ty = self.check_expr(lhs, None)?;
-                rhs_ty = self.check_expr(rhs, Some(lhs_ty))?;
+                rhs_ty = self.check_expr(rhs, Some(&lhs_ty))?;
             }
             _ => {
                 lhs_ty = self.check_expr(lhs, None)?;
@@ -481,7 +474,7 @@ impl TypeChecker {
                 Type::Bool
             }
             Eq => {
-                match (lhs_ty, rhs_ty) {
+                match (&lhs_ty, &rhs_ty) {
                     (
                         numeric_types!() | Type::Bool | Type::Char,
                         numeric_types!() | Type::Bool | Type::Char,
@@ -496,7 +489,7 @@ impl TypeChecker {
                 Type::Bool
             }
             Gt | Lt => {
-                match (lhs_ty, rhs_ty) {
+                match (&lhs_ty, &rhs_ty) {
                     (numeric_types!() | Type::Char, numeric_types!() | Type::Char) => (),
                     _ => {
                         return Err(format!(
@@ -508,7 +501,7 @@ impl TypeChecker {
                 Type::Bool
             }
             Add | Div | Mul | Pow | Sub => {
-                match (lhs_ty, rhs_ty) {
+                match (&lhs_ty, &rhs_ty) {
                     (numeric_types!(), numeric_types!()) => (),
                     _ => {
                         return Err(format!(
@@ -522,7 +515,7 @@ impl TypeChecker {
             _ => Type::Void,
         };
 
-        *ty = Some(new_ty);
+        *ty = Some(new_ty.clone());
         Ok(new_ty)
     }
 
@@ -542,7 +535,7 @@ impl TypeChecker {
                 ))
             }
         }
-        *ty = Some(rhs_ty);
+        *ty = Some(rhs_ty.clone());
         Ok(rhs_ty)
     }
 
@@ -562,7 +555,7 @@ impl TypeChecker {
 
         // Consequent and alternate must match if else exists
         if let Some(else_block) = else_block {
-            let else_ty = self.check_expr(else_block, Some(then_ty))?;
+            let else_ty = self.check_expr(else_block, Some(&then_ty))?;
 
             if then_ty != else_ty {
                 return Err(format!(
@@ -572,7 +565,7 @@ impl TypeChecker {
             }
         }
 
-        *ty = Some(then_ty);
+        *ty = Some(then_ty.clone());
         Ok(then_ty)
     }
 }

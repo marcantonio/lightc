@@ -42,7 +42,7 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn ty(&self) -> Option<Type> {
+    pub fn ty(&self) -> Option<&Type> {
         self.as_expr().ty()
     }
 }
@@ -107,18 +107,19 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn ty(&self) -> Option<Type> {
+    pub fn ty(&self) -> Option<&Type> {
         use Expression::*;
 
         match self {
-            Lit { ty, .. } => *ty,
-            Ident { ty, .. } => *ty,
-            BinOp { ty, .. } => *ty,
-            UnOp { ty, .. } => *ty,
-            Call { ty, .. } => *ty,
-            Cond { ty, .. } => *ty,
-            Block { ty, .. } => *ty,
+            Lit { ty, .. } => ty,
+            Ident { ty, .. } => ty,
+            BinOp { ty, .. } => ty,
+            UnOp { ty, .. } => ty,
+            Call { ty, .. } => ty,
+            Cond { ty, .. } => ty,
+            Block { ty, .. } => ty,
         }
+        .as_ref()
     }
 
     pub fn is_num_literal(&self) -> bool {
@@ -186,8 +187,8 @@ impl Prototype {
         self.args = args;
     }
 
-    pub fn ret_ty(&self) -> Option<Type> {
-        self.ret_ty
+    pub fn ret_ty(&self) -> Option<&Type> {
+        self.ret_ty.as_ref()
     }
 
     pub fn set_ret_ty(&mut self, ret_ty: Option<Type>) {

@@ -8,8 +8,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn add(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -30,8 +30,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn sub(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -52,8 +52,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn mul(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -74,8 +74,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn div(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             signed_int_types!() => Ok(self
@@ -100,8 +100,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn and(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             Type::Bool => Ok(self
@@ -114,8 +114,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     pub(super) fn or(
         &self,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             Type::Bool => Ok(self
@@ -129,8 +129,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub(super) fn cmp(
         &self,
         op: Symbol,
-        lhs: (BasicValueEnum<'ctx>, Type),
-        rhs: (BasicValueEnum<'ctx>, Type),
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         use Symbol::*;
 
@@ -216,7 +216,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     // Unary operations
 
-    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, Type)) -> ExprResult<'ctx> {
+    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, &Type)) -> ExprResult<'ctx> {
         match rhs.1 {
             int_types!() => Ok(self
                 .builder

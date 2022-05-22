@@ -7,8 +7,8 @@ use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 
-use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use ast::convert::AsExpr;
+use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::symbol_table::SymbolTable;
 use common::{Symbol, Type};
 
@@ -117,14 +117,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 step_expr,
                 body,
             } => self.codegen_for(
-                start_name,
-                *start_antn,
-                start_expr,
-                cond_expr,
-                step_expr,
-                body,
+                start_name, start_antn, start_expr, cond_expr, step_expr, body,
             ),
-            Let { name, antn, init } => self.codegen_let(name, *antn, init.as_deref()),
+            Let { name, antn, init } => self.codegen_let(name, antn, init.as_deref()),
             Fn { proto, body } => self.codegen_func(proto, &body.as_deref()),
         }
     }
@@ -146,9 +141,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     Type::Double => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
                     Type::Bool => BasicMetadataTypeEnum::IntType(self.context.bool_type()),
                     Type::Void => {
-                        unreachable!("NONCANBE: void type for prototype args in codegen_proto()")
-                    }//XXX
-                    //Type::Array(_) => todo!(),
+                        unreachable!("fatal: void type for prototype args in codegen_proto()")
+                    }
+                    Type::Array(_) => todo!(),
                 }
             })
             .collect::<Vec<BasicMetadataTypeEnum>>();
@@ -199,7 +194,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
             let (x, y) = &proto.args()[i];
-            let alloca = self.create_entry_block_alloca(x, *y, &function);
+            let alloca = self.create_entry_block_alloca(x, y, &function);
             self.builder.build_store(alloca, arg);
             self.symbol_table.insert(&proto.args()[i].0, alloca)?;
         }
@@ -209,7 +204,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_ty(), body_val) {
             (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
-            (Some(rt), None) if rt != Type::Void => {
+            (Some(rt), None) if rt != &Type::Void => {
                 return Err(format!(
                     "Function should return {} but last statement is void",
                     rt
@@ -254,7 +249,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn codegen_for<T: AsExpr<Expression>>(
         &mut self,
         start_name: &str,
-        start_antn: Type,
+        start_antn: &Type,
         start_expr: &T,
         cond_expr: &T,
         step_expr: &T,
@@ -338,7 +333,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn codegen_let<T: AsExpr<Expression>>(
         &mut self,
         name: &str,
-        ty: Type,
+        ty: &Type,
         init: Option<&T>,
     ) -> StmtResult<'ctx> {
         let parent = self
@@ -374,8 +369,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 Some(self.context.f64_type().const_zero().as_basic_value_enum())
             }
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void, None) => {
-                //}| Type::Array(_), None) => {
+            (Type::Void | Type::Array(_), None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
         };
@@ -396,9 +390,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         match expr.as_expr() {
             Lit { value, .. } => Some(self.codegen_lit(value)),
             Ident { name, .. } => Some(self.codegen_ident(name)),
-            BinOp { sym, lhs, rhs, .. } => {
-                Some(self.codegen_binop(*sym, lhs, rhs))
-            }
+            BinOp { sym, lhs, rhs, .. } => Some(self.codegen_binop(*sym, lhs, rhs)),
             UnOp { sym, rhs, .. } => Some(self.codegen_unop(*sym, rhs)),
             Call { name, args, .. } => self.codegen_call(name, args).transpose(),
             Cond {
@@ -406,9 +398,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 then_block,
                 else_block,
                 ty,
-            } => {
-                Some(self.codegen_cond(cond_expr, then_block, else_block.as_ref(), ty.unwrap()))
-            }
+            } => Some(self.codegen_cond(
+                cond_expr,
+                then_block,
+                else_block.as_ref(),
+                ty.as_ref().unwrap(),
+            )),
             Block { list, .. } => self.codegen_block(list).transpose(),
         }
         .transpose()
@@ -543,13 +538,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let rhs = rhs.as_expr();
 
         let lhs_val = self.codegen_expr(lhs)?.value()?;
-        let lhs_ty = lhs.ty().unwrap_or_else(|| {
-            unreachable!("fatal: missing type for lhs expr in codegen_binop()")
-        });
+        let lhs_ty = lhs
+            .ty()
+            .unwrap_or_else(|| unreachable!("fatal: missing type for lhs expr in codegen_binop()"));
         let rhs_val = self.codegen_expr(rhs)?.value()?;
-        let rhs_ty = rhs.ty().unwrap_or_else(|| {
-            unreachable!("fatal: missing type for rhs expr in codegen_binop()")
-        });
+        let rhs_ty = rhs
+            .ty()
+            .unwrap_or_else(|| unreachable!("fatal: missing type for rhs expr in codegen_binop()"));
 
         // Generate the proper instruction for each op
         match op {
@@ -582,7 +577,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         cond_expr: &T,
         then_block: &T,
         else_block: Option<&T>,
-        ty: Type,
+        ty: &Type,
     ) -> ExprResult<'ctx> {
         // Should never be used. Useful for an unused phi branch. Note: undef
         // value must be in sync with phi type.
@@ -681,7 +676,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn create_entry_block_alloca(
         &self,
         name: &str,
-        ty: Type,
+        ty: &Type,
         func: &FunctionValue,
     ) -> PointerValue<'ctx> {
         // Create a temporary builder
@@ -709,7 +704,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-            //Type::Array(_) => todo!(),
+            Type::Array(_) => todo!(),
         }
     }
 }
