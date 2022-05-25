@@ -651,6 +651,25 @@ fn foo() {
 }
 
 #[test]
+fn test_array() {
+    let tests = [
+        ["type", "let x: [int]"],
+        ["lit", "let x: [int] = [1, 2, 3]"],
+        [
+            "lit_reassign",
+            r#"
+let x: [int] = [1, 2, 3]
+x = [4, 5, 6]
+"#,
+        ],
+        ["lit_bad_1", "let x: [int] = [1, 2.0, 3]"],
+        ["lit_bad_2", "let x: [float] = [1, 2, 3]"],
+    ];
+
+    run_insta!("array", tests)
+}
+
+#[test]
 fn test_tyc_int_no_hint() {
     use Literal::*;
 
@@ -660,7 +679,7 @@ fn test_tyc_int_no_hint() {
         (UInt64(i32::MAX as u64 + 1), Err(ERR_STR)),
         (Float(7.0), Ok(Type::Float)),
     ];
-    let tc = TypeChecker::new();
+    let mut tc = TypeChecker::new();
     for mut lit in literals {
         let res = tc.check_lit(&mut lit.0, &mut None, None);
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
@@ -699,7 +718,7 @@ fn test_tyc_int_with_hint() {
         (Float(7.0), Type::Double, Ok(Type::Double)),
     ];
 
-    let tc = TypeChecker::new();
+    let mut tc = TypeChecker::new();
     for mut lit in literals {
         let res = tc.check_lit(&mut lit.0, &mut None, Some(&lit.1));
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
@@ -722,6 +741,20 @@ macro_rules! test_lit_hint_binop_int {
         };
         let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
         assert_eq!(res, Ok($variant));
+
+        // TODO: Maybe add a TypeChecker::clear() to we don't have to do this dance?
+        let mut tc = TypeChecker::new();
+        let mut lhs = Expression::Lit {
+            value: Literal::UInt64(3),
+            ty: None,
+        };
+        tc.check_let::<Expression>("x", &$variant, None).unwrap();
+        let mut rhs = Expression::Ident {
+            name: "x".to_string(),
+            ty: None,
+        };
+        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        assert_eq!(res, Ok($variant));
     }};
 }
 
@@ -737,6 +770,19 @@ macro_rules! test_lit_hint_binop_float {
         };
         let mut rhs = Expression::Lit {
             value: Literal::Float(3.0),
+            ty: None,
+        };
+        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        assert_eq!(res, Ok($variant));
+
+        let mut tc = TypeChecker::new();
+        let mut lhs = Expression::Lit {
+            value: Literal::Float(3.0),
+            ty: None,
+        };
+        tc.check_let::<Expression>("x", &$variant, None).unwrap();
+        let mut rhs = Expression::Ident {
+            name: "x".to_string(),
             ty: None,
         };
         let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);

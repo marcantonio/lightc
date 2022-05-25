@@ -289,7 +289,7 @@ impl TypeChecker {
     // If there's a type hint, use it or fail. If not, use the literal's
     // type. Update `lit` with the result and return the type.
     fn check_lit(
-        &self,
+        &mut self,
         lit: &mut Literal,
         ty: &mut Option<Type>,
         ty_hint: Option<&Type>,
@@ -298,7 +298,6 @@ impl TypeChecker {
 
         let lit_ty = match ty_hint {
             Some(hint) => match lit {
-                // XXX: will we ever hit these?
                 Int8(_) => Type::Int8,
                 Int16(_) => Type::Int16,
                 Int32(_) => Type::Int32,
@@ -320,6 +319,9 @@ impl TypeChecker {
                     }
                     Type::Bool => return Err("Literal is an integer in a bool context".to_string()),
                     Type::Char => return Err("Literal is an integer in a char context".to_string()),
+                    Type::Array(_) => {
+                        return Err("Literal is an integer in an array context".to_string())
+                    }
                     _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
                 },
                 Float(v) => match hint {
@@ -330,11 +332,15 @@ impl TypeChecker {
                     }
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     Type::Char => return Err("Literal is a float in a char context".to_string()),
+                    Type::Array(_) => {
+                        return Err("Literal is a float in an array context".to_string())
+                    }
                     _ => unreachable!("NONCANBE: Internal float conversion error"),
                 },
                 Double(_) => Type::Double,
                 Bool(_) => Type::Bool,
                 Char(_) => Type::Char,
+                Array { .. } => self.check_lit_array(lit, ty_hint)?,
             },
             None => match lit {
                 UInt64(v) => {
@@ -345,12 +351,47 @@ impl TypeChecker {
                 Float(_) => Type::Float,
                 Bool(_) => Type::Bool,
                 Char(_) => Type::Char,
+                Array { .. } => self.check_lit_array(lit, ty_hint)?,
                 x => unreachable!("NONCANBE: Internal numeric conversion error for {}", x),
             },
         };
 
         *ty = Some(lit_ty.clone());
         Ok(lit_ty)
+    }
+
+    fn check_lit_array(
+        &mut self,
+        lit: &mut Literal,
+        ty_hint: Option<&Type>,
+    ) -> Result<Type, String> {
+        // Extract the elements vec and the type of the array elements. Will always be None as
+        // assigned by the parser as this point.
+        let (elements, inner_ty) = match lit {
+            Literal::Array { elements, inner_ty } => (elements, inner_ty),
+            _ => unreachable!(),
+        };
+
+        // Clone the inner type hint
+        let ty = match ty_hint.unwrap() {
+            Type::Array(ty) => ty.clone(),
+            err => unreachable!("fatal error: array literal has invalid type hint `{}`", err),
+        };
+
+        // Check every element and make sure they are uniform
+        for el in elements {
+            let elem_ty = self.check_expr(el, Some(&ty))?;
+            if elem_ty != *ty {
+                return Err(format!(
+                    "Array literal's element wrong type: `{}` isn't a `{}`",
+                    el, ty
+                ));
+            }
+        }
+
+        // Set the element type and return the composite type
+        *inner_ty = Some(*ty.clone());
+        Ok(Type::Array(ty))
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {
@@ -417,6 +458,7 @@ impl TypeChecker {
         Ok(ret_ty)
     }
 
+    // TODO: Check overflow on math ops
     fn check_binop<T: AsExprMut<Expression>>(
         &mut self,
         sym: Symbol,
@@ -438,19 +480,12 @@ impl TypeChecker {
         // as a type hint for the literal type.
         let lhs_ty;
         let rhs_ty;
-        match (lhs.is_num_literal(), rhs.is_num_literal()) {
-            (true, false) => {
-                rhs_ty = self.check_expr(rhs, None)?;
-                lhs_ty = self.check_expr(lhs, Some(&rhs_ty))?;
-            }
-            (false, true) => {
-                lhs_ty = self.check_expr(lhs, None)?;
-                rhs_ty = self.check_expr(rhs, Some(&lhs_ty))?;
-            }
-            _ => {
-                lhs_ty = self.check_expr(lhs, None)?;
-                rhs_ty = self.check_expr(rhs, None)?;
-            }
+        if lhs.is_num_literal() {
+            rhs_ty = self.check_expr(rhs, None)?;
+            lhs_ty = self.check_expr(lhs, Some(&rhs_ty))?;
+        } else {
+            lhs_ty = self.check_expr(lhs, None)?;
+            rhs_ty = self.check_expr(rhs, Some(&lhs_ty))?;
         }
 
         // Both sides must match

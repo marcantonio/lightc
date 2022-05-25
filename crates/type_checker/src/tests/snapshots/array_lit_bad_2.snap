@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 154
+assertion_line: 662
 expression: "(test[1], res)"
 ---
-- "\nfn foo() {\n    2.0 + 1\n}\n"
+- "let x: [float] = [1, 2, 3]"
 - Err: Literal is an integer in a float context
 

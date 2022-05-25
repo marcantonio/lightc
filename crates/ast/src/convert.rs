@@ -9,7 +9,7 @@ pub trait AsExpr<T: ?Sized> {
 impl AsExpr<Expression> for Node {
     fn as_expr(&self) -> &Expression {
         match self {
-            Node::Stmt(_) => unimplemented!("fatal: expected Expression"),
+            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
             Node::Expr(e) => e,
         }
     }
@@ -36,7 +36,7 @@ pub trait AsExprMut<T: ?Sized> {
 impl AsExprMut<Expression> for Node {
     fn as_expr_mut(&mut self) -> &mut Expression {
         match self {
-            Node::Stmt(_) => unimplemented!("fatal: expected Expression"),
+            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
             Node::Expr(e) => e,
         }
     }

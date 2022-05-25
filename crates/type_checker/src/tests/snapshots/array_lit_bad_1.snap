@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 662
+expression: "(test[1], res)"
+---
+- "let x: [int] = [1, 2.0, 3]"
+- Err: Literal is a float in an integer context
+

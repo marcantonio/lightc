@@ -1,0 +1,38 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 280
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: [int] = [1, 2, 3]"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn:
+              Array: Int32
+            init:
+              Expr:
+                Lit:
+                  value:
+                    Array:
+                      elements:
+                        - Expr:
+                            Lit:
+                              value:
+                                UInt64: 1
+                              ty: ~
+                        - Expr:
+                            Lit:
+                              value:
+                                UInt64: 2
+                              ty: ~
+                        - Expr:
+                            Lit:
+                              value:
+                                UInt64: 3
+                              ty: ~
+                      inner_ty: ~
+                  ty: ~
+- "(let x:array(int32) [ 1 2 3])"
+

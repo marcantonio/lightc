@@ -116,6 +116,15 @@ impl Display for Literal {
             Double(v) => write!(f, "{}", v),
             Bool(v) => write!(f, "{}", v),
             Char(v) => write!(f, "{}", *v as char),
+            Array { elements: el, ..} => {
+                let mut s = String::from("[");
+                if !el.is_empty() {
+                    for e in el {
+                        s += &format!(" {}", e);
+                    }
+                }
+                write!(f, "{}]", s)
+            }
         }
     }
 }

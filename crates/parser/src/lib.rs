@@ -217,7 +217,10 @@ impl<'a> Parser<'a> {
     }
 
     // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Assignment | Block | ParenExpr ;
+    // LitExpr     ::= number | bool | CharLit | ArrayLit ;
     fn parse_primary(&mut self) -> ParseResult {
+        use TokenType::*;
+
         let token = self
             .tokens
             .peek()
@@ -225,15 +228,15 @@ impl<'a> Parser<'a> {
             .ok_or_else(|| "Premature end of expression".to_string())?;
 
         let expr = match &token.tt {
-            TokenType::If => self.parse_cond()?,
-            TokenType::Ident(id) => self.parse_ident_or_call(id)?,
-            TokenType::OpenBrace => self.parse_block()?,
-            TokenType::OpenParen => self.parse_paren()?,
-            TokenType::Op(sym) => self.parse_unop(*sym)?,
-            // LitExpr ::= number | bool | CharLit | ArrayLit ;
-            TokenType::Bool(b) => self.parse_lit_bool(*b)?,
-            TokenType::Char(c) => self.parse_lit_char(c, token)?,
-            TokenType::Num(num) => self.parse_lit_num(num, token)?,
+            If => self.parse_cond()?,
+            Ident(id) => self.parse_ident_or_call(id)?,
+            OpenBrace => self.parse_block()?,
+            OpenParen => self.parse_paren()?,
+            Op(sym) => self.parse_unop(*sym)?,
+            Bool(b) => self.parse_lit_bool(*b)?,
+            Char(c) => self.parse_lit_char(c, token)?,
+            Num(num) => self.parse_lit_num(num, token)?,
+            OpenBracket => self.parse_lit_array()?,
             x => {
                 return Err(ParseError::from((
                     format!("Expecting primary expression. Got `{}`", x),
@@ -342,8 +345,6 @@ impl<'a> Parser<'a> {
     fn parse_block(&mut self) -> ParseResult {
         let mut block: Vec<Node> = vec![];
 
-        // Be explicit because `parse_block()` is called outside of
-        // `parse_primary()`.
         expect_next_token!(
             self.tokens,
             TokenType::OpenBrace,
@@ -435,10 +436,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_lit_array(&mut self, n: &str, token: &Token) -> ParseResult {
+    fn parse_lit_array(&mut self) -> ParseResult {
         self.tokens.next(); // Eat open bracket
 
-        let elements = self.parse_expr_list(TokenType::CloseBracket, "function call argument list")?;
+        let elements = self.parse_expr_list(TokenType::CloseBracket, "array literal")?;
 
         // Eat close bracket
         expect_next_token!(
@@ -447,6 +448,9 @@ impl<'a> Parser<'a> {
             "Expecting `]` in array literal"
         );
 
+        Ok(ast::Node::Expr(Expression::Lit {
+            value: Literal::Array { elements, inner_ty: None }, ty: None
+        }))
     }
 
     /// Misc productions
@@ -547,12 +551,12 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(ty.as_primative())
+                Type::Array(Box::new(ty.clone()))
             }
             Some(Token {
                 tt: TokenType::VarType(ty),
                 ..
-            }) => *ty,
+            }) => ty.clone(),
             Some(next) => {
                 return Err(ParseError::from((
                     format!("Expecting `{}` type annotation. Got `{}`", caller, next),
@@ -566,7 +570,7 @@ impl<'a> Parser<'a> {
                 )))
             }
         };
-        Ok(ty)
+        Ok(ty.clone())
     }
 
     // TypedDecl ::= ident ':' TypeAntn ;
@@ -604,20 +608,14 @@ impl<'a> Parser<'a> {
             args.push(self.parse_expression(0)?);
 
             match self.tokens.peek() {
-                Some(Token {
-                    tt: TokenType::CloseParen,
-                    ..
-                }) => break,
+                Some(Token { tt, .. }) if tt == &term => break,
                 Some(Token {
                     tt: TokenType::Comma,
                     ..
                 }) => self.tokens.next(), // Eat comma
                 _ => {
                     return Err(ParseError::from((
-                        format!(
-                            "Expecting `,` or `{}` in `{}`. Got `{}`",
-                            term, in_err, next
-                        ),
+                        format!("Expecting `,` or `{}` in {}. Got `{}`", term, in_err, next),
                         next,
                     )))
                 }

@@ -156,7 +156,10 @@ pub enum Literal {
     Double(f64),
     Bool(bool),
     Char(u8),
-    //    Array(Vec<Literal>),
+    Array {
+        elements: Vec<Node>,
+        inner_ty: Option<Type>,
+    },
 }
 
 #[derive(Debug, PartialEq, Serialize)]

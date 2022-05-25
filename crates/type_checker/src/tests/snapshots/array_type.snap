@@ -1,0 +1,15 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 660
+expression: "(test[1], res)"
+---
+- "let x: [int]"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn:
+              Array: Int32
+            init: ~
+

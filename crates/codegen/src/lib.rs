@@ -483,6 +483,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .bool_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
+            Array { .. } => todo!(),
         })
     }
 

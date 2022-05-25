@@ -82,24 +82,6 @@ impl Lexer {
             return self.lex(); // Eat trailing comment
         }
 
-        // if cur == '[' {
-        //     let next = self.lex()?;
-        //     match next {
-        //         Token {
-        //             tt: VarType(ty),
-        //             line,
-        //             column,
-        //         } => {
-        //             if self.stream.next().unwrap() == ']' {
-        //                 return Ok(Token::new(VarType(Type::Array(ty.as_primative())), line, column))
-        //             } else {
-        //                 return Err(LexError::from(("bad thing2".to_owned(), cur)));
-        //             }
-        //         }
-        //         _ => return Err(LexError::from(("bad thing".to_owned(), cur))),
-        //     };
-        // }
-
         // Keywords, types, and identifiers
         if cur.value.is_ascii_alphabetic() {
             let mut identifier = String::from(cur.value);
