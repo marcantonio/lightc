@@ -83,6 +83,7 @@ impl Display for Expression {
                 });
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             }
+            Index { array, idx, .. } => write!(f, "{}[{}]", array, idx),
         }
     }
 }

@@ -265,6 +265,7 @@ impl TypeChecker {
                 ty,
             } => self.check_cond(cond_expr, then_block, else_block.as_mut(), ty),
             Block { list, ty } => self.check_block(list, ty),
+            Index { .. } => todo!(),
         }
     }
 

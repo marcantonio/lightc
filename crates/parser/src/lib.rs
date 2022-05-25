@@ -34,7 +34,7 @@ impl<'a> Parser<'a> {
     // StmtList ::= ( Stmt ';' )+ ;
     pub fn parse(mut self) -> Result<Ast<Node>, ParseError> {
         while self.tokens.peek().is_some() {
-            let node = self.parse_statement()?;
+            let node = self.parse_stmt()?;
             self.ast.add(node);
         }
         Ok(self.ast)
@@ -43,7 +43,7 @@ impl<'a> Parser<'a> {
     /// Statement productions
 
     // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | Expr ;
-    fn parse_statement(&mut self) -> ParseResult {
+    fn parse_stmt(&mut self) -> ParseResult {
         let token = self
             .tokens
             .peek()
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
             TokenType::Let => self.parse_let()?,
             TokenType::Fn => self.parse_function()?,
             TokenType::Extern => self.parse_extern()?,
-            _ => self.parse_expression(0)?,
+            _ => self.parse_expr(0)?,
         };
 
         // Semicolon is optional when next token is a '}'
@@ -88,13 +88,13 @@ impl<'a> Parser<'a> {
             "Expecting '=' after identifer"
         );
 
-        let start_node = self.parse_expression(0)?;
+        let start_node = self.parse_expr(0)?;
         expect_explicit_semi!(self.tokens, "Expecting ';' after start");
 
-        let cond_node = self.parse_expression(0)?;
+        let cond_node = self.parse_expr(0)?;
         expect_explicit_semi!(self.tokens, "Expecting ';' after condition");
 
-        let step_node = self.parse_expression(0)?;
+        let step_node = self.parse_expr(0)?;
 
         Ok(Node::Stmt(Statement::For {
             start_name: name,
@@ -115,7 +115,7 @@ impl<'a> Parser<'a> {
 
         let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
             self.tokens.next();
-            self.parse_expression(0)?
+            self.parse_expr(0)?
         });
 
         Ok(Node::Stmt(Statement::Let {
@@ -154,7 +154,7 @@ impl<'a> Parser<'a> {
     //
     // Expr ::= PrimaryExpr | Expr mul_op Expr | Expr add_op Expr | Expr rel_op Expr
     //        | Expr '&&' Expr | Expr '||' Expr | IdentExpr '=' Expr ;
-    fn parse_expression(&mut self, min_p: u8) -> ParseResult {
+    fn parse_expr(&mut self, min_p: u8) -> ParseResult {
         let mut lhs = self.parse_primary()?;
 
         // Peek at the next token, otherwise return current lhs
@@ -190,7 +190,7 @@ impl<'a> Parser<'a> {
             self.tokens.next();
 
             // Descend for rhs with the current precedence as min_p
-            let rhs = self.parse_expression(p)?;
+            let rhs = self.parse_expr(p)?;
 
             // Make a new lhs and continue loop
             lhs = Node::Expr(Expression::BinOp {
@@ -208,7 +208,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat symbol
 
         let p = OpPrec::un_prec(sym)?;
-        let rhs = self.parse_expression(p)?;
+        let rhs = self.parse_expr(p)?;
         Ok(Node::Expr(Expression::UnOp {
             sym,
             rhs: Box::new(rhs),
@@ -216,7 +216,8 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Assignment | Block | ParenExpr ;
+    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Assignment | Block
+    //               | ParenExpr | IndexExpr ;
     // LitExpr     ::= number | bool | CharLit | ArrayLit ;
     fn parse_primary(&mut self) -> ParseResult {
         use TokenType::*;
@@ -244,14 +245,26 @@ impl<'a> Parser<'a> {
                 )))
             }
         };
-        Ok(expr)
+
+        // Array indices come after the primary
+        if matches!(
+            self.tokens.peek(),
+            Some(Token {
+                tt: OpenBracket,
+                ..
+            })
+        ) {
+            self.parse_index(expr)
+        } else {
+            Ok(expr)
+        }
     }
 
     // Variable or function call
     // TODO: break these up
     //
     // IdentExpr ::= ident ;
-    // CallExpr  ::= ident '(' ( Expr ( ',' Expr )* )? ')' ;
+    // CallExpr  ::= ident '(' ExprList? ')' ;
     // ident     ::= letter ( letter | digit | '_' )* ;
     fn parse_ident_or_call(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
@@ -293,7 +306,7 @@ impl<'a> Parser<'a> {
     // ParenExpr ::= '(' Expr ')' ;
     fn parse_paren(&mut self) -> ParseResult {
         self.tokens.next(); // Eat '('
-        let lhs = self.parse_expression(0);
+        let lhs = self.parse_expr(0);
         expect_next_token!(
             self.tokens,
             TokenType::CloseParen,
@@ -306,7 +319,7 @@ impl<'a> Parser<'a> {
     fn parse_cond(&mut self) -> ParseResult {
         self.tokens.next(); // Eat if
 
-        let cond_node = self.parse_expression(0)?;
+        let cond_node = self.parse_expr(0)?;
         let then_block = self.parse_block()?;
 
         let else_block = token_is_and_then!(self.tokens.peek(), TokenType::Else, {
@@ -325,7 +338,7 @@ impl<'a> Parser<'a> {
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
                 Node::Expr(Expression::Block {
-                    list: vec![self.parse_expression(0)?],
+                    list: vec![self.parse_expr(0)?],
                     ty: None,
                 })
             } else {
@@ -360,7 +373,7 @@ impl<'a> Parser<'a> {
                         ty: None,
                     }));
                 }
-                _ => block.push(self.parse_statement()?),
+                _ => block.push(self.parse_stmt()?),
             }
         }
 
@@ -368,6 +381,25 @@ impl<'a> Parser<'a> {
         Err(ParseError::from(
             "Expecting '}' to terminate block".to_string(),
         ))
+    }
+
+    // IndexExpr ::= PrimaryExpr '[' Expr ']' ;
+    fn parse_index(&mut self, array: Node) -> ParseResult {
+        self.tokens.next(); // Eat open bracket
+
+        let index = self.parse_expr(0)?;
+
+        expect_next_token!(
+            self.tokens,
+            TokenType::CloseBracket,
+            "Expecting `]` after expression in array index"
+        );
+
+        Ok(Node::Expr(Expression::Index {
+            array: Box::new(array),
+            idx: Box::new(index),
+            ty: None,
+        }))
     }
 
     /// Literals
@@ -436,6 +468,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // ArrayLit ::= '[' ExprList? ']' ;
     fn parse_lit_array(&mut self) -> ParseResult {
         self.tokens.next(); // Eat open bracket
 
@@ -449,7 +482,11 @@ impl<'a> Parser<'a> {
         );
 
         Ok(ast::Node::Expr(Expression::Lit {
-            value: Literal::Array { elements, inner_ty: None }, ty: None
+            value: Literal::Array {
+                elements,
+                inner_ty: None,
+            },
+            ty: None,
         }))
     }
 
@@ -605,7 +642,7 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            args.push(self.parse_expression(0)?);
+            args.push(self.parse_expr(0)?);
 
             match self.tokens.peek() {
                 Some(Token { tt, .. }) if tt == &term => break,

@@ -405,6 +405,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 ty.as_ref().unwrap(),
             )),
             Block { list, .. } => self.codegen_block(list).transpose(),
+            Index { .. } => todo!(),
         }
         .transpose()
     }

@@ -30,7 +30,11 @@ primary_expr    : cond_expr
                 | block
                 | paren_expr
                 | unop_expr
-                | primary_expr index ;
+                | primary_expr '[' expr ']';
+// ANTLR doesn't do mutual left recursion, so index_expr is defined as directly recursive above. The
+// Light parser handles this properly.
+//                 | index_expr;
+// index_expr      : primary_expr '[' expr ']';
 unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
                 | BOOL
@@ -40,7 +44,6 @@ call_expr       : IDENT '(' expr_list? ')';
 paren_expr      : '(' expr ')';
 cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
 ident_expr      : IDENT;
-index           : '[' expr ']';
 array_lit       : '[' expr_list? ']';
 char_lit        : CHAR;
 expr_list       : expr ','? | expr (',' expr)*;

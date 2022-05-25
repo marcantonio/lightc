@@ -33,14 +33,14 @@ PrimaryExpr ::= CondExpr
               | Block
               | ParenExpr
               | UnopExpr
-              | PrimaryExpr Index ;
+              | IndexExpr ;
 UnopExpr    ::= ( '-' | '!' ) Expr ;
 LitExpr     ::= number | bool | CharLit | ArrayLit ;
 CallExpr    ::= ident '(' ExprList? ')' ;
 ParenExpr   ::= '(' Expr ')' ;
 CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
 IdentExpr   ::= ident ;
-Index       ::= '[' Expr ']' ;
+IndexExpr   ::= PrimaryExpr '[' Expr ']' ;
 ArrayLit    ::= '[' ExprList? ']' ;
 CharLit     ::= char ;
 ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;

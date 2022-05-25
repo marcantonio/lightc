@@ -1,0 +1,24 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 283
+expression: "(test[1], ast, ast_string)"
+---
+- "x[0]"
+- Ok:
+    nodes:
+      - Expr:
+          Index:
+            array:
+              Expr:
+                Ident:
+                  name: x
+                  ty: ~
+            idx:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 0
+                  ty: ~
+            ty: ~
+- "x[0]"
+

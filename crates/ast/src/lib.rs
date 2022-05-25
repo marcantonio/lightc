@@ -104,6 +104,11 @@ pub enum Expression {
         list: Vec<Node>,
         ty: Option<Type>,
     },
+    Index {
+        array: Box<Node>,
+        idx: Box<Node>,
+        ty: Option<Type>,
+    }
 }
 
 impl Expression {
@@ -118,6 +123,7 @@ impl Expression {
             Call { ty, .. } => ty,
             Cond { ty, .. } => ty,
             Block { ty, .. } => ty,
+            Index { ty, .. } => ty,
         }
         .as_ref()
     }

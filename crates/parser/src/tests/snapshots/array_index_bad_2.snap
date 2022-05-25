@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 286
+expression: "(test[1], ast, ast_string)"
+---
+- "x[]"
+- Err:
+    message: "Expecting primary expression. Got `CloseBracket`"
+    line: 1
+    column: 3
+- "Parsing error: Expecting primary expression. Got `CloseBracket` at 1:3"
+

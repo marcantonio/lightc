@@ -36,12 +36,6 @@ fn main() {
 
     printBang()
 
-    let y: int32 = 3
-    for y: int8 = 1; y < x; 1 {
-        y
-    }
-    y
-
-    let c: char = 'c'
-    c == c
+    let a: [int] = [1, 2, 3]
+    a[0]
 }
