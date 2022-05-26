@@ -664,6 +664,59 @@ x = [4, 5, 6]
         ],
         ["lit_bad_1", "let x: [int] = [1, 2.0, 3]"],
         ["lit_bad_2", "let x: [float] = [1, 2, 3]"],
+        ["empty_lit", "let x: [int] = []"],
+        [
+            "index_1",
+            r#"
+let x: [int] = [1, 2, 3]
+x[0]
+"#,
+        ],
+        [
+            "index_2",
+            r#"
+let x: [int] = [1, 2, 3]
+x[1 + 2]
+"#,
+        ],
+        [
+            "index_3",
+            r#"
+let x: [int] = [1, 2, 3]
+let y: int = 1
+x[y]
+"#,
+        ],
+        [
+            "index_bad_1",
+            r#"
+let x: [int] = [1, 2, 3]
+let y: float = 1.0
+x[y]
+"#,
+        ],
+        [
+            "index_bad_2",
+            r#"
+let x: [int] = [1, 2, 3]
+x['c']
+"#,
+        ],
+        [
+            "index_bad_3",
+            r#"
+let x: int;
+x[y]
+"#,
+        ],
+        [
+            "index_bad_4",
+            r#"
+let x: [int] = [1, 2, 3]
+let y: int8 = 1
+x[y]
+"#,
+        ],
     ];
 
     run_insta!("array", tests)

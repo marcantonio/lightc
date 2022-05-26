@@ -105,10 +105,10 @@ pub enum Expression {
         ty: Option<Type>,
     },
     Index {
-        array: Box<Node>,
+        binding: Box<Node>,
         idx: Box<Node>,
         ty: Option<Type>,
-    }
+    },
 }
 
 impl Expression {

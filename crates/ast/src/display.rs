@@ -83,7 +83,7 @@ impl Display for Expression {
                 });
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             }
-            Index { array, idx, .. } => write!(f, "{}[{}]", array, idx),
+            Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
         }
     }
 }
@@ -117,7 +117,7 @@ impl Display for Literal {
             Double(v) => write!(f, "{}", v),
             Bool(v) => write!(f, "{}", v),
             Char(v) => write!(f, "{}", *v as char),
-            Array { elements: el, ..} => {
+            Array { elements: el, .. } => {
                 let mut s = String::from("[");
                 if !el.is_empty() {
                     for e in el {

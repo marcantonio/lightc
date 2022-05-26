@@ -274,6 +274,7 @@ fn test_array() {
         ["type", "let x: [int]"],
         ["type_bad_1", "let x: [int"],
         ["type_bad_2", "let x: ["],
+        ["type_bad_3", "let x: [foo]"],
         ["lit", "let x: [int] = [1, 2, 3]"],
         ["empty_lit", "let x: [int] = []"],
         ["index_1", "x[0]"],

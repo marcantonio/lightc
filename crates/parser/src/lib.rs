@@ -384,7 +384,7 @@ impl<'a> Parser<'a> {
     }
 
     // IndexExpr ::= PrimaryExpr '[' Expr ']' ;
-    fn parse_index(&mut self, array: Node) -> ParseResult {
+    fn parse_index(&mut self, binding: Node) -> ParseResult {
         self.tokens.next(); // Eat open bracket
 
         let index = self.parse_expr(0)?;
@@ -396,7 +396,7 @@ impl<'a> Parser<'a> {
         );
 
         Ok(Node::Expr(Expression::Index {
-            array: Box::new(array),
+            binding: Box::new(binding),
             idx: Box::new(index),
             ty: None,
         }))

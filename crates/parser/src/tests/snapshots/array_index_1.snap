@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 283
+assertion_line: 288
 expression: "(test[1], ast, ast_string)"
 ---
 - "x[0]"
@@ -8,7 +8,7 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - Expr:
           Index:
-            array:
+            binding:
               Expr:
                 Ident:
                   name: x

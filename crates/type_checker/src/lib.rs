@@ -265,7 +265,7 @@ impl TypeChecker {
                 ty,
             } => self.check_cond(cond_expr, then_block, else_block.as_mut(), ty),
             Block { list, ty } => self.check_block(list, ty),
-            Index { .. } => todo!(),
+            Index { binding, idx, ty } => self.check_index(binding, idx, ty),
         }
     }
 
@@ -285,6 +285,29 @@ impl TypeChecker {
         self.symbol_table.up_scope()?;
 
         Ok(list_ty)
+    }
+
+    fn check_index<T: AsExprMut<Expression>>(
+        &mut self,
+        binding: &mut T,
+        idx: &mut T,
+        ty: &mut Option<Type>,
+    ) -> Result<Type, String> {
+        let binding_ty = match self.check_expr(binding, None)? {
+            Type::Array(t) => t,
+            t => return Err(format!("Can't index `{}`", t)),
+        };
+
+        // TODO: Coerce into int32
+        let idx_ty = self.check_expr(idx, Some(&Type::Int32))?;
+        if !matches!(idx_ty, int_types!()) {
+            return Err(format!("Array index must be an `int`, found `{}`", idx_ty));
+        } else if !matches!(idx_ty, Type::Int32) {
+            return Err("Index must be an int32 (for now)".to_string());
+        }
+
+        *ty = Some(*binding_ty.clone());
+        Ok(*binding_ty)
     }
 
     // If there's a type hint, use it or fail. If not, use the literal's

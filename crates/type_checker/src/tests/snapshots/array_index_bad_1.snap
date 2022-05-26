@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 719
+expression: "(test[1], res)"
+---
+- "\nlet x: [int] = [1, 2, 3]\nlet y: float = 1.0\nx[y]\n"
+- Err: "Array index must be an `int`, found `float`"
+
