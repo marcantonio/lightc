@@ -158,7 +158,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Some(int64_types!()) => self.context.i64_type().fn_type(&args_type, false),
             Some(Type::Float) => self.context.f32_type().fn_type(&args_type, false),
             Some(Type::Double) => self.context.f64_type().fn_type(&args_type, false),
-            Some(_) | None => self.context.void_type().fn_type(&args_type, false),
+            Some(Type::Bool) => self.context.bool_type().fn_type(&args_type, false),
+            Some(Type::Void) | None => self.context.void_type().fn_type(&args_type, false),
+            Some(Type::Array(_)) => todo!(),
         };
 
         // Add function to current module's symbold table. Defaults to external
@@ -203,10 +205,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_ty(), body_val) {
-            (Some(numeric_types!()), Some(v)) => self.builder.build_return(Some(&v)),
+            (Some(numeric_types!() | Type::Bool), Some(v)) => self.builder.build_return(Some(&v)),
             (Some(rt), None) if rt != &Type::Void => {
                 return Err(format!(
-                    "Function should return {} but last statement is void",
+                    "Function should return `{}` but last statement is void",
                     rt
                 ))
             }
