@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) -> { b }"
 - Err:
-    message: "Expecting `prototype` type annotation. Got `OpenBrace`"
+    message: "Expecting prototype type annotation. Got `OpenBrace`"
     line: 1
     column: 17
-- "Parsing error: Expecting `prototype` type annotation. Got `OpenBrace` at 1:17"
+- "Parsing error: Expecting prototype type annotation. Got `OpenBrace` at 1:17"
 

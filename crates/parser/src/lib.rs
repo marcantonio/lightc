@@ -573,7 +573,8 @@ impl<'a> Parser<'a> {
 
     // TypeAntn ::= type | '[' type ']' ;
     fn parse_type_antn(&mut self, caller: &str) -> Result<Type, ParseError> {
-        let ty = match self.tokens.next() {
+        let token = self.tokens.next();
+        let ty = match token {
             Some(Token {
                 tt: TokenType::OpenBracket,
                 ..
@@ -585,10 +586,31 @@ impl<'a> Parser<'a> {
                 );
                 expect_next_token!(
                     self.tokens,
+                    TokenType::Semicolon(_),
+                    format!(
+                        "Expecting semicolon after `{}` in `{}` type annotation",
+                        ty, caller
+                    )
+                );
+
+                let size = match self.parse_expr(0)? {
+                    Node::Expr(Expression::Lit {
+                        value: Literal::UInt64(s),
+                        ..
+                    }) => s,
+                    _ => {
+                        return Err(ParseError::from((
+                            "Expecting a literal int for size in array type".to_string(),
+                            token.unwrap(),
+                        )))
+                    }
+                };
+                expect_next_token!(
+                    self.tokens,
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(Box::new(ty.clone()))
+                Type::Array(Box::new(ty.clone()), size.try_into().unwrap()) // XXX
             }
             Some(Token {
                 tt: TokenType::VarType(ty),
@@ -596,7 +618,7 @@ impl<'a> Parser<'a> {
             }) => ty.clone(),
             Some(next) => {
                 return Err(ParseError::from((
-                    format!("Expecting `{}` type annotation. Got `{}`", caller, next),
+                    format!("Expecting {} type annotation. Got `{}`", caller, next),
                     next,
                 )))
             }

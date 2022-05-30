@@ -1,16 +1,18 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 682
+assertion_line: 723
 expression: "(test[1], res)"
 ---
-- "\nlet x: [int] = [1, 2, 3]\nx[0]\n"
+- "\nlet x: [int; 3] = [1, 2, 3]\nx[0]\n"
 - Ok:
     nodes:
       - Stmt:
           Let:
             name: x
             antn:
-              Array: Int32
+              Array:
+                - Int32
+                - 3
             init:
               Expr:
                 Lit:
@@ -34,7 +36,9 @@ expression: "(test[1], res)"
                               ty: Int32
                       inner_ty: Int32
                   ty:
-                    Array: Int32
+                    Array:
+                      - Int32
+                      - 3
       - Expr:
           Index:
             binding:
@@ -42,7 +46,9 @@ expression: "(test[1], res)"
                 Ident:
                   name: x
                   ty:
-                    Array: Int32
+                    Array:
+                      - Int32
+                      - 3
             idx:
               Expr:
                 Lit:

@@ -162,7 +162,13 @@ pub enum Type {
     Bool,
     Char,
     Void,
-    Array(Box<Type>),
+    Array(Box<Type>, u32),
+}
+
+impl Default for Type {
+    fn default() -> Self {
+        Self::Void
+    }
 }
 
 impl std::fmt::Display for Type {

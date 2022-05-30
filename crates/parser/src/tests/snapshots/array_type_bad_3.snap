@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 288
+assertion_line: 290
 expression: "(test[1], ast, ast_string)"
 ---
-- "let x: [foo]"
+- "let x: [int]"
 - Err:
-    message: "Expecting type after `[` in `let` type annotation. Got `identifier: foo`"
+    message: "Expecting semicolon after `int32` in `let` type annotation. Got `CloseBracket`"
     line: 1
-    column: 9
-- "Parsing error: Expecting type after `[` in `let` type annotation. Got `identifier: foo` at 1:9"
+    column: 12
+- "Parsing error: Expecting semicolon after `int32` in `let` type annotation. Got `CloseBracket` at 1:12"
 

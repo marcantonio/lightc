@@ -294,7 +294,7 @@ impl TypeChecker {
         ty: &mut Option<Type>,
     ) -> Result<Type, String> {
         let binding_ty = match self.check_expr(binding, None)? {
-            Type::Array(t) => t,
+            Type::Array(t, _) => t,
             t => return Err(format!("Can't index `{}`", t)),
         };
 
@@ -343,7 +343,7 @@ impl TypeChecker {
                     }
                     Type::Bool => return Err("Literal is an integer in a bool context".to_string()),
                     Type::Char => return Err("Literal is an integer in a char context".to_string()),
-                    Type::Array(_) => {
+                    Type::Array(..) => {
                         return Err("Literal is an integer in an array context".to_string())
                     }
                     _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
@@ -356,7 +356,7 @@ impl TypeChecker {
                     }
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     Type::Char => return Err("Literal is a float in a char context".to_string()),
-                    Type::Array(_) => {
+                    Type::Array(..) => {
                         return Err("Literal is a float in an array context".to_string())
                     }
                     _ => unreachable!("NONCANBE: Internal float conversion error"),
@@ -397,10 +397,19 @@ impl TypeChecker {
         };
 
         // Clone the inner type hint
-        let ty = match ty_hint.unwrap() {
-            Type::Array(ty) => ty.clone(),
+        let (ty, size) = match ty_hint.unwrap() {
+            Type::Array(ty, sz) => (ty.clone(), sz),
             err => unreachable!("fatal error: array literal has invalid type hint `{}`", err),
         };
+
+        // Make sure array is big enough
+        if elements.len() as u32 > *size {
+            return Err(format!(
+                "Array literal too big in assignment: `{}` > `{}`",
+                elements.len(),
+                size
+            ));
+        }
 
         // Check every element and make sure they are uniform
         for el in elements {
@@ -415,7 +424,7 @@ impl TypeChecker {
 
         // Set the element type and return the composite type
         *inner_ty = Some(*ty.clone());
-        Ok(Type::Array(ty))
+        Ok(Type::Array(ty, *size))
     }
 
     fn check_ident(&self, name: &str, ty: &mut Option<Type>) -> Result<Type, String> {

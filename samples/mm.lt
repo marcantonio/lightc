@@ -5,7 +5,7 @@ fn printDot() {
     putchar(10)
 }
 
-fn printInt(x: int, y: int8) {
+fn printInt(x: int, y: float) {
     putchar(x + 48)
     putchar(10)
 }
@@ -20,11 +20,15 @@ fn printEq() {
     putchar(10)
 }
 
+fn retBool() -> bool {
+    false
+}
+
 fn main() {
     let x: int8 = 5
     -x
     // x = x + 3
-    // printInt(3, 40)
+    printInt(3, 1.0)
     // let x: int8 = 3
     // let y: float = 2.0
     // let b: bool = false
@@ -36,6 +40,11 @@ fn main() {
 
     printBang()
 
-    let a: [int] = [1, 2, 3]
-    a[0]
+    if retBool() {
+        printBang()
+    } else {
+        printDot()
+    }
+    let a: [int; 3] = [1, 2, 3]
+    // a[0]
 }

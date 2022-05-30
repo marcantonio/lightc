@@ -3,7 +3,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
-use inkwell::types::BasicMetadataTypeEnum;
+use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType};
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 
@@ -130,37 +130,28 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .iter()
             .map(|x| {
                 let (_, ty) = x;
-                match ty {
-                    int8_types!() | Type::Char => {
-                        BasicMetadataTypeEnum::IntType(self.context.i8_type())
-                    }
-                    int16_types!() => BasicMetadataTypeEnum::IntType(self.context.i16_type()),
-                    int32_types!() => BasicMetadataTypeEnum::IntType(self.context.i32_type()),
-                    int64_types!() => BasicMetadataTypeEnum::IntType(self.context.i64_type()),
-                    Type::Float => BasicMetadataTypeEnum::FloatType(self.context.f32_type()),
-                    Type::Double => BasicMetadataTypeEnum::FloatType(self.context.f64_type()),
-                    Type::Bool => BasicMetadataTypeEnum::IntType(self.context.bool_type()),
-                    Type::Void => {
-                        unreachable!("fatal: void type for prototype args in codegen_proto()")
-                    }
-                    Type::Array(_) => todo!(),
+                match self.get_llvm_ty(ty.clone()) {
+                    AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
+                    AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
+                    ty => unreachable!(
+                        "fatal: unsupported argument type `{}` in prototype `{}()`",
+                        ty.print_to_string(),
+                        proto.name(),
+                    ),
                 }
             })
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         // Generate function based on return type
-        let func_type = match proto.ret_ty() {
-            Some(int8_types!()) | Some(Type::Char) => {
-                self.context.i8_type().fn_type(&args_type, false)
-            }
-            Some(int16_types!()) => self.context.i16_type().fn_type(&args_type, false),
-            Some(int32_types!()) => self.context.i32_type().fn_type(&args_type, false),
-            Some(int64_types!()) => self.context.i64_type().fn_type(&args_type, false),
-            Some(Type::Float) => self.context.f32_type().fn_type(&args_type, false),
-            Some(Type::Double) => self.context.f64_type().fn_type(&args_type, false),
-            Some(Type::Bool) => self.context.bool_type().fn_type(&args_type, false),
-            Some(Type::Void) | None => self.context.void_type().fn_type(&args_type, false),
-            Some(Type::Array(_)) => todo!(),
+        let func_type = match self.get_llvm_ty(proto.ret_ty().cloned().unwrap_or_default()) {
+            AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_type, false),
+            AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
+            AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
+            ty => unreachable!(
+                "fatal: unsupported return type `{}` in prototype `{}()`",
+                ty.print_to_string(),
+                proto.name(),
+            ),
         };
 
         // Add function to current module's symbold table. Defaults to external
@@ -371,7 +362,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 Some(self.context.f64_type().const_zero().as_basic_value_enum())
             }
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::Array(_), None) => {
+            (Type::Void | Type::Array(..), None) => {
                 unreachable!("NONCANBE: void type for init annotation in codegen_let()")
             }
         };
@@ -427,7 +418,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         Ok(node_val)
     }
 
-    fn codegen_lit(&self, value: &Literal) -> ExprResult<'ctx> {
+    fn codegen_lit(&mut self, value: &Literal) -> ExprResult<'ctx> {
         use Literal::*;
 
         Ok(match value {
@@ -486,7 +477,30 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .bool_type()
                 .const_int(*v as u64, true)
                 .as_basic_value_enum(),
-            Array { .. } => todo!(),
+            Array { elements, inner_ty } => {
+                let len = elements.len();
+                let mut vals = Vec::with_capacity(len);
+                for el in elements {
+                    vals.push(self.codegen_node(el)?.unwrap());
+                }
+                match self.get_llvm_ty(inner_ty.as_ref().cloned().unwrap()) {
+                    AnyTypeEnum::FloatType(ty) => {
+                        let vals = vals
+                            .iter()
+                            .map(|v| v.into_float_value())
+                            .collect::<Vec<_>>();
+                        ty.const_array(&vals).as_basic_value_enum()
+                    }
+                    AnyTypeEnum::IntType(ty) => {
+                        let vals = vals
+                            .iter()
+                            .map(|v| v.into_int_value())
+                            .collect::<Vec<_>>();
+                        ty.const_array(&vals).as_basic_value_enum()
+                    }
+                    _ => todo!(),
+                }
+            }
         })
     }
 
@@ -708,7 +722,35 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 "NONCANBE: void type for stack variable in create_entry_block_alloca()"
             ),
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-            Type::Array(_) => todo!(),
+            Type::Array(ty, ..) => {
+                let ty = match self.get_llvm_ty(ty.as_ref().clone()) {
+                    AnyTypeEnum::FloatType(ty) => ty.as_basic_type_enum(),
+                    AnyTypeEnum::IntType(ty) => ty.as_basic_type_enum(),
+                    _ => todo!(),
+                };
+                builder.build_alloca(ty.array_type(3), name)
+            }
+        }
+    }
+
+    fn get_llvm_ty(&self, ty: Type) -> AnyTypeEnum<'ctx> {
+        match ty {
+            int8_types!() | Type::Char => self.context.i8_type().as_any_type_enum(),
+            int16_types!() => self.context.i16_type().as_any_type_enum(),
+            int32_types!() => self.context.i32_type().as_any_type_enum(),
+            int64_types!() => self.context.i64_type().as_any_type_enum(),
+            Type::Float => self.context.f32_type().as_any_type_enum(),
+            Type::Double => self.context.f64_type().as_any_type_enum(),
+            Type::Bool => self.context.bool_type().as_any_type_enum(),
+            Type::Void => self.context.void_type().as_any_type_enum(),
+            Type::Array(ty, size) => {
+                match self.get_llvm_ty(*ty) {
+                    AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
+                    AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
+                    AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
+                    _ => todo!(),
+                }
+            }
         }
     }
 }

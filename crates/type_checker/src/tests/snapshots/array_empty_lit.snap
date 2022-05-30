@@ -1,16 +1,18 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 676
+assertion_line: 723
 expression: "(test[1], res)"
 ---
-- "let x: [int] = []"
+- "let x: [int; 3] = []"
 - Ok:
     nodes:
       - Stmt:
           Let:
             name: x
             antn:
-              Array: Int32
+              Array:
+                - Int32
+                - 3
             init:
               Expr:
                 Lit:
@@ -19,5 +21,7 @@ expression: "(test[1], res)"
                       elements: []
                       inner_ty: Int32
                   ty:
-                    Array: Int32
+                    Array:
+                      - Int32
+                      - 3
 

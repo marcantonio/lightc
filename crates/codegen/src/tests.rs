@@ -347,3 +347,17 @@ fn main() -> int {
     ]];
     run_insta!("unop", tests);
 }
+
+#[test]
+fn test_array() {
+    let tests = [[
+        "basic",
+        r#"
+fn main() {
+    let a: [int; 3] = [1, 2, 3]
+//    a[1]
+}
+"#,
+    ]];
+    run_insta!("array", tests);
+}

@@ -3,7 +3,7 @@ source: crates/lexer/src/tests.rs
 assertion_line: 177
 expression: "(test[1], tokens)"
 ---
-- "[int]"
+- "[int; 3]"
 - Ok:
     - tt: OpenBracket
       line: 1
@@ -12,11 +12,19 @@ expression: "(test[1], tokens)"
         VarType: Int32
       line: 1
       column: 2
-    - tt: CloseBracket
+    - tt:
+        Semicolon: false
       line: 1
       column: 5
     - tt:
+        Num: "3"
+      line: 1
+      column: 7
+    - tt: CloseBracket
+      line: 1
+      column: 8
+    - tt:
         Semicolon: true
       line: 1
-      column: 6
+      column: 9
 

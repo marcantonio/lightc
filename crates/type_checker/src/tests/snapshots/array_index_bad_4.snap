@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 722
+assertion_line: 723
 expression: "(test[1], res)"
 ---
-- "\nlet x: [int] = [1, 2, 3]\nlet y: int8 = 1\nx[y]\n"
+- "\nlet x: [int; 3] = [1, 2, 3]\nlet y: int8 = 1\nx[y]\n"
 - Err: Index must be an int32 (for now)
 

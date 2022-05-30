@@ -271,12 +271,14 @@ fn test_unop() {
 #[test]
 fn test_array() {
     let tests = [
-        ["type", "let x: [int]"],
-        ["type_bad_1", "let x: [int"],
-        ["type_bad_2", "let x: ["],
-        ["type_bad_3", "let x: [foo]"],
-        ["lit", "let x: [int] = [1, 2, 3]"],
-        ["empty_lit", "let x: [int] = []"],
+        ["type", "let x: [int; 3]"],
+        ["type_bad_1", "let x: [int;"],
+        ["type_bad_2", "let x: [int"],
+        ["type_bad_3", "let x: [int]"],
+        ["type_bad_4", "let x: ["],
+        ["type_bad_5", "let x: [foo]"],
+        ["lit", "let x: [int; 3] = [1, 2, 3]"],
+        ["empty_lit", "let x: [int; 3] = []"],
         ["index_1", "x[0]"],
         ["index_2", "x[1 + 2]"],
         ["index_3", "x[y[0]]"],

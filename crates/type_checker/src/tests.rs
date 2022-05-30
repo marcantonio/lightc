@@ -653,36 +653,37 @@ fn foo() {
 #[test]
 fn test_array() {
     let tests = [
-        ["type", "let x: [int]"],
-        ["lit", "let x: [int] = [1, 2, 3]"],
+        ["type", "let x: [int; 3]"],
+        ["lit", "let x: [int; 3] = [1, 2, 3]"],
         [
             "lit_reassign",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 x = [4, 5, 6]
 "#,
         ],
-        ["lit_bad_1", "let x: [int] = [1, 2.0, 3]"],
-        ["lit_bad_2", "let x: [float] = [1, 2, 3]"],
-        ["empty_lit", "let x: [int] = []"],
+        ["lit_bad_1", "let x: [int; 3] = [1, 2.0, 3]"],
+        ["lit_bad_2", "let x: [float; 3] = [1, 2, 3]"],
+        ["lit_bad_3", "let x: [int; 2] = [1, 2, 3]"],
+        ["empty_lit", "let x: [int; 3] = []"],
         [
             "index_1",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 x[0]
 "#,
         ],
         [
             "index_2",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 x[1 + 2]
 "#,
         ],
         [
             "index_3",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 let y: int = 1
 x[y]
 "#,
@@ -690,7 +691,7 @@ x[y]
         [
             "index_bad_1",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 let y: float = 1.0
 x[y]
 "#,
@@ -698,7 +699,7 @@ x[y]
         [
             "index_bad_2",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 x['c']
 "#,
         ],
@@ -712,7 +713,7 @@ x[y]
         [
             "index_bad_4",
             r#"
-let x: [int] = [1, 2, 3]
+let x: [int; 3] = [1, 2, 3]
 let y: int8 = 1
 x[y]
 "#,

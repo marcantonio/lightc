@@ -173,7 +173,7 @@ fn test_semi() {
 
 #[test]
 fn test_array() {
-    let tests = [["type", "[int]"], ["lit", "[1, 2, 3]"], ["index", "foo[0]"]];
+    let tests = [["type", "[int; 3]"], ["lit", "[1, 2, 3]"], ["index", "foo[0]"]];
     run_insta!("array", tests);
 }
 

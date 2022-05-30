@@ -1,0 +1,12 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 290
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: [foo]"
+- Err:
+    message: "Expecting type after `[` in `let` type annotation. Got `identifier: foo`"
+    line: 1
+    column: 9
+- "Parsing error: Expecting type after `[` in `let` type annotation. Got `identifier: foo` at 1:9"
+
