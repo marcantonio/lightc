@@ -86,11 +86,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     // Iterate over all nodes and codegen. Optionally return a string (for
     // testing).
-    pub fn walk(&mut self, ast: &Ast<Node>) -> Result<FunctionValue, String> {
+    pub fn walk(&mut self, ast: &Ast<Node>) -> Result<(), String> {
         for node in ast.nodes() {
             node.accept(self)?;
         }
-        self.main.ok_or_else(|| "main() not found".to_string())
+        if self.main.is_none() {
+            Err("main() not found".to_string())
+        } else {
+            Ok(())
+        }
     }
 
     // Helper function for when we don't know if we have a statement or an
@@ -492,10 +496,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         ty.const_array(&vals).as_basic_value_enum()
                     }
                     AnyTypeEnum::IntType(ty) => {
-                        let vals = vals
-                            .iter()
-                            .map(|v| v.into_int_value())
-                            .collect::<Vec<_>>();
+                        let vals = vals.iter().map(|v| v.into_int_value()).collect::<Vec<_>>();
                         ty.const_array(&vals).as_basic_value_enum()
                     }
                     _ => todo!(),
@@ -743,14 +744,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Double => self.context.f64_type().as_any_type_enum(),
             Type::Bool => self.context.bool_type().as_any_type_enum(),
             Type::Void => self.context.void_type().as_any_type_enum(),
-            Type::Array(ty, size) => {
-                match self.get_llvm_ty(*ty) {
-                    AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
-                    AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
-                    AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
-                    _ => todo!(),
-                }
-            }
+            Type::Array(ty, size) => match self.get_llvm_ty(*ty) {
+                AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
+                AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
+                AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
+                _ => todo!(),
+            },
         }
     }
 }

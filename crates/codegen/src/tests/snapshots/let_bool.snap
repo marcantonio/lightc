@@ -1,8 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 251
-expression: "(test[1], res)"
+assertion_line: 255
+expression: "(test[1], res, res_opt)"
 ---
 - "\nfn main() {\n    let x: bool\n}\n"
-- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  %x = alloca i1, align 1\n  store i1 false, i1* %x, align 1\n  ret i32 0\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 0\n}\n"
 

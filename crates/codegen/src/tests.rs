@@ -1,6 +1,5 @@
 use inkwell::context::Context;
 use inkwell::passes::PassManager;
-use inkwell::values::{AnyValue, FunctionValue};
 
 use lexer::Lexer;
 use parser::Parser;
@@ -15,24 +14,29 @@ macro_rules! run_insta {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut ast = Parser::new(&tokens).parse().unwrap();
                 TypeChecker::new().walk(&mut ast).unwrap();
+
+                // Unoptimized code
+                let context = Context::create();
+                let builder = context.create_builder();
+                let module = context.create_module("main_mod");
+                let fpm = PassManager::create(&module);
+                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 0, false);
+                codegen.walk(&ast).expect("codegen error");
+                let res = module.print_to_string().to_string();
+
+                // Optimized code
                 let context = Context::create();
                 let builder = context.create_builder();
                 let module = context.create_module("main_mod");
                 let fpm = PassManager::create(&module);
                 let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
-                let res = code_to_string(codegen.walk(&ast));
-                insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
+                codegen.walk(&ast).expect("codegen error");
+                let res_opt = module.print_to_string().to_string();
+
+                insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));
             }
         })
     };
-}
-
-// This is how we deserialize FunctionValue to work with insta
-fn code_to_string(code: Result<FunctionValue, String>) -> String {
-    match code {
-        Ok(code) => code.print_to_string().to_string(),
-        Err(err) => err,
-    }
 }
 
 #[test]
@@ -327,7 +331,7 @@ fn foo() {
 fn main() { foo() }
 "#,
         ],
-    ];
+     ];
     run_insta!("scope", tests);
 }
 

@@ -346,7 +346,7 @@ impl TypeChecker {
                     Type::Array(..) => {
                         return Err("Literal is an integer in an array context".to_string())
                     }
-                    _ => return Err("NONCANBE: Internal integer conversion error".to_string()),
+                    Type::Void => return Err("Literal is an integer in a void context".to_string()),
                 },
                 Float(v) => match hint {
                     Type::Float => convert_num!(lit, v, Float, f32),

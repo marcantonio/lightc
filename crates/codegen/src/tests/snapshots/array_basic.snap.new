@@ -1,8 +1,0 @@
----
-source: crates/codegen/src/tests.rs
-assertion_line: 362
-expression: "(test[1], res)"
----
-- "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n//    a[1]\n}\n"
-- "define i32 @main() {\nentry:\n  ret i32 0\n}\n"
-
