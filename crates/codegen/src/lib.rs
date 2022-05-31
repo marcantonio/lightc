@@ -403,9 +403,42 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 ty.as_ref().unwrap(),
             )),
             Block { list, .. } => self.codegen_block(list).transpose(),
-            Index { .. } => todo!(),
+            Index { binding, idx, .. } => Some(self.codegen_index(binding, idx)),
         }
         .transpose()
+    }
+
+    fn codegen_index<T: AsExpr<Expression>>(&mut self, binding: &T, idx: &T) -> ExprResult<'ctx> {
+        // Extract the name of the ident in `binding`
+        //
+        // TODO: This could be something other than an ident in the future
+        let binding = binding.as_expr();
+        let name = match binding {
+            Expression::Ident { ref name, .. } => name,
+            _ => unreachable!("fatal error: name missing for array index"),
+        };
+
+        // Get the allocated array ptr
+        let array_ptr = self.symbol_table.get(name).unwrap_or_else(|| {
+            unreachable!(
+                "fatal error: codegen failed to resolve arrary name `{}`",
+                name
+            )
+        });
+
+        let idx = self
+            .codegen_expr(idx)?
+            .unwrap_or_else(|| unreachable!("fatal error: missing value in index of `{}`", name))
+            .into_int_value();
+        let zero = self.context.i32_type().const_zero();
+        let element_ptr = unsafe {
+            self.builder
+                .build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep")
+        };
+
+        Ok(self
+            .builder
+            .build_load(element_ptr, &("index.".to_owned() + name)))
     }
 
     fn codegen_block(&mut self, list: &[Node]) -> Result<Option<BasicValueEnum<'ctx>>, String> {
@@ -721,16 +754,16 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Float => builder.build_alloca(self.context.f32_type(), name),
             Type::Double => builder.build_alloca(self.context.f64_type(), name),
             Type::Void => unreachable!(
-                "NONCANBE: void type for stack variable in create_entry_block_alloca()"
+                "fatal error: void type for stack variable in create_entry_block_alloca()"
             ),
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-            Type::Array(ty, ..) => {
-                let ty = match self.get_llvm_ty(ty.as_ref().clone()) {
-                    AnyTypeEnum::FloatType(ty) => ty.as_basic_type_enum(),
-                    AnyTypeEnum::IntType(ty) => ty.as_basic_type_enum(),
+            Type::Array(ty, sz) => {
+                let array_ty = match self.get_llvm_ty(ty.as_ref().clone()) {
+                    AnyTypeEnum::FloatType(ty) => (ty.as_basic_type_enum(), sz),
+                    AnyTypeEnum::IntType(ty) => (ty.as_basic_type_enum(), sz),
                     _ => todo!(),
                 };
-                builder.build_alloca(ty.array_type(3), name)
+                builder.build_alloca(array_ty.0.array_type(*array_ty.1), name)
             }
         }
     }

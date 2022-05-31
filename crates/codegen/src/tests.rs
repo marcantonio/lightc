@@ -331,7 +331,7 @@ fn foo() {
 fn main() { foo() }
 "#,
         ],
-     ];
+    ];
     run_insta!("scope", tests);
 }
 
@@ -359,7 +359,7 @@ fn test_array() {
         r#"
 fn main() {
     let a: [int; 3] = [1, 2, 3]
-//    a[1]
+    a[1]
 }
 "#,
     ]];

@@ -3,7 +3,7 @@ source: crates/codegen/src/tests.rs
 assertion_line: 366
 expression: "(test[1], res, res_opt)"
 ---
-- "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n//    a[1]\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  ret i32 0\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 0\n}\n"
+- "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n    a[1]\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  %array.index.gep = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a = load i32, i32* %array.index.gep, align 4\n  ret i32 %index.a\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 2\n}\n"
 
