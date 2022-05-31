@@ -263,26 +263,35 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let start_code = self.codegen_expr(start_expr)?.value()?;
         self.builder.build_store(start_alloca, start_code);
 
-        // Create a block for the loop, a branch to it, and move the insertion
-        // to it
-        let loop_bb = self.context.append_basic_block(parent, "for.loop");
-        self.builder.build_unconditional_branch(loop_bb);
-        self.builder.position_at_end(loop_bb);
-
         // Save the variable value if we are shadowing and insert alloca into
         // local map
         let old_var = self.symbol_table.remove(start_name);
         self.symbol_table.insert(start_name, start_alloca)?;
 
-        // Generate all body expressions
-        self.codegen_expr(body)?;
+        // Create all the blocks
+        let cond_bb = self.context.append_basic_block(parent, "for.cond");
+        let body_bb = self.context.append_basic_block(parent, "for.body");
+        let step_bb = self.context.append_basic_block(parent, "for.step");
+        let post_bb = self.context.append_basic_block(parent, "for.post");
 
-        // Codegen step value and end cond
-        let step_code = self.codegen_expr(step_expr)?;
+        // Jump from entry to cond_bb
+        self.builder.build_unconditional_branch(cond_bb);
+
+        // Generate the conditional and branch to either the body or the end
+        self.builder.position_at_end(cond_bb);
         let cond_code = self.codegen_expr(cond_expr)?.value()?.into_int_value();
+        self.builder
+            .build_conditional_branch(cond_code, body_bb, post_bb);
 
-        // Load the current induction variable from the stack, increment it by
-        // step, and store it again. Body could have mutated it.
+        // Generate all body expressions
+        self.builder.position_at_end(body_bb);
+        self.codegen_expr(body)?;
+        self.builder.build_unconditional_branch(step_bb);
+
+        // Generate step value, load the current induction variable from the stack, increment it by
+        // step, and store it again. Body could have mutated it
+        self.builder.position_at_end(step_bb);
+        let step_code = self.codegen_expr(step_expr)?;
         let cur = self.builder.build_load(start_alloca, start_name);
         match start_expr.as_expr().ty() {
             Some(int_types!()) => {
@@ -301,22 +310,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             }
-            _ => unreachable!("NONCANBE: void type for step in codegen_for()"), // XXX: not just void
+            _ => unreachable!("fatal error: void type for step in codegen_for()"), // XXX: not just void
         };
 
-        let cond_bool = self.builder.build_int_compare(
-            IntPredicate::NE,
-            cond_code,
-            self.context.bool_type().const_zero(),
-            "for.cond",
-        );
+        // Loop around to the beginning
+        self.builder.build_unconditional_branch(cond_bb);
 
-        // Append a block for after the loop and insert the loop conditional at
-        // the end
-        let after_bb = self.context.append_basic_block(parent, "for.after");
-        self.builder
-            .build_conditional_branch(cond_bool, loop_bb, after_bb);
-        self.builder.position_at_end(after_bb);
+        // Set insertion to after the loop
+        self.builder.position_at_end(post_bb);
 
         // Reset shadowed variable
         self.symbol_table.remove(start_name);
