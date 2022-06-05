@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 366
+assertion_line: 367
 expression: "(test[1], res, res_opt)"
 ---
-- "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n    a[1]\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  %array.index.gep = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a = load i32, i32* %array.index.gep, align 4\n  ret i32 %index.a\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 2\n}\n"
+- "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n    a[1] = 7\n    a[1]\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  %array.index.gep = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a = load i32, i32* %array.index.gep, align 4\n  %array.index.gep1 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  store i32 7, i32* %array.index.gep1, align 4\n  %array.index.gep2 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a3 = load i32, i32* %array.index.gep2, align 4\n  ret i32 %index.a3\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 7\n}\n"
 

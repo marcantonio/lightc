@@ -505,7 +505,7 @@ impl TypeChecker {
         let rhs = rhs.as_expr_mut();
 
         // Make sure LHS is a var in assignments
-        if sym == Assign && !matches!(lhs, Expression::Ident { .. }) {
+        if sym == Assign && !matches!(lhs, Expression::Ident { .. } | Expression::Index { .. }) {
             return Err("Expected LHS to be a variable for assignment".to_string());
         }
 

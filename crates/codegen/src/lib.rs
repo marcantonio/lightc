@@ -409,36 +409,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     fn codegen_index<T: AsExpr<Expression>>(&mut self, binding: &T, idx: &T) -> ExprResult<'ctx> {
-        // Extract the name of the ident in `binding`
-        //
-        // TODO: This could be something other than an ident in the future
-        let binding = binding.as_expr();
-        let name = match binding {
-            Expression::Ident { ref name, .. } => name,
-            _ => unreachable!("fatal error: name missing for array index"),
-        };
-
-        // Get the allocated array ptr
-        let array_ptr = self.symbol_table.get(name).unwrap_or_else(|| {
-            unreachable!(
-                "fatal error: codegen failed to resolve arrary name `{}`",
-                name
-            )
-        });
-
-        let idx = self
-            .codegen_expr(idx)?
-            .unwrap_or_else(|| unreachable!("fatal error: missing value in index of `{}`", name))
-            .into_int_value();
-        let zero = self.context.i32_type().const_zero();
-        let element_ptr = unsafe {
-            self.builder
-                .build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep")
-        };
-
+        let (binding_name, element_ptr) = self.get_array_element(binding, idx)?;
         Ok(self
             .builder
-            .build_load(element_ptr, &("index.".to_owned() + name)))
+            .build_load(element_ptr, &("index.".to_owned() + binding_name.as_str())))
     }
 
     fn codegen_block(&mut self, list: &[Node]) -> Result<Option<BasicValueEnum<'ctx>>, String> {
@@ -765,6 +739,45 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 };
                 builder.build_alloca(array_ty.0.array_type(*array_ty.1), name)
             }
+        }
+    }
+
+    // Helper to fetch a pointer to an array element
+    fn get_array_element<T: AsExpr<Expression>>(
+        &mut self,
+        binding: &T,
+        idx: &T,
+    ) -> Result<(String, PointerValue<'ctx>), String> {
+        // Extract the name of the ident in `binding`
+        //
+        // TODO: This could be something other than an ident in the future
+        let binding = binding.as_expr();
+        let name = match binding {
+            Expression::Ident { ref name, .. } => name,
+            _ => unreachable!("fatal error: name missing for array index"),
+        };
+
+        // Get the allocated array ptr
+        let array_ptr = self.symbol_table.get(name).unwrap_or_else(|| {
+            unreachable!(
+                "fatal error: codegen failed to resolve array name `{}`",
+                name
+            )
+        });
+
+        // Codegen the index
+        let idx = self
+            .codegen_expr(idx)?
+            .unwrap_or_else(|| unreachable!("fatal error: missing value in index of `{}`", name))
+            .into_int_value();
+
+        let zero = self.context.i32_type().const_zero();
+        unsafe {
+            Ok((
+                name.to_owned(),
+                self.builder
+                    .build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep"),
+            ))
         }
     }
 

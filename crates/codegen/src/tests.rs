@@ -359,6 +359,7 @@ fn test_array() {
         r#"
 fn main() {
     let a: [int; 3] = [1, 2, 3]
+    a[1] = 7
     a[1]
 }
 "#,

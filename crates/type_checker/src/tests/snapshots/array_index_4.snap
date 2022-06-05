@@ -1,8 +1,70 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 704
+assertion_line: 730
 expression: "(test[1], res)"
 ---
-- "\nlet x: [int] = [1, 2, 3]\nlet y: int8 = 1\nx[y]\n"
-- Err: Index must be an int32 (for now)
+- "\nlet x: [int; 3] = [1, 2, 3]\nx[1] = 7\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn:
+              Array:
+                - Int32
+                - 3
+            init:
+              Expr:
+                Lit:
+                  value:
+                    Array:
+                      elements:
+                        - Expr:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                        - Expr:
+                            Lit:
+                              value:
+                                Int32: 2
+                              ty: Int32
+                        - Expr:
+                            Lit:
+                              value:
+                                Int32: 3
+                              ty: Int32
+                      inner_ty: Int32
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
+      - Expr:
+          BinOp:
+            sym: Assign
+            lhs:
+              Expr:
+                Index:
+                  binding:
+                    Expr:
+                      Ident:
+                        name: x
+                        ty:
+                          Array:
+                            - Int32
+                            - 3
+                  idx:
+                    Expr:
+                      Lit:
+                        value:
+                          Int32: 1
+                        ty: Int32
+                  ty: Int32
+            rhs:
+              Expr:
+                Lit:
+                  value:
+                    Int32: 7
+                  ty: Int32
+            ty: Void
 

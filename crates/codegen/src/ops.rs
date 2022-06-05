@@ -197,17 +197,21 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .as_basic_value_enum())
     }
 
-    pub(super) fn assign(&self, lhs: &Expression, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
-        let lhs_name = match lhs {
-            Expression::Ident { name, .. } => name,
+    pub(super) fn assign(&mut self, lhs: &Expression, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+        let lhs_var = match lhs {
+            Expression::Ident { name, .. } => {
+                self
+                    .symbol_table
+                    .get(name)
+                    .ok_or(format!("Unknown variable in assignment: {}", name))?
+                    .to_owned()
+            },
+            Expression::Index { binding, idx, .. } => {
+                let (_, element_ptr) = self.get_array_element(binding, idx)?;
+                element_ptr
+            }
             _ => unreachable!("Fatal: Bad LHS in codegen assignment: `{}`", lhs),
         };
-
-        let lhs_var = self
-            .symbol_table
-            .get(lhs_name)
-            .ok_or(format!("Unknown variable in assignment: {}", lhs_name))?
-            .to_owned();
 
         self.builder.build_store(lhs_var, rhs);
 

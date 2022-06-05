@@ -27,8 +27,11 @@ fn retBool() -> bool {
 fn main() {
     let a: [int; 3] = [1, 2, 3]
     for x: int = 0; x < 3; 1 {
-        printInt(x)
-//        printInt(a[x])
+        printInt(a[x])
     }
-//    printBang()
+    a[1] = 7
+    for x: int = 0; x < 3; 1 {
+        printInt(a[x])
+    }
+    printBang()
 }
