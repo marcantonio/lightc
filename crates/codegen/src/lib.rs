@@ -137,6 +137,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 match self.get_llvm_ty(ty.clone()) {
                     AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
                     AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
+                    AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
                     ty => unreachable!(
                         "fatal: unsupported argument type `{}` in prototype `{}()`",
                         ty.print_to_string(),

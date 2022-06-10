@@ -25,6 +25,7 @@
 - [x] Token output should be line based
 - [x] Token output should include context info
 - [ ] Convert Err(NONCANBE)'s to fatal
+- [ ] Type hints in function arguments
 
 # Roadmap
 - [x] Formalize grammar
