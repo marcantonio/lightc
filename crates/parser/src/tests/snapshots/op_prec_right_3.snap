@@ -1,9 +1,9 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 244
+assertion_line: 245
 expression: "(test[1], ast, ast_string)"
 ---
-- 19 ^ 21 ^ 40 / 2
+- 19 ** 21 ** 40 / 2
 - Ok:
     nodes:
       - Expr:
@@ -44,5 +44,5 @@ expression: "(test[1], ast, ast_string)"
                     UInt64: 2
                   ty: ~
             ty: ~
-- (/ (^ 19 (^ 21 40)) 2)
+- (/ (** 19 (** 21 40)) 2)
 

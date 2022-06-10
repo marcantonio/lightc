@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 265
+assertion_line: 268
 expression: "(test[1], ast, ast_string)"
 ---
 - "*2"
 - Err:
-    message: "Unknown unary operator: *"
+    message: "Unknown unary operator: `*`"
     line: 0
     column: 0
-- "Parsing error: Unknown unary operator: *"
+- "Parsing error: Unknown unary operator: `*`"
 

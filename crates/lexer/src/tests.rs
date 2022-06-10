@@ -152,7 +152,7 @@ let foo = 13
 
 #[test]
 fn test_ops() {
-    let tests = [["basic", "(x + y) * 4 / 4"]];
+    let tests = [["basic", "(x + y) * 4 / 4"], ["more", "x ^ 3 | 7 & 3"]];
     run_insta!("ops", tests);
 }
 

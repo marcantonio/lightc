@@ -29,9 +29,13 @@ fn main() {
     for x: int = 0; x < 3; 1 {
         printInt(a[x])
     }
-    a[1] = 7
+    a[1] = a[0] & a[2]
     for x: int = 0; x < 3; 1 {
         printInt(a[x])
     }
     printBang()
+
+    if true && true {
+        printBang()
+    }
 }

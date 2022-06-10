@@ -579,11 +579,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Sub => self.sub((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Mul => self.mul((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Div => self.div((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
-            And => self.and((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
-            Or => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            And | BitAnd => self.and((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            BitXor => self.xor((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
+            Or | BitOr => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Assign => self.assign(lhs, rhs_val),
-            op @ (Gt | Lt | Eq) => self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty)),
-            x => Err(format!("Unknown binary operator: {}", x)),
+            op @ (Gt | GtEq | Lt | LtEq | Eq | NotEq) => {
+                self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty))
+            }
+            x => Err(format!("Unknown binary operator: `{}`", x)),
         }
     }
 
@@ -594,7 +597,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let rhs_ty = rhs.as_expr().ty().unwrap();
         match op {
             Sub => self.neg((rhs_val, rhs_ty)),
-            x => Err(format!("Unknown unary operator: {}", x)),
+            x => Err(format!("Unknown unary operator: `{}`", x)),
         }
     }
 

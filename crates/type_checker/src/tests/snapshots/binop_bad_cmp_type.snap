@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 156
+assertion_line: 154
 expression: "(test[1], res)"
 ---
 - "\nfn main(x: int) {\n    true > true\n}\n"
-- Err: "Expected numeric type on either side of `>`, got lhs: `bool`, rhs: `bool`"
+- Err: "Invalid type combination found in `>` operation: (lhs: `bool`, rhs: `bool`)"
 

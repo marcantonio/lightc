@@ -541,7 +541,7 @@ impl TypeChecker {
                 }
                 Type::Bool
             }
-            Eq => {
+            Eq | NotEq => {
                 match (&lhs_ty, &rhs_ty) {
                     (
                         numeric_types!() | Type::Bool | Type::Char,
@@ -549,31 +549,31 @@ impl TypeChecker {
                     ) => (),
                     _ => {
                         return Err(format!(
-                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
                         sym, lhs_ty, rhs_ty
                     ))
                     }
                 };
                 Type::Bool
             }
-            Gt | Lt => {
+            Gt | GtEq | Lt | LtEq => {
                 match (&lhs_ty, &rhs_ty) {
                     (numeric_types!() | Type::Char, numeric_types!() | Type::Char) => (),
                     _ => {
                         return Err(format!(
-                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
                         sym, lhs_ty, rhs_ty
                     ))
                     }
                 };
                 Type::Bool
             }
-            Add | Div | Mul | Pow | Sub => {
+            Add | Div | Mul | Pow | Sub | BitAnd | BitXor | BitOr => {
                 match (&lhs_ty, &rhs_ty) {
                     (numeric_types!(), numeric_types!()) => (),
                     _ => {
                         return Err(format!(
-                        "Expected numeric type on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
                         sym, lhs_ty, rhs_ty
                     ))
                     }

@@ -104,11 +104,25 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::Bool => Ok(self
+            int_types!() | Type::Bool => Ok(self
                 .builder
                 .build_and(lhs.0.into_int_value(), rhs.0.into_int_value(), "and.int")
                 .as_basic_value_enum()),
             _ => Err("Unsupported type in `and` operation".to_string()),
+        }
+    }
+
+    pub(super) fn xor(
+        &self,
+        lhs: (BasicValueEnum<'ctx>, &Type),
+        rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> ExprResult<'ctx> {
+        match lhs.1 {
+            int_types!() | Type::Bool => Ok(self
+                .builder
+                .build_xor(lhs.0.into_int_value(), rhs.0.into_int_value(), "xor.int")
+                .as_basic_value_enum()),
+            _ => Err("Unsupported type in `xor` operation".to_string()),
         }
     }
 
@@ -118,7 +132,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         rhs: (BasicValueEnum<'ctx>, &Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
-            Type::Bool => Ok(self
+            int_types!() | Type::Bool => Ok(self
                 .builder
                 .build_or(lhs.0.into_int_value(), rhs.0.into_int_value(), "or.int")
                 .as_basic_value_enum()),
@@ -141,11 +155,23 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 rhs.0.into_int_value(),
                 "eq.int",
             ),
+            (int_types!() | Type::Bool | Type::Char, NotEq) => self.builder.build_int_compare(
+                IntPredicate::NE,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "ne.int",
+            ),
             (signed_int_types!(), Gt) => self.builder.build_int_compare(
                 IntPredicate::SGT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "sgt.int",
+            ),
+            (signed_int_types!(), GtEq) => self.builder.build_int_compare(
+                IntPredicate::SGE,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "sge.int",
             ),
             (signed_int_types!(), Lt) => self.builder.build_int_compare(
                 IntPredicate::SLT,
@@ -153,11 +179,23 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 rhs.0.into_int_value(),
                 "slt.int",
             ),
+            (signed_int_types!(), LtEq) => self.builder.build_int_compare(
+                IntPredicate::SLE,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "sle.int",
+            ),
             (unsigned_int_types!() | Type::Char, Gt) => self.builder.build_int_compare(
                 IntPredicate::UGT,
                 lhs.0.into_int_value(),
                 rhs.0.into_int_value(),
                 "ugt.int",
+            ),
+            (unsigned_int_types!() | Type::Char, GtEq) => self.builder.build_int_compare(
+                IntPredicate::UGE,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "uge.int",
             ),
             (unsigned_int_types!() | Type::Char, Lt) => self.builder.build_int_compare(
                 IntPredicate::ULT,
@@ -165,11 +203,23 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 rhs.0.into_int_value(),
                 "ult.int",
             ),
+            (unsigned_int_types!() | Type::Char, LtEq) => self.builder.build_int_compare(
+                IntPredicate::ULE,
+                lhs.0.into_int_value(),
+                rhs.0.into_int_value(),
+                "ule.int",
+            ),
             (float_types!(), Eq) => self.builder.build_float_compare(
                 FloatPredicate::UEQ,
                 lhs.0.into_float_value(),
                 rhs.0.into_float_value(),
                 "ueq.float",
+            ),
+            (float_types!(), NotEq) => self.builder.build_float_compare(
+                FloatPredicate::UNE,
+                lhs.0.into_float_value(),
+                rhs.0.into_float_value(),
+                "une.float",
             ),
             (float_types!(), Gt) => self.builder.build_float_compare(
                 FloatPredicate::UGT,
@@ -177,11 +227,23 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 rhs.0.into_float_value(),
                 "ugt.float",
             ),
+            (float_types!(), GtEq) => self.builder.build_float_compare(
+                FloatPredicate::UGE,
+                lhs.0.into_float_value(),
+                rhs.0.into_float_value(),
+                "uge.float",
+            ),
             (float_types!(), Lt) => self.builder.build_float_compare(
                 FloatPredicate::ULT,
                 lhs.0.into_float_value(),
                 rhs.0.into_float_value(),
                 "ult.float",
+            ),
+            (float_types!(), LtEq) => self.builder.build_float_compare(
+                FloatPredicate::ULE,
+                lhs.0.into_float_value(),
+                rhs.0.into_float_value(),
+                "ule.float",
             ),
             (ty, op) => {
                 return Err(format!(
@@ -197,15 +259,17 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .as_basic_value_enum())
     }
 
-    pub(super) fn assign(&mut self, lhs: &Expression, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
+    pub(super) fn assign(
+        &mut self,
+        lhs: &Expression,
+        rhs: BasicValueEnum<'ctx>,
+    ) -> ExprResult<'ctx> {
         let lhs_var = match lhs {
-            Expression::Ident { name, .. } => {
-                self
-                    .symbol_table
-                    .get(name)
-                    .ok_or(format!("Unknown variable in assignment: {}", name))?
-                    .to_owned()
-            },
+            Expression::Ident { name, .. } => self
+                .symbol_table
+                .get(name)
+                .ok_or(format!("Unknown variable in assignment: {}", name))?
+                .to_owned(),
             Expression::Index { binding, idx, .. } => {
                 let (_, element_ptr) = self.get_array_element(binding, idx)?;
                 element_ptr

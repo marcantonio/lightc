@@ -213,6 +213,18 @@ impl Lexer {
                     self.stream.next();
                     return Ok(Token::new(Op(Symbol::Eq), cur.line, cur.column));
                 }
+                '!' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Symbol::NotEq), cur.line, cur.column));
+                }
+                '>' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Symbol::GtEq), cur.line, cur.column));
+                }
+                '<' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Symbol::LtEq), cur.line, cur.column));
+                }
                 '&' if next == &'&' => {
                     self.stream.next();
                     return Ok(Token::new(Op(Symbol::And), cur.line, cur.column));
@@ -225,6 +237,10 @@ impl Lexer {
                     self.stream.next();
                     return Ok(Token::new(Op(Symbol::RetType), cur.line, cur.column));
                 }
+                '*' if next == &'*' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Symbol::Pow), cur.line, cur.column));
+                }
                 _ => (),
             }
         }
@@ -235,11 +251,13 @@ impl Lexer {
             '-' => Op(Symbol::Sub),
             '*' => Op(Symbol::Mul),
             '/' => Op(Symbol::Div),
-            '^' => Op(Symbol::Pow),
             '>' => Op(Symbol::Gt),
             '<' => Op(Symbol::Lt),
             '!' => Op(Symbol::Not),
             '=' => Op(Symbol::Assign),
+            '&' => Op(Symbol::BitAnd),
+            '^' => Op(Symbol::BitXor),
+            '|' => Op(Symbol::BitOr),
             '}' => CloseBrace,
             ']' => CloseBracket,
             ')' => CloseParen,

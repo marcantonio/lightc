@@ -321,7 +321,7 @@ fn main() { foo() }
 fn foo() {
     let x: float = 1.0
     if x < 2.0 {
-        let y: int = 2
+        let y: int = 4 & 3 ^ 1
         y
     } else {
         let y: int = -2
