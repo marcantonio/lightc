@@ -11,6 +11,6 @@ parser = { path = "../parser" }
 type_checker = { path = "../type_checker" }
 
 clap = { version = "3.0.14", features = ["derive"] }
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
-llvm-sys = "130"
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
+llvm-sys = "140"
 tempfile = "3.3.0"

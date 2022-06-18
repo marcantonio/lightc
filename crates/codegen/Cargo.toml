@@ -8,8 +8,8 @@ ast = { path = "../ast" }
 common = { path = "../common" }
 
 either = "1.6.1"
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
-llvm-sys = "130"
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
+llvm-sys = "140"
 serde = { version = "1.0.136", features = ["derive"] }
 
 [dev-dependencies]
