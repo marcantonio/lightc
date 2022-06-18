@@ -1,0 +1,6 @@
+extern putchar(x: int)
+
+fn hello() {
+    putchar(64)
+    putchar(10)
+}

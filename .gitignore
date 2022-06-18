@@ -1,2 +1,4 @@
 /target
 a.out
+/.build
+/stdlib/*.o

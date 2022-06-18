@@ -36,6 +36,7 @@ pub struct Codegen<'a, 'ctx> {
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     skip_verify: bool,
+    require_main: bool,
 }
 
 impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
@@ -59,6 +60,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         fpm: &'a PassManager<FunctionValue<'ctx>>,
         opt_level: usize,
         skip_verify: bool,
+        require_main: bool,
     ) -> Self {
         if opt_level > 0 {
             fpm.add_instruction_combining_pass();
@@ -81,6 +83,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             main: None,
             opt_level,
             skip_verify,
+            require_main,
         }
     }
 
@@ -90,8 +93,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         for node in ast.nodes() {
             node.accept(self)?;
         }
-        if self.main.is_none() {
-            Err("main() not found".to_string())
+        if self.require_main && self.main.is_none() {
+            Err("Function main() required in executable and not found".to_string())
         } else {
             Ok(())
         }

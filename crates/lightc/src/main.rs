@@ -3,12 +3,12 @@ use inkwell::{
     context::Context,
     module::Module,
     passes::PassManager,
-    targets::{InitializationConfig, Target, TargetMachine},
+    targets::{FileType, InitializationConfig, Target, TargetMachine},
     OptimizationLevel,
 };
-use std::fs;
 use std::path::PathBuf;
 use std::process::{exit, Command};
+use std::{env, fs};
 
 use codegen::Codegen;
 use lexer::Lexer;
@@ -19,7 +19,9 @@ mod jit_externs;
 
 fn main() {
     let args = Args::parse();
-    let source = fs::read_to_string(args.file).expect("Error opening file");
+    let source = fs::read_to_string(args.file.as_path()).expect("Error opening file");
+    let module_name = get_module_name(&args.file);
+    let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
 
     // Lexer
     let tokens = Lexer::new(&source).scan().unwrap_or_else(|e| {
@@ -63,8 +65,8 @@ fn main() {
     // Codegen
     let context = Context::create();
     let builder = context.create_builder();
-    let module = context.create_module("light_main");
-    set_target_machine(&module);
+    let module = context.create_module(&module_name);
+    let target_machine = set_target_machine(&module);
     let fpm = PassManager::create(&module);
     let mut codegen = Codegen::new(
         &context,
@@ -73,19 +75,9 @@ fn main() {
         &fpm,
         args.opt_level,
         args.no_verify,
+        !args.compile_only,
     );
     codegen.walk(&ast).expect("Compiler error");
-
-    let tmp_file = tempfile::Builder::new()
-        .prefix("lightc-")
-        .suffix(".ll")
-        .tempfile()
-        .expect("Error creating temp file")
-        .into_temp_path();
-
-    module
-        .print_to_file(&tmp_file)
-        .expect("Error writing tmp IR");
 
     if args.ir {
         println!("IR:");
@@ -94,20 +86,49 @@ fn main() {
 
     if args.jit {
         run_jit(&module);
-    } else {
-        Command::new("clang")
-            .arg(&tmp_file)
-            .arg("-lm")
-            .spawn()
-            .expect("Error compiling")
-            .wait()
-            .expect("Error waiting on clang");
+        exit(0);
     }
+
+    // File name for module binary
+    let mut module_file = build_dir;
+    module_file.push(&module_name);
+    let module_file = module_file.as_path().with_extension("o");
+
+    // Write the object file to the build directory
+    target_machine
+        .write_to_file(&module, FileType::Object, &module_file)
+        .expect("Error writing object file");
+
+    // If we just want the object file, copy it up to the root and exit
+    if args.compile_only {
+        let mut obj_file = root_dir;
+        obj_file.push(&module_name);
+        let obj_file = obj_file.as_path().with_extension("o");
+
+        fs::copy(module_file, obj_file).expect("Error copying object file");
+        exit(0);
+    }
+
+    let outfile = match args.output {
+        Some(file) => file,
+        None => String::from("a.out"),
+    };
+
+    Command::new("clang")
+        .arg("-o")
+        .arg(outfile)
+        .arg(module_file)
+        .arg("stdlib/stdlib.o")
+        .arg("-lm")
+        .spawn()
+        .expect("Error compiling")
+        .wait()
+        .expect("Error waiting on clang");
 }
 
 // Optimizes for host CPU
 // TODO: Make more generic
-fn set_target_machine(module: &Module) {
+fn set_target_machine(module: &Module) -> TargetMachine {
     Target::initialize_x86(&InitializationConfig::default());
     let triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&triple).expect("Target error");
@@ -124,6 +145,7 @@ fn set_target_machine(module: &Module) {
 
     module.set_data_layout(&target_machine.get_target_data().get_data_layout());
     module.set_triple(&triple);
+    target_machine
 }
 
 fn run_jit(module: &Module) {
@@ -143,6 +165,29 @@ fn run_jit(module: &Module) {
             eprintln!("Execution error: {}", e);
         }
     };
+}
+
+fn get_module_name(path: &PathBuf) -> String {
+    path.as_path()
+        .with_extension("")
+        .file_name()
+        .expect("Error getting source filename")
+        .to_str()
+        .expect("Error getting module name")
+        .to_owned()
+}
+
+fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
+    let root_dir = env::current_dir()?;
+    let mut build_dir = root_dir.clone();
+    build_dir.push(".build");
+
+    if build_dir.exists() {
+        fs::remove_dir_all(&build_dir)?;
+    }
+    fs::create_dir(&build_dir)?;
+
+    Ok((root_dir, build_dir))
 }
 
 #[derive(Clap, Debug)]
@@ -168,8 +213,8 @@ struct Args {
     jit: bool,
 
     /// Output to <file>
-    #[clap(short, long, value_name="file", default_value_t = String::from("./a.out"))]
-    output: String,
+    #[clap(short, long, value_name = "file")]
+    output: Option<String>,
 
     /// Optimization level
     #[clap(short = 'O', long, value_name="level", default_value_t = 1, parse(try_from_str=valid_opt_level))]
@@ -182,6 +227,10 @@ struct Args {
     /// Input file
     #[clap(parse(from_os_str))]
     file: PathBuf,
+
+    /// Compile and output object file
+    #[clap(short, parse(from_flag))]
+    compile_only: bool,
 }
 
 fn valid_opt_level(s: &str) -> Result<usize, String> {

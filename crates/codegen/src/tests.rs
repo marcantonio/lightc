@@ -20,7 +20,7 @@ macro_rules! run_insta {
                 let builder = context.create_builder();
                 let module = context.create_module("main_mod");
                 let fpm = PassManager::create(&module);
-                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 0, false);
+                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 0, false, true);
                 codegen.walk(&ast).expect("codegen error");
                 let res = module.print_to_string().to_string();
 
@@ -29,7 +29,7 @@ macro_rules! run_insta {
                 let builder = context.create_builder();
                 let module = context.create_module("main_mod");
                 let fpm = PassManager::create(&module);
-                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false);
+                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false, true);
                 codegen.walk(&ast).expect("codegen error");
                 let res_opt = module.print_to_string().to_string();
 
