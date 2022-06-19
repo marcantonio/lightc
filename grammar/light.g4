@@ -19,7 +19,9 @@ type_antn       : TYPE
 expr            : primary_expr
                 | expr ('*' | '/') expr
                 | expr ('+' | '-') expr
-                | expr ('>' | '<' | '==') expr
+                | expr ('>' | '>=' | '<' | '<=') expr
+                | expr ('==' | '!=') expr
+                | expr ('&' | '|' | '^') expr
                 | expr '&&' expr
                 | expr '||' expr
                 | ident_expr '=' expr;
@@ -31,9 +33,9 @@ primary_expr    : cond_expr
                 | paren_expr
                 | unop_expr
                 | primary_expr '[' expr ']';
-// ANTLR doesn't do mutual left recursion, so index_expr is defined as directly recursive above. The
-// Light parser handles this properly.
-//                 | index_expr;
+// ANTLR doesn't do mutual left recursion, so index_expr is defined as directly recursive
+// above. The Light parser handles this properly.
+//              | index_expr;
 // index_expr      : primary_expr '[' expr ']';
 unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER

@@ -13,8 +13,9 @@
 - [ ] Include file name in error
 - [ ] Add while
 - [ ] Desugar for loops
+- [ ] Add inc/dec operator
 - [x] Fix main exit code
-- [ ] Decide on redundant errors in codegen and the type checker
+- [x] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)
 - [ ] Extensive testing of binops, especially compares
 - [x] Ensure conditionals are bools
@@ -29,6 +30,15 @@
 
 # Roadmap
 - [x] Formalize grammar
-- [ ] Parser error recovery
 - [x] Add primitive types
+- [x] Add array types
+- [ ] Add desugar phase
 - [ ] Add string type
+- [ ] Globals
+- [ ] Type inference
+- [ ] Pointer types
+- [ ] Custom types
+- [ ] Manual memory management
+- [ ] Basic RAII
+- [ ] HashMap type
+- [ ] Parser error recovery

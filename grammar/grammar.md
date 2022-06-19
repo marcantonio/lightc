@@ -23,6 +23,7 @@ Expr        ::= PrimaryExpr
               | Expr mul_op Expr
               | Expr add_op Expr
               | Expr rel_op Expr
+              | Expr bit_op Expr
               | Expr '&&' Expr
               | Expr '||' Expr
               | IdentExpr '=' Expr ;
@@ -50,7 +51,9 @@ type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
               | 'float' | 'double' | 'bool' | 'char' ;
 bool        ::= 'true' | 'false' ;
 ident       ::= letter ( letter | digit | '_' )* ;
-rel_op      ::= '>' | '<' | '==' ;
+bit_op      ::= '&' | '|' | '^' ;
+eq_op       ::= '==' | '!=' ;
+rel_op      ::= '>' | '>=' | '<' | '<=' ;
 add_op      ::= '+' | '-' ;
 mul_op      ::= '*' | '/' ;
 number      ::= integer | float ;
