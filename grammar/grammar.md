@@ -1,7 +1,7 @@
 ## Light Grammar
-Formal grammar for light. It's written as a modified form of EBNF. Deviations from EBNF should be obvious are mainly for more concise ranges and repetition, similar to the [W3C's notation](https://www.w3.org/TR/xquery-31/#EBNFNotation).
+Formal grammar for Light. It's written as a modified form of EBNF. Deviations from EBNF should be obvious are mainly for more concise ranges and repetition, similar to the [W3C's notation](https://www.w3.org/TR/xquery-31/#EBNFNotation).
 
-Note that while semicolons are part of the formal grammar for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
+Note that while semicolons are part of the formal for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
 
 ```ebnf
 Program     ::= StmtList ;
@@ -26,6 +26,7 @@ Expr        ::= PrimaryExpr
               | Expr mul_op Expr
               | Expr add_op Expr
               | Expr rel_op Expr
+              | Expr eq_op Expr
               | Expr bit_op Expr
               | Expr '&&' Expr
               | Expr '||' Expr
