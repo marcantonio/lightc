@@ -34,6 +34,8 @@
     "for"
     "let"
     "fn"
+    "struct"
+    "self"
     "true"
     "false"))
 
@@ -52,6 +54,9 @@
 ;; Matches fn foo() -> `int'
 (defconst light-fn-return-re "\\(?:fn\\|extern\\)[[:space:]]+[[:word:]]+.+->[[:space:]]+\\([[:word:]]+\\)")
 
+;; Matches struct `foo'
+(defconst light-struct-def-re "struct[[:space:]]+\\([[:word:]]+\\)")
+
 ;; Matches a `int' or [`int; 3']
 (defconst light-type-re "\\[?\\([[:word:]]+\\)\\(?:[[:space:]]*;[[:space:]]+[[:digit:]]+\\]\\)?")
 
@@ -66,6 +71,7 @@
    `(
      (,light-fn-name-re . (1 'font-lock-function-name-face))
      (,light-fn-return-re . (1 'font-lock-type-face))
+     (,light-struct-def-re . (1 'font-lock-type-face))
      (,light-typed-decl-re . ((1 'font-lock-variable-name-face)
                               (2 'font-lock-type-face)))
      (,(regexp-opt light-builtin-type 'symbols) . font-lock-type-face)

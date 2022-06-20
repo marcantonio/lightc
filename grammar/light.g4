@@ -6,10 +6,13 @@ stmt            : let_stmt
                 | for_stmt
                 | fn_decl
                 | extern_decl
+                | struct_decl
                 | expr;
 block           : '{' stmt_list? '}';
 fn_decl         : proto block;
 extern_decl     : 'extern' proto;
+struct_block    : '{' (typed_decl ';' | fn_decl ';')* '}' ;
+struct_decl     : 'struct' IDENT struct_block ;
 proto           : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' type_antn)?;
 for_stmt        : 'for' typed_decl '=' expr ';' expr ';' NUMBER? block;
 let_stmt        : 'let' typed_decl ('=' expr)?;
@@ -24,8 +27,9 @@ expr            : primary_expr
                 | expr ('&' | '|' | '^') expr
                 | expr '&&' expr
                 | expr '||' expr
-                | ident_expr '=' expr;
+                | (ident_expr | self_expr) '=' expr;
 primary_expr    : cond_expr
+                | self_expr
                 | lit_expr
                 | ident_expr
                 | call_expr
@@ -46,6 +50,8 @@ call_expr       : IDENT '(' expr_list? ')';
 paren_expr      : '(' expr ')';
 cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
 ident_expr      : IDENT;
+self_expr       : 'self' '.' ident_expr
+                | 'self' '.' call_expr;
 array_lit       : '[' expr_list? ']';
 char_lit        : CHAR;
 expr_list       : expr ','? | expr (',' expr)*;

@@ -10,10 +10,13 @@ Stmt        ::= LetStmt
               | ForStmt
               | FnDecl
               | ExternDecl
+              | StructDecl
               | Expr ;
 Block       ::= '{' StmtList? '}' ;
 FnDecl      ::= Prototype Block ;
 ExternDecl  ::= 'extern' Prototype ;
+StructBlock ::= '{' ( TypedDecl ';' | FnDecl ';' )* '}' ;
+StructDecl  ::= 'struct' ident StructBlock ;
 Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
 ForStmt     ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
 LetStmt     ::= 'let' TypedDecl ( '=' Expr  )? ;
@@ -26,8 +29,9 @@ Expr        ::= PrimaryExpr
               | Expr bit_op Expr
               | Expr '&&' Expr
               | Expr '||' Expr
-              | IdentExpr '=' Expr ;
+              | ( IdentExpr | SelfExpr ) '=' Expr ;
 PrimaryExpr ::= CondExpr
+              | SelfExpr
               | LitExpr
               | IdentExpr
               | CallExpr
@@ -41,7 +45,11 @@ CallExpr    ::= ident '(' ExprList? ')' ;
 ParenExpr   ::= '(' Expr ')' ;
 CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
 IdentExpr   ::= ident ;
+SelfExpr    ::= 'self' '.' IdentExpr
+              | 'self' '.' CallExpr ;
 IndexExpr   ::= PrimaryExpr '[' Expr ']' ;
+SelfExpr    ::= 'self' '.' IdentExpr
+              | 'self' '.' CallExpr ;
 ArrayLit    ::= '[' ExprList? ']' ;
 CharLit     ::= char ;
 ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;
