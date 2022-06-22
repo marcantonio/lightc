@@ -124,10 +124,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 step_expr,
                 body,
             } => self.codegen_for(
-                start_name, start_antn, start_expr, cond_expr, step_expr, body,
+                start_name, start_antn, start_expr.as_deref(), cond_expr, step_expr, body,
             ),
             Let { name, antn, init } => self.codegen_let(name, antn, init.as_deref()),
             Fn { proto, body } => self.codegen_func(proto, &body.as_deref()),
+            Struct { name, attributes, methods } => self.codegen_struct(name, attributes, methods),
         }
     }
 
@@ -251,7 +252,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         &mut self,
         start_name: &str,
         start_antn: &Type,
-        start_expr: &T,
+        start_expr: Option<&T>,
         cond_expr: &T,
         step_expr: &T,
         body: &T,
@@ -264,7 +265,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Create entry alloca, codegen start expr, and store result
         let start_alloca = self.create_entry_block_alloca(start_name, start_antn, &parent);
-        let start_code = self.codegen_expr(start_expr)?.value()?;
+        let start_code = self.codegen_var_init(start_antn, start_expr)?;
         self.builder.build_store(start_alloca, start_code);
 
         // Save the variable value if we are shadowing and insert alloca into
@@ -297,8 +298,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(step_bb);
         let step_code = self.codegen_expr(step_expr)?;
         let cur = self.builder.build_load(start_alloca, start_name);
-        match start_expr.as_expr().ty() {
-            Some(int_types!()) => {
+        match start_antn {
+            int_types!() => {
                 let next = self.builder.build_int_add(
                     cur.into_int_value(),
                     step_code.value()?.into_int_value(),
@@ -306,7 +307,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             }
-            Some(float_types!()) => {
+            float_types!() => {
                 let next = self.builder.build_float_add(
                     cur.into_float_value(),
                     step_code.value()?.into_float_value(),
@@ -344,41 +345,30 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .and_then(|x| x.get_parent())
             .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
 
-        // Match combinations of init presence and type. When init is None,
-        // initialize with 0.
-        let init_code = match (ty, init) {
-            (_, Some(init)) => {
-                if init.as_expr().ty() == Some(ty) {
-                    self.codegen_expr(init)?
-                } else {
-                    unreachable!("fatal: void type for init expr in codegen_let()");
-                }
-            }
-            (int8_types!() | Type::Char, None) => {
-                Some(self.context.i8_type().const_zero().as_basic_value_enum())
-            }
-            (int16_types!(), None) => {
-                Some(self.context.i16_type().const_zero().as_basic_value_enum())
-            }
-            (int32_types!(), None) => {
-                Some(self.context.i32_type().const_zero().as_basic_value_enum())
-            }
-            (int64_types!(), None) => {
-                Some(self.context.i64_type().const_zero().as_basic_value_enum())
-            }
-            (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
-            (Type::Double, None) => {
-                Some(self.context.f64_type().const_zero().as_basic_value_enum())
-            }
-            (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::Array(..), None) => {
-                unreachable!("NONCANBE: void type for init annotation in codegen_let()")
-            }
-        };
+        let init_code = self.codegen_var_init(ty, init)?;
 
         let init_alloca = self.create_entry_block_alloca(name, ty, &parent);
-        self.builder.build_store(init_alloca, init_code.value()?);
+        self.builder.build_store(init_alloca, init_code);
         self.symbol_table.insert(name, init_alloca)?;
+
+        Ok(())
+    }
+
+    // XXX: not useful yet
+    fn codegen_struct(&mut self, _name: &str, attributes: &[Node], methods: &[Node]) -> StmtResult<'ctx> {
+        // Drop scope
+        self.symbol_table.down_scope();
+
+        for node in attributes {
+            self.codegen_node(node)?;
+        }
+
+        for node in methods {
+            self.codegen_node(node)?;
+        }
+
+        // Pop up 1 level. Drops old scope.
+        self.symbol_table.up_scope()?;
 
         Ok(())
     }
@@ -704,6 +694,45 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             val = phi.as_basic_value();
         }
         Ok(val)
+    }
+
+    // Codegen variable initializers. Match combinations of init presence and type. When
+    // init is None, initialize with 0.
+    fn codegen_var_init<T: AsExpr<Expression>>(
+        &mut self,
+        ty: &Type,
+        init: Option<&T>,
+    ) -> ExprResult<'ctx> {
+        let init_code = match (ty, init) {
+            (_, Some(init)) => {
+                if init.as_expr().ty() == Some(ty) {
+                    self.codegen_expr(init)?
+                } else {
+                    unreachable!("Fatal: void type for init expr in codegen_let()");
+                }
+            }
+            (int8_types!() | Type::Char, None) => {
+                Some(self.context.i8_type().const_zero().as_basic_value_enum())
+            }
+            (int16_types!(), None) => {
+                Some(self.context.i16_type().const_zero().as_basic_value_enum())
+            }
+            (int32_types!(), None) => {
+                Some(self.context.i32_type().const_zero().as_basic_value_enum())
+            }
+            (int64_types!(), None) => {
+                Some(self.context.i64_type().const_zero().as_basic_value_enum())
+            }
+            (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
+            (Type::Double, None) => {
+                Some(self.context.f64_type().const_zero().as_basic_value_enum())
+            }
+            (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
+            (Type::Void | Type::Array(..), None) => {
+                unreachable!("Fatal: void type for init annotation in codegen_let()")
+            }
+        };
+        init_code.value()
     }
 
     // Helper to create an alloca in the entry block for local variables

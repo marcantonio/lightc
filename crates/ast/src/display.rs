@@ -24,11 +24,14 @@ impl Display for Statement {
                 step_expr,
                 body,
             } => {
-                let s = format!(
-                    "(for ({}: {} {}) {} {} {}",
-                    start_name, start_antn, start_expr, cond_expr, step_expr, body
+                let mut s = format!(
+                    "(for ({}: {}",
+                    start_name, start_antn
                 );
-                write!(f, "{})", s)
+                if let Some(init) = start_expr {
+                    s += &format!(" {}", init);
+                }
+                write!(f, "{}) {} {} {})", s, cond_expr, step_expr, body)
             }
             Let { name, antn, init } => {
                 let mut s = format!("(let {}:{}", name, antn);
@@ -41,6 +44,31 @@ impl Display for Statement {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
+            Struct {
+                name,
+                attributes,
+                methods,
+            } => {
+                let mut attr_string = String::from("");
+                attr_string += &attributes.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!("{} ", n);
+                    acc
+                });
+
+                let mut meth_string = String::from("");
+                meth_string += &methods.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!("{} ", n);
+                    acc
+                });
+
+                write!(
+                    f,
+                    "(struct {} '({}) '({}))",
+                    name,
+                    attr_string.strip_suffix(' ').unwrap_or(""),
+                    meth_string.strip_suffix(' ').unwrap_or("")
+                )
+            }
         }
     }
 }

@@ -115,6 +115,8 @@ impl Lexer {
                 "double" => VarType(Type::Double),
                 "bool" => VarType(Type::Bool),
                 "char" => VarType(Type::Char),
+                "struct" => Struct,
+                "self" => SelfTt,
                 // TODO: don't hardcode these
                 "int" => VarType(Type::Int32),
                 "uint" => VarType(Type::UInt32),
@@ -258,6 +260,7 @@ impl Lexer {
             '&' => Op(Symbol::BitAnd),
             '^' => Op(Symbol::BitXor),
             '|' => Op(Symbol::BitOr),
+            '.' => Dot,
             '}' => CloseBrace,
             ']' => CloseBracket,
             ')' => CloseParen,

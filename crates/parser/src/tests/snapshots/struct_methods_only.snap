@@ -1,0 +1,42 @@
+---
+source: crates/parser/src/tests.rs
+assertion_line: 318
+expression: "(test[1], ast, ast_string)"
+---
+- "\nstruct Foo {\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Struct:
+            name: Foo
+            attributes: []
+            methods:
+              - Stmt:
+                  Fn:
+                    proto:
+                      name: c
+                      args: []
+                      ret_ty: Int32
+                    body:
+                      Expr:
+                        Block:
+                          list:
+                            - Expr:
+                                Lit:
+                                  value:
+                                    UInt64: 1
+                                  ty: ~
+                          ty: ~
+              - Stmt:
+                  Fn:
+                    proto:
+                      name: d
+                      args: []
+                      ret_ty: ~
+                    body:
+                      Expr:
+                        Block:
+                          list: []
+                          ty: ~
+- "(struct Foo '() '((define (c) '(1)) (define (d) '()))))"
+

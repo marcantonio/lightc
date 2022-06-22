@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int b: int)"
 - Err:
-    message: "Expecting ',' or ')' in prototype. Got `identifier: b`"
+    message: "Expecting `,` or `)` in prototype. Got `b`"
     line: 1
     column: 13
-- "Parsing error: Expecting ',' or ')' in prototype. Got `identifier: b` at 1:13"
+- "Parsing error: Expecting `,` or `)` in prototype. Got `b` at 1:13"
 

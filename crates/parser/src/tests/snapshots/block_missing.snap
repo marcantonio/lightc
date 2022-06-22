@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - if foo
 - Err:
-    message: "Expecting '{' to start block. Got `EOF`"
+    message: "Expecting `{` to start block. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting '{' to start block. Got `EOF`"
+- "Parsing error: Expecting `{` to start block. Got `EOF`"
 

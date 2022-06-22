@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
 
     /// Statement productions
 
-    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | Expr ;
+    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
         let token = self
             .tokens
@@ -54,6 +54,7 @@ impl<'a> Parser<'a> {
             TokenType::Let => self.parse_let()?,
             TokenType::Fn => self.parse_function()?,
             TokenType::Extern => self.parse_extern()?,
+            TokenType::Struct => self.parse_struct()?,
             _ => self.parse_expr(0)?,
         };
 
@@ -75,48 +76,84 @@ impl<'a> Parser<'a> {
         Ok(stmt)
     }
 
-    // ForStmt ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
-    fn parse_for(&mut self) -> ParseResult {
-        self.tokens.next(); // Eat for
+    // StructDecl ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
+    fn parse_struct(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat struct
 
-        // Get the name of the initial variable and its type annotation
-        let (name, antn) = self.parse_typed_decl("for")?;
+        let struct_name = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting struct name in declaration"
+        );
 
         expect_next_token!(
             self.tokens,
-            TokenType::Op(Symbol::Assign),
-            "Expecting '=' after identifer"
+            TokenType::OpenBrace,
+            "Expecting `{` to start struct block"
         );
 
-        let start_node = self.parse_expr(0)?;
-        expect_explicit_semi!(self.tokens, "Expecting ';' after start");
+        let mut attributes = vec![];
+        let mut methods = vec![];
+        while let Some(t) = self.tokens.peek() {
+            match &t.tt {
+                TokenType::CloseBrace => {
+                    self.tokens.next();
+                    return Ok(Node::Stmt(Statement::Struct {
+                        name: struct_name.to_owned(),
+                        attributes,
+                        methods,
+                    }));
+                }
+                TokenType::Let => {
+                    attributes.push(self.parse_let()?);
+                    self.tokens.next(); // Eat semicolon
+                }
+                TokenType::Fn => {
+                    methods.push(self.parse_function()?);
+                    self.tokens.next(); // Eat semicolon
+                }
+                tt => {
+                    return Err(ParseError::from((
+                        format!("Expecting `let` or `fn` in struct definition. Got `{}`", tt),
+                        *t,
+                    )))
+                }
+            }
+        }
+
+        Err(ParseError::from(
+            "Expecting `}` to terminate struct definition".to_string(),
+        ))
+    }
+
+    // ForStmt ::= 'for' VarInit ';' Expr ';' number? Block ;
+    fn parse_for(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat for
+
+        let (name, antn, init) = self.parse_var_init("for")?;
+
+        expect_explicit_semi!(self.tokens, "Expecting `;` after starting expression");
 
         let cond_node = self.parse_expr(0)?;
-        expect_explicit_semi!(self.tokens, "Expecting ';' after condition");
+        expect_explicit_semi!(self.tokens, "Expecting `;` after condition");
 
         let step_node = self.parse_expr(0)?;
 
         Ok(Node::Stmt(Statement::For {
             start_name: name,
             start_antn: antn,
-            start_expr: Box::new(start_node),
+            start_expr: init.map(Box::new),
             cond_expr: Box::new(cond_node),
             step_expr: Box::new(step_node),
             body: Box::new(self.parse_block()?),
         }))
     }
 
-    // LetStmt ::= 'let' TypedDecl ( '=' Expr  )? ;
+    // LetStmt ::= 'let' VarInit ;
     fn parse_let(&mut self) -> ParseResult {
         self.tokens.next(); // Eat let
 
-        // Get the name of the variable and its type annotation
-        let (name, antn) = self.parse_typed_decl("let")?;
-
-        let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
-            self.tokens.next();
-            self.parse_expr(0)?
-        });
+        let (name, antn, init) = self.parse_var_init("let")?;
 
         Ok(Node::Stmt(Statement::Let {
             name,
@@ -153,7 +190,8 @@ impl<'a> Parser<'a> {
     // precedence parsing.
     //
     // Expr ::= PrimaryExpr | Expr mul_op Expr | Expr add_op Expr | Expr rel_op Expr
-    //        | Expr '&&' Expr | Expr '||' Expr | IdentExpr '=' Expr ;
+    //        | Expr eq_op Expr | Expr bit_op Expr | Expr '&&' Expr | Expr '||' Expr
+    //        | ( IdentExpr SelfExpr ) '=' Expr ;
     fn parse_expr(&mut self, min_p: u8) -> ParseResult {
         let mut lhs = self.parse_primary()?;
 
@@ -216,8 +254,8 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Assignment | Block
-    //               | ParenExpr | IndexExpr ;
+    // PrimaryExpr ::= CondExpr | | SelfExpr |LitExpr | IdentExpr | CallExpr | Assignment
+    //               | Block | ParenExpr | IndexExpr ;
     // LitExpr     ::= number | bool | CharLit | ArrayLit ;
     fn parse_primary(&mut self) -> ParseResult {
         use TokenType::*;
@@ -310,7 +348,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(
             self.tokens,
             TokenType::CloseParen,
-            "Expecting ')' to close paren expression"
+            "Expecting `)` to close paren expression"
         );
         lhs
     }
@@ -329,7 +367,7 @@ impl<'a> Parser<'a> {
             let next = self.tokens.peek();
             if matches!(next, Some(t) if t.tt != TokenType::If && t.tt != TokenType::OpenBrace) {
                 return Err(ParseError::from((
-                    "Expecting 'if' or '{' after else".to_string(),
+                    "Expecting `if` or `{` after `else`".to_string(),
                     *next.unwrap(),
                 )));
             }
@@ -361,7 +399,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(
             self.tokens,
             TokenType::OpenBrace,
-            "Expecting '{' to start block"
+            "Expecting `{` to start block"
         );
 
         while let Some(t) = self.tokens.peek() {
@@ -377,9 +415,8 @@ impl<'a> Parser<'a> {
             }
         }
 
-        // TODO: Could add more context here with some refactor
         Err(ParseError::from(
-            "Expecting '}' to terminate block".to_string(),
+            "Expecting `}` to terminate block".to_string(),
         ))
     }
 
@@ -503,7 +540,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(
             self.tokens,
             TokenType::OpenParen,
-            "Expecting '(' in prototype"
+            "Expecting `(` in prototype"
         );
 
         // Parse args list
@@ -545,7 +582,7 @@ impl<'a> Parser<'a> {
                         t.clone()
                     };
                     return Err(ParseError::from((
-                        format!("Expecting ',' or ')' in prototype. Got `{}`", &err_token),
+                        format!("Expecting `,` or `)` in prototype. Got `{}`", &err_token),
                         &err_token,
                     )));
                 }
@@ -569,6 +606,20 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Prototype::new(fn_name.to_string(), args, ret_type))
+    }
+
+    // VarInit ::= TypedDecl ( '=' Expr  )? ;
+    fn parse_var_init(&mut self, caller: &str) -> Result<(String, Type, Option<Node>), ParseError> {
+        // Get the name of the variable and its type annotation
+        let (name, antn) = self.parse_typed_decl(caller)?;
+
+        // Get the optional initial value
+        let init = token_is_and_then!(self.tokens.peek(), TokenType::Op(Symbol::Assign), {
+            self.tokens.next();
+            self.parse_expr(0)?
+        });
+
+        Ok((name, antn, init))
     }
 
     // TypeAntn ::= type | '[' type ']' ;

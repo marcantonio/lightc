@@ -11,11 +11,11 @@ stmt            : let_stmt
 block           : '{' stmt_list? '}';
 fn_decl         : proto block;
 extern_decl     : 'extern' proto;
-struct_block    : '{' (typed_decl ';' | fn_decl ';')* '}' ;
-struct_decl     : 'struct' IDENT struct_block ;
+struct_decl     : 'struct' IDENT '{' (let_stmt ';' | fn_decl ';')* '}' ;
 proto           : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' type_antn)?;
-for_stmt        : 'for' typed_decl '=' expr ';' expr ';' NUMBER? block;
-let_stmt        : 'let' typed_decl ('=' expr)?;
+for_stmt        : 'for' var_init ';' expr ';' NUMBER? block;
+let_stmt        : 'let' var_init;
+var_init        : typed_decl ('=' expr)?;
 typed_decl      : IDENT ':' type_antn;
 type_antn       : TYPE
                 | '[' TYPE ']';

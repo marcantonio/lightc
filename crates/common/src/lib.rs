@@ -75,6 +75,7 @@ pub enum TokenType {
     CloseParen,
     Colon,
     Comma,
+    Dot,
     Else,
     Eof,
     Extern,
@@ -89,6 +90,8 @@ pub enum TokenType {
     OpenBracket,
     OpenParen,
     Semicolon(bool), // implicit
+    SelfTt,
+    Struct,
     VarType(Type),
 }
 
@@ -99,8 +102,10 @@ impl std::fmt::Display for TokenType {
         match self {
             Eof => write!(f, "EOF"),
             Op(s) => write!(f, "{}", s),
-            Ident(i) => write!(f, "identifier: {}", i),
-            Num(i) => write!(f, "number: {}", i),
+            Ident(i) => write!(f, "{}", i),
+            Num(n) => write!(f, "{}", n),
+            SelfTt => write!(f, "self"),
+            Dot => write!(f, "."),
             tt => write!(f, "{:?}", tt),
         }
     }

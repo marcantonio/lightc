@@ -15,11 +15,11 @@ Stmt        ::= LetStmt
 Block       ::= '{' StmtList? '}' ;
 FnDecl      ::= Prototype Block ;
 ExternDecl  ::= 'extern' Prototype ;
-StructBlock ::= '{' ( TypedDecl ';' | FnDecl ';' )* '}' ;
-StructDecl  ::= 'struct' ident StructBlock ;
+StructDecl  ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
 Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
-ForStmt     ::= 'for' TypedDecl '=' Expr ';' Expr ';' number? Block ;
-LetStmt     ::= 'let' TypedDecl ( '=' Expr  )? ;
+ForStmt     ::= 'for' VarInit ';' Expr ';' number? Block ;
+LetStmt     ::= 'let' VarInit ;
+VarInit     ::= TypedDecl ( '=' Expr  )? ;
 TypedDecl   ::= ident ':' TypeAntn ;
 TypeAntn    ::= type | '[' type ']' ;
 Expr        ::= PrimaryExpr
@@ -49,8 +49,6 @@ IdentExpr   ::= ident ;
 SelfExpr    ::= 'self' '.' IdentExpr
               | 'self' '.' CallExpr ;
 IndexExpr   ::= PrimaryExpr '[' Expr ']' ;
-SelfExpr    ::= 'self' '.' IdentExpr
-              | 'self' '.' CallExpr ;
 ArrayLit    ::= '[' ExprList? ']' ;
 CharLit     ::= char ;
 ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;

@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "for a: int"
 - Err:
-    message: "Expecting '=' after identifer. Got `EOF`"
+    message: "Expecting `;` after starting expression. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting '=' after identifer. Got `EOF`"
+- "Parsing error: Expecting `;` after starting expression. Got `EOF`"
 

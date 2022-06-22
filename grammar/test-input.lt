@@ -49,8 +49,8 @@ fn main() {
 };
 
 struct Foo {
-    bar: int;
-    baz: float;
+    let bar: int;
+    let baz: float = 1.0;
 
     fn method() {
         self.bar = self.bar + 1;

@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - a(a
 - Err:
-    message: "Expecting `,` or `CloseParen` in function call argument list. Got `identifier: a`"
+    message: "Expecting `,` or `CloseParen` in function call argument list. Got `a`"
     line: 1
     column: 3
-- "Parsing error: Expecting `,` or `CloseParen` in function call argument list. Got `identifier: a` at 1:3"
+- "Parsing error: Expecting `,` or `CloseParen` in function call argument list. Got `a` at 1:3"
 

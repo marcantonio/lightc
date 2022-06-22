@@ -52,7 +52,7 @@ pub enum Statement {
     For {
         start_name: String,
         start_antn: Type,
-        start_expr: Box<Node>,
+        start_expr: Option<Box<Node>>,
         cond_expr: Box<Node>,
         step_expr: Box<Node>,
         body: Box<Node>,
@@ -66,6 +66,11 @@ pub enum Statement {
         proto: Box<Prototype>,
         body: Option<Box<Node>>,
     },
+    Struct {
+        name: String,
+        attributes: Vec<Node>,
+        methods: Vec<Node>,
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize)]

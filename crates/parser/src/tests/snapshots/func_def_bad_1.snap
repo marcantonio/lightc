@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) - { b }"
 - Err:
-    message: "Expecting '{' to start block. Got `-`"
+    message: "Expecting `{` to start block. Got `-`"
     line: 1
     column: 14
-- "Parsing error: Expecting '{' to start block. Got `-` at 1:14"
+- "Parsing error: Expecting `{` to start block. Got `-` at 1:14"
 

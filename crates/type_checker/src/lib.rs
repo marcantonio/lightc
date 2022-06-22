@@ -85,10 +85,20 @@ impl TypeChecker {
                 step_expr,
                 body,
             } => self.check_for(
-                start_name, start_antn, start_expr, cond_expr, step_expr, body,
+                start_name,
+                start_antn,
+                start_expr.as_deref_mut(),
+                cond_expr,
+                step_expr,
+                body,
             ),
             Let { name, antn, init } => self.check_let(name, antn, init.as_deref_mut()),
             Fn { proto, body } => self.check_func(proto, &mut body.as_deref_mut()),
+            Struct {
+                attributes,
+                methods,
+                ..
+            } => self.check_struct(attributes, methods),
         }
     }
 
@@ -180,18 +190,12 @@ impl TypeChecker {
         &mut self,
         start_name: &str,
         start_antn: &mut Type,
-        start_expr: &mut T,
+        start_expr: Option<&mut T>,
         cond_expr: &mut T,
         step_expr: &mut T,
         body: &mut T,
     ) -> Result<(), String> {
-        let start_ty = self.check_expr(start_expr, Some(start_antn))?;
-        if start_antn != &start_ty {
-            return Err(format!(
-                "Initial type mismatch in for statement. Annotated with `{}` but value is `{}`",
-                start_antn, start_ty
-            ));
-        }
+        self.check_var_init(start_expr, start_antn, "for statement")?;
 
         // Remove old variable. Ignore failure. Insert starting variable.
         let old_var = self.symbol_table.remove(start_name);
@@ -204,11 +208,11 @@ impl TypeChecker {
         }
 
         // Make sure the step type matches the starting variable
-        let step_ty = self.check_expr(step_expr, Some(&start_ty))?;
-        if step_ty != start_ty {
+        let step_ty = self.check_expr(step_expr, Some(&start_antn))?;
+        if step_ty != *start_antn {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
-                step_ty, start_name, start_ty
+                step_ty, start_name, start_antn
             ));
         }
 
@@ -230,18 +234,30 @@ impl TypeChecker {
         antn: &Type,
         init: Option<&mut T>,
     ) -> Result<(), String> {
-        // If init exists, make sure it matches the variable's annotation
-        if let Some(init) = init {
-            let init_ty = self.check_expr(init, Some(antn))?;
-            if antn != &init_ty {
-                return Err(format!(
-                    "Types don't match in let statement. Annotated with `{}` but initial value is `{}`",
-                    antn, init_ty
-                ));
-            }
+        self.check_var_init(init, antn, "let statement")?;
+        self.symbol_table.insert(name, antn.clone())?;
+        Ok(())
+    }
+
+    fn check_struct(
+        &mut self,
+        attributes: &mut [Node],
+        methods: &mut [Node],
+    ) -> Result<(), String> {
+        // Drop scope
+        self.symbol_table.down_scope();
+
+        for node in attributes {
+            self.check_node(node)?;
         }
 
-        self.symbol_table.insert(name, antn.clone())?;
+        for node in methods {
+            self.check_node(node)?;
+        }
+
+        // Pop up 1 level. Drops old scope.
+        self.symbol_table.up_scope()?;
+
         Ok(())
     }
 
@@ -635,6 +651,26 @@ impl TypeChecker {
 
         *ty = Some(then_ty.clone());
         Ok(then_ty)
+    }
+
+    // Helper for variable initializations
+    fn check_var_init<T: AsExprMut<Expression>>(
+        &mut self,
+        init: Option<&mut T>,
+        antn: &Type,
+        caller: &str,
+    ) -> Result<(), String> {
+        // If init exists, make sure it matches the variable's annotation
+        if let Some(init) = init {
+            let init_ty = self.check_expr(init, Some(antn))?;
+            if antn != &init_ty {
+                return Err(format!(
+                    "Types don't match in {}. Annotated with `{}` but initial value is `{}`",
+                    caller, antn, init_ty
+                ));
+            }
+        }
+        Ok(())
     }
 }
 

@@ -289,3 +289,77 @@ fn test_array() {
 
     run_insta!("array", tests)
 }
+
+#[test]
+fn test_struct() {
+    let tests = [
+        [
+            "attr_only",
+            r#"
+struct Foo {
+    let a: int
+    let b: float = 1.0
+}
+"#,
+        ],
+        [
+            "methods_only",
+            r#"
+struct Foo {
+    fn c() -> int {
+        1
+    }
+    fn d() {}
+}
+"#,
+        ],
+        [
+            "mix",
+            r#"
+struct Foo {
+    let a: int
+    let b: float = 1.0
+
+    fn c() -> int {
+        1
+    }
+    fn d() {}
+}
+"#,
+        ],
+//         [
+//             "self",
+//             r#"
+// struct Foo {
+//     let a: int
+
+//     fn c() -> int {
+//         self.a + 1
+//     }
+// }
+// "#,
+//         ],
+//         [
+//             "self_bad1",
+//             r#"
+// struct Foo {
+//     fn c() -> int {
+//         self + 1
+//     }
+// }
+// "#,
+//         ],
+//         [
+//             "self_bad2",
+//             r#"
+// struct Foo {
+//     fn c() -> int {
+//         self. + 1
+//     }
+// }
+// "#,
+//         ],
+    ];
+
+    run_insta!("struct", tests)
+}

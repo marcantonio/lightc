@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 467
+assertion_line: 465
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    let y: int8 = 2\n    for x: int = y; x < 2; 1 {\n        x\n    }\n}\n"
-- Err: "Initial type mismatch in for statement. Annotated with `int32` but value is `int8`"
+- Err: "Types don't match in for statement. Annotated with `int32` but initial value is `int8`"
 
