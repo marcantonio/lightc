@@ -1,18 +1,17 @@
 use serde::Serialize;
 
 use common::{Operator, Type};
-// use convert::AsExpr;
 
 mod as_symbol;
 pub mod convert;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
-pub struct Ast<T: Clone> {
+pub struct Ast<T> {
     nodes: Vec<T>,
 }
 
-impl<T: Clone> Ast<T> {
+impl<T> Ast<T> {
     pub fn new() -> Self {
         Ast { nodes: vec![] }
     }
@@ -28,13 +27,9 @@ impl<T: Clone> Ast<T> {
     pub fn into_nodes(self) -> Vec<T> {
         self.nodes
     }
-
-    // pub fn nodes_mut(&mut self) -> &mut [T] {
-    //     &mut self.nodes
-    // }
 }
 
-impl<T: Clone> Default for Ast<T> {
+impl<T> Default for Ast<T> {
     fn default() -> Self {
         Self::new()
     }

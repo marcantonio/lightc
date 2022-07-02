@@ -165,13 +165,15 @@ impl<'a> Hir<'a> {
     fn lower_binop(&mut self, op: Operator, lhs: Node, rhs: Node, ty: Option<Type>) -> ExprResult {
         use Operator::*;
 
+        let orig_lhs = lhs.clone();
+
         let top_op;
         let rhs = match op {
             AddEq => {
                 top_op = Assign;
                 Node::Expr(Expression::BinOp {
                     op: Add,
-                    lhs: Box::new(lhs.clone()),
+                    lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     ty: None,
                 })
@@ -180,7 +182,7 @@ impl<'a> Hir<'a> {
                 top_op = Assign;
                 Node::Expr(Expression::BinOp {
                     op: Sub,
-                    lhs: Box::new(lhs.clone()),
+                    lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     ty: None,
                 })
@@ -189,7 +191,7 @@ impl<'a> Hir<'a> {
                 top_op = Assign;
                 Node::Expr(Expression::BinOp {
                     op: Mul,
-                    lhs: Box::new(lhs.clone()),
+                    lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     ty: None,
                 })
@@ -198,7 +200,7 @@ impl<'a> Hir<'a> {
                 top_op = Assign;
                 Node::Expr(Expression::BinOp {
                     op: Div,
-                    lhs: Box::new(lhs.clone()),
+                    lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
                     ty: None,
                 })
@@ -211,7 +213,7 @@ impl<'a> Hir<'a> {
 
         Ok(Expression::BinOp {
             op: top_op,
-            lhs: Box::new(self.lower_node(lhs)?),
+            lhs: Box::new(self.lower_node(orig_lhs)?),
             rhs: Box::new(self.lower_node(rhs)?),
             ty,
         })

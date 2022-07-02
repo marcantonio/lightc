@@ -170,7 +170,8 @@ impl<'a> TypeChecker<'a> {
         let body_node = self.check_node(*body, None)?;
         let mut body_ty = body_node.ty().unwrap_or_default();
 
-        let mut proto = proto.clone();
+        // XXX
+        let mut proto = proto;
         // Ensure main is always an int32 and returns a 0 if nothing is
         // specified
         //
@@ -322,19 +323,19 @@ impl<'a> TypeChecker<'a> {
         }
 
         // Check every element and make sure they are uniform
-        let mut checked_elements = Vec::with_capacity(elements.len());
+        let mut chkd_elements = Vec::with_capacity(elements.len());
         for el in elements {
             let el_node = self.check_node(el, Some(&ty))?;
             let el_ty = el_node.ty().unwrap_or_default();
             if el_ty != *ty {
                 return Err(format!("Array literal's element wrong type: `{}` isn't a `{}`", el_node, ty));
             }
-            checked_elements.push(el_node);
+            chkd_elements.push(el_node);
         }
 
         // Rebuild the literal and return the type
         Ok((
-            Literal::Array { elements: checked_elements, inner_ty: Some(*ty.clone()) },
+            Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) },
             Type::Array(ty, *size),
         ))
     }
@@ -355,17 +356,17 @@ impl<'a> TypeChecker<'a> {
 
         // Check if either side is a numeric literal. If so use the other side
         // as a type hint for the literal type.
-        let (checked_lhs, lhs_ty, checked_rhs, rhs_ty);
+        let (chkd_lhs, lhs_ty, chkd_rhs, rhs_ty);
         if lhs.as_expr().is_num_literal() {
-            checked_rhs = self.check_node(rhs, None)?;
-            rhs_ty = checked_rhs.ty().unwrap_or_default();
-            checked_lhs = self.check_node(lhs, Some(&rhs_ty))?;
-            lhs_ty = checked_lhs.ty().unwrap_or_default();
+            chkd_rhs = self.check_node(rhs, None)?;
+            rhs_ty = chkd_rhs.ty().unwrap_or_default();
+            chkd_lhs = self.check_node(lhs, Some(&rhs_ty))?;
+            lhs_ty = chkd_lhs.ty().unwrap_or_default();
         } else {
-            checked_lhs = self.check_node(lhs, None)?;
-            lhs_ty = checked_lhs.ty().unwrap_or_default();
-            checked_rhs = self.check_node(rhs, Some(&lhs_ty))?;
-            rhs_ty = checked_rhs.ty().unwrap_or_default();
+            chkd_lhs = self.check_node(lhs, None)?;
+            lhs_ty = chkd_lhs.ty().unwrap_or_default();
+            chkd_rhs = self.check_node(rhs, Some(&lhs_ty))?;
+            rhs_ty = chkd_rhs.ty().unwrap_or_default();
         }
 
         // Both sides must match
@@ -427,12 +428,12 @@ impl<'a> TypeChecker<'a> {
             _ => Type::Void,
         };
 
-        Ok(Expression::BinOp { op, lhs: Box::new(checked_lhs), rhs: Box::new(checked_rhs), ty: Some(ty) })
+        Ok(Expression::BinOp { op, lhs: Box::new(chkd_lhs), rhs: Box::new(chkd_rhs), ty: Some(ty) })
     }
 
     fn check_unop(&mut self, op: Operator, rhs: Node) -> ExprResult {
-        let check_rhs = self.check_node(rhs, None)?;
-        let rhs_ty = check_rhs.ty().unwrap_or_default();
+        let chkd_rhs = self.check_node(rhs, None)?;
+        let rhs_ty = chkd_rhs.ty().unwrap_or_default();
         match rhs_ty {
             numeric_types!() => (),
             _ => {
@@ -442,7 +443,7 @@ impl<'a> TypeChecker<'a> {
                 ))
             },
         }
-        Ok(Expression::UnOp { op, rhs: Box::new(check_rhs.clone()), ty: Some(rhs_ty.clone()) })
+        Ok(Expression::UnOp { op, rhs: Box::new(chkd_rhs), ty: Some(rhs_ty.clone()) })
     }
 
     fn check_call(&mut self, name: String, args: Vec<Node>) -> ExprResult {
@@ -463,12 +464,12 @@ impl<'a> TypeChecker<'a> {
         // Check all args and record their types. Use the function entry arg
         // types as type hints.
         let ret_ty = func_entry.ret_ty.clone();
-        let mut checked_args = Vec::with_capacity(args_len);
+        let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
-            let checked_arg = self.check_node(expr, Some(&fe_arg_tys[idx]))?;
-            arg_tys.push((idx, checked_arg.ty().unwrap_or_default().clone()));
-            checked_args.push(checked_arg);
+            let chkd_arg = self.check_node(expr, Some(&fe_arg_tys[idx]))?;
+            arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
+            chkd_args.push(chkd_arg);
         }
 
         // Make sure the function args and the call args jive
@@ -480,7 +481,7 @@ impl<'a> TypeChecker<'a> {
             }
         })?;
 
-        Ok(Expression::Call { name, args: checked_args, ty: Some(ret_ty) })
+        Ok(Expression::Call { name, args: chkd_args, ty: Some(ret_ty) })
     }
 
     fn check_cond(&mut self, cond_expr: Node, then_block: Node, else_block: Option<Box<Node>>) -> ExprResult {
@@ -498,7 +499,7 @@ impl<'a> TypeChecker<'a> {
         if let Some(else_block) = else_block {
             let chkd_node = self.check_node(*else_block, Some(&then_ty))?;
             let else_ty = chkd_node.ty().unwrap_or_default();
-            chkd_else = Some(Box::new(chkd_node.clone()));
+            chkd_else = Some(Box::new(chkd_node));
             if then_ty != else_ty {
                 return Err(format!(
                     "Both arms of conditional must be the same type: `then` == `{}`; `else` == `{}`",
@@ -509,7 +510,7 @@ impl<'a> TypeChecker<'a> {
 
         Ok(Expression::Cond {
             cond_expr: Box::new(chkd_cond),
-            then_block: Box::new(chkd_then.clone()),
+            then_block: Box::new(chkd_then),
             else_block: chkd_else,
             ty: Some(then_ty.clone()),
         })
