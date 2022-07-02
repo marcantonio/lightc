@@ -6,11 +6,12 @@ use inkwell::{
     targets::{FileType, InitializationConfig, Target, TargetMachine},
     OptimizationLevel,
 };
-use std::path::PathBuf;
-use std::process::{exit, Command};
-use std::{env, fs};
+use std::{env, fs, process};
+use std::{path::PathBuf, process::Command};
 
 use codegen::Codegen;
+use common::SymbolCache;
+use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
 use type_checker::TypeChecker;
@@ -25,8 +26,8 @@ fn main() {
 
     // Lexer
     let tokens = Lexer::new(&source).scan().unwrap_or_else(|e| {
-        eprintln!("{}", e);
-        exit(1);
+        eprintln!("Lexing error: {}", e);
+        process::exit(1);
     });
 
     if args.tokens {
@@ -37,26 +38,42 @@ fn main() {
 
     // Parser
     let parser = Parser::new(&tokens);
-    let mut ast = parser.parse().unwrap_or_else(|e| {
-        eprintln!("{}", e);
-        exit(1);
+    let ast = parser.parse().unwrap_or_else(|e| {
+        eprintln!("Paring error: {}", e);
+        process::exit(1);
     });
 
-    if args.ast_pre {
-        println!("AST (pre):");
+    if args.show_ast {
+        println!("AST:");
         for node in ast.nodes() {
             println!("{}", node);
         }
         println!();
     }
 
-    // Type Checker
-    let mut type_checker = TypeChecker::new();
-    type_checker.walk(&mut ast).expect("Type checking error");
+    let mut symbol_cache = SymbolCache::new();
+    let hir = Hir::new(&mut symbol_cache).walk(ast).unwrap_or_else(|e| {
+        eprintln!("Lowering error: {}", e);
+        process::exit(1);
+    });
 
-    if args.ast {
-        println!("AST:");
-        for node in ast.nodes() {
+    if args.show_hir {
+        println!("HIR:");
+        for node in hir.nodes() {
+            println!("{}", node);
+        }
+        println!();
+    }
+
+    // Type Checker
+    let thir = TypeChecker::new(&symbol_cache).walk(hir).unwrap_or_else(|e| {
+        eprintln!("Type checking error: {}", e);
+        process::exit(1);
+    });
+
+    if args.show_thir {
+        println!("THIR:");
+        for node in thir.nodes() {
             println!("{}", node);
         }
         println!();
@@ -68,25 +85,26 @@ fn main() {
     let module = context.create_module(&module_name);
     let target_machine = set_target_machine(&module);
     let fpm = PassManager::create(&module);
-    let mut codegen = Codegen::new(
+    let codegen = Codegen::new(
         &context,
         &builder,
         &module,
         &fpm,
+        &symbol_cache,
         args.opt_level,
         args.no_verify,
-        !args.compile_only,
+        !args.compile,
     );
-    codegen.walk(&ast).expect("Compiler error");
+    codegen.walk(thir).expect("Compiler error");
 
-    if args.ir {
+    if args.show_ir {
         println!("IR:");
         println!("{}", module.print_to_string().to_string());
     }
 
     if args.jit {
         run_jit(&module);
-        exit(0);
+        process::exit(0);
     }
 
     // File name for module binary
@@ -95,18 +113,16 @@ fn main() {
     let module_file = module_file.as_path().with_extension("o");
 
     // Write the object file to the build directory
-    target_machine
-        .write_to_file(&module, FileType::Object, &module_file)
-        .expect("Error writing object file");
+    target_machine.write_to_file(&module, FileType::Object, &module_file).expect("Error writing object file");
 
     // If we just want the object file, copy it up to the root and exit
-    if args.compile_only {
+    if args.compile {
         let mut obj_file = root_dir;
         obj_file.push(&module_name);
         let obj_file = obj_file.as_path().with_extension("o");
 
         fs::copy(module_file, obj_file).expect("Error copying object file");
-        exit(0);
+        process::exit(0);
     }
 
     let outfile = match args.output {
@@ -151,9 +167,7 @@ fn set_target_machine(module: &Module) -> TargetMachine {
 fn run_jit(module: &Module) {
     jit_externs::load();
 
-    let ee = module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .unwrap();
+    let ee = module.create_jit_execution_engine(OptimizationLevel::None).unwrap();
 
     let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> i64>("main") };
     match f {
@@ -163,7 +177,7 @@ fn run_jit(module: &Module) {
         },
         Err(e) => {
             eprintln!("Execution error: {}", e);
-        }
+        },
     };
 }
 
@@ -192,21 +206,25 @@ fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
 
 #[derive(Clap, Debug)]
 struct Args {
-    /// Display lexeme tokens
-    #[clap(short, long, parse(from_flag))]
+    /// Display tokens
+    #[clap(long, parse(from_flag))]
     tokens: bool,
 
-    /// Display AST pre type checker
-    #[clap(short = 'A', long, parse(from_flag))]
-    ast_pre: bool,
-
     /// Display AST
-    #[clap(short, long, parse(from_flag))]
-    ast: bool,
+    #[clap(long, parse(from_flag))]
+    show_ast: bool,
+
+    /// Display HIR
+    #[clap(long, parse(from_flag))]
+    show_hir: bool,
+
+    /// Display THIR
+    #[clap(long, parse(from_flag))]
+    show_thir: bool,
 
     /// Display IR
-    #[clap(short, long, parse(from_flag))]
-    ir: bool,
+    #[clap(long, parse(from_flag))]
+    show_ir: bool,
 
     /// Run jit rather than outputting a binary
     #[clap(short, long, parse(from_flag))]
@@ -229,14 +247,12 @@ struct Args {
     file: PathBuf,
 
     /// Compile and output object file
-    #[clap(short, parse(from_flag))]
-    compile_only: bool,
+    #[clap(short, long, parse(from_flag))]
+    compile: bool,
 }
 
 fn valid_opt_level(s: &str) -> Result<usize, String> {
-    let opt_level = s
-        .parse()
-        .map_err(|_| format!("`{}` isn't an optimization level", s))?;
+    let opt_level = s.parse().map_err(|_| format!("`{}` isn't an optimization level", s))?;
 
     if (0..=1).contains(&opt_level) {
         Ok(opt_level)

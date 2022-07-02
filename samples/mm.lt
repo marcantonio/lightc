@@ -38,9 +38,12 @@ fn main() {
     if true && true {
         printBang()
     }
+
+    let y: int = 1
+    y += 1
 }
 
-struct Foo {
-    a: int,
-    b: float,
-}
+// struct Foo {
+//     let a: int,
+//     let b: float,
+// }

@@ -19,9 +19,7 @@ macro_rules! make_undef_value {
 macro_rules! make_phi_for_type {
     ($bldr:expr, $ctx:expr, $ty:expr, $name:expr) => {
         match $ty {
-            int8_types!() | Type::Char => {
-                $bldr.build_phi($ctx.i8_type(), &($name.to_owned() + ".int8"))
-            }
+            int8_types!() | Type::Char => $bldr.build_phi($ctx.i8_type(), &($name.to_owned() + ".int8")),
             int16_types!() => $bldr.build_phi($ctx.i16_type(), &($name.to_owned() + ".int16")),
             int32_types!() => $bldr.build_phi($ctx.i32_type(), &($name.to_owned() + ".int32")),
             int64_types!() => $bldr.build_phi($ctx.i64_type(), &($name.to_owned() + ".int64")),

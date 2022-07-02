@@ -1,0 +1,140 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 36
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Int32
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: ~
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Add
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: ~
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Sub
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: ~
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Mul
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: ~
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Div
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: ~
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        BinOp:
+                          op: LtEq
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: ~
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 1
+                                ty: ~
+                          ty: ~
+                    - Expr:
+                        Lit:
+                          value:
+                            Int32: 0
+                          ty: Int32
+                  ty: ~
+

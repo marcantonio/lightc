@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 codegen = { path = "../codegen" }
 common = { path = "../common" }
+hir = { path = "../hir" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 type_checker = { path = "../type_checker" }

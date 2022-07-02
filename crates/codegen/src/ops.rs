@@ -7,9 +7,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     // Binary operations
 
     pub(super) fn add(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -18,20 +16,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .as_basic_value_enum()),
             float_types!() => Ok(self
                 .builder
-                .build_float_add(
-                    lhs.0.into_float_value(),
-                    rhs.0.into_float_value(),
-                    "add.float",
-                )
+                .build_float_add(lhs.0.into_float_value(), rhs.0.into_float_value(), "add.float")
                 .as_basic_value_enum()),
             _ => Err("Unsupported type in `add` operation".to_string()),
         }
     }
 
     pub(super) fn sub(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -40,20 +32,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .as_basic_value_enum()),
             float_types!() => Ok(self
                 .builder
-                .build_float_sub(
-                    lhs.0.into_float_value(),
-                    rhs.0.into_float_value(),
-                    "sub.float",
-                )
+                .build_float_sub(lhs.0.into_float_value(), rhs.0.into_float_value(), "sub.float")
                 .as_basic_value_enum()),
             _ => Err("Unsupported type in `subtract` operation".to_string()),
         }
     }
 
     pub(super) fn mul(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
@@ -62,20 +48,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .as_basic_value_enum()),
             float_types!() => Ok(self
                 .builder
-                .build_float_mul(
-                    lhs.0.into_float_value(),
-                    rhs.0.into_float_value(),
-                    "mul.float",
-                )
+                .build_float_mul(lhs.0.into_float_value(), rhs.0.into_float_value(), "mul.float")
                 .as_basic_value_enum()),
             _ => Err("Unsupported type in `multiply` operation".to_string()),
         }
     }
 
     pub(super) fn div(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             signed_int_types!() => Ok(self
@@ -88,20 +68,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 .as_basic_value_enum()),
             float_types!() => Ok(self
                 .builder
-                .build_float_div(
-                    lhs.0.into_float_value(),
-                    rhs.0.into_float_value(),
-                    "div.float",
-                )
+                .build_float_div(lhs.0.into_float_value(), rhs.0.into_float_value(), "div.float")
                 .as_basic_value_enum()),
             _ => Err("Unsupported type in `divide` operation".to_string()),
         }
     }
 
     pub(super) fn and(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
@@ -113,9 +87,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     pub(super) fn xor(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
@@ -127,9 +99,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     pub(super) fn or(
-        &self,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
@@ -141,12 +111,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     pub(super) fn cmp(
-        &self,
-        op: Symbol,
-        lhs: (BasicValueEnum<'ctx>, &Type),
-        rhs: (BasicValueEnum<'ctx>, &Type),
+        &self, op: Operator, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
     ) -> ExprResult<'ctx> {
-        use Symbol::*;
+        use Operator::*;
 
         let inst = match (lhs.1, op) {
             (int_types!() | Type::Bool | Type::Char, Eq) => self.builder.build_int_compare(
@@ -246,34 +213,24 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 "ule.float",
             ),
             (ty, op) => {
-                return Err(format!(
-                    "Unsupported type/op combination in `cmp`: `(ty:{} / op:{})`",
-                    ty, op
-                ))
-            }
+                return Err(format!("Unsupported type/op combination in `cmp`: `(ty:{} / op:{})`", ty, op))
+            },
         };
 
-        Ok(self
-            .builder
-            .build_int_cast(inst, self.context.bool_type(), "cmp.bool")
-            .as_basic_value_enum())
+        Ok(self.builder.build_int_cast(inst, self.context.bool_type(), "cmp.bool").as_basic_value_enum())
     }
 
-    pub(super) fn assign(
-        &mut self,
-        lhs: &Expression,
-        rhs: BasicValueEnum<'ctx>,
-    ) -> ExprResult<'ctx> {
+    pub(super) fn assign(&mut self, lhs: Node, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
         let lhs_var = match lhs {
-            Expression::Ident { name, .. } => self
+            Node::Expr(Expression::Ident { name, .. }) => self
                 .symbol_table
-                .get(name)
+                .get(&name)
                 .ok_or(format!("Unknown variable in assignment: {}", name))?
                 .to_owned(),
-            Expression::Index { binding, idx, .. } => {
-                let (_, element_ptr) = self.get_array_element(binding, idx)?;
+            Node::Expr(Expression::Index { binding, idx, .. }) => {
+                let (_, element_ptr) = self.get_array_element(*binding, *idx)?;
                 element_ptr
-            }
+            },
             _ => unreachable!("Fatal: Bad LHS in codegen assignment: `{}`", lhs),
         };
 
@@ -284,16 +241,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     // Unary operations
 
-    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, &Type)) -> ExprResult<'ctx> {
+    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, Type)) -> ExprResult<'ctx> {
         match rhs.1 {
-            int_types!() => Ok(self
-                .builder
-                .build_int_neg(rhs.0.into_int_value(), "neg.int")
-                .as_basic_value_enum()),
-            float_types!() => Ok(self
-                .builder
-                .build_float_neg(rhs.0.into_float_value(), "neg.float")
-                .as_basic_value_enum()),
+            int_types!() => {
+                Ok(self.builder.build_int_neg(rhs.0.into_int_value(), "neg.int").as_basic_value_enum())
+            },
+            float_types!() => {
+                Ok(self.builder.build_float_neg(rhs.0.into_float_value(), "neg.float").as_basic_value_enum())
+            },
             _ => Err("Unsupported type in `neg` operation".to_string()),
         }
     }

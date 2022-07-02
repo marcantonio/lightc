@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 154
+assertion_line: 152
 expression: "(test[1], res)"
 ---
 - "\nfn plusOne(x: int) -> int {\n    x + 1\n}\n\nfn main() {\n    1 + plusOne(3)\n}\n"
@@ -20,7 +20,7 @@ expression: "(test[1], res)"
                   list:
                     - Expr:
                         BinOp:
-                          sym: Add
+                          op: Add
                           lhs:
                             Expr:
                               Ident:
@@ -46,7 +46,7 @@ expression: "(test[1], res)"
                   list:
                     - Expr:
                         BinOp:
-                          sym: Add
+                          op: Add
                           lhs:
                             Expr:
                               Lit:

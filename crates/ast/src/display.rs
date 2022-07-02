@@ -16,39 +16,25 @@ impl Display for Statement {
         use Statement::*;
 
         match self {
-            For {
-                start_name,
-                start_antn,
-                start_expr,
-                cond_expr,
-                step_expr,
-                body,
-            } => {
-                let mut s = format!(
-                    "(for ({}: {}",
-                    start_name, start_antn
-                );
+            For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
+                let mut s = format!("(for ({}: {}", start_name, start_antn);
                 if let Some(init) = start_expr {
                     s += &format!(" {}", init);
                 }
                 write!(f, "{}) {} {} {})", s, cond_expr, step_expr, body)
-            }
+            },
             Let { name, antn, init } => {
                 let mut s = format!("(let {}:{}", name, antn);
                 if let Some(body) = init {
                     s += &format!(" {}", body);
                 }
                 write!(f, "{})", s)
-            }
+            },
             Fn { proto, body } => match body {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
-            Struct {
-                name,
-                attributes,
-                methods,
-            } => {
+            Struct { name, attributes, methods } => {
                 let mut attr_string = String::from("");
                 attr_string += &attributes.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!("{} ", n);
@@ -68,7 +54,7 @@ impl Display for Statement {
                     attr_string.strip_suffix(' ').unwrap_or(""),
                     meth_string.strip_suffix(' ').unwrap_or("")
                 )
-            }
+            },
         }
     }
 }
@@ -79,8 +65,8 @@ impl Display for Expression {
 
         match self {
             Lit { value, .. } => write!(f, "{}", value),
-            BinOp { sym, lhs, rhs, .. } => write!(f, "({} {} {})", sym, lhs, rhs),
-            UnOp { sym, rhs, .. } => write!(f, "({} {})", sym, rhs),
+            BinOp { op, lhs, rhs, .. } => write!(f, "({} {} {})", op, lhs, rhs),
+            UnOp { op, rhs, .. } => write!(f, "({} {})", op, rhs),
             Ident { name, .. } => write!(f, "{}", name),
             Call { name, args, .. } => {
                 let mut s = format!("({}", name);
@@ -90,19 +76,14 @@ impl Display for Expression {
                     }
                 }
                 write!(f, "{})", s)
-            }
-            Cond {
-                cond_expr,
-                then_block,
-                else_block,
-                ..
-            } => {
+            },
+            Cond { cond_expr, then_block, else_block, .. } => {
                 let mut s = format!("(if {} {}", cond_expr, then_block);
                 if let Some(alt) = else_block {
                     s += &format!(" {}", alt);
                 }
                 write!(f, "{})", s)
-            }
+            },
             Block { list, .. } => {
                 let mut s = "'(".to_string();
                 s += &list.iter().fold(String::new(), |mut acc, n| {
@@ -110,7 +91,7 @@ impl Display for Expression {
                     acc
                 });
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
-            }
+            },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
         }
     }
@@ -153,7 +134,7 @@ impl Display for Literal {
                     }
                 }
                 write!(f, "{}]", s)
-            }
+            },
         }
     }
 }

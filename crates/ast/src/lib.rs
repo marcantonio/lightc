@@ -1,17 +1,18 @@
 use serde::Serialize;
 
-use common::{Symbol, Type};
-use convert::AsExpr;
+use common::{Operator, Type};
+// use convert::AsExpr;
 
+mod as_symbol;
 pub mod convert;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
-pub struct Ast<T> {
+pub struct Ast<T: Clone> {
     nodes: Vec<T>,
 }
 
-impl<T> Ast<T> {
+impl<T: Clone> Ast<T> {
     pub fn new() -> Self {
         Ast { nodes: vec![] }
     }
@@ -24,30 +25,58 @@ impl<T> Ast<T> {
         &self.nodes
     }
 
-    pub fn nodes_mut(&mut self) -> &mut [T] {
-        &mut self.nodes
+    pub fn into_nodes(self) -> Vec<T> {
+        self.nodes
     }
+
+    // pub fn nodes_mut(&mut self) -> &mut [T] {
+    //     &mut self.nodes
+    // }
 }
 
-impl<T> Default for Ast<T> {
+impl<T: Clone> Default for Ast<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Node {
     Stmt(Statement),
     Expr(Expression),
 }
 
 impl Node {
-    pub fn ty(&self) -> Option<&Type> {
-        self.as_expr().ty()
+    pub fn ty(&self) -> Option<Type> {
+        match self {
+            Node::Stmt(_) => None,
+            Node::Expr(e) => e.ty(),
+        }
+    }
+
+    pub fn to_expr(self) -> Expression {
+        match self {
+            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Expr(e) => e,
+        }
+    }
+
+    pub fn as_expr(&self) -> &Expression {
+        match self {
+            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Expr(e) => e,
+        }
+    }
+
+    pub fn as_expr_mut(&mut self) -> &mut Expression {
+        match self {
+            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Expr(e) => e,
+        }
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Statement {
     For {
         start_name: String,
@@ -70,54 +99,23 @@ pub enum Statement {
         name: String,
         attributes: Vec<Node>,
         methods: Vec<Node>,
-    }
+    },
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Expression {
-    Lit {
-        value: Literal,
-        ty: Option<Type>,
-    },
-    Ident {
-        name: String,
-        ty: Option<Type>,
-    },
-    BinOp {
-        sym: Symbol,
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-        ty: Option<Type>,
-    },
-    UnOp {
-        sym: Symbol,
-        rhs: Box<Node>,
-        ty: Option<Type>,
-    },
-    Call {
-        name: String,
-        args: Vec<Node>,
-        ty: Option<Type>,
-    },
-    Cond {
-        cond_expr: Box<Node>,
-        then_block: Box<Node>,
-        else_block: Option<Box<Node>>,
-        ty: Option<Type>,
-    },
-    Block {
-        list: Vec<Node>,
-        ty: Option<Type>,
-    },
-    Index {
-        binding: Box<Node>,
-        idx: Box<Node>,
-        ty: Option<Type>,
-    },
+    Lit { value: Literal, ty: Option<Type> },
+    Ident { name: String, ty: Option<Type> },
+    BinOp { op: Operator, lhs: Box<Node>, rhs: Box<Node>, ty: Option<Type> },
+    UnOp { op: Operator, rhs: Box<Node>, ty: Option<Type> },
+    Call { name: String, args: Vec<Node>, ty: Option<Type> },
+    Cond { cond_expr: Box<Node>, then_block: Box<Node>, else_block: Option<Box<Node>>, ty: Option<Type> },
+    Block { list: Vec<Node>, ty: Option<Type> },
+    Index { binding: Box<Node>, idx: Box<Node>, ty: Option<Type> },
 }
 
 impl Expression {
-    pub fn ty(&self) -> Option<&Type> {
+    pub fn ty(&self) -> Option<Type> {
         use Expression::*;
 
         match self {
@@ -130,7 +128,7 @@ impl Expression {
             Block { ty, .. } => ty,
             Index { ty, .. } => ty,
         }
-        .as_ref()
+        .clone()
     }
 
     pub fn is_num_literal(&self) -> bool {
@@ -153,7 +151,7 @@ impl Expression {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Literal {
     Int8(i8),
     Int16(i16),
@@ -167,13 +165,10 @@ pub enum Literal {
     Double(f64),
     Bool(bool),
     Char(u8),
-    Array {
-        elements: Vec<Node>,
-        inner_ty: Option<Type>,
-    },
+    Array { elements: Vec<Node>, inner_ty: Option<Type> },
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Prototype {
     name: String,
     args: Vec<(String, Type)>,
@@ -215,16 +210,16 @@ impl Prototype {
 pub trait AstVisitor {
     type Result;
 
-    fn visit_stmt(&mut self, s: &Statement) -> Self::Result;
-    fn visit_expr(&mut self, e: &Expression) -> Self::Result;
+    fn visit_stmt(&mut self, s: Statement) -> Self::Result;
+    fn visit_expr(&mut self, e: Expression) -> Self::Result;
 }
 
 pub trait Visitable {
-    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result;
+    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result;
 }
 
 impl Visitable for Node {
-    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
+    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
         match self {
             Node::Stmt(s) => v.visit_stmt(s),
             Node::Expr(e) => v.visit_expr(e),
@@ -232,48 +227,48 @@ impl Visitable for Node {
     }
 }
 
-impl Visitable for Expression {
-    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
-        v.visit_expr(self)
+impl Visitable for Statement {
+    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
+        v.visit_stmt(self)
     }
 }
 
-impl Visitable for Statement {
-    fn accept<V: AstVisitor>(&self, v: &mut V) -> V::Result {
-        v.visit_stmt(self)
+impl Visitable for Expression {
+    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
+        v.visit_expr(self)
     }
 }
 
 // Mutable visitor interface
 
-pub trait AstVisitorMut {
-    type Result;
+// pub trait AstVisitorMut {
+//     type Result;
 
-    fn visit_stmt(&mut self, s: &mut Statement) -> Self::Result;
-    fn visit_expr(&mut self, e: &mut Expression) -> Self::Result;
-}
+//     fn visit_stmt(&mut self, s: &mut Statement) -> Self::Result;
+//     fn visit_expr(&mut self, e: &mut Expression) -> Self::Result;
+// }
 
-pub trait VisitableMut {
-    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result;
-}
+// pub trait VisitableMut {
+//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result;
+// }
 
-impl VisitableMut for Node {
-    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-        match self {
-            Node::Stmt(s) => v.visit_stmt(s),
-            Node::Expr(e) => v.visit_expr(e),
-        }
-    }
-}
+// impl VisitableMut for Node {
+//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
+//         match self {
+//             Node::Stmt(s) => v.visit_stmt(s),
+//             Node::Expr(e) => v.visit_expr(e),
+//         }
+//     }
+// }
 
-impl VisitableMut for Expression {
-    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-        v.visit_expr(self)
-    }
-}
+// impl VisitableMut for Statement {
+//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
+//         v.visit_stmt(self)
+//     }
+// }
 
-impl VisitableMut for Statement {
-    fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-        v.visit_stmt(self)
-    }
-}
+// impl VisitableMut for Expression {
+//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
+//         v.visit_expr(self)
+//     }
+// }

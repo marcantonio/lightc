@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 650
+assertion_line: 648
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    let xy: int8 = 1\n    -xy\n}\n"
@@ -28,7 +28,7 @@ expression: "(test[1], res)"
                                 ty: Int8
                     - Expr:
                         UnOp:
-                          sym: Sub
+                          op: Sub
                           rhs:
                             Expr:
                               Ident:

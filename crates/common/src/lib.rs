@@ -1,6 +1,8 @@
 use serde::Serialize;
 
 mod macros;
+pub mod symbol_cache;
+pub use symbol_cache::SymbolCache;
 pub mod symbol_table;
 
 #[derive(PartialEq, Clone, Serialize)]
@@ -17,13 +19,7 @@ impl Token {
     }
 
     pub fn is_eof(&self) -> bool {
-        matches!(
-            self,
-            Token {
-                tt: TokenType::Eof,
-                ..
-            }
-        )
+        matches!(self, Token { tt: TokenType::Eof, .. })
     }
 
     // Return true when the semicolon is one we inserted during lexing
@@ -58,11 +54,7 @@ impl std::fmt::Debug for Token {
 
 impl Default for Token {
     fn default() -> Self {
-        Token {
-            tt: TokenType::Eof,
-            line: 0,
-            column: 0,
-        }
+        Token { tt: TokenType::Eof, line: 0, column: 0 }
     }
 }
 
@@ -85,7 +77,7 @@ pub enum TokenType {
     If,
     Let,
     Num(String),
-    Op(Symbol),
+    Op(Operator),
     OpenBrace,
     OpenBracket,
     OpenParen,
@@ -114,51 +106,63 @@ impl std::fmt::Display for TokenType {
 // A Symbol is an extra layer of abstraction between TokenType::Op() and the
 // actual character. Convenient in Rust to help constrain matching.
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
-pub enum Symbol {
+pub enum Operator {
     Add,
+    AddEq,
     And,
     Assign,
     BitAnd,
     BitOr,
     BitXor,
+    Dec,
     Div,
+    DivEq,
     Eq,
     Gt,
     GtEq,
+    Inc,
     Lt,
     LtEq,
     Mul,
+    MulEq,
     Not,
     NotEq,
     Or,
     Pow,
     RetType,
     Sub,
+    SubEq,
 }
 
-impl std::fmt::Display for Symbol {
+impl std::fmt::Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Symbol::*;
+        use Operator::*;
         let s = match self {
             Add => "+",
+            AddEq => "+=",
             Assign => "=",
             And => "&&",
             BitAnd => "&",
             BitOr => "|",
             BitXor => "^",
+            Dec => "--",
             Div => "/",
+            DivEq => "/=",
             Eq => "==",
             Gt => ">",
             GtEq => ">=",
+            Inc => "++",
             Lt => "<",
             LtEq => "<=",
             Mul => "*",
+            MulEq => "*=",
             Not => "!",
             NotEq => "!=",
             Or => "||",
             Pow => "**",
             RetType => "->",
             Sub => "-",
+            SubEq => "-=",
         };
         write!(f, "{}", s)
     }
@@ -185,6 +189,12 @@ pub enum Type {
 impl Default for Type {
     fn default() -> Self {
         Self::Void
+    }
+}
+
+impl Default for &Type {
+    fn default() -> Self {
+        &Type::Void
     }
 }
 

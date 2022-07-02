@@ -76,10 +76,7 @@ fn test_call() {
 
 #[test]
 fn test_char() {
-    let tests = [
-        ["basic", "let c: char = 'a'"],
-        ["control", "let nl: char = '\n'"],
-    ];
+    let tests = [["basic", "let c: char = 'a'"], ["control", "let nl: char = '\n'"]];
     run_insta!("char", tests);
 }
 
@@ -247,11 +244,8 @@ fn test_op_prec() {
 
 #[test]
 fn test_parens() {
-    let tests = [
-        ["excessive", "(((0)))"],
-        ["prec", "(19 + 21) / 40"],
-        ["complex", "3 * ((19 + 21) - 5) / 40"],
-    ];
+    let tests =
+        [["excessive", "(((0)))"], ["prec", "(19 + 21) / 40"], ["complex", "3 * ((19 + 21) - 5) / 40"]];
     run_insta!("parens", tests);
 }
 
@@ -327,38 +321,38 @@ struct Foo {
 }
 "#,
         ],
-//         [
-//             "self",
-//             r#"
-// struct Foo {
-//     let a: int
+        //         [
+        //             "self",
+        //             r#"
+        // struct Foo {
+        //     let a: int
 
-//     fn c() -> int {
-//         self.a + 1
-//     }
-// }
-// "#,
-//         ],
-//         [
-//             "self_bad1",
-//             r#"
-// struct Foo {
-//     fn c() -> int {
-//         self + 1
-//     }
-// }
-// "#,
-//         ],
-//         [
-//             "self_bad2",
-//             r#"
-// struct Foo {
-//     fn c() -> int {
-//         self. + 1
-//     }
-// }
-// "#,
-//         ],
+        //     fn c() -> int {
+        //         self.a + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad1",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad2",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self. + 1
+        //     }
+        // }
+        // "#,
+        //         ],
     ];
 
     run_insta!("struct", tests)

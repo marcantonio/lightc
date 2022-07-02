@@ -27,7 +27,7 @@ expr            : primary_expr
                 | expr ('&' | '|' | '^') expr
                 | expr '&&' expr
                 | expr '||' expr
-                | (ident_expr | self_expr) '=' expr;
+                | (ident_expr | self_expr) ('=' | '+=' | '-=' ) expr;
 primary_expr    : cond_expr
                 | self_expr
                 | lit_expr

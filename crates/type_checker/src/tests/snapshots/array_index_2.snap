@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 723
+assertion_line: 728
 expression: "(test[1], res)"
 ---
 - "\nlet x: [int; 3] = [1, 2, 3]\nx[1 + 2]\n"
@@ -52,7 +52,7 @@ expression: "(test[1], res)"
             idx:
               Expr:
                 BinOp:
-                  sym: Add
+                  op: Add
                   lhs:
                     Expr:
                       Lit:
