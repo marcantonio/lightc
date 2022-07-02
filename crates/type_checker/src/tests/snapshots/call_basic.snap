@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 238
+assertion_line: 240
 expression: "(test[1], res)"
 ---
 - "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1)\n}\n"
@@ -39,7 +39,7 @@ expression: "(test[1], res)"
             proto:
               name: main
               args: []
-              ret_ty: Int32
+              ret_ty: Void
             body:
               Expr:
                 Block:

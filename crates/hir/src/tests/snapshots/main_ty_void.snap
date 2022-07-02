@@ -1,0 +1,20 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 53
+expression: "(test[1], res)"
+---
+- "\nfn main() { }\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+            body:
+              Expr:
+                Block:
+                  list: []
+                  ty: ~
+

@@ -144,8 +144,8 @@ impl<'a> TypeChecker<'a> {
     }
 
     // Check function definitions. This function also does the proto.
-    fn check_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        let mut func_entry = FunctionEntry {
+    fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+        let func_entry = FunctionEntry {
             ret_ty: proto.ret_ty().cloned().unwrap_or(Type::Void),
             arg_tys: proto.args().iter().map(|(_, ty)| ty.clone()).collect::<Vec<Type>>(),
         };
@@ -168,21 +168,23 @@ impl<'a> TypeChecker<'a> {
         }
 
         let body_node = self.check_node(*body, None)?;
-        let mut body_ty = body_node.ty().unwrap_or_default();
+        let body_ty = body_node.ty().unwrap_or_default();
 
-        // XXX
-        let mut proto = proto;
-        // Ensure main is always an int32 and returns a 0 if nothing is
-        // specified
-        //
-        // TODO: Should go into a desugar phase
-        if proto.name() == "main" {
-            body_ty = Type::Int32;
-            func_entry.ret_ty = Type::Int32;
-            proto.set_ret_ty(Some(Type::Int32));
-            self.function_table.insert(proto.name().to_owned(), func_entry.clone());
-        } else {
-            // Make sure these are in sync since there's no `check_proto()`
+        // // XXX
+        // let mut proto = proto;
+        // // Ensure main is always an int32 and returns a 0 if nothing is
+        // // specified
+        // //
+        // // TODO: Should go into a desugar phase
+        // if proto.name() == "main" {
+        //     body_ty = Type::Int32;
+        //     func_entry.ret_ty = Type::Int32;
+        //     proto.set_ret_ty(Some(Type::Int32));
+        //     self.function_table.insert(proto.name().to_owned(), func_entry.clone());
+        // } else {
+
+        // Make sure these are in sync since there's no `check_proto()`
+        if proto.name() != "main" {
             proto.set_ret_ty(Some(func_entry.ret_ty.clone()));
         }
 

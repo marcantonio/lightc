@@ -33,3 +33,22 @@ fn main() {
     ]];
     run_insta!("binop", tests);
 }
+
+#[test]
+fn test_main_ty() {
+    let tests = [
+        [
+            "void",
+            r#"
+fn main() { }
+"#,
+        ],
+        [
+            "antn",
+            r#"
+fn main() -> int { }
+"#,
+        ],
+    ];
+    run_insta!("main_ty", tests);
+}

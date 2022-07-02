@@ -1,9 +1,0 @@
----
-source: crates/codegen/src/tests.rs
-assertion_line: 63
-expression: "(test[1], res, res_opt)"
----
-- "\nfn main() {\n    {\n        10 + 2\n        1.0\n        5\n    }\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 0\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 0\n}\n"
-

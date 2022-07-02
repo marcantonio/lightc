@@ -351,7 +351,7 @@ fn test(x: int) -> int {
     x + 1
 }
 
-fn main() -> int {
+fn main() {
     test(-40)
 }
 "#,

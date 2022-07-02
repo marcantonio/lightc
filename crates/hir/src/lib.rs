@@ -1,8 +1,5 @@
-use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
 use common::{Operator, SymbolCache, Type};
-
-#[macro_use]
-extern crate common;
 
 #[cfg(test)]
 mod tests;
@@ -87,38 +84,12 @@ impl<'a> Hir<'a> {
         Ok(Statement::Let { name, antn, init: init.map(|e| self.lower_node(*e)).transpose()?.map(Box::new) })
     }
 
-    fn lower_func(&mut self, mut proto: Prototype, mut body: Option<Box<Node>>) -> StmtResult {
-        // Insert an int into main if the prototype's return is annotated with anything
-        // other than an integer type
+    fn lower_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
         if proto.name() == "main" {
-            if let Some(ref mut body) = body {
-                match proto.ret_ty() {
-                    Some(int_types!()) => {},
-                    Some(Type::Void) | None => {
-                        match body.as_expr_mut() {
-                            Expression::Block { list, .. } => {
-                                list.push(Node::Expr(Expression::Lit {
-                                    value: Literal::Int32(0),
-                                    ty: Some(Type::Int32),
-                                }));
-                            },
-                            _ => unreachable!("fatal: body can only contain an Expression::Block"),
-                        };
-                    },
-                    Some(ty) => {
-                        return Err(format!("main()'s return value shouldn't be annotated. Found `{}`", ty))
-                    },
-                }
-            } else {
-                body = Some(Box::new(Node::Expr(Expression::Block {
-                    list: vec![Node::Expr(Expression::Lit {
-                        value: Literal::Int32(0),
-                        ty: Some(Type::Int32),
-                    })],
-                    ty: None,
-                })));
+            if proto.ret_ty().is_some() {
+                return Err(format!("main()'s return value shouldn't be annotated. Found `{}`", proto.ret_ty().unwrap()))
             }
-            proto.set_ret_ty(Some(Type::Int32));
+            proto.set_ret_ty(Some(Type::Void));
         }
 
         self.symbol_cache.insert(&proto);

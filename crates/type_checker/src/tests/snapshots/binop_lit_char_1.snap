@@ -13,14 +13,14 @@ expression: "(test[1], res)"
               args:
                 - - x
                   - Int32
-              ret_ty: Int32
+              ret_ty: Void
             body:
               Expr:
                 Block:
                   list:
                     - Expr:
                         BinOp:
-                          sym: Gt
+                          op: Gt
                           lhs:
                             Expr:
                               Lit:
@@ -34,10 +34,5 @@ expression: "(test[1], res)"
                                   Char: 99
                                 ty: Char
                           ty: Bool
-                    - Expr:
-                        Lit:
-                          value:
-                            Int32: 0
-                          ty: Int32
                   ty: Bool
 

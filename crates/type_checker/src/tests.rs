@@ -362,24 +362,6 @@ fn foo() {
 }
 "#,
         ],
-        [
-            "main_exits_int32_1",
-            r#"
-fn main() { }
-"#,
-        ],
-        [
-            "main_exits_int32_2",
-            r#"
-fn main() { 1 }
-"#,
-        ],
-        [
-            "main_exits_int32_3",
-            r#"
-fn main() -> float { 1.0 }
-"#,
-        ],
     ];
     run_insta!("def_func", tests);
 }
