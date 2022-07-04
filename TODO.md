@@ -13,7 +13,6 @@
 - [ ] Include file name in error
 - [ ] Add while
 - [ ] Desugar for loops
-- [ ] Add inc/dec operator
 - [x] Fix main exit code
 - [x] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)

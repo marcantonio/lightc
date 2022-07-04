@@ -1,18 +1,18 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 265
+assertion_line: 263
 expression: "(test[1], ast, ast_string)"
 ---
-- "--21"
+- "-(-21)"
 - Ok:
     nodes:
       - Expr:
           UnOp:
-            sym: Sub
+            op: Sub
             rhs:
               Expr:
                 UnOp:
-                  sym: Sub
+                  op: Sub
                   rhs:
                     Expr:
                       Lit:

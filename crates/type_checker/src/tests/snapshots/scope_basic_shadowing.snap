@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 612
+assertion_line: 604
 expression: "(test[1], res)"
 ---
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\n"

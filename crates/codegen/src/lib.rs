@@ -639,7 +639,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     AnyTypeEnum::IntType(ty) => (ty.as_basic_type_enum(), sz),
                     _ => todo!(),
                 };
-                builder.build_alloca(array_ty.0.array_type(*array_ty.1), name)
+                builder.build_alloca(
+                    array_ty
+                        .0
+                        .array_type((*array_ty.1).try_into().expect("fatal error: this is embarrassing")),
+                    name,
+                )
             },
         }
     }
@@ -688,11 +693,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Double => self.context.f64_type().as_any_type_enum(),
             Type::Bool => self.context.bool_type().as_any_type_enum(),
             Type::Void => self.context.void_type().as_any_type_enum(),
-            Type::Array(ty, size) => match self.get_llvm_ty(*ty) {
-                AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
-                AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
-                AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
-                _ => todo!(),
+            Type::Array(ty, size) => {
+                let size = size.try_into().expect("fatal: this is embarrassing");
+                match self.get_llvm_ty(*ty) {
+                    AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
+                    AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
+                    AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
+                    _ => todo!(),
+                }
             },
         }
     }

@@ -52,7 +52,23 @@ fn main() {
     }
 
     let mut symbol_cache = SymbolCache::new();
-    let hir = Hir::new(&mut symbol_cache).walk(ast).unwrap_or_else(|e| {
+
+    // Type checker
+    let tyst = TypeChecker::new(&symbol_cache).walk(ast).unwrap_or_else(|e| {
+        eprintln!("Type checking error: {}", e);
+        process::exit(1);
+    });
+
+    if args.show_tyst {
+        println!("Typed AST:");
+        for node in tyst.nodes() {
+            println!("{}", node);
+        }
+        println!();
+    }
+
+    // HIR
+    let hir = Hir::new(&mut symbol_cache).walk(tyst).unwrap_or_else(|e| {
         eprintln!("Lowering error: {}", e);
         process::exit(1);
     });
@@ -60,20 +76,6 @@ fn main() {
     if args.show_hir {
         println!("HIR:");
         for node in hir.nodes() {
-            println!("{}", node);
-        }
-        println!();
-    }
-
-    // Type Checker
-    let thir = TypeChecker::new(&symbol_cache).walk(hir).unwrap_or_else(|e| {
-        eprintln!("Type checking error: {}", e);
-        process::exit(1);
-    });
-
-    if args.show_thir {
-        println!("THIR:");
-        for node in thir.nodes() {
             println!("{}", node);
         }
         println!();
@@ -95,7 +97,7 @@ fn main() {
         args.no_verify,
         !args.compile,
     );
-    codegen.walk(thir).expect("Compiler error");
+    codegen.walk(hir).expect("Compiler error");
 
     if args.show_ir {
         println!("IR:");
@@ -214,13 +216,13 @@ struct Args {
     #[clap(long, parse(from_flag))]
     show_ast: bool,
 
+    /// Display TYped aST
+    #[clap(long, parse(from_flag))]
+    show_tyst: bool,
+
     /// Display HIR
     #[clap(long, parse(from_flag))]
     show_hir: bool,
-
-    /// Display THIR
-    #[clap(long, parse(from_flag))]
-    show_thir: bool,
 
     /// Display IR
     #[clap(long, parse(from_flag))]

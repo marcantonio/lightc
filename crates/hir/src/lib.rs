@@ -84,15 +84,8 @@ impl<'a> Hir<'a> {
         Ok(Statement::Let { name, antn, init: init.map(|e| self.lower_node(*e)).transpose()?.map(Box::new) })
     }
 
-    fn lower_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        if proto.name() == "main" {
-            if proto.ret_ty().is_some() {
-                return Err(format!("main()'s return value shouldn't be annotated. Found `{}`", proto.ret_ty().unwrap()))
-            }
-            proto.set_ret_ty(Some(Type::Void));
-        }
-
-        self.symbol_cache.insert(&proto);
+    fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+        //self.symbol_cache.insert(&proto);
 
         Ok(Statement::Fn {
             proto: Box::new(proto),
@@ -125,7 +118,7 @@ impl<'a> Hir<'a> {
                 self.lower_cond(*cond_expr, *then_block, else_block, ty)?
             },
             Block { list, ty } => self.lower_block(list, ty)?,
-            Index { binding, idx, ty } => self.check_index(*binding, *idx, ty)?,
+            Index { binding, idx, ty } => self.lower_index(*binding, *idx, ty)?,
             e => e, // some expressions don't contain other nodes
         };
 
@@ -137,44 +130,25 @@ impl<'a> Hir<'a> {
         use Operator::*;
 
         let orig_lhs = lhs.clone();
+        let orig_ty = ty.clone();
 
         let top_op;
         let rhs = match op {
             AddEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp {
-                    op: Add,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    ty: None,
-                })
+                Node::Expr(Expression::BinOp { op: Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
             },
             SubEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp {
-                    op: Sub,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    ty: None,
-                })
+                Node::Expr(Expression::BinOp { op: Sub, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
             },
             MulEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp {
-                    op: Mul,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    ty: None,
-                })
+                Node::Expr(Expression::BinOp { op: Mul, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
             },
             DivEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp {
-                    op: Div,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    ty: None,
-                })
+                Node::Expr(Expression::BinOp { op: Div, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
             },
             _ => {
                 top_op = op;
@@ -186,7 +160,7 @@ impl<'a> Hir<'a> {
             op: top_op,
             lhs: Box::new(self.lower_node(orig_lhs)?),
             rhs: Box::new(self.lower_node(rhs)?),
-            ty,
+            ty: orig_ty,
         })
     }
 
@@ -221,7 +195,7 @@ impl<'a> Hir<'a> {
         Ok(Expression::Block { list: lowered_list, ty })
     }
 
-    fn check_index(&mut self, binding: Node, idx: Node, ty: Option<Type>) -> ExprResult {
+    fn lower_index(&mut self, binding: Node, idx: Node, ty: Option<Type>) -> ExprResult {
         Ok(Expression::Index {
             binding: Box::new(self.lower_node(binding)?),
             idx: Box::new(self.lower_node(idx)?),

@@ -10,7 +10,6 @@ common = { path = "../common" }
 serde = { version = "1.0.136", features = ["derive"] }
 
 [dev-dependencies]
-hir = { path = "../hir" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 

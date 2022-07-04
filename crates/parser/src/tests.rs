@@ -256,7 +256,8 @@ fn test_unop() {
         ["with_binop", "-a * 2"],
         ["sub", "3 - -21"],
         ["right", "-4 ** 2"],
-        ["double_neg", "--21"],
+        ["double_neg_good", "-(-21)"],
+        ["double_neg_bad", "--21"],
         ["invalid", "*2"],
     ];
     run_insta!("unop", tests);

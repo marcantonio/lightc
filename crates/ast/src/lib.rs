@@ -35,6 +35,8 @@ impl<T> Default for Ast<T> {
     }
 }
 
+// XXX: Node<T>???
+
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Node {
     Stmt(Statement),
@@ -42,6 +44,13 @@ pub enum Node {
 }
 
 impl Node {
+    pub fn new<F, T>(constructor: F, inner: T) -> Self
+    where
+        F: Fn(T) -> Self,
+    {
+        (constructor)(inner)
+    }
+
     pub fn ty(&self) -> Option<Type> {
         match self {
             Node::Stmt(_) => None,
@@ -161,6 +170,20 @@ pub enum Literal {
     Bool(bool),
     Char(u8),
     Array { elements: Vec<Node>, inner_ty: Option<Type> },
+}
+
+#[macro_export]
+macro_rules! make_literal {
+    (Array, $ty:expr, $len:expr) => {
+        Expression::Lit {
+            value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty) },
+            ty: Some(Type::Array(Box::new(*$ty), $len)),
+        }
+    };
+
+    ($ty:tt, $val:expr) => {
+        Expression::Lit { value: Literal::$ty($val), ty: Some(Type::$ty) }
+    };
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

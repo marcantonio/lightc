@@ -183,7 +183,7 @@ pub enum Type {
     Bool,
     Char,
     Void,
-    Array(Box<Type>, u32),
+    Array(Box<Type>, usize),
 }
 
 impl Default for Type {

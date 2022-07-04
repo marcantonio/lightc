@@ -1,4 +1,3 @@
-use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
 
@@ -12,9 +11,8 @@ macro_rules! run_insta {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let ast = Parser::new(&tokens).parse().unwrap();
-                let mut symbol_cache = SymbolCache::new();
-                let hir = Hir::new(&mut symbol_cache).walk(ast).unwrap();
-                let res = TypeChecker::new(&symbol_cache).walk(hir);
+                let symbol_cache = SymbolCache::new();
+                let res = TypeChecker::new(&symbol_cache).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
@@ -362,6 +360,18 @@ fn foo() {
 }
 "#,
         ],
+        [
+            "main_void",
+            r#"
+fn main() { }
+"#,
+        ],
+        [
+            "main_antn",
+            r#"
+fn main() -> int { }
+"#,
+        ],
     ];
     run_insta!("def_func", tests);
 }
@@ -477,14 +487,14 @@ fn foo() {
 }
 "#,
         ],
-        //         [
-        //             "basic_no_init",
-        //             r#"
-        // fn foo() {
-        //     let x: int
-        // }
-        // "#,
-        //         ],
+        [
+            "basic_no_init",
+            r#"
+        fn foo() {
+            let x: int
+        }
+        "#,
+        ],
         [
             "lit_antn_mismatch",
             r#"
@@ -635,7 +645,7 @@ fn foo() {
 #[test]
 fn test_array() {
     let tests = [
-        //        ["type", "let x: [int; 3]"],
+        ["type", "let x: [int; 3]"],
         ["lit", "let x: [int; 3] = [1, 2, 3]"],
         [
             "lit_reassign",
@@ -692,13 +702,13 @@ let x: [int; 3] = [1, 2, 3]
 x['c']
 "#,
         ],
-        //         [
-        //             "index_bad_3",
-        //             r#"
-        // let x: int;
-        // x[y]
-        // "#,
-        //         ],
+        [
+            "index_bad_3",
+            r#"
+        let x: int;
+        x[y]
+        "#,
+        ],
         [
             "index_bad_4",
             r#"
@@ -871,18 +881,18 @@ macro_rules! test_lit_hint_binop_float {
     }};
 }
 
-// #[test]
-// fn test_tyc_binop_lit() {
-//     use Type::*;
+#[test]
+fn test_tyc_binop_lit() {
+    use Type::*;
 
-//     test_lit_hint_binop_int!(Int8);
-//     test_lit_hint_binop_int!(Int16);
-//     test_lit_hint_binop_int!(Int32);
-//     test_lit_hint_binop_int!(Int64);
-//     test_lit_hint_binop_int!(UInt8);
-//     test_lit_hint_binop_int!(UInt16);
-//     test_lit_hint_binop_int!(UInt32);
-//     test_lit_hint_binop_int!(UInt64);
-//     test_lit_hint_binop_float!(Float);
-//     test_lit_hint_binop_float!(Double);
-// }
+    test_lit_hint_binop_int!(Int8);
+    test_lit_hint_binop_int!(Int16);
+    test_lit_hint_binop_int!(Int32);
+    test_lit_hint_binop_int!(Int64);
+    test_lit_hint_binop_int!(UInt8);
+    test_lit_hint_binop_int!(UInt16);
+    test_lit_hint_binop_int!(UInt32);
+    test_lit_hint_binop_int!(UInt64);
+    test_lit_hint_binop_float!(Float);
+    test_lit_hint_binop_float!(Double);
+}

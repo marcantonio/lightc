@@ -1,5 +1,6 @@
 use lexer::Lexer;
 use parser::Parser;
+use type_checker::TypeChecker;
 
 use super::*;
 
@@ -10,7 +11,8 @@ macro_rules! run_insta {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let ast = Parser::new(&tokens).parse().unwrap();
                 let mut symbol_cache = SymbolCache::new();
-                let res = Hir::new(&mut symbol_cache).walk(ast);
+                let tyst = TypeChecker::new(&symbol_cache).walk(ast).unwrap();
+                let res = Hir::new(&mut symbol_cache).walk(tyst);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
@@ -23,6 +25,7 @@ fn test_binop() {
         "all",
         r#"
 fn main() {
+    let y: int
     y += 1
     y -= 1
     y *= 1
@@ -32,23 +35,4 @@ fn main() {
 "#,
     ]];
     run_insta!("binop", tests);
-}
-
-#[test]
-fn test_main_ty() {
-    let tests = [
-        [
-            "void",
-            r#"
-fn main() { }
-"#,
-        ],
-        [
-            "antn",
-            r#"
-fn main() -> int { }
-"#,
-        ],
-    ];
-    run_insta!("main_ty", tests);
 }

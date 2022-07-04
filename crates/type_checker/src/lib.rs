@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::{make_literal, Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::{symbol_table, SymbolCache};
 use common::{Operator, Type};
 
@@ -18,7 +18,8 @@ mod tests;
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - ensures functions aren't redefined
-// - cooks main's return value
+// - initializes uninitialized variables
+// - checks main()'s annotation
 
 #[derive(Clone)]
 struct FunctionEntry {
@@ -95,7 +96,8 @@ impl<'a> TypeChecker<'a> {
         &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
         step_expr: Node, body: Node,
     ) -> StmtResult {
-        let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
+        // XXX
+        let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?.unwrap();
 
         // Remove old variable. Ignore failure. Insert starting variable.
         let old_var = self.symbol_table.remove(&start_name);
@@ -140,13 +142,14 @@ impl<'a> TypeChecker<'a> {
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
         self.symbol_table.insert(&name, antn.clone())?;
-        Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
+        // XXX
+        Ok(Statement::Let { name, antn, init: init_node.map(Box::new) })
     }
 
     // Check function definitions. This function also does the proto.
     fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
         let func_entry = FunctionEntry {
-            ret_ty: proto.ret_ty().cloned().unwrap_or(Type::Void),
+            ret_ty: proto.ret_ty().cloned().unwrap_or_default(),
             arg_tys: proto.args().iter().map(|(_, ty)| ty.clone()).collect::<Vec<Type>>(),
         };
 
@@ -183,14 +186,23 @@ impl<'a> TypeChecker<'a> {
         //     self.function_table.insert(proto.name().to_owned(), func_entry.clone());
         // } else {
 
+        // XXX
         // Make sure these are in sync since there's no `check_proto()`
-        if proto.name() != "main" {
+        if proto.name() == "main" {
+            if proto.ret_ty().is_some() {
+                return Err(format!(
+                    "main()'s return value shouldn't be annotated. Found `{}`",
+                    proto.ret_ty().unwrap()
+                ));
+            }
+            proto.set_ret_ty(Some(Type::Void));
+        } else {
             proto.set_ret_ty(Some(func_entry.ret_ty.clone()));
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if func_entry.ret_ty != body_ty && func_entry.ret_ty != Type::Void {
+        if func_entry.ret_ty != body_ty && func_entry.ret_ty != Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 proto.name(),
@@ -320,7 +332,7 @@ impl<'a> TypeChecker<'a> {
         };
 
         // Make sure array is big enough
-        if elements.len() as u32 > *size {
+        if elements.len() as u32 as usize > *size {
             return Err(format!("Array literal too big in assignment: `{}` > `{}`", elements.len(), size));
         }
 
@@ -336,10 +348,7 @@ impl<'a> TypeChecker<'a> {
         }
 
         // Rebuild the literal and return the type
-        Ok((
-            Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) },
-            Type::Array(ty, *size),
-        ))
+        Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, *size)))
     }
 
     fn check_ident(&self, name: String) -> ExprResult {
@@ -557,13 +566,14 @@ impl<'a> TypeChecker<'a> {
         Ok(Expression::Index { binding: Box::new(chkd_binding), idx: Box::new(chkd_idx), ty: binding_ty })
     }
 
-    // XXX: !!!
     // Helper for variable initializations
     fn check_var_init(
         &mut self, name: &str, init: Option<Box<Node>>, antn: &Type, caller: &str,
-    ) -> Result<Node, String> {
+    ) -> Result<Option<Node>, String> {
+        use Type::*;
+
         // If init exists, make sure it matches the variable's annotation
-        if let Some(init) = init {
+        let init_node = if let Some(init) = init {
             let init_node = self.check_node(*init, Some(antn))?;
             let init_ty = init_node.ty().unwrap_or_default();
             if antn != &init_ty {
@@ -572,9 +582,26 @@ impl<'a> TypeChecker<'a> {
                     caller, name, antn, init_ty
                 ));
             }
-            Ok(init_node)
+            init_node
         } else {
-            todo!()
-        }
+            let literal = match antn {
+                Int8 => make_literal!(Int8, 0),
+                Int16 => make_literal!(Int16, 0),
+                Int32 => make_literal!(Int32, 0),
+                Int64 => make_literal!(Int64, 0),
+                UInt8 => make_literal!(UInt8, 0),
+                UInt16 => make_literal!(UInt16, 0),
+                UInt32 => make_literal!(UInt32, 0),
+                UInt64 => make_literal!(UInt64, 0),
+                Float => make_literal!(Float, 0.0),
+                Double => make_literal!(Double, 0.0),
+                Char => make_literal!(Char, 0),
+                Bool => make_literal!(Bool, false),
+                Array(ty, len) => make_literal!(Array, ty.clone(), *len),
+                Void => unreachable!("Fatal: void type for variable initialization annotation"),
+            };
+            Node::new(Node::Expr, literal)
+        };
+        Ok(Some(init_node))
     }
 }

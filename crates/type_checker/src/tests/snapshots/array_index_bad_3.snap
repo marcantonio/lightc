@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 722
+assertion_line: 710
 expression: "(test[1], res)"
 ---
-- "\nlet x: int;\nx[y]\n"
+- "\n        let x: int;\n        x[y]\n        "
 - Err: "Can't index `int32`"
 

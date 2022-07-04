@@ -1,6 +1,6 @@
 ---
-source: crates/hir/src/tests.rs
-assertion_line: 53
+source: crates/type_checker/src/tests.rs
+assertion_line: 376
 expression: "(test[1], res)"
 ---
 - "\nfn main() { }\n"
@@ -16,5 +16,5 @@ expression: "(test[1], res)"
               Expr:
                 Block:
                   list: []
-                  ty: ~
+                  ty: Void
 
