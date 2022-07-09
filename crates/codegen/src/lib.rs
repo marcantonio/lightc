@@ -8,9 +8,7 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::IntPredicate;
 
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::symbol_table::SymbolTable;
-use common::{symbol_cache, SymbolCache};
-use common::{Operator, Type};
+use common::{Operator, ScopeTable, SymbolTable, Type};
 
 #[macro_use]
 extern crate common;
@@ -32,8 +30,8 @@ pub struct Codegen<'a, 'ctx> {
     builder: &'a Builder<'ctx>,
     module: &'a Module<'ctx>,
     fpm: &'a PassManager<FunctionValue<'ctx>>,
-    symbol_table: SymbolTable<PointerValue<'ctx>>,
-    symbol_cache: &'a SymbolCache,
+    scope_table: ScopeTable<PointerValue<'ctx>>,
+    _symbol_table: &'a SymbolTable,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     skip_verify: bool,
@@ -56,7 +54,7 @@ impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn new(
         context: &'ctx Context, builder: &'a Builder<'ctx>, module: &'a Module<'ctx>,
-        fpm: &'a PassManager<FunctionValue<'ctx>>, symbol_cache: &'a SymbolCache, opt_level: usize,
+        fpm: &'a PassManager<FunctionValue<'ctx>>, _symbol_table: &'a SymbolTable, opt_level: usize,
         skip_verify: bool, require_main: bool,
     ) -> Self {
         if opt_level > 0 {
@@ -76,8 +74,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             builder,
             module,
             fpm,
-            symbol_table: SymbolTable::new(),
-            symbol_cache,
+            scope_table: ScopeTable::new(),
+            _symbol_table,
             main: None,
             opt_level,
             skip_verify,
@@ -141,8 +139,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Save the variable value if we are shadowing and insert alloca into
         // local map
-        let old_var = self.symbol_table.remove(&start_name);
-        self.symbol_table.insert(&start_name, start_alloca)?;
+        let old_var = self.scope_table.remove(&start_name);
+        self.scope_table.insert(&start_name, start_alloca)?;
 
         // Create all the blocks
         let cond_bb = self.context.append_basic_block(parent, "for.cond");
@@ -195,9 +193,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(post_bb);
 
         // Reset shadowed variable
-        self.symbol_table.remove(&start_name);
+        self.scope_table.remove(&start_name);
         if let Some(v) = old_var {
-            self.symbol_table.insert(&start_name, v)?;
+            self.scope_table.insert(&start_name, v)?;
         }
 
         Ok(())
@@ -214,7 +212,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let init_alloca = self.create_entry_block_alloca(&name, &ty, &parent);
         self.builder.build_store(init_alloca, init_code);
-        self.symbol_table.insert(&name, init_alloca)?;
+        self.scope_table.insert(&name, init_alloca)?;
 
         Ok(())
     }
@@ -238,7 +236,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             let (x, y) = &proto.args()[i];
             let alloca = self.create_entry_block_alloca(x, y, &function);
             self.builder.build_store(alloca, arg);
-            self.symbol_table.insert(&proto.args()[i].0, alloca)?;
+            self.scope_table.insert(&proto.args()[i].0, alloca)?;
         }
 
         let body_val = self.codegen_node(*body)?;
@@ -254,7 +252,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Remove arguments from the table
         for (i, _) in function.get_param_iter().enumerate() {
-            self.symbol_table.remove(&proto.args()[i].0);
+            self.scope_table.remove(&proto.args()[i].0);
         }
 
         // Identify main
@@ -332,7 +330,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         &mut self, _name: String, attributes: Vec<Node>, methods: Vec<Node>,
     ) -> StmtResult<'ctx> {
         // Drop scope
-        self.symbol_table.down_scope();
+        self.scope_table.down_scope();
 
         for node in attributes {
             self.codegen_node(node)?;
@@ -343,7 +341,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
 
         // Pop up 1 level. Drops old scope.
-        self.symbol_table.up_scope()?;
+        self.scope_table.up_scope()?;
 
         Ok(())
     }
@@ -405,7 +403,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
         let var = self
-            .symbol_table
+            .scope_table
             .get(name)
             .unwrap_or_else(|| unreachable!("Fatal: codegen failed to resolve `{}`", name));
         Ok(self.builder.build_load(var, name))
@@ -561,7 +559,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     fn codegen_block(&mut self, list: Vec<Node>) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         // Drop scope
-        self.symbol_table.down_scope();
+        self.scope_table.down_scope();
 
         let mut node_val = None;
         for node in list {
@@ -569,7 +567,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
 
         // Pop up 1 level. Drops old scope.
-        self.symbol_table.up_scope()?;
+        self.scope_table.up_scope()?;
 
         Ok(node_val)
     }
@@ -664,7 +662,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Get the allocated array ptr
         let array_ptr = self
-            .symbol_table
+            .scope_table
             .get(name)
             .unwrap_or_else(|| unreachable!("fatal error: codegen failed to resolve array name `{}`", name));
 

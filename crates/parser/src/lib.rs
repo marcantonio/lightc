@@ -5,7 +5,7 @@ use std::slice::Iter;
 use self::errors::ParseError;
 use self::precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, Token, TokenType, Type};
+use common::{Operator, SymbolTable, Token, TokenType, Type, Symbol};
 
 #[macro_use]
 mod macros;
@@ -18,12 +18,13 @@ type ParseResult = Result<Node, ParseError>;
 
 pub struct Parser<'a> {
     ast: Ast<Node>,
+    symbol_table: &'a mut SymbolTable,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
-        Parser { ast: Ast::new(), tokens: tokens.iter().peekable() }
+    pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable) -> Self {
+        Parser { ast: Ast::new(), symbol_table, tokens: tokens.iter().peekable() }
     }
 
     // Parse each token using recursive descent
@@ -468,7 +469,11 @@ impl<'a> Parser<'a> {
             };
         }
 
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type))
+        let proto = Prototype::new(fn_name.to_string(), args, ret_type);
+        if self.symbol_table.insert(fn_name, &Symbol::from(&proto)).is_some() {
+            return Err(ParseError::from(format!("Function `{}` can't be redefined", proto.name())));
+        }
+        Ok(proto)
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;

@@ -14,7 +14,8 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
-                let ast = Parser::new(&tokens).parse();
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse();
                 let ast_string = ast_to_string(ast.as_ref());
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], ast, ast_string));
             }
@@ -135,6 +136,13 @@ fn a(b: int) {
 fn (a: int, c: int) {
     1 + 2
 }
+"#,
+        ],
+        [
+            "cant_redefine",
+            r#"
+fn foo() { }
+fn foo() { }
 "#,
         ],
         ["bad_1", "fn a(b: int) - { b }"],

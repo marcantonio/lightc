@@ -2,7 +2,8 @@ use serde::Serialize;
 
 use common::{Operator, Type};
 
-mod as_symbol;
+pub mod prototype;
+pub use prototype::Prototype;
 pub mod convert;
 mod display;
 
@@ -184,43 +185,6 @@ macro_rules! make_literal {
     ($ty:tt, $val:expr) => {
         Expression::Lit { value: Literal::$ty($val), ty: Some(Type::$ty) }
     };
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Prototype {
-    name: String,
-    args: Vec<(String, Type)>,
-    ret_ty: Option<Type>,
-}
-
-impl Prototype {
-    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Option<Type>) -> Prototype {
-        Prototype { name, args, ret_ty }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn set_name(&mut self, name: String) {
-        self.name = name;
-    }
-
-    pub fn args(&self) -> &[(String, Type)] {
-        &self.args
-    }
-
-    pub fn set_args(&mut self, args: Vec<(String, Type)>) {
-        self.args = args;
-    }
-
-    pub fn ret_ty(&self) -> Option<&Type> {
-        self.ret_ty.as_ref()
-    }
-
-    pub fn set_ret_ty(&mut self, ret_ty: Option<Type>) {
-        self.ret_ty = ret_ty;
-    }
 }
 
 // Immutable visitor interface

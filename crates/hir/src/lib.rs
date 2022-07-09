@@ -1,21 +1,14 @@
 use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
-use common::{Operator, SymbolCache, Type};
+use common::{Operator, SymbolTable, Type};
 
 #[cfg(test)]
 mod tests;
-
-/*
-if new hir structure we could remove options for inits, types, and bodies
-tych == thir
-
-is visitor still useful?
-*/
 
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
 
 pub struct Hir<'a> {
-    symbol_cache: &'a mut SymbolCache,
+    _symbol_table: &'a mut SymbolTable,
     ast: Ast<Node>,
 }
 
@@ -32,8 +25,8 @@ impl<'a> AstVisitor for Hir<'a> {
 }
 
 impl<'a> Hir<'a> {
-    pub fn new(symbol_cache: &'a mut SymbolCache) -> Self {
-        Hir { symbol_cache, ast: Ast::new() }
+    pub fn new(_symbol_table: &'a mut SymbolTable) -> Self {
+        Hir { _symbol_table, ast: Ast::new() }
     }
 
     pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
@@ -85,8 +78,6 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        //self.symbol_cache.insert(&proto);
-
         Ok(Statement::Fn {
             proto: Box::new(proto),
             body: body.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),

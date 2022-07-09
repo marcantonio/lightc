@@ -9,10 +9,10 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
-                let ast = Parser::new(&tokens).parse().unwrap();
-                let mut symbol_cache = SymbolCache::new();
-                let tyst = TypeChecker::new(&symbol_cache).walk(ast).unwrap();
-                let res = Hir::new(&mut symbol_cache).walk(tyst);
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
+                let res = Hir::new(&mut symbol_table).walk(tyst);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })

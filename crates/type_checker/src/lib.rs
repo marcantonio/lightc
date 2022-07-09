@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use ast::{make_literal, Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{symbol_table, SymbolCache};
 use common::{Operator, Type};
+use common::{ScopeTable, SymbolTable};
 
 #[macro_use]
 extern crate common;
@@ -21,21 +19,13 @@ mod tests;
 // - initializes uninitialized variables
 // - checks main()'s annotation
 
-#[derive(Clone)]
-struct FunctionEntry {
-    ret_ty: Type,
-    arg_tys: Vec<Type>,
-}
-
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
 
 pub struct TypeChecker<'a> {
     ast: Ast<Node>,
-    // XXX: Move these to the symbol table?
-    function_table: HashMap<String, FunctionEntry>,
-    symbol_table: symbol_table::SymbolTable<Type>,
-    symbol_cache: &'a SymbolCache,
+    scope_table: ScopeTable<Type>,
+    symbol_table: &'a mut SymbolTable,
 }
 
 impl<'a> AstVisitor for TypeChecker<'a> {
@@ -51,13 +41,8 @@ impl<'a> AstVisitor for TypeChecker<'a> {
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(symbol_cache: &'a SymbolCache) -> Self {
-        TypeChecker {
-            ast: Ast::new(),
-            function_table: HashMap::new(),
-            symbol_table: symbol_table::SymbolTable::new(),
-            symbol_cache,
-        }
+    pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
+        TypeChecker { ast: Ast::new(), scope_table: ScopeTable::new(), symbol_table }
     }
 
     pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
@@ -100,8 +85,8 @@ impl<'a> TypeChecker<'a> {
         let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?.unwrap();
 
         // Remove old variable. Ignore failure. Insert starting variable.
-        let old_var = self.symbol_table.remove(&start_name);
-        self.symbol_table.insert(&start_name, start_antn.clone())?;
+        let old_var = self.scope_table.remove(&start_name);
+        self.scope_table.insert(&start_name, start_antn.clone())?;
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -124,9 +109,9 @@ impl<'a> TypeChecker<'a> {
         let body_node = self.check_node(body, None)?;
 
         // Reset shadowed variable if present
-        self.symbol_table.remove(&start_name);
+        self.scope_table.remove(&start_name);
         if let Some(v) = old_var {
-            self.symbol_table.insert(&start_name, v)?;
+            self.scope_table.insert(&start_name, v)?;
         }
 
         Ok(Statement::For {
@@ -141,23 +126,17 @@ impl<'a> TypeChecker<'a> {
 
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
-        self.symbol_table.insert(&name, antn.clone())?;
+        self.scope_table.insert(&name, antn.clone())?;
         // XXX
         Ok(Statement::Let { name, antn, init: init_node.map(Box::new) })
     }
 
     // Check function definitions. This function also does the proto.
     fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        let func_entry = FunctionEntry {
-            ret_ty: proto.ret_ty().cloned().unwrap_or_default(),
-            arg_tys: proto.args().iter().map(|(_, ty)| ty.clone()).collect::<Vec<Type>>(),
+        let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
+            Some(sym) => sym,
+            None => unreachable!("fatal: missing symbol table entry for function: {}", proto.name()),
         };
-
-        // Check if this function has already been defined and then update the
-        // function table
-        if self.function_table.insert(proto.name().to_owned(), func_entry.clone()).is_some() {
-            return Err(format!("Function `{}` can't be redefined", proto.name()));
-        }
 
         // If body is None, this is an extern and no checking is needed
         let body = match body {
@@ -167,24 +146,11 @@ impl<'a> TypeChecker<'a> {
 
         // Insert args into the local symbol table
         for (name, ty) in proto.args() {
-            self.symbol_table.insert(name, ty.clone())?;
+            self.scope_table.insert(name, ty.clone())?;
         }
 
         let body_node = self.check_node(*body, None)?;
         let body_ty = body_node.ty().unwrap_or_default();
-
-        // // XXX
-        // let mut proto = proto;
-        // // Ensure main is always an int32 and returns a 0 if nothing is
-        // // specified
-        // //
-        // // TODO: Should go into a desugar phase
-        // if proto.name() == "main" {
-        //     body_ty = Type::Int32;
-        //     func_entry.ret_ty = Type::Int32;
-        //     proto.set_ret_ty(Some(Type::Int32));
-        //     self.function_table.insert(proto.name().to_owned(), func_entry.clone());
-        // } else {
 
         // XXX
         // Make sure these are in sync since there's no `check_proto()`
@@ -195,25 +161,25 @@ impl<'a> TypeChecker<'a> {
                     proto.ret_ty().unwrap()
                 ));
             }
-            proto.set_ret_ty(Some(Type::Void));
+            proto.set_ret_ty(Some(&Type::Void));
         } else {
-            proto.set_ret_ty(Some(func_entry.ret_ty.clone()));
+            proto.set_ret_ty(Some(fn_entry.ret_ty()));
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if func_entry.ret_ty != body_ty && func_entry.ret_ty != Type::Void && proto.name() != "main" {
+        if fn_entry.ret_ty() != &body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 proto.name(),
-                func_entry.ret_ty,
+                fn_entry.ret_ty(),
                 body_ty
             ));
         }
 
         // Pop args
         for (name, _) in proto.args() {
-            self.symbol_table.remove(name);
+            self.scope_table.remove(name);
         }
 
         Ok(Statement::Fn { proto: Box::new(proto), body: Some(Box::new(body_node)) })
@@ -352,7 +318,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_ident(&self, name: String) -> ExprResult {
-        let ident_ty = self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?;
+        let ident_ty = self.scope_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?;
         Ok(Expression::Ident { name, ty: Some(ident_ty) })
     }
 
@@ -454,16 +420,16 @@ impl<'a> TypeChecker<'a> {
                 ))
             },
         }
-        Ok(Expression::UnOp { op, rhs: Box::new(chkd_rhs), ty: Some(rhs_ty.clone()) })
+        Ok(Expression::UnOp { op, rhs: Box::new(chkd_rhs), ty: Some(rhs_ty) })
     }
 
     fn check_call(&mut self, name: String, args: Vec<Node>) -> ExprResult {
-        // Pull the function for the call from table
-        let func_entry =
-            self.function_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?;
+        // Pull the function for the call from the table
+        let fn_entry =
+            self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
 
         // Pull out the function arg types
-        let fe_arg_tys: Vec<Type> = func_entry.arg_tys.to_vec();
+        let fe_arg_tys = fn_entry.arg_tys().to_vec();
 
         // Check arg length
         let fe_args_len = fe_arg_tys.len();
@@ -474,18 +440,18 @@ impl<'a> TypeChecker<'a> {
 
         // Check all args and record their types. Use the function entry arg
         // types as type hints.
-        let ret_ty = func_entry.ret_ty.clone();
+        let ret_ty = fn_entry.ret_ty().clone();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
-            let chkd_arg = self.check_node(expr, Some(&fe_arg_tys[idx]))?;
+            let chkd_arg = self.check_node(expr, Some(fe_arg_tys[idx]))?;
             arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
             chkd_args.push(chkd_arg);
         }
 
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
-            if *fa_ty != ca_ty {
+            if *fa_ty != &ca_ty {
                 Err(format!("Type mismatch in arg {} of call to {}: {} != {}", idx + 1, name, fa_ty, ca_ty))
             } else {
                 Ok(())
@@ -530,7 +496,7 @@ impl<'a> TypeChecker<'a> {
     // Check the block expressions. Ensures statements always eval to void.
     fn check_block(&mut self, list: Vec<Node>) -> ExprResult {
         // Drop scope
-        self.symbol_table.down_scope();
+        self.scope_table.down_scope();
 
         // The block type is set to the final node's type
         let mut chkd_list = Vec::with_capacity(list.len());
@@ -542,9 +508,9 @@ impl<'a> TypeChecker<'a> {
         }
 
         // Pop up 1 level. Drops old scope.
-        self.symbol_table.up_scope()?;
+        self.scope_table.up_scope()?;
 
-        Ok(Expression::Block { list: chkd_list, ty: Some(list_ty.clone()) })
+        Ok(Expression::Block { list: chkd_list, ty: Some(list_ty) })
     }
 
     fn check_index(&mut self, binding: Node, idx: Node) -> ExprResult {

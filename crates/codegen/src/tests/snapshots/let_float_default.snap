@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 262
+expression: "(test[1], res, res_opt)"
+---
+- "\nfn main() {\n    let x: float\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine void @main() {\nentry:\n  %x = alloca float, align 4\n  store float 0.000000e+00, float* %x, align 4\n  ret void\n}\n"
+- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+

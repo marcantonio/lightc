@@ -223,7 +223,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub(super) fn assign(&mut self, lhs: Node, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
         let lhs_var = match lhs {
             Node::Expr(Expression::Ident { name, .. }) => self
-                .symbol_table
+                .scope_table
                 .get(&name)
                 .ok_or(format!("Unknown variable in assignment: {}", name))?
                 .to_owned(),

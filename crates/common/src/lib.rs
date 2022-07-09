@@ -1,9 +1,10 @@
 use serde::Serialize;
 
 mod macros;
-pub mod symbol_cache;
-pub use symbol_cache::SymbolCache;
 pub mod symbol_table;
+pub use symbol_table::{Symbol, SymbolTable};
+pub mod scope_table;
+pub use scope_table::ScopeTable;
 
 #[derive(PartialEq, Clone, Serialize)]
 pub struct Token {
@@ -103,7 +104,7 @@ impl std::fmt::Display for TokenType {
     }
 }
 
-// A Symbol is an extra layer of abstraction between TokenType::Op() and the
+// A Operator is an extra layer of abstraction between TokenType::Op() and the
 // actual character. Convenient in Rust to help constrain matching.
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub enum Operator {

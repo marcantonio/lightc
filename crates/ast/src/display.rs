@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{Expression, Literal, Node, Prototype, Statement};
+use super::{Expression, Literal, Node, Statement};
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -94,18 +94,6 @@ impl Display for Expression {
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
         }
-    }
-}
-
-impl Display for Prototype {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = format!("({}", self.name);
-        if !self.args.is_empty() {
-            for arg in &self.args {
-                s += &format!(" {}:{}", arg.0, arg.1);
-            }
-        }
-        write!(f, "{})", s)
     }
 }
 

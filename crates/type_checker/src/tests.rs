@@ -10,9 +10,9 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
-                let ast = Parser::new(&tokens).parse().unwrap();
-                let symbol_cache = SymbolCache::new();
-                let res = TypeChecker::new(&symbol_cache).walk(ast);
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let res = TypeChecker::new(&mut symbol_table).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
@@ -337,13 +337,6 @@ fn foo(a: int, b: float) -> int { }
 fn foo(a: int, b: float) -> int {
     1.0
 }
-"#,
-        ],
-        [
-            "cant_redefine",
-            r#"
-fn foo() { }
-fn foo() { }
 "#,
         ],
         [
@@ -788,8 +781,8 @@ fn test_tyc_int_no_hint() {
         (Float(7.0), Ok(Type::Float)),
     ];
 
-    let symbol_cache = SymbolCache::new();
-    let mut tc = TypeChecker::new(&symbol_cache);
+    let mut symbol_table = SymbolTable::new();
+    let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
         let res = tc.check_lit(lit.0, None).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
@@ -828,8 +821,8 @@ fn test_tyc_int_with_hint() {
         (Float(7.0), Type::Double, Ok(Type::Double)),
     ];
 
-    let symbol_cache = SymbolCache::new();
-    let mut tc = TypeChecker::new(&symbol_cache);
+    let mut symbol_table = SymbolTable::new();
+    let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
         let res = tc.check_lit(lit.0, Some(&lit.1)).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
@@ -840,8 +833,8 @@ fn test_tyc_int_with_hint() {
 // x + 3
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
-        let symbol_cache = SymbolCache::new();
-        let mut tc = TypeChecker::new(&symbol_cache);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
         tc.check_let(String::from("x"), $variant, None).unwrap();
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
@@ -849,8 +842,8 @@ macro_rules! test_lit_hint_binop_int {
         assert_eq!(res, Ok($variant));
 
         // TODO: Maybe add a TypeChecker::clear() to we don't have to do this dance?
-        let symbol_cache = SymbolCache::new();
-        let mut tc = TypeChecker::new(&symbol_cache);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
         let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
         tc.check_let(String::from("x"), $variant, None).unwrap();
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
@@ -863,16 +856,16 @@ macro_rules! test_lit_hint_binop_int {
 // x + 3.0
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
-        let symbol_cache = SymbolCache::new();
-        let mut tc = TypeChecker::new(&symbol_cache);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
         tc.check_let(String::from("x"), $variant, None).unwrap();
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
-        let symbol_cache = SymbolCache::new();
-        let mut tc = TypeChecker::new(&symbol_cache);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
         let lhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
         tc.check_let(String::from("x"), $variant, None).unwrap();
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });

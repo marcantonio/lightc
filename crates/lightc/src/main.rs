@@ -6,11 +6,12 @@ use inkwell::{
     targets::{FileType, InitializationConfig, Target, TargetMachine},
     OptimizationLevel,
 };
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::{env, fs, process};
-use std::{path::PathBuf, process::Command};
 
 use codegen::Codegen;
-use common::SymbolCache;
+use common::SymbolTable;
 use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
@@ -23,6 +24,7 @@ fn main() {
     let source = fs::read_to_string(args.file.as_path()).expect("Error opening file");
     let module_name = get_module_name(&args.file);
     let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
+    let mut symbol_table = SymbolTable::new();
 
     // Lexer
     let tokens = Lexer::new(&source).scan().unwrap_or_else(|e| {
@@ -37,7 +39,7 @@ fn main() {
     }
 
     // Parser
-    let parser = Parser::new(&tokens);
+    let parser = Parser::new(&tokens, &mut symbol_table);
     let ast = parser.parse().unwrap_or_else(|e| {
         eprintln!("Paring error: {}", e);
         process::exit(1);
@@ -51,10 +53,8 @@ fn main() {
         println!();
     }
 
-    let mut symbol_cache = SymbolCache::new();
-
     // Type checker
-    let tyst = TypeChecker::new(&symbol_cache).walk(ast).unwrap_or_else(|e| {
+    let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap_or_else(|e| {
         eprintln!("Type checking error: {}", e);
         process::exit(1);
     });
@@ -68,7 +68,7 @@ fn main() {
     }
 
     // HIR
-    let hir = Hir::new(&mut symbol_cache).walk(tyst).unwrap_or_else(|e| {
+    let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap_or_else(|e| {
         eprintln!("Lowering error: {}", e);
         process::exit(1);
     });
@@ -92,7 +92,7 @@ fn main() {
         &builder,
         &module,
         &fpm,
-        &symbol_cache,
+        &symbol_table,
         args.opt_level,
         args.no_verify,
         !args.compile,
@@ -183,9 +183,8 @@ fn run_jit(module: &Module) {
     };
 }
 
-fn get_module_name(path: &PathBuf) -> String {
-    path.as_path()
-        .with_extension("")
+fn get_module_name(path: &Path) -> String {
+    path.with_extension("")
         .file_name()
         .expect("Error getting source filename")
         .to_str()
