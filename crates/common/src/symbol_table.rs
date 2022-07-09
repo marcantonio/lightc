@@ -24,7 +24,6 @@ impl SymbolTable {
     pub fn get(&self, name: &str) -> Option<&Symbol> {
         self.symbols.get(name)
     }
-
 }
 
 impl Default for SymbolTable {
@@ -41,11 +40,7 @@ pub enum Symbol {
 
 impl Symbol {
     pub fn new_fn(name: &str, args: Vec<Symbol>, ret_ty: &Type) -> Self {
-        Symbol::Fn {
-            name: name.to_owned(),
-            args,
-            ret_ty: ret_ty.to_owned(),
-        }
+        Symbol::Fn { name: name.to_owned(), args, ret_ty: ret_ty.to_owned() }
     }
 
     pub fn ret_ty(&self) -> &Type {
@@ -57,9 +52,7 @@ impl Symbol {
 
     pub fn arg_tys(&self) -> Vec<&Type> {
         match self {
-            Symbol::Fn { args, .. } => {
-                args.iter().map(|s| s.ty()).collect()
-            }
+            Symbol::Fn { args, .. } => args.iter().map(|s| s.ty()).collect(),
             Symbol::Var { .. } => unreachable!("Fatal: Expected symbol to be a function"),
         }
     }

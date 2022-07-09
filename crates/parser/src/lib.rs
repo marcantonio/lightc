@@ -5,7 +5,7 @@ use std::slice::Iter;
 use self::errors::ParseError;
 use self::precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, SymbolTable, Token, TokenType, Type, Symbol};
+use common::{Operator, Symbol, SymbolTable, Token, TokenType, Type};
 
 #[macro_use]
 mod macros;
