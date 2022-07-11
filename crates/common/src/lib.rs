@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+mod cli_args;
+pub use cli_args::CliArgs;
 mod macros;
 pub mod symbol_table;
 pub use symbol_table::{Symbol, SymbolTable};

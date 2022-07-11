@@ -841,7 +841,6 @@ macro_rules! test_lit_hint_binop_int {
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
-        // TODO: Maybe add a TypeChecker::clear() to we don't have to do this dance?
         let mut symbol_table = SymbolTable::new();
         let mut tc = TypeChecker::new(&mut symbol_table);
         let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });

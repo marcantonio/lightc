@@ -54,7 +54,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     // Helper function for when we don't know if we have a statement or an
-    // expression XXX: Can we get rid of this?
+    // expression
     fn check_node(&mut self, node: Node, ty: Option<&Type>) -> Result<Node, String> {
         Ok(match node {
             Node::Stmt(s) => self.check_stmt(s)?,

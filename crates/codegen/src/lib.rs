@@ -1,20 +1,25 @@
+use std::path::PathBuf;
+use std::process;
+
 use either::Either;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
+use inkwell::targets::{FileType, InitializationConfig, Target, TargetMachine};
 use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType};
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
-use inkwell::IntPredicate;
+use inkwell::{IntPredicate, OptimizationLevel};
 
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{Operator, ScopeTable, SymbolTable, Type};
+use common::{CliArgs, Operator, ScopeTable, SymbolTable, Type};
 
 #[macro_use]
 extern crate common;
 
 #[macro_use]
 mod macros;
+mod jit_externs;
 mod ops;
 #[cfg(test)]
 mod tests;
@@ -27,14 +32,14 @@ type ExprResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
 
 pub struct Codegen<'a, 'ctx> {
     context: &'ctx Context,
-    builder: &'a Builder<'ctx>,
-    module: &'a Module<'ctx>,
-    fpm: &'a PassManager<FunctionValue<'ctx>>,
+    builder: Builder<'ctx>,
+    module: Module<'ctx>,
+    fpm: PassManager<FunctionValue<'ctx>>,
     scope_table: ScopeTable<PointerValue<'ctx>>,
     _symbol_table: &'a SymbolTable,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
-    skip_verify: bool,
+    no_verify: bool,
     require_main: bool,
 }
 
@@ -52,12 +57,16 @@ impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
-    pub fn new(
-        context: &'ctx Context, builder: &'a Builder<'ctx>, module: &'a Module<'ctx>,
-        fpm: &'a PassManager<FunctionValue<'ctx>>, _symbol_table: &'a SymbolTable, opt_level: usize,
-        skip_verify: bool, require_main: bool,
-    ) -> Self {
-        if opt_level > 0 {
+    pub fn run_pass(
+        hir: Ast<Node>, module_name: &str, _symbol_table: &'a SymbolTable, build_dir: PathBuf,
+        args: &CliArgs, is_test: bool,
+    ) -> Result<CodegenResult, String> {
+        let context = Context::create();
+        let builder = context.create_builder();
+        let module = context.create_module(module_name);
+
+        let fpm = PassManager::create(&module);
+        if args.opt_level > 0 {
             fpm.add_instruction_combining_pass();
             fpm.add_reassociate_pass();
             fpm.add_gvn_pass();
@@ -69,25 +78,93 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             fpm.initialize();
         }
 
-        Codegen {
-            context,
+        let mut codegen = Codegen {
+            context: &context,
             builder,
             module,
             fpm,
             scope_table: ScopeTable::new(),
             _symbol_table,
             main: None,
-            opt_level,
-            skip_verify,
-            require_main,
+            opt_level: args.opt_level,
+            no_verify: args.no_verify,
+            require_main: !args.compile_only,
+        };
+
+        codegen.walk(hir)?;
+
+        // This flag is just for the test suite
+        if is_test {
+            return Ok(CodegenResult::Ir(codegen.module.print_to_string().to_string()));
         }
+
+        if args.show_ir {
+            println!("IR:");
+            println!("{}", codegen.module.print_to_string().to_string());
+        }
+
+        if args.run_jit {
+            Codegen::run_jit(&codegen.module);
+            process::exit(0);
+        }
+
+        // File name for module binary
+        let mut module_file = build_dir;
+        module_file.push(&module_name);
+        let module_file = module_file.as_path().with_extension("o");
+
+        // Write the object file to the build directory
+        let target_machine = Codegen::build_target_machine(&codegen.module);
+        target_machine
+            .write_to_file(&codegen.module, FileType::Object, &module_file)
+            .expect("Error writing object file");
+
+        Ok(CodegenResult::FilePath(module_file))
     }
 
-    // Iterate over all nodes and codegen. Optionally return a string (for
-    // testing).
-    pub fn walk(mut self, ast: Ast<Node>) -> Result<(), String> {
+    // Optimizes for host CPU
+    // TODO: Make more generic
+    fn build_target_machine(module: &Module) -> TargetMachine {
+        Target::initialize_x86(&InitializationConfig::default());
+        let triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&triple).expect("Target error");
+        let target_machine = target
+            .create_target_machine(
+                &triple,
+                &TargetMachine::get_host_cpu_name().to_string(),
+                &TargetMachine::get_host_cpu_features().to_string(),
+                OptimizationLevel::Default,
+                inkwell::targets::RelocMode::Default,
+                inkwell::targets::CodeModel::Default,
+            )
+            .expect("Target machine error");
+
+        module.set_data_layout(&target_machine.get_target_data().get_data_layout());
+        module.set_triple(&triple);
+        target_machine
+    }
+
+    fn run_jit(module: &Module) {
+        jit_externs::load();
+
+        let ee = module.create_jit_execution_engine(OptimizationLevel::None).unwrap();
+
+        let f = unsafe { ee.get_function::<unsafe extern "C" fn() -> i64>("main") };
+        match f {
+            Ok(f) => unsafe {
+                let ret = f.call();
+                eprintln!("main() return value: {:?}", ret);
+            },
+            Err(e) => {
+                eprintln!("Execution error: {}", e);
+            },
+        };
+    }
+
+    // Iterate over all nodes and codegen
+    pub fn walk(&mut self, ast: Ast<Node>) -> Result<(), String> {
         for node in ast.into_nodes() {
-            node.accept(&mut self)?;
+            node.accept(self)?;
         }
         if self.require_main && self.main.is_none() {
             Err("Function main() required in executable and not found".to_string())
@@ -162,7 +239,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_unconditional_branch(step_bb);
 
         // Generate step value, load the current induction variable from the stack, increment it by
-        // step, and store it again. Body could have mutated it
+        // step, and store it again. Body could have mutated it.
         self.builder.position_at_end(step_bb);
         let step_code = self.codegen_node(step_expr)?;
         let cur = self.builder.build_load(start_alloca, &start_name);
@@ -262,7 +339,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
 
         // Some times it's useful to skip verification just so we can see the IR
-        if !self.skip_verify {
+        if !self.no_verify {
             // Make sure we didn't miss anything
             // TODO: Should this allow llvm to print or use a verbose flag, or are
             // the errors not useful?
@@ -700,6 +777,29 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     _ => todo!(),
                 }
             },
+        }
+    }
+}
+
+// This is a little wonky. Allows us to return a file path for main or a string for the
+// test suite.
+pub enum CodegenResult {
+    FilePath(PathBuf),
+    Ir(String),
+}
+
+impl CodegenResult {
+    pub fn as_file_path(self) -> PathBuf {
+        match self {
+            CodegenResult::FilePath(b) => b,
+            CodegenResult::Ir(_) => unimplemented!("Expecting file path"),
+        }
+    }
+
+    pub fn as_ir_string(self) -> String {
+        match self {
+            CodegenResult::FilePath(_) => unimplemented!("Expecting IR string"),
+            CodegenResult::Ir(ir) => ir,
         }
     }
 }

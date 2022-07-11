@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 359
+assertion_line: 349
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn test(x: int) -> int {\n    x + 1\n}\n\nfn main() {\n    test(-40)\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @test(i32 %x) {\nentry:\n  %x1 = alloca i32, align 4\n  store i32 %x, i32* %x1, align 4\n  %x2 = load i32, i32* %x1, align 4\n  %add.int = add i32 %x2, 1\n  ret i32 %add.int\n}\n\ndefine void @main() {\nentry:\n  %call_test = call i32 @test(i32 -40)\n  ret void\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @test(i32 %x) {\nentry:\n  %add.int = add i32 %x, 1\n  ret i32 %add.int\n}\n\ndefine void @main() {\nentry:\n  %call_test = call i32 @test(i32 -40)\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @test(i32 %x) {\nentry:\n  %x1 = alloca i32, align 4\n  store i32 %x, i32* %x1, align 4\n  %x2 = load i32, i32* %x1, align 4\n  %add.int = add i32 %x2, 1\n  ret i32 %add.int\n}\n\ndefine void @main() {\nentry:\n  %call_test = call i32 @test(i32 -40)\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @test(i32 %x) {\nentry:\n  %add.int = add i32 %x, 1\n  ret i32 %add.int\n}\n\ndefine void @main() {\nentry:\n  %call_test = call i32 @test(i32 -40)\n  ret void\n}\n"
 
