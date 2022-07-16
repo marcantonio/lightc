@@ -81,8 +81,7 @@ impl<'a> TypeChecker<'a> {
         &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
         step_expr: Node, body: Node,
     ) -> StmtResult {
-        // XXX
-        let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?.unwrap();
+        let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
 
         // Remove old variable. Ignore failure. Insert starting variable.
         let old_var = self.scope_table.remove(&start_name);
@@ -127,8 +126,7 @@ impl<'a> TypeChecker<'a> {
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
         self.scope_table.insert(&name, antn.clone())?;
-        // XXX
-        Ok(Statement::Let { name, antn, init: init_node.map(Box::new) })
+        Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
     // Check function definitions. This function also does the proto.
@@ -152,7 +150,6 @@ impl<'a> TypeChecker<'a> {
         let body_node = self.check_node(*body, None)?;
         let body_ty = body_node.ty().unwrap_or_default();
 
-        // XXX
         // Make sure these are in sync since there's no `check_proto()`
         if proto.name() == "main" {
             if proto.ret_ty().is_some() {
@@ -535,7 +532,7 @@ impl<'a> TypeChecker<'a> {
     // Helper for variable initializations
     fn check_var_init(
         &mut self, name: &str, init: Option<Box<Node>>, antn: &Type, caller: &str,
-    ) -> Result<Option<Node>, String> {
+    ) -> Result<Node, String> {
         use Type::*;
 
         // If init exists, make sure it matches the variable's annotation
@@ -568,6 +565,6 @@ impl<'a> TypeChecker<'a> {
             };
             Node::new(Node::Expr, literal)
         };
-        Ok(Some(init_node))
+        Ok(init_node)
     }
 }

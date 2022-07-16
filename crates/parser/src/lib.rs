@@ -520,7 +520,7 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(Box::new(ty.clone()), size.try_into().unwrap()) // XXX
+                Type::Array(Box::new(ty.clone()), size.try_into().unwrap())
             },
             Some(Token { tt: TokenType::VarType(ty), .. }) => ty.clone(),
             Some(next) => {
