@@ -156,7 +156,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 eprintln!("main() return value: {:?}", ret);
             },
             Err(e) => {
-                eprintln!("Execution error: {}", e);
+                eprintln!("JIT execution error: {}", e);
             },
         };
     }
@@ -260,7 +260,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             },
-            _ => unreachable!("fatal error: void type for step in codegen_for()"), // XXX: not just void
+            ty => unreachable!("Internal error: invalid type: `{}` found in for step in `codegen_for()`", ty),
         };
 
         // Loop around to the beginning
@@ -370,7 +370,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
                     AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
                     ty => unreachable!(
-                        "fatal: unsupported argument type `{}` in prototype `{}()`",
+                        "Internal error: unsupported argument type `{}` in prototype `{}()`",
                         ty.print_to_string(),
                         proto.name(),
                     ),
@@ -384,7 +384,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
             AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
             ty => unreachable!(
-                "fatal: unsupported return type `{}` in prototype `{}()`",
+                "Internal error: unsupported return type `{}` in prototype `{}()`",
                 ty.print_to_string(),
                 proto.name(),
             ),
@@ -482,7 +482,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let var = self
             .scope_table
             .get(name)
-            .unwrap_or_else(|| unreachable!("Fatal: codegen failed to resolve `{}`", name));
+            .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve `{}`", name));
         Ok(self.builder.build_load(var, name))
     }
 
@@ -490,10 +490,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         use Operator::*;
 
         let lhs_ty =
-            lhs.ty().unwrap_or_else(|| unreachable!("fatal: missing type for lhs expr in codegen_binop()"));
+            lhs.ty().unwrap_or_else(|| unreachable!("Internal error: missing type for lhs expr in `codegen_binop()`"));
         let lhs_val = self.codegen_node(lhs.clone())?.value()?;
         let rhs_ty =
-            rhs.ty().unwrap_or_else(|| unreachable!("fatal: missing type for rhs expr in codegen_binop()"));
+            rhs.ty().unwrap_or_else(|| unreachable!("Internal error: missing type for rhs expr in `codegen_binop()`"));
         let rhs_val = self.codegen_node(rhs)?.value()?;
 
         // Generate the proper instruction for each op
@@ -662,7 +662,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 if init.as_expr().ty().as_ref() == Some(ty) {
                     self.codegen_node(*init)?
                 } else {
-                    unreachable!("Fatal: void type for init expr in codegen_let()");
+                    unreachable!("Internal error: void type for init expr in `codegen_let()`");
                 }
             },
             (int8_types!() | Type::Char, None) => {
@@ -675,7 +675,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
             (Type::Void | Type::Array(..), None) => {
-                unreachable!("Fatal: void type for init annotation in codegen_let()")
+                unreachable!("Internal error: void type for init annotation in `codegen_let()`")
             },
         };
         init_code.value()
@@ -705,7 +705,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Float => builder.build_alloca(self.context.f32_type(), name),
             Type::Double => builder.build_alloca(self.context.f64_type(), name),
             Type::Void => {
-                unreachable!("fatal error: void type for stack variable in create_entry_block_alloca()")
+                unreachable!("Internal error: void type for stack variable in `create_entry_block_alloca()`")
             },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
             Type::Array(ty, sz) => {
@@ -717,7 +717,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 builder.build_alloca(
                     array_ty
                         .0
-                        .array_type((*array_ty.1).try_into().expect("fatal error: this is embarrassing")),
+                        .array_type((*array_ty.1).try_into().expect("Internal error: this is embarrassing")),
                     name,
                 )
             },
@@ -734,19 +734,19 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let binding = binding.as_expr();
         let name = match binding {
             Expression::Ident { ref name, .. } => name,
-            _ => unreachable!("fatal error: name missing for array index"),
+            _ => unreachable!("Internal error: name missing for array index"),
         };
 
         // Get the allocated array ptr
         let array_ptr = self
             .scope_table
             .get(name)
-            .unwrap_or_else(|| unreachable!("fatal error: codegen failed to resolve array name `{}`", name));
+            .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve array name `{}`", name));
 
         // Codegen the index
         let idx = self
             .codegen_node(idx)?
-            .unwrap_or_else(|| unreachable!("fatal error: missing value in index of `{}`", name))
+            .unwrap_or_else(|| unreachable!("Internal error: missing value in index of `{}`", name))
             .into_int_value();
 
         let zero = self.context.i32_type().const_zero();
@@ -769,7 +769,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Bool => self.context.bool_type().as_any_type_enum(),
             Type::Void => self.context.void_type().as_any_type_enum(),
             Type::Array(ty, size) => {
-                let size = size.try_into().expect("fatal: this is embarrassing");
+                let size = size.try_into().expect("Internal error: this is embarrassing");
                 match self.get_llvm_ty(*ty) {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),

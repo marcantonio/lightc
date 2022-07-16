@@ -36,7 +36,7 @@ impl Lexer {
 
         let cur = match self.stream.next() {
             Some(cur) => cur,
-            None => unreachable!("fatal: can't lex nothing"),
+            None => unreachable!("Internal error: can't lex nothing"),
         };
 
         // Inject a semicolon if certain tokens occur at the end of the line or
@@ -142,7 +142,7 @@ impl Lexer {
         if cur == '\'' {
             let mut ch = String::new();
             let next =
-                self.stream.next().unwrap_or_else(|| unreachable!("fatal: lexed None when looking for char"));
+                self.stream.next().unwrap_or_else(|| unreachable!("Internal error: lexed None when looking for char"));
 
             match next.value {
                 // Control characters

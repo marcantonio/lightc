@@ -450,7 +450,7 @@ impl<'a> Parser<'a> {
                         &err_token,
                     )));
                 },
-                None => unreachable!("NONCANBE: token can't be None in prototype"),
+                None => unreachable!("Internal error: token can't be None in prototype"),
             };
         }
 

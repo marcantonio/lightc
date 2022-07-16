@@ -25,21 +25,27 @@ impl<T: Clone> ScopeTable<T> {
         self.table.remove(&self.depth);
         self.depth -= 1;
         if self.depth < 0 {
-            return Err("Fatal: Symbol table below 0".to_string());
+            return Err("Internal error: Symbol table below 0".to_string());
         }
         Ok(self.depth)
     }
 
     // Insert symbol at current scope depth
     pub fn insert(&mut self, name: &str, sym: T) -> Result<(), String> {
-        let cur = self.table.get_mut(&self.depth).ok_or("Unknown depth")?;
+        let cur = self
+            .table
+            .get_mut(&self.depth)
+            .unwrap_or_else(|| panic!("Internal error: insert at unknown depth"));
         cur.insert(name.to_owned(), sym);
         Ok(())
     }
 
     // Remove symbol at current scope depth
     pub fn remove(&mut self, name: &str) -> Option<T> {
-        let cur = self.table.get_mut(&self.depth).unwrap(); //.ok_or("Unknown depth"); // NONCANBE
+        let cur = self
+            .table
+            .get_mut(&self.depth)
+            .unwrap_or_else(|| panic!("Internal error: remove at unknown depth"));
         cur.remove(name)
     }
 
@@ -51,7 +57,7 @@ impl<T: Clone> ScopeTable<T> {
             let table = self
                 .table
                 .get(&depth)
-                .unwrap_or_else(|| panic!("Fatal: No table found at depth `{}`", depth));
+                .unwrap_or_else(|| panic!("Internal error: No table found at depth `{}`", depth));
             sym = table.get(name).cloned();
             if sym.is_none() {
                 if depth == 0 {

@@ -133,7 +133,7 @@ impl<'a> TypeChecker<'a> {
     fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
         let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
             Some(sym) => sym,
-            None => unreachable!("fatal: missing symbol table entry for function: {}", proto.name()),
+            None => unreachable!("Internal error: missing symbol table entry for function: {}", proto.name()),
         };
 
         // If body is None, this is an extern and no checking is needed
@@ -256,7 +256,7 @@ impl<'a> TypeChecker<'a> {
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     Type::Char => return Err("Literal is a float in a char context".to_string()),
                     Type::Array(..) => return Err("Literal is a float in an array context".to_string()),
-                    _ => unreachable!("fatal error: Internal float conversion error"),
+                    _ => unreachable!("Internal error: float conversion error"),
                 },
                 Double(_) => (lit, Type::Double),
                 Bool(_) => (lit, Type::Bool),
@@ -273,7 +273,7 @@ impl<'a> TypeChecker<'a> {
                 Bool(_) => (lit, Type::Bool),
                 Char(_) => (lit, Type::Char),
                 Array { .. } => self.check_lit_array(lit, ty_hint)?,
-                x => unreachable!("fatal error: Internal numeric conversion error for {}", x),
+                x => unreachable!("Internal error: numeric conversion error for {}", x),
             },
         };
 
@@ -285,13 +285,13 @@ impl<'a> TypeChecker<'a> {
         // assigned by the parser as this point.
         let elements = match lit {
             Literal::Array { elements, .. } => elements,
-            _ => unreachable!("fatal error: expected array literal"),
+            _ => unreachable!("Internal error: expected array literal"),
         };
 
         // Clone the inner type hint
         let (ty, size) = match ty_hint.unwrap() {
             Type::Array(ty, sz) => (ty.clone(), sz),
-            err => unreachable!("fatal error: array literal has invalid type hint `{}`", err),
+            err => unreachable!("Internal error: array literal has invalid type hint `{}`", err),
         };
 
         // Make sure array is big enough
@@ -432,11 +432,11 @@ impl<'a> TypeChecker<'a> {
         let fe_args_len = fe_arg_tys.len();
         let args_len = args.len();
         if fe_arg_tys.len() != args.len() {
-            return Err(format!("Call to {} takes {} args and {} were given", name, fe_args_len, args_len));
+            return Err(format!("Call to `{}()` takes {} args and {} were given", name, fe_args_len, args_len));
         }
 
-        // Check all args and record their types. Use the function entry arg
-        // types as type hints.
+        // Check all args and record their types. Use the function entry arg types as type
+        // hints.
         let ret_ty = fn_entry.ret_ty().clone();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
@@ -449,7 +449,7 @@ impl<'a> TypeChecker<'a> {
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
             if *fa_ty != &ca_ty {
-                Err(format!("Type mismatch in arg {} of call to {}: {} != {}", idx + 1, name, fa_ty, ca_ty))
+                Err(format!("Type mismatch in arg {} of call to `{}()`: `{}` != `{}`", idx + 1, name, fa_ty, ca_ty))
             } else {
                 Ok(())
             }
@@ -561,7 +561,7 @@ impl<'a> TypeChecker<'a> {
                 Char => make_literal!(Char, 0),
                 Bool => make_literal!(Bool, false),
                 Array(ty, len) => make_literal!(Array, ty.clone(), *len),
-                Void => unreachable!("Fatal: void type for variable initialization annotation"),
+                Void => unreachable!("Internal error: void type for variable initialization annotation"),
             };
             Node::new(Node::Expr, literal)
         };

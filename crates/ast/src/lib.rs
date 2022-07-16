@@ -4,7 +4,6 @@ use common::{Operator, Type};
 
 pub mod prototype;
 pub use prototype::Prototype;
-pub mod convert;
 mod display;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -36,8 +35,6 @@ impl<T> Default for Ast<T> {
     }
 }
 
-// XXX: Node<T>???
-
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Node {
     Stmt(Statement),
@@ -61,21 +58,21 @@ impl Node {
 
     pub fn to_expr(self) -> Expression {
         match self {
-            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
             Node::Expr(e) => e,
         }
     }
 
     pub fn as_expr(&self) -> &Expression {
         match self {
-            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
             Node::Expr(e) => e,
         }
     }
 
     pub fn as_expr_mut(&mut self) -> &mut Expression {
         match self {
-            Node::Stmt(_) => unreachable!("fatal: expected Expression"),
+            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
             Node::Expr(e) => e,
         }
     }
@@ -220,37 +217,3 @@ impl Visitable for Expression {
         v.visit_expr(self)
     }
 }
-
-// Mutable visitor interface
-
-// pub trait AstVisitorMut {
-//     type Result;
-
-//     fn visit_stmt(&mut self, s: &mut Statement) -> Self::Result;
-//     fn visit_expr(&mut self, e: &mut Expression) -> Self::Result;
-// }
-
-// pub trait VisitableMut {
-//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result;
-// }
-
-// impl VisitableMut for Node {
-//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-//         match self {
-//             Node::Stmt(s) => v.visit_stmt(s),
-//             Node::Expr(e) => v.visit_expr(e),
-//         }
-//     }
-// }
-
-// impl VisitableMut for Statement {
-//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-//         v.visit_stmt(self)
-//     }
-// }
-
-// impl VisitableMut for Expression {
-//     fn accept<V: AstVisitorMut>(&mut self, v: &mut V) -> V::Result {
-//         v.visit_expr(self)
-//     }
-// }

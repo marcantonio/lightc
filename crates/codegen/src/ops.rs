@@ -231,7 +231,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 let (_, element_ptr) = self.get_array_element(*binding, *idx)?;
                 element_ptr
             },
-            _ => unreachable!("Fatal: Bad LHS in codegen assignment: `{}`", lhs),
+            _ => unreachable!("Internal error: Bad LHS in codegen assignment: `{}`", lhs),
         };
 
         self.builder.build_store(lhs_var, rhs);

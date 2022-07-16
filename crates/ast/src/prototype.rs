@@ -41,6 +41,7 @@ impl Prototype {
     }
 }
 
+// XXX: unused
 impl SymbolId for Prototype {
     fn as_symbol_id(&self) -> String {
         let args = self.args().iter().fold(String::new(), |mut acc, (name, ty)| {

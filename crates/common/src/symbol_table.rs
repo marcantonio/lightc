@@ -46,20 +46,20 @@ impl Symbol {
     pub fn ret_ty(&self) -> &Type {
         match self {
             Symbol::Fn { ret_ty, .. } => ret_ty,
-            Symbol::Var { .. } => unreachable!("Fatal: Expected symbol to be a function"),
+            Symbol::Var { .. } => unreachable!("Internal error: expected symbol to be a function"),
         }
     }
 
     pub fn arg_tys(&self) -> Vec<&Type> {
         match self {
             Symbol::Fn { args, .. } => args.iter().map(|s| s.ty()).collect(),
-            Symbol::Var { .. } => unreachable!("Fatal: Expected symbol to be a function"),
+            Symbol::Var { .. } => unreachable!("Internal error: expected symbol to be a function"),
         }
     }
 
     pub fn ty(&self) -> &Type {
         match self {
-            Symbol::Fn { .. } => unreachable!("Fatal: Expected symbol to be a variable"),
+            Symbol::Fn { .. } => unreachable!("Internal error: expected symbol to be a variable"),
             Symbol::Var { ty, .. } => ty,
         }
     }
