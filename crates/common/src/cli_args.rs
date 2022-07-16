@@ -68,6 +68,12 @@ impl CliArgs {
     }
 }
 
+impl Default for CliArgs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn valid_opt_level(s: &str) -> Result<usize, String> {
     let opt_level = s.parse().map_err(|_| format!("`{}` isn't an optimization level", s))?;
 

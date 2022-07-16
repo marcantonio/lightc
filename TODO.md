@@ -31,7 +31,7 @@
 - [x] Formalize grammar
 - [x] Add primitive types
 - [x] Add array types
-- [ ] Add desugar phase
+- [x] Add desugar phase
 - [ ] Add string type
 - [ ] Globals
 - [ ] Type inference
