@@ -1,9 +1,9 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 532
+assertion_line: 512
 expression: "(test[1], res)"
 ---
-- "\nfn foo() {\n    let x: int\n}\n"
+- "\n        fn foo() {\n            let x: int\n        }\n        "
 - Ok:
     nodes:
       - Stmt:
@@ -20,6 +20,11 @@ expression: "(test[1], res)"
                         Let:
                           name: x
                           antn: Int32
-                          init: ~
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
                   ty: Void
 

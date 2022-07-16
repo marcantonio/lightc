@@ -13,7 +13,6 @@
 - [ ] Include file name in error
 - [ ] Add while
 - [ ] Desugar for loops
-- [ ] Add inc/dec operator
 - [x] Fix main exit code
 - [x] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)
@@ -25,14 +24,14 @@
 - [x] Block scope
 - [x] Token output should be line based
 - [x] Token output should include context info
-- [ ] Convert Err(NONCANBE)'s to fatal
+- [x] Convert Err(NONCANBE)'s to fatal
 - [ ] Type hints in function arguments
 
 # Roadmap
 - [x] Formalize grammar
 - [x] Add primitive types
 - [x] Add array types
-- [ ] Add desugar phase
+- [x] Add desugar phase
 - [ ] Add string type
 - [ ] Globals
 - [ ] Type inference

@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 224
+assertion_line: 221
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn main() {\n    if false {\n        7\n    } else {\n        2\n    }\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  br i1 false, label %if.then, label %if.else\n\nif.then:                                          ; preds = %entry\n  br label %if.end\n\nif.end:                                           ; preds = %if.else, %if.then\n  %if.else.phi.int32 = phi i32 [ 7, %if.then ], [ 2, %if.else ]\n  ret i32 %if.else.phi.int32\n\nif.else:                                          ; preds = %entry\n  br label %if.end\n}\n"
-- "; ModuleID = 'main_mod'\nsource_filename = \"main_mod\"\n\ndefine i32 @main() {\nentry:\n  ret i32 2\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  br i1 false, label %if.then, label %if.else\n\nif.then:                                          ; preds = %entry\n  br label %if.end\n\nif.end:                                           ; preds = %if.else, %if.then\n  %if.else.phi.int32 = phi i32 [ 7, %if.then ], [ 2, %if.else ]\n  ret void\n\nif.else:                                          ; preds = %entry\n  br label %if.end\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
 

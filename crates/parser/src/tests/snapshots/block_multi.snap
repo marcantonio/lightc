@@ -1,14 +1,14 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 59
+expression: "(test[1], ast, ast_string)"
 ---
 - "y = { 1 + 4; foo(); 4 / 2 }"
 - Ok:
     nodes:
       - Expr:
           BinOp:
-            sym: Assign
+            op: Assign
             lhs:
               Expr:
                 Ident:
@@ -20,7 +20,7 @@ expression: "(input, ast, ast_string)"
                   list:
                     - Expr:
                         BinOp:
-                          sym: Add
+                          op: Add
                           lhs:
                             Expr:
                               Lit:
@@ -41,7 +41,7 @@ expression: "(input, ast, ast_string)"
                           ty: ~
                     - Expr:
                         BinOp:
-                          sym: Div
+                          op: Div
                           lhs:
                             Expr:
                               Lit:

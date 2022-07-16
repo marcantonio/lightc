@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 251
+assertion_line: 249
 expression: "(test[1], ast, ast_string)"
 ---
 - (19 + 21) / 40
@@ -8,11 +8,11 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - Expr:
           BinOp:
-            sym: Div
+            op: Div
             lhs:
               Expr:
                 BinOp:
-                  sym: Add
+                  op: Add
                   lhs:
                     Expr:
                       Lit:

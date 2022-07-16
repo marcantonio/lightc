@@ -1,0 +1,145 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 37
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    let y: int\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: y
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Add
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Sub
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Mul
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - Expr:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              BinOp:
+                                op: Div
+                                lhs:
+                                  Expr:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  Expr:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - Expr:
+                        BinOp:
+                          op: LtEq
+                          lhs:
+                            Expr:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Bool
+                  ty: Bool
+

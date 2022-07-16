@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 205
+assertion_line: 202
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nif a > b {\n    foo\n} else {\n    bar\n}"
@@ -11,7 +11,7 @@ expression: "(test[1], ast, ast_string)"
             cond_expr:
               Expr:
                 BinOp:
-                  sym: Gt
+                  op: Gt
                   lhs:
                     Expr:
                       Ident:

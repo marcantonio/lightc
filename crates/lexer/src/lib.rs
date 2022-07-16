@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::iter::Peekable;
 
-use common::{Symbol, Token, TokenType, Type};
+use common::{Operator, Token, TokenType, Type};
 
 #[cfg(test)]
 mod tests;
@@ -15,10 +15,7 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(input: &str) -> Self {
-        Lexer {
-            stream: StreamIter::new(input).peekable(),
-            tokens: vec![],
-        }
+        Lexer { stream: StreamIter::new(input).peekable(), tokens: vec![] }
     }
 
     // Scan all input
@@ -39,7 +36,7 @@ impl Lexer {
 
         let cur = match self.stream.next() {
             Some(cur) => cur,
-            None => unreachable!("fatal: can't lex nothing"),
+            None => unreachable!("Internal error: can't lex nothing"),
         };
 
         // Inject a semicolon if certain tokens occur at the end of the line or
@@ -144,10 +141,8 @@ impl Lexer {
         // Literal char
         if cur == '\'' {
             let mut ch = String::new();
-            let next = self
-                .stream
-                .next()
-                .unwrap_or_else(|| unreachable!("fatal: lexed None when looking for char"));
+            let next =
+                self.stream.next().unwrap_or_else(|| unreachable!("Internal error: lexed None when looking for char"));
 
             match next.value {
                 // Control characters
@@ -162,33 +157,26 @@ impl Lexer {
                                     format!("Invalid character control sequence: `\\{}`", c),
                                     next,
                                 )))
-                            }
+                            },
                         }
                     }
-                }
+                },
                 // EOF
                 '\0' => {
                     return Err(LexError::from((
                         "Unterminated character literal. Expecting `'`, got `EOF`".to_string(),
                         cur,
                     )));
-                }
-                '\'' => {
-                    return Err(LexError::from((
-                        "Character literal can't be empty".to_string(),
-                        cur,
-                    )))
-                }
+                },
+                '\'' => return Err(LexError::from(("Character literal can't be empty".to_string(), cur))),
 
                 // Everything else
                 c => ch = String::from(c),
             }
 
             // Check for closing '\''
-            let last = self
-                .stream
-                .next()
-                .unwrap_or_else(|| unreachable!("fatal: lexed None when looking for `'`"));
+            let last =
+                self.stream.next().unwrap_or_else(|| unreachable!("fatal: lexed None when looking for `'`"));
             match last.value {
                 '\'' => (),
                 '\0' | '\n' => {
@@ -196,13 +184,13 @@ impl Lexer {
                         "Unterminated character literal. Expecting `'`".to_string(),
                         last,
                     )));
-                }
+                },
                 _ => {
                     return Err(LexError::from((
                         format!("Invalid character sequence: `'{}{}'`", ch, last.value),
                         last,
                     )));
-                }
+                },
             }
 
             return Ok(Token::new(Char(ch), cur.line, cur.column));
@@ -213,53 +201,77 @@ impl Lexer {
             match cur.value {
                 '=' if next == &'=' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::Eq), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::Eq), cur.line, cur.column));
+                },
                 '!' if next == &'=' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::NotEq), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::NotEq), cur.line, cur.column));
+                },
                 '>' if next == &'=' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::GtEq), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::GtEq), cur.line, cur.column));
+                },
                 '<' if next == &'=' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::LtEq), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::LtEq), cur.line, cur.column));
+                },
                 '&' if next == &'&' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::And), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::And), cur.line, cur.column));
+                },
                 '|' if next == &'|' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::Or), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::Or), cur.line, cur.column));
+                },
+                '+' if next == &'+' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::Inc), cur.line, cur.column));
+                },
+                '+' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::AddEq), cur.line, cur.column));
+                },
+                '-' if next == &'-' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::Dec), cur.line, cur.column));
+                },
+                '-' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::SubEq), cur.line, cur.column));
+                },
                 '-' if next == &'>' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::RetType), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::RetType), cur.line, cur.column));
+                },
                 '*' if next == &'*' => {
                     self.stream.next();
-                    return Ok(Token::new(Op(Symbol::Pow), cur.line, cur.column));
-                }
+                    return Ok(Token::new(Op(Operator::Pow), cur.line, cur.column));
+                },
+                '*' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::MulEq), cur.line, cur.column));
+                },
+                '/' if next == &'=' => {
+                    self.stream.next();
+                    return Ok(Token::new(Op(Operator::DivEq), cur.line, cur.column));
+                },
                 _ => (),
             }
         }
 
         // Everything else
         let tt = match cur.value {
-            '+' => Op(Symbol::Add),
-            '-' => Op(Symbol::Sub),
-            '*' => Op(Symbol::Mul),
-            '/' => Op(Symbol::Div),
-            '>' => Op(Symbol::Gt),
-            '<' => Op(Symbol::Lt),
-            '!' => Op(Symbol::Not),
-            '=' => Op(Symbol::Assign),
-            '&' => Op(Symbol::BitAnd),
-            '^' => Op(Symbol::BitXor),
-            '|' => Op(Symbol::BitOr),
+            '+' => Op(Operator::Add),
+            '-' => Op(Operator::Sub),
+            '*' => Op(Operator::Mul),
+            '/' => Op(Operator::Div),
+            '>' => Op(Operator::Gt),
+            '<' => Op(Operator::Lt),
+            '!' => Op(Operator::Not),
+            '=' => Op(Operator::Assign),
+            '&' => Op(Operator::BitAnd),
+            '^' => Op(Operator::BitXor),
+            '|' => Op(Operator::BitOr),
             '.' => Dot,
             '}' => CloseBrace,
             ']' => CloseBracket,
@@ -272,7 +284,7 @@ impl Lexer {
             ';' => Semicolon(false),
             c => {
                 return Err(LexError::from((format!("Unknown character: {}", c), cur)));
-            }
+            },
         };
 
         Ok(Token::new(tt, cur.line, cur.column))
@@ -292,6 +304,8 @@ impl Lexer {
                     | CloseBracket
                     | Ident(_)
                     | Num(_)
+                    | Op(Operator::Inc)
+                    | Op(Operator::Dec)
                     | VarType(_)
             )
         } else {
@@ -310,11 +324,7 @@ struct ContextElement<T> {
 
 impl<T> ContextElement<T> {
     fn new(value: T, line: usize, column: usize) -> Self {
-        ContextElement {
-            value,
-            line: line + 1,
-            column: column + 1,
-        }
+        ContextElement { value, line: line + 1, column: column + 1 }
     }
 }
 
@@ -360,15 +370,12 @@ impl Iterator for StreamIter<char> {
             Some(l) => l,
             None => return Some(ContextElement::new(0 as char, self.line, self.column - 1)),
         };
-        let cc = line
-            .get(self.column)
-            .map(|c| ContextElement::new(*c, self.line, self.column))
-            .or_else(|| {
+        let cc =
+            line.get(self.column).map(|c| ContextElement::new(*c, self.line, self.column)).or_else(|| {
                 self.line += 1;
                 self.column = 0;
                 self.lines.get(self.line).and_then(|line| {
-                    line.get(self.column)
-                        .map(|c| ContextElement::new(*c, self.line, self.column))
+                    line.get(self.column).map(|c| ContextElement::new(*c, self.line, self.column))
                 })
             });
         self.column += 1;
@@ -385,11 +392,7 @@ pub struct LexError {
 
 impl std::fmt::Display for LexError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Lexing error: {} at {}:{}",
-            self.message, self.line, self.column
-        )
+        write!(f, "Lexing error: {} at {}:{}", self.message, self.line, self.column)
     }
 }
 
@@ -397,10 +400,6 @@ impl std::error::Error for LexError {}
 
 impl<T> From<(String, ContextElement<T>)> for LexError {
     fn from((msg, cp): (String, ContextElement<T>)) -> Self {
-        LexError {
-            message: msg,
-            line: cp.line,
-            column: cp.column,
-        }
+        LexError { message: msg, line: cp.line, column: cp.column }
     }
 }

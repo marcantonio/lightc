@@ -1,14 +1,14 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 46
+expression: "(test[1], ast, ast_string)"
 ---
 - 20 - 19
 - Ok:
     nodes:
       - Expr:
           BinOp:
-            sym: Sub
+            op: Sub
             lhs:
               Expr:
                 Lit:

@@ -1,4 +1,4 @@
-use common::Symbol;
+use common::Operator;
 
 pub(crate) enum OpPrec {
     Left(u8),
@@ -7,8 +7,8 @@ pub(crate) enum OpPrec {
 
 // Precedence tables for binary and unary operators
 impl OpPrec {
-    pub(crate) fn bin_prec(op: Symbol) -> Result<OpPrec, String> {
-        use Symbol::*;
+    pub(crate) fn bin_prec(op: Operator) -> Result<OpPrec, String> {
+        use Operator::*;
         match op {
             Pow => Ok(OpPrec::Right(12)),
             Mul | Div => Ok(OpPrec::Left(10)),
@@ -20,13 +20,13 @@ impl OpPrec {
             BitOr => Ok(OpPrec::Left(4)),
             And => Ok(OpPrec::Left(3)),
             Or => Ok(OpPrec::Left(2)),
-            Assign => Ok(OpPrec::Right(1)), // XXX: right
+            Assign | AddEq | SubEq | MulEq | DivEq => Ok(OpPrec::Right(1)),
             x => Err(format!("Unknown binary operator: `{}`", x)),
         }
     }
 
-    pub(crate) fn un_prec(op: Symbol) -> Result<u8, String> {
-        use Symbol::*;
+    pub(crate) fn un_prec(op: Operator) -> Result<u8, String> {
+        use Operator::*;
         match op {
             Not => Ok(11),
             Sub => Ok(11),

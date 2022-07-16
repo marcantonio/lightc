@@ -10,11 +10,9 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
-                let mut ast = Parser::new(&tokens).parse().unwrap();
-                let res = match TypeChecker::new().walk(&mut ast) {
-                    Ok(_) => Ok(ast),
-                    Err(e) => Err(e),
-                };
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let res = TypeChecker::new(&mut symbol_table).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
@@ -342,13 +340,6 @@ fn foo(a: int, b: float) -> int {
 "#,
         ],
         [
-            "cant_redefine",
-            r#"
-fn foo() { }
-fn foo() { }
-"#,
-        ],
-        [
             "extern",
             r#"
 extern foo()
@@ -363,21 +354,15 @@ fn foo() {
 "#,
         ],
         [
-            "main_exits_int32_1",
+            "main_void",
             r#"
 fn main() { }
 "#,
         ],
         [
-            "main_exits_int32_2",
+            "main_antn",
             r#"
-fn main() { 1 }
-"#,
-        ],
-        [
-            "main_exits_int32_3",
-            r#"
-fn main() -> float { 1.0 }
+fn main() -> int { }
 "#,
         ],
     ];
@@ -498,10 +483,10 @@ fn foo() {
         [
             "basic_no_init",
             r#"
-fn foo() {
-    let x: int
-}
-"#,
+        fn foo() {
+            let x: int
+        }
+        "#,
         ],
         [
             "lit_antn_mismatch",
@@ -713,9 +698,9 @@ x['c']
         [
             "index_bad_3",
             r#"
-let x: int;
-x[y]
-"#,
+        let x: int;
+        x[y]
+        "#,
         ],
         [
             "index_bad_4",
@@ -730,43 +715,43 @@ x[y]
     run_insta!("array", tests)
 }
 
-#[test]
-fn test_struct() {
-    let tests = [
-        [
-            "attr_only",
-            r#"
-struct Foo {
-    let a: int
-    let b: float = 1.0
-}
-"#,
-        ],
-        [
-            "methods_only",
-            r#"
-struct Foo {
-    fn c() -> int {
-        1
-    }
-    fn d() {}
-}
-"#,
-        ],
-        [
-            "mix",
-            r#"
-struct Foo {
-    let a: int
-    let b: float = 1.0
+// #[test]
+// fn test_struct() {
+//     let tests = [
+//         [
+//             "attr_only",
+//             r#"
+// struct Foo {
+//     let a: int
+//     let b: float = 1.0
+// }
+// "#,
+//         ],
+//         [
+//             "methods_only",
+//             r#"
+// struct Foo {
+//     fn c() -> int {
+//         1
+//     }
+//     fn d() {}
+// }
+// "#,
+//         ],
+//         [
+//             "mix",
+//             r#"
+// struct Foo {
+//     let a: int
+//     let b: float = 1.0
 
-    fn c() -> int {
-        1
-    }
-    fn d() {}
-}
-"#,
-        ],
+//     fn c() -> int {
+//         1
+//     }
+//     fn d() {}
+// }
+// "#,
+//         ],
 //         [
 //             "scope",
 //             r#"
@@ -781,9 +766,9 @@ struct Foo {
 // }
 // "#,
 //         ],
-    ];
-    run_insta!("struct", tests)
-}
+//     ];
+//     run_insta!("struct", tests)
+// }
 
 #[test]
 fn test_tyc_int_no_hint() {
@@ -795,9 +780,11 @@ fn test_tyc_int_no_hint() {
         (UInt64(i32::MAX as u64 + 1), Err(ERR_STR)),
         (Float(7.0), Ok(Type::Float)),
     ];
-    let mut tc = TypeChecker::new();
-    for mut lit in literals {
-        let res = tc.check_lit(&mut lit.0, &mut None, None);
+
+    let mut symbol_table = SymbolTable::new();
+    let mut tc = TypeChecker::new(&mut symbol_table);
+    for lit in literals {
+        let res = tc.check_lit(lit.0, None).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
     }
 }
@@ -834,9 +821,10 @@ fn test_tyc_int_with_hint() {
         (Float(7.0), Type::Double, Ok(Type::Double)),
     ];
 
-    let mut tc = TypeChecker::new();
-    for mut lit in literals {
-        let res = tc.check_lit(&mut lit.0, &mut None, Some(&lit.1));
+    let mut symbol_table = SymbolTable::new();
+    let mut tc = TypeChecker::new(&mut symbol_table);
+    for lit in literals {
+        let res = tc.check_lit(lit.0, Some(&lit.1)).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
     }
 }
@@ -845,31 +833,20 @@ fn test_tyc_int_with_hint() {
 // x + 3
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
-        let mut tc = TypeChecker::new();
-        tc.check_let::<Expression>("x", &$variant, None).unwrap();
-        let mut lhs = Expression::Ident {
-            name: "x".to_string(),
-            ty: None,
-        };
-        let mut rhs = Expression::Lit {
-            value: Literal::UInt64(3),
-            ty: None,
-        };
-        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
+        tc.check_let(String::from("x"), $variant, None).unwrap();
+        let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
+        let rhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
+        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
-        // TODO: Maybe add a TypeChecker::clear() to we don't have to do this dance?
-        let mut tc = TypeChecker::new();
-        let mut lhs = Expression::Lit {
-            value: Literal::UInt64(3),
-            ty: None,
-        };
-        tc.check_let::<Expression>("x", &$variant, None).unwrap();
-        let mut rhs = Expression::Ident {
-            name: "x".to_string(),
-            ty: None,
-        };
-        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
+        let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
+        tc.check_let(String::from("x"), $variant, None).unwrap();
+        let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
+        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};
 }
@@ -878,30 +855,20 @@ macro_rules! test_lit_hint_binop_int {
 // x + 3.0
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
-        let mut tc = TypeChecker::new();
-        tc.check_let::<Expression>("x", &$variant, None).unwrap();
-        let mut lhs = Expression::Ident {
-            name: "x".to_string(),
-            ty: None,
-        };
-        let mut rhs = Expression::Lit {
-            value: Literal::Float(3.0),
-            ty: None,
-        };
-        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
+        tc.check_let(String::from("x"), $variant, None).unwrap();
+        let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
+        let rhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
+        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
-        let mut tc = TypeChecker::new();
-        let mut lhs = Expression::Lit {
-            value: Literal::Float(3.0),
-            ty: None,
-        };
-        tc.check_let::<Expression>("x", &$variant, None).unwrap();
-        let mut rhs = Expression::Ident {
-            name: "x".to_string(),
-            ty: None,
-        };
-        let res = tc.check_binop(Symbol::Add, &mut lhs, &mut rhs, &mut None);
+        let mut symbol_table = SymbolTable::new();
+        let mut tc = TypeChecker::new(&mut symbol_table);
+        let lhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
+        tc.check_let(String::from("x"), $variant, None).unwrap();
+        let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
+        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};
 }

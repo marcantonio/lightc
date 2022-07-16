@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 386
-expression: "(test[1], res)"
----
-- "\nfn foo() { }\nfn foo() { }\n"
-- Err: "Function `foo` can't be redefined"
-

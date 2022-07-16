@@ -152,7 +152,7 @@ let foo = 13
 
 #[test]
 fn test_ops() {
-    let tests = [["basic", "(x + y) * 4 / 4"], ["more", "x ^ 3 | 7 & 3"]];
+    let tests = [["basic", "(x + y) * 4 / 4"], ["more", "x ^ 3 | 7 & 3"], ["and_more", "x++; y -= 1"]];
     run_insta!("ops", tests);
 }
 
@@ -173,17 +173,13 @@ fn test_semi() {
 
 #[test]
 fn test_array() {
-    let tests = [
-        ["type", "[int; 3]"],
-        ["lit", "[1, 2, 3]"],
-        ["index", "foo[0]"],
-    ];
+    let tests = [["type", "[int; 3]"], ["lit", "[1, 2, 3]"], ["index", "foo[0]"]];
     run_insta!("array", tests);
 }
 
 #[test]
 fn test_lex_one() {
-    use Symbol::*;
+    use Operator::*;
     use TokenType::*;
 
     let input = r#"
@@ -198,10 +194,7 @@ baz
     assert_eq!(lexer.lex(), Ok(Token::new(Op(Add), 2, 5)));
     assert_eq!(lexer.lex(), Ok(Token::new(Ident("bar".to_string()), 2, 7)));
     assert_eq!(lexer.lex(), Ok(Token::new(Op(Div), 4, 1)));
-    assert_eq!(
-        lexer.lex(),
-        Ok(Token::new(Ident("not_a_comment".to_string()), 4, 3))
-    );
+    assert_eq!(lexer.lex(), Ok(Token::new(Ident("not_a_comment".to_string()), 4, 3)));
     assert_eq!(lexer.lex(), Ok(Token::new(Ident("baz".to_string()), 5, 1)));
     assert_eq!(lexer.lex(), Ok(Token::new(Eof, 6, 1)));
 }

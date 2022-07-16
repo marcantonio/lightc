@@ -1,7 +1,7 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 74
+expression: "(test[1], ast, ast_string)"
 ---
 - "a(b + 1, c - 2 / 4)"
 - Ok:
@@ -12,7 +12,7 @@ expression: "(input, ast, ast_string)"
             args:
               - Expr:
                   BinOp:
-                    sym: Add
+                    op: Add
                     lhs:
                       Expr:
                         Ident:
@@ -27,7 +27,7 @@ expression: "(input, ast, ast_string)"
                     ty: ~
               - Expr:
                   BinOp:
-                    sym: Sub
+                    op: Sub
                     lhs:
                       Expr:
                         Ident:
@@ -36,7 +36,7 @@ expression: "(input, ast, ast_string)"
                     rhs:
                       Expr:
                         BinOp:
-                          sym: Div
+                          op: Div
                           lhs:
                             Expr:
                               Lit:

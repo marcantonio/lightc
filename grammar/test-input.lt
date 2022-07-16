@@ -46,6 +46,8 @@ fn main() {
     let y: int;
     let c: char = 'c';
     c = '\n';
+
+    i += 1;
 };
 
 struct Foo {

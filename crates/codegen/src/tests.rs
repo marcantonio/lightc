@@ -1,6 +1,4 @@
-use inkwell::context::Context;
-use inkwell::passes::PassManager;
-
+use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
 use type_checker::TypeChecker;
@@ -11,27 +9,26 @@ macro_rules! run_insta {
     ($prefix:expr, $tests:expr) => {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
-                let tokens = Lexer::new(test[1]).scan().unwrap();
-                let mut ast = Parser::new(&tokens).parse().unwrap();
-                TypeChecker::new().walk(&mut ast).unwrap();
-
                 // Unoptimized code
-                let context = Context::create();
-                let builder = context.create_builder();
-                let module = context.create_module("main_mod");
-                let fpm = PassManager::create(&module);
-                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 0, false, true);
-                codegen.walk(&ast).expect("codegen error");
-                let res = module.print_to_string().to_string();
+                let tokens = Lexer::new(test[1]).scan().unwrap();
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
+                let args = CliArgs::new();
+                let res = Codegen::run_pass(hir, "test", &symbol_table, PathBuf::new(), &args, true)
+                    .expect("codegen error").as_ir_string();
 
                 // Optimized code
-                let context = Context::create();
-                let builder = context.create_builder();
-                let module = context.create_module("main_mod");
-                let fpm = PassManager::create(&module);
-                let mut codegen = Codegen::new(&context, &builder, &module, &fpm, 1, false, true);
-                codegen.walk(&ast).expect("codegen error");
-                let res_opt = module.print_to_string().to_string();
+                let tokens = Lexer::new(test[1]).scan().unwrap();
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
+                let mut args = CliArgs::new();
+                args.opt_level = 1;
+                let res_opt = Codegen::run_pass(hir, "test", &symbol_table, PathBuf::new(), &args, true)
+                    .expect("codegen error").as_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));
             }
@@ -344,7 +341,7 @@ fn test(x: int) -> int {
     x + 1
 }
 
-fn main() -> int {
+fn main() {
     test(-40)
 }
 "#,

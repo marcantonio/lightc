@@ -21,11 +21,11 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches patterns like TokenType::Op(Symbol::Assign)
-    ($ts:expr, $( TokenType::$v:tt(Symbol::$s:tt) )|+ , $err:expr) => {
+    // Matches patterns like TokenType::Op(Operator::Assign)
+    ($ts:expr, $( TokenType::$v:tt(Operator::$s:tt) )|+ , $err:expr) => {
         let t = $ts.next();
         match t {
-            $( Some(Token { tt: TokenType::$v(Symbol::$s), .. }) => (), )+
+            $( Some(Token { tt: TokenType::$v(Operator::$s), .. }) => (), )+
                 _ => {
                     // Default to EOF. Make sure that we ignore inserted
                     // semicolons.
@@ -71,20 +71,11 @@ macro_rules! expect_explicit_semi {
     ($ts:expr, $err:expr) => {{
         let t = $ts.next();
         match t {
-            Some(Token {
-                tt: TokenType::Semicolon(false),
-                ..
-            }) => (),
+            Some(Token { tt: TokenType::Semicolon(false), .. }) => (),
             _ => {
-                let new_t = t
-                    .cloned()
-                    .filter(|n| !n.is_implicit_semi())
-                    .unwrap_or_default();
-                return Err(ParseError::from((
-                    format!("{}. Got `{}`", $err.to_string(), new_t.tt),
-                    &new_t,
-                )));
-            }
+                let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
+                return Err(ParseError::from((format!("{}. Got `{}`", $err.to_string(), new_t.tt), &new_t)));
+            },
         }
     }};
 }

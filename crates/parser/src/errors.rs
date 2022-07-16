@@ -24,30 +24,18 @@ impl std::error::Error for ParseError {}
 
 impl From<(String, Token)> for ParseError {
     fn from((msg, t): (String, Token)) -> Self {
-        ParseError {
-            message: msg,
-            line: t.line,
-            column: t.column,
-        }
+        ParseError { message: msg, line: t.line, column: t.column }
     }
 }
 
 impl From<(String, &Token)> for ParseError {
     fn from((msg, t): (String, &Token)) -> Self {
-        ParseError {
-            message: msg,
-            line: t.line,
-            column: t.column,
-        }
+        ParseError { message: msg, line: t.line, column: t.column }
     }
 }
 
 impl From<String> for ParseError {
     fn from(msg: String) -> Self {
-        ParseError {
-            message: msg,
-            line: 0,
-            column: 0,
-        }
+        ParseError { message: msg, line: 0, column: 0 }
     }
 }

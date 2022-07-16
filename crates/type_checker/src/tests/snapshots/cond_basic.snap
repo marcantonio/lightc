@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 293
+assertion_line: 291
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2\n    }\n}\n"
@@ -21,7 +21,7 @@ expression: "(test[1], res)"
                           cond_expr:
                             Expr:
                               BinOp:
-                                sym: Gt
+                                op: Gt
                                 lhs:
                                   Expr:
                                     Lit:

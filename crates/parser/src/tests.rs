@@ -14,7 +14,8 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
-                let ast = Parser::new(&tokens).parse();
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parser::new(&tokens, &mut symbol_table).parse();
                 let ast_string = ast_to_string(ast.as_ref());
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], ast, ast_string));
             }
@@ -76,10 +77,7 @@ fn test_call() {
 
 #[test]
 fn test_char() {
-    let tests = [
-        ["basic", "let c: char = 'a'"],
-        ["control", "let nl: char = '\n'"],
-    ];
+    let tests = [["basic", "let c: char = 'a'"], ["control", "let nl: char = '\n'"]];
     run_insta!("char", tests);
 }
 
@@ -138,6 +136,13 @@ fn a(b: int) {
 fn (a: int, c: int) {
     1 + 2
 }
+"#,
+        ],
+        [
+            "cant_redefine",
+            r#"
+fn foo() { }
+fn foo() { }
 "#,
         ],
         ["bad_1", "fn a(b: int) - { b }"],
@@ -247,11 +252,8 @@ fn test_op_prec() {
 
 #[test]
 fn test_parens() {
-    let tests = [
-        ["excessive", "(((0)))"],
-        ["prec", "(19 + 21) / 40"],
-        ["complex", "3 * ((19 + 21) - 5) / 40"],
-    ];
+    let tests =
+        [["excessive", "(((0)))"], ["prec", "(19 + 21) / 40"], ["complex", "3 * ((19 + 21) - 5) / 40"]];
     run_insta!("parens", tests);
 }
 
@@ -262,7 +264,8 @@ fn test_unop() {
         ["with_binop", "-a * 2"],
         ["sub", "3 - -21"],
         ["right", "-4 ** 2"],
-        ["double_neg", "--21"],
+        ["double_neg_good", "-(-21)"],
+        ["double_neg_bad", "--21"],
         ["invalid", "*2"],
     ];
     run_insta!("unop", tests);
@@ -327,38 +330,38 @@ struct Foo {
 }
 "#,
         ],
-//         [
-//             "self",
-//             r#"
-// struct Foo {
-//     let a: int
+        //         [
+        //             "self",
+        //             r#"
+        // struct Foo {
+        //     let a: int
 
-//     fn c() -> int {
-//         self.a + 1
-//     }
-// }
-// "#,
-//         ],
-//         [
-//             "self_bad1",
-//             r#"
-// struct Foo {
-//     fn c() -> int {
-//         self + 1
-//     }
-// }
-// "#,
-//         ],
-//         [
-//             "self_bad2",
-//             r#"
-// struct Foo {
-//     fn c() -> int {
-//         self. + 1
-//     }
-// }
-// "#,
-//         ],
+        //     fn c() -> int {
+        //         self.a + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad1",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad2",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self. + 1
+        //     }
+        // }
+        // "#,
+        //         ],
     ];
 
     run_insta!("struct", tests)

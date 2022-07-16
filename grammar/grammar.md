@@ -30,7 +30,7 @@ Expr        ::= PrimaryExpr
               | Expr bit_op Expr
               | Expr '&&' Expr
               | Expr '||' Expr
-              | ( IdentExpr | SelfExpr ) '=' Expr ;
+              | ( IdentExpr | SelfExpr ) assign_op Expr ;
 PrimaryExpr ::= CondExpr
               | SelfExpr
               | LitExpr
@@ -58,6 +58,7 @@ type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
               | 'float' | 'double' | 'bool' | 'char' ;
 bool        ::= 'true' | 'false' ;
 ident       ::= letter ( letter | digit | '_' )* ;
+assign_op   ::= '=' | '+=' | '-=' ;
 bit_op      ::= '&' | '|' | '^' ;
 eq_op       ::= '==' | '!=' ;
 rel_op      ::= '>' | '>=' | '<' | '<=' ;

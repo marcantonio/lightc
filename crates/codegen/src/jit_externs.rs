@@ -11,9 +11,7 @@ pub extern "C" fn printd(x: u64) -> u64 {
 
 pub extern "C" fn putchard(x: u64) -> u64 {
     print!("{}", x as u8 as char);
-    std::io::stdout()
-        .flush()
-        .expect("Could not flush to standard output.");
+    std::io::stdout().flush().expect("Could not flush to standard output.");
     x
 }
 

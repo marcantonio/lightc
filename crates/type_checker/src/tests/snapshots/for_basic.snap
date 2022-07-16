@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 465
+assertion_line: 463
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n}\n"
@@ -29,7 +29,7 @@ expression: "(test[1], res)"
                           cond_expr:
                             Expr:
                               BinOp:
-                                sym: Lt
+                                op: Lt
                                 lhs:
                                   Expr:
                                     Ident:

@@ -20,7 +20,7 @@ expression: "(test[1], res)"
                   list:
                     - Expr:
                         BinOp:
-                          sym: Add
+                          op: Add
                           lhs:
                             Expr:
                               Ident:
@@ -39,7 +39,7 @@ expression: "(test[1], res)"
             proto:
               name: main
               args: []
-              ret_ty: Int32
+              ret_ty: Void
             body:
               Expr:
                 Block:
