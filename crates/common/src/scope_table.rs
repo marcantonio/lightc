@@ -84,7 +84,7 @@ mod test {
     use crate::{ScopeTable, Type};
 
     #[test]
-    fn test_st() {
+    fn test_scope_table() {
         let mut st = ScopeTable::new();
         assert_eq!(st.depth, 0);
         assert_eq!(st.insert("foo", Type::Bool), Ok(()));
@@ -102,7 +102,4 @@ mod test {
         assert_eq!(st.remove("foo"), None);
         assert_eq!(st.get("foo"), None);
     }
-
-    #[test]
-    fn test_sym() {}
 }

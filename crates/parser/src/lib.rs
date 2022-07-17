@@ -207,7 +207,7 @@ impl<'a> Parser<'a> {
 
     // UnopExpr ::= ( '-' | '!' ) Expr ;
     fn parse_unop(&mut self, op: Operator) -> ParseResult {
-        self.tokens.next(); // Eat symbol
+        self.tokens.next(); // Eat operator
 
         let p = OpPrec::un_prec(op)?;
         let rhs = self.parse_expr(p)?;

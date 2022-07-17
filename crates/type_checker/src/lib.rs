@@ -15,7 +15,6 @@ mod tests;
 // - checks for type consistency and relevance in binops
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
-// - ensures functions aren't redefined
 // - initializes uninitialized variables
 // - checks main()'s annotation
 
@@ -142,7 +141,7 @@ impl<'a> TypeChecker<'a> {
             None => return Ok(Statement::Fn { proto: Box::new(proto), body }),
         };
 
-        // Insert args into the local symbol table
+        // Insert args into the local scope table
         for (name, ty) in proto.args() {
             self.scope_table.insert(name, ty.clone())?;
         }

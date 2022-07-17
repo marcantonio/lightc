@@ -10,6 +10,10 @@ fn printInt(x: int) {
     putchar(10)
 }
 
+fn getStuff(x: int, y: float) {
+
+}
+
 fn printBang() {
     putchar(33)
     putchar(10)
