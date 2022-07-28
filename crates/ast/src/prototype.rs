@@ -1,8 +1,7 @@
 use serde::Serialize;
 use std::fmt::Display;
 
-use common::symbol_table::SymbolId;
-use common::{Symbol, Type};
+use common::{Symbol, ToSymbol, Type};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Prototype {
@@ -41,25 +40,12 @@ impl Prototype {
     }
 }
 
-// XXX: unused
-impl SymbolId for Prototype {
-    fn as_symbol_id(&self) -> String {
-        let args = self.args().iter().fold(String::new(), |mut acc, (name, ty)| {
-            acc += format!("{}:{}~", name, ty).as_str();
-            acc
-        });
-        let ret_ty = format!("{}", self.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
-
-        format!("{}~{}{}", self.name(), args, ret_ty)
-    }
-}
-
-impl From<&Prototype> for Symbol {
-    fn from(proto: &Prototype) -> Self {
+impl ToSymbol for Prototype {
+    fn to_symbol(&self) -> Symbol {
         Symbol::new_fn(
-            proto.name(),
-            proto.args().iter().map(|(name, ty)| Symbol::from((name.as_ref(), ty))).collect::<Vec<Symbol>>(),
-            proto.ret_ty().unwrap_or_default(),
+            self.name(),
+            self.args().iter().map(|(name, ty)| Symbol::from((name.as_ref(), ty))).collect::<Vec<Symbol>>(),
+            self.ret_ty().unwrap_or_default(),
         )
     }
 }
@@ -73,48 +59,5 @@ impl Display for Prototype {
             }
         }
         write!(f, "{})", s)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::Prototype;
-    use common::{symbol_table::SymbolId, Type};
-
-    #[test]
-    fn test_prototype() {
-        use Type::*;
-
-        let tests = [
-            (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Int32)],
-                    ret_ty: Some(Float),
-                },
-                "foo~bar:int32~float",
-            ),
-            (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
-                    ret_ty: Some(Float),
-                },
-                "foo~bar:int32~baz:int32~float",
-            ),
-            (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
-                    ret_ty: None,
-                },
-                "foo~bar:int32~baz:int32~void",
-            ),
-            (Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float) }, "foo~float"),
-        ];
-
-        for test in tests {
-            assert_eq!(test.0.as_symbol_id(), test.1)
-        }
     }
 }

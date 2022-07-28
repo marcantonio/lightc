@@ -4,7 +4,7 @@ mod cli_args;
 pub use cli_args::CliArgs;
 mod macros;
 pub mod symbol_table;
-pub use symbol_table::{Symbol, SymbolTable};
+pub use symbol_table::{Symbol, SymbolTable, ToSymbol};
 pub mod scope_table;
 pub use scope_table::ScopeTable;
 

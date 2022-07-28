@@ -784,7 +784,7 @@ fn test_tyc_int_no_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc.check_lit(lit.0, None).map(|e| e.ty().unwrap_or_default().clone());
+        let res = tc.check_lit(lit.0, None).map(|e| e.ty().unwrap_or_default());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
     }
 }
@@ -824,7 +824,7 @@ fn test_tyc_int_with_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc.check_lit(lit.0, Some(&lit.1)).map(|e| e.ty().unwrap_or_default().clone());
+        let res = tc.check_lit(lit.0, Some(&lit.1)).map(|e| e.ty().unwrap_or_default());
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
     }
 }

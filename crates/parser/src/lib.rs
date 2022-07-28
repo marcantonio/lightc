@@ -5,7 +5,7 @@ use std::slice::Iter;
 use self::errors::ParseError;
 use self::precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, Symbol, SymbolTable, Token, TokenType, Type};
+use common::{Operator, SymbolTable, Token, TokenType, Type};
 
 #[macro_use]
 mod macros;
@@ -470,7 +470,7 @@ impl<'a> Parser<'a> {
         }
 
         let proto = Prototype::new(fn_name.to_string(), args, ret_type);
-        if self.symbol_table.insert(fn_name, &Symbol::from(&proto)).is_some() {
+        if self.symbol_table.insert(fn_name, &proto).is_some() {
             return Err(ParseError::from(format!("Function `{}` can't be redefined", proto.name())));
         }
         Ok(proto)

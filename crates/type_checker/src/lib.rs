@@ -159,16 +159,16 @@ impl<'a> TypeChecker<'a> {
             }
             proto.set_ret_ty(Some(&Type::Void));
         } else {
-            proto.set_ret_ty(Some(fn_entry.ret_ty()));
+            proto.set_ret_ty(Some(fn_entry.ty()));
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ret_ty() != &body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
+        if fn_entry.ty() != &body_ty && fn_entry.ty() != &Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 proto.name(),
-                fn_entry.ret_ty(),
+                fn_entry.ty(),
                 body_ty
             ));
         }
@@ -436,7 +436,7 @@ impl<'a> TypeChecker<'a> {
 
         // Check all args and record their types. Use the function entry arg types as type
         // hints.
-        let ret_ty = fn_entry.ret_ty().clone();
+        let ret_ty = fn_entry.ty().clone();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
