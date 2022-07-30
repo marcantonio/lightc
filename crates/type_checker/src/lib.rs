@@ -132,7 +132,7 @@ impl<'a> TypeChecker<'a> {
     fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
         let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
             Some(sym) => sym,
-            None => unreachable!("Internal error: missing symbol table entry for function: {}", proto.name()),
+            None => unreachable!("missing symbol table entry for function: {}", proto.name()),
         };
 
         // If body is None, this is an extern and no checking is needed

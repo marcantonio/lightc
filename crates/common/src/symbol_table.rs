@@ -2,17 +2,23 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::Type;
 
-// LeBlanc-Cook style symbol table
+/* Variant on a LeBlanc-Cook style symbol table. The vector of symbols at the leaves makes
+ * it overly complex. This is necessary so as not to overwrite any symbols. I think we'll
+ * need this for analysis later. TODO: Really?
+ *
+ * name     scope     sym
+ * foo ---> 1 ------> [ {...} ]
+ *     ---> 2 ------> [ {...} ]
+ * bar ---> 2 ------> [ {...}, {...} ]
+ *
+ */
+
 #[derive(Debug, Clone)]
 pub struct SymbolTable {
-    symbols: HashMap<String, HashMap<u32, Symbol>>,
+    symbols: HashMap<String, HashMap<u32, Vec<Symbol>>>,
     scope_stack: Vec<u32>,
     cur_scope: u32,
     next_id: u32,
-}
-
-pub trait ToSymbol: Clone {
-    fn to_symbol(&self) -> Symbol;
 }
 
 impl SymbolTable {
@@ -20,12 +26,46 @@ impl SymbolTable {
         SymbolTable { symbols: HashMap::new(), scope_stack: vec![0], cur_scope: 0, next_id: 0 }
     }
 
+    // Inserts symbol into proper name/scope table. Returns the previous symbol if a dup,
+    // or None if new.
     pub fn insert<T: ToSymbol>(&mut self, name: &str, sym: &T) -> Option<Symbol> {
         let mut sym = sym.to_symbol();
         sym.id = self.next_id();
         sym.scope = self.cur_scope;
 
-        self.symbols.entry(name.to_owned()).or_insert_with(HashMap::new).insert(sym.scope, sym)
+        match self.symbols.get_mut(name) {
+            Some(scope_table) => match scope_table.get_mut(&sym.scope) {
+                Some(sym_list) => {
+                    let old = sym_list.last().cloned();
+                    sym_list.push(sym);
+                    old
+                },
+                None => {
+                    scope_table.insert(sym.scope, vec![sym]);
+                    None
+                },
+            },
+            None => {
+                let mut name_table = HashMap::new();
+                name_table.insert(sym.scope, vec![sym]);
+                self.symbols.insert(name.to_owned(), name_table);
+                None
+            },
+        }
+
+        // TODO: Cleaner but doesn't indicate if the symbol was previously present.
+        // What a mess :). Inserts a new HashMap if there is no name table present. Then
+        // it checks for the scope table. It either inserts one with the new vector
+        // containing sym as a value, or pushes sym onto the existing vector. Finally, it
+        // returns a clone of the sym with the scope and id filled in.
+        // self.symbols
+        //     .entry(name.to_owned())
+        //     .or_insert_with(HashMap::new)
+        //     .entry(sym.scope)
+        //     .and_modify(|e| e.push(sym.clone()))
+        //     .or_insert(vec![sym])
+        //     .last()
+        //     .cloned()
     }
 
     pub fn exists(&self, name: &str) -> bool {
@@ -34,7 +74,9 @@ impl SymbolTable {
 
     pub fn get(&self, name: &str) -> Option<&Symbol> {
         let chain = self.symbols.get(name)?;
-        self.scope_stack.iter().rev().find_map(|s| chain.get(s))
+        self.scope_stack.iter().rev().find_map(|s| {
+            chain.get(s).map(|v| v.last().unwrap_or_else(|| unreachable!("no last element in symbol vector")))
+        })
     }
 
     pub fn enter_scope(&mut self) -> u32 {
@@ -44,15 +86,17 @@ impl SymbolTable {
     }
 
     pub fn leave_scope(&mut self) -> u32 {
-        self.scope_stack.pop();
-        self.cur_scope =
-            self.scope_stack.last().copied().unwrap_or_else(|| unreachable!("can't leave global scope"));
-        self.cur_scope
+        let old_scope = self.scope_stack.pop().unwrap_or_else(|| unreachable!("can't leave global scope"));
+        if old_scope == 0 {
+            unreachable!("can't leave global scope");
+        }
+        old_scope
     }
 
     fn next_id(&mut self) -> u32 {
+        let cur = self.next_id;
         self.next_id += 1;
-        self.next_id
+        cur
     }
 }
 
@@ -75,9 +119,12 @@ impl Display for SymbolTable {
         out += &self.symbols.keys().zip(self.symbols.values()).fold(
             String::from("]\nsymbols:\n"),
             |mut acc, (name, v)| {
-                v.keys()
-                    .zip(v.values())
-                    .for_each(|(scope, symbol)| acc += &format!("{} -> ({} -> {})\n", name, scope, symbol));
+                v.keys().zip(v.values()).for_each(|(scope, symbols)| {
+                    acc += &format!("{} -> ({} -> ", name, scope);
+                    symbols.iter().for_each(|sym| acc += &format!("{{ {} }}, ", sym));
+                    acc = acc.trim_end_matches(", ").to_string();
+                    acc += ")\n";
+                });
                 acc
             },
         );
@@ -166,6 +213,10 @@ impl From<(&str, &Type)> for Symbol {
     }
 }
 
+pub trait ToSymbol: Clone {
+    fn to_symbol(&self) -> Symbol;
+}
+
 #[cfg(test)]
 mod test {
     use crate::{Symbol, SymbolTable, ToSymbol, Type};
@@ -205,9 +256,8 @@ mod test {
         // should not stop fn redefinition here
         let fn3 = Symbol::new_fn("foo", vec![], &Type::Bool);
         assert!(st.insert("foo", &fn3).is_some());
-        assert_eq!(st.get("foo"), Some(&fn3.with_id(3).with_scope(0)));
-
-        assert_eq!(st.get("bar"), Some(&fn2.with_id(2).with_scope(0)));
+        assert_eq!(st.get("foo"), Some(&fn3.with_id(2).with_scope(0)));
+        assert_eq!(st.get("bar"), Some(&fn2.with_id(1).with_scope(0)));
     }
 
     #[test]
@@ -222,7 +272,7 @@ mod test {
         let var = Symbol::new_var("foo", &Type::Int32);
         let var_copy = var.clone();
         st.insert("foo", &var);
-        assert_eq!(st.get("foo"), Some(&var.with_id(2).with_scope(2)));
+        assert_eq!(st.get("foo"), Some(&var.with_id(1).with_scope(2)));
 
         let fn1 = Symbol::new_fn("foo", vec![], &Type::Void);
         st.insert("foo", &fn1);
@@ -243,14 +293,33 @@ mod test {
         let foo2 = Symbol::new_var("foo", &Type::Float);
         st.insert("foo", &foo2);
         st.insert("baz", &Symbol::new_var("baz", &Type::Float));
-        assert_eq!(st.get("foo"), Some(&foo2.with_id(3).with_scope(2)));
-        assert_eq!(st.get("bar"), Some(&bar1.with_id(2).with_scope(1)));
+        assert_eq!(st.get("foo"), Some(&foo2.with_id(2).with_scope(2)));
+        assert_eq!(st.get("bar"), Some(&bar1.with_id(1).with_scope(1)));
 
         st.leave_scope();
-        assert_eq!(st.get("foo"), Some(&foo1.with_id(1).with_scope(1)));
+        assert_eq!(st.get("foo"), Some(&foo1.with_id(0).with_scope(1)));
         assert_eq!(st.get("baz"), None);
 
-        assert_eq!(st.leave_scope(), 0);
+        st.enter_scope();
+        let bar2 = Symbol::new_var("bar", &Type::Bool);
+        st.insert("bar", &bar2);
+        assert_eq!(st.get("bar"), Some(&bar2.with_id(4).with_scope(3)));
+
+        assert_eq!(st.leave_scope(), 3);
+        assert_eq!(st.leave_scope(), 1);
+    }
+
+    #[test]
+    fn test_symbol_table_dup_in_scope() {
+        let mut st = SymbolTable::new();
+
+        st.enter_scope();
+        let foo1 = Symbol::new_var("foo", &Type::Bool);
+        st.insert("foo", &foo1);
+        let foo2 = Symbol::new_var("foo", &Type::Float);
+        st.insert("foo", &foo2);
+        assert_eq!(st.get("foo"), Some(&foo2.clone().with_id(1).with_scope(1)));
+        assert_eq!(st.get("foo"), Some(&foo2.with_id(1).with_scope(1)));
     }
 
     #[test]
@@ -258,7 +327,7 @@ mod test {
     fn test_symbol_table_scope_panic() {
         let mut st = SymbolTable::new();
         assert_eq!(st.enter_scope(), 1);
-        assert_eq!(st.leave_scope(), 0);
+        assert_eq!(st.leave_scope(), 1);
         assert_eq!(st.leave_scope(), 0); // error
     }
 }
