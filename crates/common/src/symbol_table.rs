@@ -2,15 +2,26 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::Type;
 
-/* Variant on a LeBlanc-Cook style symbol table. The vector of symbols at the leaves makes
- * it overly complex. This is necessary so as not to overwrite any symbols. I think we'll
- * need this for analysis later. TODO: Really?
+/*
+ * Variant on a LeBlanc-Cook style symbol table. The vector of symbols at end the leaves
+ * makes it overly complex. This is necessary so as not to overwrite any symbols. I think
+ * we'll need this for analysis later.
  *
- * name     scope     sym
+ * Structure
+ * name     scope     symbol
  * foo ---> 1 ------> [ {...} ]
- *     ---> 2 ------> [ {...} ]
+ *          2 ------> [ {...} ]
  * bar ---> 2 ------> [ {...}, {...} ]
  *
+ *
+ * TODO: Re-evaluate. This is probably overdone, but I keep going back and forth. This
+ * implementation remembers every declaration in every scope. That feels like overkill. I
+ * had a much simpler "scope table" implementation that dynamically created a new hashmap
+ * for each scope. It worked well, but wasn't good enough for forward declarations because
+ * of it's ephemerality. This is the other extreme.
+ *
+ * An alternative could be to use both a static symbol table with unique names ("name@id")
+ * and a dynamic scope table.
  */
 
 #[derive(Debug, Clone)]
