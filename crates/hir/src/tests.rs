@@ -34,3 +34,43 @@ fn main() {
     ]];
     run_insta!("binop", tests);
 }
+
+#[test]
+fn test_redefine_fn() {
+    let tests = [[
+        "basic",
+        r#"
+fn foo() {}
+fn bar() {}
+fn foo() {}
+"#,
+    ]];
+    run_insta!("redefined_fn", tests);
+}
+
+#[test]
+fn test_init_literal() {
+    let tests = [[
+        "all",
+        r#"
+fn main() {
+    let x: int
+    let x: int8
+    let x: int16
+    let x: int32
+    let x: int64
+    let x: uint
+    let x: uint8
+    let x: uint16
+    let x: uint32
+    let x: uint64
+    let x: float
+    let x: double
+    let x: char
+    let x: bool
+    let x: [bool; 3]
+}
+"#,
+    ]];
+    run_insta!("init_literal", tests);
+}

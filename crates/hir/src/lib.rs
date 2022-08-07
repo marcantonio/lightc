@@ -1,4 +1,4 @@
-use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
+use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::{Operator, SymbolTable, Type};
 
 #[cfg(test)]
@@ -74,7 +74,8 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        Ok(Statement::Let { name, antn, init: init.map(|e| self.lower_node(*e)).transpose()?.map(Box::new) })
+        let init_node = self.lower_var_init(init, &antn)?;
+        Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
@@ -192,5 +193,34 @@ impl<'a> Hir<'a> {
             idx: Box::new(self.lower_node(idx)?),
             ty,
         })
+    }
+
+    // Helper for variable initializations
+    fn lower_var_init(&mut self, init: Option<Box<Node>>, antn: &Type) -> Result<Node, String> {
+        use Type::*;
+
+        // If init exists, make sure it matches the variable's annotation
+        let init_node = if let Some(init) = init {
+            self.lower_node(*init)?
+        } else {
+            let literal = match antn {
+                Int8 => ast::make_literal!(Int8, 0),
+                Int16 => ast::make_literal!(Int16, 0),
+                Int32 => ast::make_literal!(Int32, 0),
+                Int64 => ast::make_literal!(Int64, 0),
+                UInt8 => ast::make_literal!(UInt8, 0),
+                UInt16 => ast::make_literal!(UInt16, 0),
+                UInt32 => ast::make_literal!(UInt32, 0),
+                UInt64 => ast::make_literal!(UInt64, 0),
+                Float => ast::make_literal!(Float, 0.0),
+                Double => ast::make_literal!(Double, 0.0),
+                Char => ast::make_literal!(Char, 0),
+                Bool => ast::make_literal!(Bool, false),
+                Array(ty, len) => ast::make_literal!(Array, ty.clone(), *len),
+                Void => unreachable!("void type for variable initialization annotation"),
+            };
+            Node::new(Node::Expr, literal)
+        };
+        Ok(init_node)
     }
 }

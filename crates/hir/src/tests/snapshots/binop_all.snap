@@ -1,6 +1,6 @@
 ---
 source: crates/hir/src/tests.rs
-assertion_line: 37
+assertion_line: 35
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let y: int\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"
@@ -11,7 +11,7 @@ expression: "(test[1], res)"
             proto:
               name: main
               args: []
-              ret_ty: Void
+              ret_ty: ~
             body:
               Expr:
                 Block:
@@ -33,7 +33,7 @@ expression: "(test[1], res)"
                             Expr:
                               Ident:
                                 name: y
-                                ty: Int32
+                                ty: ~
                           rhs:
                             Expr:
                               BinOp:
@@ -42,15 +42,15 @@ expression: "(test[1], res)"
                                   Expr:
                                     Ident:
                                       name: y
-                                      ty: Int32
+                                      ty: ~
                                 rhs:
                                   Expr:
                                     Lit:
                                       value:
-                                        Int32: 1
-                                      ty: Int32
-                                ty: Void
-                          ty: Void
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
                     - Expr:
                         BinOp:
                           op: Assign
@@ -58,7 +58,7 @@ expression: "(test[1], res)"
                             Expr:
                               Ident:
                                 name: y
-                                ty: Int32
+                                ty: ~
                           rhs:
                             Expr:
                               BinOp:
@@ -67,15 +67,15 @@ expression: "(test[1], res)"
                                   Expr:
                                     Ident:
                                       name: y
-                                      ty: Int32
+                                      ty: ~
                                 rhs:
                                   Expr:
                                     Lit:
                                       value:
-                                        Int32: 1
-                                      ty: Int32
-                                ty: Void
-                          ty: Void
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
                     - Expr:
                         BinOp:
                           op: Assign
@@ -83,7 +83,7 @@ expression: "(test[1], res)"
                             Expr:
                               Ident:
                                 name: y
-                                ty: Int32
+                                ty: ~
                           rhs:
                             Expr:
                               BinOp:
@@ -92,15 +92,15 @@ expression: "(test[1], res)"
                                   Expr:
                                     Ident:
                                       name: y
-                                      ty: Int32
+                                      ty: ~
                                 rhs:
                                   Expr:
                                     Lit:
                                       value:
-                                        Int32: 1
-                                      ty: Int32
-                                ty: Void
-                          ty: Void
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
                     - Expr:
                         BinOp:
                           op: Assign
@@ -108,7 +108,7 @@ expression: "(test[1], res)"
                             Expr:
                               Ident:
                                 name: y
-                                ty: Int32
+                                ty: ~
                           rhs:
                             Expr:
                               BinOp:
@@ -117,15 +117,15 @@ expression: "(test[1], res)"
                                   Expr:
                                     Ident:
                                       name: y
-                                      ty: Int32
+                                      ty: ~
                                 rhs:
                                   Expr:
                                     Lit:
                                       value:
-                                        Int32: 1
-                                      ty: Int32
-                                ty: Void
-                          ty: Void
+                                        UInt64: 1
+                                      ty: ~
+                                ty: ~
+                          ty: ~
                     - Expr:
                         BinOp:
                           op: LtEq
@@ -133,13 +133,13 @@ expression: "(test[1], res)"
                             Expr:
                               Ident:
                                 name: y
-                                ty: Int32
+                                ty: ~
                           rhs:
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 1
-                                ty: Int32
-                          ty: Bool
-                  ty: Bool
+                                  UInt64: 1
+                                ty: ~
+                          ty: ~
+                  ty: ~
 

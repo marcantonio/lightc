@@ -1,0 +1,178 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 75
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    let x: int\n    let x: int8\n    let x: int16\n    let x: int32\n    let x: int64\n    let x: uint\n    let x: uint8\n    let x: uint16\n    let x: uint32\n    let x: uint64\n    let x: float\n    let x: double\n    let x: char\n    let x: bool\n    let x: [bool; 3]\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: ~
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int8
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int8: 0
+                                ty: Int8
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int16
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int16: 0
+                                ty: Int16
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Int64
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int64: 0
+                                ty: Int64
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: UInt32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt32: 0
+                                ty: UInt32
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: UInt8
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt8: 0
+                                ty: UInt8
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: UInt16
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt16: 0
+                                ty: UInt16
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: UInt32
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt32: 0
+                                ty: UInt32
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: UInt64
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  UInt64: 0
+                                ty: UInt64
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Float
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Float: 0.0
+                                ty: Float
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Double
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Double: 0.0
+                                ty: Double
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Char
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Char: 0
+                                ty: Char
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn: Bool
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Bool: false
+                                ty: Bool
+                    - Stmt:
+                        Let:
+                          name: x
+                          antn:
+                            Array:
+                              - Bool
+                              - 3
+                          init:
+                            Expr:
+                              Lit:
+                                value:
+                                  Array:
+                                    elements: []
+                                    inner_ty: Bool
+                                ty:
+                                  Array:
+                                    - Bool
+                                    - 3
+                  ty: ~
+

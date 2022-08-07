@@ -1,4 +1,4 @@
-use ast::{make_literal, Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::{Operator, Type};
 use common::{ScopeTable, SymbolTable};
 
@@ -532,10 +532,8 @@ impl<'a> TypeChecker<'a> {
     fn check_var_init(
         &mut self, name: &str, init: Option<Box<Node>>, antn: &Type, caller: &str,
     ) -> Result<Node, String> {
-        use Type::*;
-
         // If init exists, make sure it matches the variable's annotation
-        let init_node = if let Some(init) = init {
+        if let Some(init) = init {
             let init_node = self.check_node(*init, Some(antn))?;
             let init_ty = init_node.ty().unwrap_or_default();
             if antn != &init_ty {
@@ -544,26 +542,9 @@ impl<'a> TypeChecker<'a> {
                     caller, name, antn, init_ty
                 ));
             }
-            init_node
+            Ok(init_node)
         } else {
-            let literal = match antn {
-                Int8 => make_literal!(Int8, 0),
-                Int16 => make_literal!(Int16, 0),
-                Int32 => make_literal!(Int32, 0),
-                Int64 => make_literal!(Int64, 0),
-                UInt8 => make_literal!(UInt8, 0),
-                UInt16 => make_literal!(UInt16, 0),
-                UInt32 => make_literal!(UInt32, 0),
-                UInt64 => make_literal!(UInt64, 0),
-                Float => make_literal!(Float, 0.0),
-                Double => make_literal!(Double, 0.0),
-                Char => make_literal!(Char, 0),
-                Bool => make_literal!(Bool, false),
-                Array(ty, len) => make_literal!(Array, ty.clone(), *len),
-                Void => unreachable!("Internal error: void type for variable initialization annotation"),
-            };
-            Node::new(Node::Expr, literal)
-        };
-        Ok(init_node)
+            unreachable!("no initializer for variable: `{}`", name);
+        }
     }
 }
