@@ -212,7 +212,6 @@ dependencies = [
  "lexer",
  "parser",
  "serde",
- "type_checker",
 ]
 
 [[package]]
@@ -625,6 +624,7 @@ version = "0.0.0"
 dependencies = [
  "ast",
  "common",
+ "hir",
  "insta",
  "lexer",
  "parser",

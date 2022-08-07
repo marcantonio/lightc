@@ -138,13 +138,6 @@ fn (a: int, c: int) {
 }
 "#,
         ],
-        [
-            "cant_redefine",
-            r#"
-fn foo() { }
-fn foo() { }
-"#,
-        ],
         ["bad_1", "fn a(b: int) - { b }"],
         ["bad_2", "fn a(b: int) -> { b }"],
         ["bad_3", "fn a(b: int) -> a { b }"],

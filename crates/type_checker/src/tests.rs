@@ -1,5 +1,6 @@
 use lexer::Lexer;
 use parser::Parser;
+use hir::Hir;
 
 use super::*;
 
@@ -12,7 +13,8 @@ macro_rules! run_insta {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
                 let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
-                let res = TypeChecker::new(&mut symbol_table).walk(ast);
+                let hir = Hir::new(&mut symbol_table).walk(ast).unwrap();
+                let res = TypeChecker::new(&mut symbol_table).walk(hir);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })

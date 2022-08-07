@@ -45,22 +45,8 @@ fn main() {
         println!();
     }
 
-    // Type checker
-    let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap_or_else(|e| {
-        eprintln!("Type checking error: {}", e);
-        process::exit(1);
-    });
-
-    if args.show_tyst {
-        println!("Typed AST:");
-        for node in tyst.nodes() {
-            println!("{}", node);
-        }
-        println!();
-    }
-
     // HIR
-    let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap_or_else(|e| {
+    let hir = Hir::new(&mut symbol_table).walk(ast).unwrap_or_else(|e| {
         eprintln!("Lowering error: {}", e);
         process::exit(1);
     });
@@ -73,8 +59,22 @@ fn main() {
         println!();
     }
 
+    // Type checker
+    let tyst = TypeChecker::new(&mut symbol_table).walk(hir).unwrap_or_else(|e| {
+        eprintln!("Type checking error: {}", e);
+        process::exit(1);
+    });
+
+    if args.show_tyst {
+        println!("Typed AST:");
+        for node in tyst.nodes() {
+            println!("{}", node);
+        }
+        println!();
+    }
+
     // Codegen
-    let module_file = Codegen::run_pass(hir, &module_name, &symbol_table, build_dir, &args, false)
+    let module_file = Codegen::run_pass(tyst, &module_name, &symbol_table, build_dir, &args, false)
         .unwrap_or_else(|_| panic!("Error compiling `{}`", args.file.display()))
         .as_file_path();
 
