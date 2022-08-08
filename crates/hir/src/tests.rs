@@ -18,6 +18,19 @@ macro_rules! run_insta {
 }
 
 #[test]
+fn test_func() {
+    let tests = [[
+        "redefine_fn",
+        r#"
+fn foo() {}
+fn bar() {}
+fn foo() {}
+"#,
+    ]];
+    run_insta!("func", tests);
+}
+
+#[test]
 fn test_binop() {
     let tests = [[
         "all",
@@ -36,16 +49,31 @@ fn main() {
 }
 
 #[test]
-fn test_redefine_fn() {
+fn test_call() {
     let tests = [[
-        "basic",
+        "undef_func",
         r#"
-fn foo() {}
-fn bar() {}
-fn foo() {}
+fn plusOne(x: int) -> int {
+    x + 1
+}
+fn main() {
+    plusThree(1)
+}
 "#,
     ]];
-    run_insta!("redefined_fn", tests);
+
+    run_insta!("call", tests);
+}
+
+#[test]
+fn test_ident() {
+    let tests = [[
+        "unknown_var",
+        r#"
+fn foo(x: int) { y }
+"#,
+    ]];
+    run_insta!("ident", tests);
 }
 
 #[test]
@@ -73,4 +101,84 @@ fn main() {
 "#,
     ]];
     run_insta!("init_literal", tests);
+}
+
+#[test]
+fn test_scope() {
+    let tests = [
+        [
+            "basic_shadowing",
+            r#"
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let b: bool = false
+    }
+    b
+}
+"#,
+        ],
+        [
+            "nested_shadowing",
+            r#"
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let b: bool = false
+        let a: float = {
+            let b: float = 1.0
+            b
+        }
+    }
+    b
+}
+"#,
+        ],
+        [
+            "delete_scope",
+            r#"
+fn foo(a: int) -> int {
+    let b: int = 1
+    {
+        let c: int = 2
+    }
+    c
+}
+"#,
+        ],
+        [
+            "for_scope",
+            r#"
+let x: float = 1.0
+for x: int = 1; x < 10; 1 {
+    x
+}
+x
+"#,
+        ],
+        [
+            "if_scope",
+            r#"
+let x: float = 1.0
+if x < 2.0 {
+    let y: int = 2
+    x
+}
+y
+"#,
+        ],
+        [
+            "if_else_scope",
+            r#"
+let x: float = 1.0
+if x < 2.0 {
+    let y: int = 2
+    x
+} else {
+    -y
+}
+"#,
+        ],
+    ];
+    run_insta!("scope", tests);
 }

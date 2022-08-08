@@ -203,17 +203,6 @@ fn main() {
 "#,
         ],
         [
-            "undef_func",
-            r#"
-fn plusOne(x: int) -> int {
-    x + 1
-}
-fn main() {
-    plusThree(1)
-}
-"#,
-        ],
-        [
             "mismatch_arg_type",
             r#"
 fn plusOne(x: int) -> int {
@@ -461,12 +450,6 @@ fn test_ident() {
 fn foo(x: int) { x }
 "#,
         ],
-        [
-            "unknown_var",
-            r#"
-fn foo(x: int) { y }
-"#,
-        ],
     ];
     run_insta!("ident", tests);
 }
@@ -519,85 +502,85 @@ fn foo() {
     run_insta!("let", tests);
 }
 
-#[test]
-fn test_scope() {
-    let tests = [
-        [
-            "basic_shadowing",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let b: bool = false
-    }
-    b
-}
-"#,
-        ],
-        [
-            "nested_shadowing",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let b: bool = false
-        let a: float = {
-            let b: float = 1.0
-            b
-        }
-    }
-    b
-}
-"#,
-        ],
-        [
-            "delete_scope",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let c: int = 2
-    }
-    c
-}
-"#,
-        ],
-        [
-            "for_scope",
-            r#"
-let x: float = 1.0
-for x: int = 1; x < 10; 1 {
-    x
-}
-x
-"#,
-        ],
-        [
-            "if_scope",
-            r#"
-let x: float = 1.0
-if x < 2.0 {
-    let y: int = 2
-    x
-}
-y
-"#,
-        ],
-        [
-            "if_else_scope",
-            r#"
-let x: float = 1.0
-if x < 2.0 {
-    let y: int = 2
-    x
-} else {
-    -y
-}
-"#,
-        ],
-    ];
-    run_insta!("scope", tests);
-}
+// #[test]
+// fn test_scope() {
+//     let tests = [
+//         [
+//             "basic_shadowing",
+//             r#"
+// fn foo(a: int) -> int {
+//     let b: int = 1
+//     {
+//         let b: bool = false
+//     }
+//     b
+// }
+// "#,
+//         ],
+//         [
+//             "nested_shadowing",
+//             r#"
+// fn foo(a: int) -> int {
+//     let b: int = 1
+//     {
+//         let b: bool = false
+//         let a: float = {
+//             let b: float = 1.0
+//             b
+//         }
+//     }
+//     b
+// }
+// "#,
+//         ],
+//         [
+//             "delete_scope",
+//             r#"
+// fn foo(a: int) -> int {
+//     let b: int = 1
+//     {
+//         let c: int = 2
+//     }
+//     c
+// }
+// "#,
+//         ],
+//         [
+//             "for_scope",
+//             r#"
+// let x: float = 1.0
+// for x: int = 1; x < 10; 1 {
+//     x
+// }
+// x
+// "#,
+//         ],
+//         [
+//             "if_scope",
+//             r#"
+// let x: float = 1.0
+// if x < 2.0 {
+//     let y: int = 2
+//     x
+// }
+// y
+// "#,
+//         ],
+//         [
+//             "if_else_scope",
+//             r#"
+// let x: float = 1.0
+// if x < 2.0 {
+//     let y: int = 2
+//     x
+// } else {
+//     -y
+// }
+// "#,
+//         ],
+//     ];
+//     run_insta!("scope", tests);
+// }
 
 #[test]
 fn test_unary() {
@@ -699,13 +682,6 @@ x['c']
         ],
         [
             "index_bad_3",
-            r#"
-        let x: int;
-        x[y]
-        "#,
-        ],
-        [
-            "index_bad_4",
             r#"
 let x: [int; 3] = [1, 2, 3]
 let y: int8 = 1

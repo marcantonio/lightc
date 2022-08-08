@@ -9,14 +9,14 @@ mod macros;
 #[cfg(test)]
 mod tests;
 
-// Current performs the following tasks:
+// Performs the following tasks:
 // - applies types to all expressions
 // - checks for annotation consistency
 // - checks for type consistency and relevance in binops
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
-// - initializes uninitialized variables
 // - checks main()'s annotation
+// - updates symbol table with type info
 
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
@@ -314,7 +314,8 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_ident(&self, name: String) -> ExprResult {
-        let ident_ty = self.scope_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?;
+        let ident_ty =
+            self.scope_table.get(&name).unwrap_or_else(|| unreachable!("Unknown variable: `{}`", name));
         Ok(Expression::Ident { name, ty: Some(ident_ty) })
     }
 
@@ -421,8 +422,11 @@ impl<'a> TypeChecker<'a> {
 
     fn check_call(&mut self, name: String, args: Vec<Node>) -> ExprResult {
         // Pull the function for the call from the table
-        let fn_entry =
-            self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
+        let fn_entry = self
+            .symbol_table
+            .get(&name)
+            .unwrap_or_else(|| unreachable!("Call to undefined function: `{}`", name))
+            .clone();
 
         // Pull out the function arg types
         let fe_arg_tys = fn_entry.arg_tys().to_vec();
@@ -431,7 +435,10 @@ impl<'a> TypeChecker<'a> {
         let fe_args_len = fe_arg_tys.len();
         let args_len = args.len();
         if fe_arg_tys.len() != args.len() {
-            return Err(format!("Call to `{}()` takes {} args and {} were given", name, fe_args_len, args_len));
+            return Err(format!(
+                "Call to `{}()` takes {} args and {} were given",
+                name, fe_args_len, args_len
+            ));
         }
 
         // Check all args and record their types. Use the function entry arg types as type
@@ -448,7 +455,13 @@ impl<'a> TypeChecker<'a> {
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
             if *fa_ty != &ca_ty {
-                Err(format!("Type mismatch in arg {} of call to `{}()`: `{}` != `{}`", idx + 1, name, fa_ty, ca_ty))
+                Err(format!(
+                    "Type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
+                    idx + 1,
+                    name,
+                    fa_ty,
+                    ca_ty
+                ))
             } else {
                 Ok(())
             }

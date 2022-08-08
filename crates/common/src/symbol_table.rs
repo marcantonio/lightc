@@ -28,13 +28,13 @@ use crate::Type;
 pub struct SymbolTable {
     symbols: HashMap<String, HashMap<u32, Vec<Symbol>>>,
     scope_stack: Vec<u32>,
-    cur_scope: u32,
+    scope_counter: u32,
     next_id: u32,
 }
 
 impl SymbolTable {
     pub fn new() -> Self {
-        SymbolTable { symbols: HashMap::new(), scope_stack: vec![0], cur_scope: 0, next_id: 0 }
+        SymbolTable { symbols: HashMap::new(), scope_stack: vec![0], scope_counter: 0, next_id: 0 }
     }
 
     // Inserts symbol into proper name/scope table. Returns the previous symbol if a dup,
@@ -42,7 +42,7 @@ impl SymbolTable {
     pub fn insert<T: ToSymbol>(&mut self, name: &str, sym: &T) -> Option<Symbol> {
         let mut sym = sym.to_symbol();
         sym.id = self.next_id();
-        sym.scope = self.cur_scope;
+        sym.scope = *self.scope_stack.last().unwrap();
 
         match self.symbols.get_mut(name) {
             Some(scope_table) => match scope_table.get_mut(&sym.scope) {
@@ -91,9 +91,9 @@ impl SymbolTable {
     }
 
     pub fn enter_scope(&mut self) -> u32 {
-        self.cur_scope += 1;
-        self.scope_stack.push(self.cur_scope);
-        self.cur_scope
+        self.scope_counter += 1;
+        self.scope_stack.push(self.scope_counter);
+        self.scope_counter
     }
 
     pub fn leave_scope(&mut self) -> u32 {
@@ -114,8 +114,8 @@ impl SymbolTable {
 impl Display for SymbolTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut out = format!(
-            "===Symbol Table===\ncur_scope: {}\nnext_id: {}\nscope_stack: ",
-            self.cur_scope, self.next_id
+            "===Symbol Table===\nscope_counter: {}\nnext_id: {}\nscope_stack: ",
+            self.scope_counter, self.next_id
         );
 
         if self.scope_stack.is_empty() {
@@ -218,14 +218,21 @@ impl Display for Symbol {
     }
 }
 
-impl From<(&str, &Type)> for Symbol {
-    fn from((name, ty): (&str, &Type)) -> Self {
-        Symbol::new_var(name, ty)
+pub trait ToSymbol: Clone {
+    fn to_symbol(&self) -> Symbol;
+}
+
+// For new variables
+impl ToSymbol for (&str, &Type) {
+    fn to_symbol(&self) -> Symbol {
+        Symbol::new_var(self.0, self.1)
     }
 }
 
-pub trait ToSymbol: Clone {
-    fn to_symbol(&self) -> Symbol;
+impl ToSymbol for (String, Type) {
+    fn to_symbol(&self) -> Symbol {
+        Symbol::new_var(&self.0, &self.1)
+    }
 }
 
 #[cfg(test)]
@@ -294,6 +301,9 @@ mod test {
     fn test_symbol_table_scope() {
         let mut st = SymbolTable::new();
 
+        let fn1 = Symbol::new_fn("globalFn1", vec![], &Type::Void);
+        assert_eq!(st.insert("globalFn1", &fn1), None);
+
         st.enter_scope();
         let foo1 = Symbol::new_var("foo", &Type::Bool);
         st.insert("foo", &foo1);
@@ -304,20 +314,25 @@ mod test {
         let foo2 = Symbol::new_var("foo", &Type::Float);
         st.insert("foo", &foo2);
         st.insert("baz", &Symbol::new_var("baz", &Type::Float));
-        assert_eq!(st.get("foo"), Some(&foo2.with_id(2).with_scope(2)));
-        assert_eq!(st.get("bar"), Some(&bar1.with_id(1).with_scope(1)));
+        assert_eq!(st.get("foo"), Some(&foo2.with_id(3).with_scope(2)));
+        assert_eq!(st.get("bar"), Some(&bar1.with_id(2).with_scope(1)));
 
         st.leave_scope();
-        assert_eq!(st.get("foo"), Some(&foo1.with_id(0).with_scope(1)));
+        assert_eq!(st.get("foo"), Some(&foo1.with_id(1).with_scope(1)));
         assert_eq!(st.get("baz"), None);
 
         st.enter_scope();
         let bar2 = Symbol::new_var("bar", &Type::Bool);
         st.insert("bar", &bar2);
-        assert_eq!(st.get("bar"), Some(&bar2.with_id(4).with_scope(3)));
+        assert_eq!(st.get("bar"), Some(&bar2.with_id(5).with_scope(3)));
 
         assert_eq!(st.leave_scope(), 3);
         assert_eq!(st.leave_scope(), 1);
+
+        let fn2 = Symbol::new_fn("globalFn2", vec![], &Type::Void);
+        assert_eq!(st.insert("globalFn2", &fn2), None);
+
+        assert_eq!(st.get("globalFn2"), Some(&fn2.with_id(6)))
     }
 
     #[test]

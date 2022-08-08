@@ -1,0 +1,8 @@
+---
+source: crates/type_checker/src/tests.rs
+assertion_line: 614
+expression: "(test[1], res)"
+---
+- "\nlet x: float = 1.0\nif x < 2.0 {\n    let y: int = 2\n    x\n}\ny\n"
+- Err: "Unknown variable: `y`"
+

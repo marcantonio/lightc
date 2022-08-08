@@ -4,11 +4,16 @@ use common::{Operator, SymbolTable, Type};
 #[cfg(test)]
 mod tests;
 
+// Performs the following:
+// - desugars x += 1 to x = x + 1
+// - initializes uninitialized variables
+// - makes initial symbol table entries
+
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
 
 pub struct Hir<'a> {
-    _symbol_table: &'a mut SymbolTable,
+    symbol_table: &'a mut SymbolTable,
     ast: Ast<Node>,
 }
 
@@ -25,8 +30,8 @@ impl<'a> AstVisitor for Hir<'a> {
 }
 
 impl<'a> Hir<'a> {
-    pub fn new(_symbol_table: &'a mut SymbolTable) -> Self {
-        Hir { _symbol_table, ast: Ast::new() }
+    pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
+        Hir { symbol_table, ast: Ast::new() }
     }
 
     pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
@@ -63,6 +68,9 @@ impl<'a> Hir<'a> {
         &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
         step_expr: Node, body: Node,
     ) -> StmtResult {
+        // Insert start var
+        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
+
         Ok(Statement::For {
             start_name,
             start_antn,
@@ -74,14 +82,32 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
+        self.symbol_table.insert(&name, &(name.as_str(), &antn));
         let init_node = self.lower_var_init(init, &antn)?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+        if self.symbol_table.insert(proto.name(), &proto).is_some() {
+            return Err(format!("Function `{}` can't be redefined", proto.name()));
+        }
+
+        // This creates an interstitial scope for the arguments function definitions
+        // because lower_block() will also create a new scope. Shouldn't be a practical
+        // issue.
+        self.symbol_table.enter_scope();
+
+        for arg in proto.args() {
+            self.symbol_table.insert(&arg.0, arg);
+        }
+
+        let body_node = body.map(|e| self.lower_node(*e));
+
+        self.symbol_table.leave_scope();
+
         Ok(Statement::Fn {
             proto: Box::new(proto),
-            body: body.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),
+            body: body_node.transpose()?.map(Box::new),
         })
     }
 
@@ -103,6 +129,7 @@ impl<'a> Hir<'a> {
         use Expression::*;
 
         let expr = match expr {
+            Ident { name, .. } => self.lower_ident(name)?,
             BinOp { op, lhs, rhs, ty } => self.lower_binop(op, *lhs, *rhs, ty)?,
             UnOp { op, rhs, ty } => self.lower_unop(op, *rhs, ty)?,
             Call { name, args, ty } => self.lower_call(name, args, ty)?,
@@ -115,6 +142,11 @@ impl<'a> Hir<'a> {
         };
 
         Ok(Node::Expr(expr))
+    }
+
+    fn lower_ident(&mut self, name: String) -> ExprResult {
+        self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?;
+        Ok(Expression::Ident { name, ty: None })
     }
 
     // Lower `x += 1` to `x = x + 1`
@@ -161,6 +193,8 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_call(&mut self, name: String, args: Vec<Node>, ty: Option<Type>) -> ExprResult {
+        self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?;
+
         let mut lowered_args = vec![];
         for node in args {
             lowered_args.push(self.lower_node(node)?);
@@ -180,10 +214,15 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_block(&mut self, list: Vec<Node>, ty: Option<Type>) -> ExprResult {
+        self.symbol_table.enter_scope();
+
         let mut lowered_list = vec![];
         for node in list {
             lowered_list.push(self.lower_node(node)?);
         }
+
+        self.symbol_table.leave_scope();
+
         Ok(Expression::Block { list: lowered_list, ty })
     }
 
@@ -199,7 +238,6 @@ impl<'a> Hir<'a> {
     fn lower_var_init(&mut self, init: Option<Box<Node>>, antn: &Type) -> Result<Node, String> {
         use Type::*;
 
-        // If init exists, make sure it matches the variable's annotation
         let init_node = if let Some(init) = init {
             self.lower_node(*init)?
         } else {

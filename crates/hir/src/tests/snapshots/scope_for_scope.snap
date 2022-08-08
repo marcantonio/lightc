@@ -1,0 +1,64 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 183
+expression: "(test[1], res)"
+---
+- "\nlet x: float = 1.0\nfor x: int = 1; x < 10; 1 {\n    x\n}\nx\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Let:
+            name: x
+            antn: Float
+            init:
+              Expr:
+                Lit:
+                  value:
+                    Float: 1.0
+                  ty: ~
+      - Stmt:
+          For:
+            start_name: x
+            start_antn: Int32
+            start_expr:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+            cond_expr:
+              Expr:
+                BinOp:
+                  op: Lt
+                  lhs:
+                    Expr:
+                      Ident:
+                        name: x
+                        ty: ~
+                  rhs:
+                    Expr:
+                      Lit:
+                        value:
+                          UInt64: 10
+                        ty: ~
+                  ty: ~
+            step_expr:
+              Expr:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: x
+                          ty: ~
+                  ty: ~
+      - Expr:
+          Ident:
+            name: x
+            ty: ~
+

@@ -44,7 +44,9 @@ impl ToSymbol for Prototype {
     fn to_symbol(&self) -> Symbol {
         Symbol::new_fn(
             self.name(),
-            self.args().iter().map(|(name, ty)| Symbol::from((name.as_ref(), ty))).collect::<Vec<Symbol>>(),
+            // XXX: ignore these for now. Maybe this should just be types and not symbols,
+            // i.e., a signature?
+            self.args().iter().map(|(name, ty)| (name.as_ref(), ty).to_symbol()).collect::<Vec<Symbol>>(),
             self.ret_ty().unwrap_or_default(),
         )
     }
