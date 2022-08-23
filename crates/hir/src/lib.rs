@@ -71,10 +71,12 @@ impl<'a> Hir<'a> {
         // Insert start var
         self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
 
+        let start_expr = self.lower_var_init(start_expr, &start_antn)?;
+
         Ok(Statement::For {
             start_name,
             start_antn,
-            start_expr: start_expr.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),
+            start_expr: Some(Box::new(start_expr)),
             cond_expr: Box::new(self.lower_node(cond_expr)?),
             step_expr: Box::new(self.lower_node(step_expr)?),
             body: Box::new(self.lower_node(body)?),
@@ -92,7 +94,7 @@ impl<'a> Hir<'a> {
             return Err(format!("Function `{}` can't be redefined", proto.name()));
         }
 
-        // This creates an interstitial scope for the arguments function definitions
+        // This creates an interstitial scope for the arguments in the function definition
         // because lower_block() will also create a new scope. Shouldn't be a practical
         // issue.
         self.symbol_table.enter_scope();
@@ -105,10 +107,7 @@ impl<'a> Hir<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::Fn {
-            proto: Box::new(proto),
-            body: body_node.transpose()?.map(Box::new),
-        })
+        Ok(Statement::Fn { proto: Box::new(proto), body: body_node.transpose()?.map(Box::new) })
     }
 
     // XXX: struct stuff

@@ -1,6 +1,6 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use common::SymbolTable;
 use common::{Operator, Type};
-use common::{ScopeTable, SymbolTable};
 
 #[macro_use]
 extern crate common;
@@ -16,14 +16,14 @@ mod tests;
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - checks main()'s annotation
-// - updates symbol table with type info
+// - updates symbol table with type info (not yet, probably won't need this until we
+//   explore type inference)
 
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
 
 pub struct TypeChecker<'a> {
     ast: Ast<Node>,
-    scope_table: ScopeTable<Type>,
     symbol_table: &'a mut SymbolTable,
 }
 
@@ -41,7 +41,7 @@ impl<'a> AstVisitor for TypeChecker<'a> {
 
 impl<'a> TypeChecker<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
-        TypeChecker { ast: Ast::new(), scope_table: ScopeTable::new(), symbol_table }
+        TypeChecker { ast: Ast::new(), symbol_table }
     }
 
     pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
@@ -82,9 +82,8 @@ impl<'a> TypeChecker<'a> {
     ) -> StmtResult {
         let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
 
-        // Remove old variable. Ignore failure. Insert starting variable.
-        let old_var = self.scope_table.remove(&start_name);
-        self.scope_table.insert(&start_name, start_antn.clone())?;
+        // Insert starting variable
+        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -106,12 +105,6 @@ impl<'a> TypeChecker<'a> {
         // Check body
         let body_node = self.check_node(body, None)?;
 
-        // Reset shadowed variable if present
-        self.scope_table.remove(&start_name);
-        if let Some(v) = old_var {
-            self.scope_table.insert(&start_name, v)?;
-        }
-
         Ok(Statement::For {
             start_name,
             start_antn,
@@ -123,8 +116,8 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
+        self.symbol_table.insert(&name, &(name.as_str(), &antn));
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
-        self.scope_table.insert(&name, antn.clone())?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
@@ -135,6 +128,9 @@ impl<'a> TypeChecker<'a> {
             None => unreachable!("missing symbol table entry for function: {}", proto.name()),
         };
 
+        // Creates interstitial scope for the arguments in the function definition
+        self.symbol_table.enter_scope();
+
         // If body is None, this is an extern and no checking is needed
         let body = match body {
             Some(body) => body,
@@ -142,8 +138,8 @@ impl<'a> TypeChecker<'a> {
         };
 
         // Insert args into the local scope table
-        for (name, ty) in proto.args() {
-            self.scope_table.insert(name, ty.clone())?;
+        for arg in proto.args() {
+            self.symbol_table.insert(&arg.0, arg);
         }
 
         let body_node = self.check_node(*body, None)?;
@@ -159,24 +155,26 @@ impl<'a> TypeChecker<'a> {
             }
             proto.set_ret_ty(Some(&Type::Void));
         } else {
-            proto.set_ret_ty(Some(fn_entry.ty()));
+            proto.set_ret_ty(Some(fn_entry.ret_ty()));
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ty() != &body_ty && fn_entry.ty() != &Type::Void && proto.name() != "main" {
+        if fn_entry.ret_ty() != &body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 proto.name(),
-                fn_entry.ty(),
+                fn_entry.ret_ty(),
                 body_ty
             ));
         }
 
         // Pop args
-        for (name, _) in proto.args() {
-            self.scope_table.remove(name);
-        }
+        // for (name, _) in proto.args() {
+        //     self.scope_table.remove(name);
+        // }
+
+        self.symbol_table.leave_scope();
 
         Ok(Statement::Fn { proto: Box::new(proto), body: Some(Box::new(body_node)) })
     }
@@ -314,8 +312,12 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_ident(&self, name: String) -> ExprResult {
-        let ident_ty =
-            self.scope_table.get(&name).unwrap_or_else(|| unreachable!("Unknown variable: `{}`", name));
+        let ident_ty = self
+            .symbol_table
+            .get(&name)
+            .unwrap_or_else(|| unreachable!("Unknown variable: `{}`", name))
+            .ty()
+            .clone();
         Ok(Expression::Ident { name, ty: Some(ident_ty) })
     }
 
@@ -443,7 +445,7 @@ impl<'a> TypeChecker<'a> {
 
         // Check all args and record their types. Use the function entry arg types as type
         // hints.
-        let ret_ty = fn_entry.ty().clone();
+        let ret_ty = fn_entry.ret_ty().clone();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
@@ -504,8 +506,7 @@ impl<'a> TypeChecker<'a> {
 
     // Check the block expressions. Ensures statements always eval to void.
     fn check_block(&mut self, list: Vec<Node>) -> ExprResult {
-        // Drop scope
-        self.scope_table.down_scope();
+        self.symbol_table.enter_scope();
 
         // The block type is set to the final node's type
         let mut chkd_list = Vec::with_capacity(list.len());
@@ -516,8 +517,7 @@ impl<'a> TypeChecker<'a> {
             chkd_list.push(chkd_node);
         }
 
-        // Pop up 1 level. Drops old scope.
-        self.scope_table.up_scope()?;
+        self.symbol_table.leave_scope();
 
         Ok(Expression::Block { list: chkd_list, ty: Some(list_ty) })
     }

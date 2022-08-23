@@ -6,6 +6,7 @@ mod macros;
 pub mod symbol_table;
 pub use symbol_table::{Symbol, SymbolTable, ToSymbol};
 pub mod scope_table;
+pub mod symbol_table_alt;
 pub use scope_table::ScopeTable;
 
 #[derive(PartialEq, Clone, Serialize)]

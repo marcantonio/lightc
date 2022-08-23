@@ -141,8 +141,10 @@ impl Lexer {
         // Literal char
         if cur == '\'' {
             let mut ch = String::new();
-            let next =
-                self.stream.next().unwrap_or_else(|| unreachable!("Internal error: lexed None when looking for char"));
+            let next = self
+                .stream
+                .next()
+                .unwrap_or_else(|| unreachable!("Internal error: lexed None when looking for char"));
 
             match next.value {
                 // Control characters

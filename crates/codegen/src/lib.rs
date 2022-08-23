@@ -489,11 +489,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     fn codegen_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult<'ctx> {
         use Operator::*;
 
-        let lhs_ty =
-            lhs.ty().unwrap_or_else(|| unreachable!("Internal error: missing type for lhs expr in `codegen_binop()`"));
+        let lhs_ty = lhs.ty().unwrap_or_else(|| {
+            unreachable!("Internal error: missing type for lhs expr in `codegen_binop()`")
+        });
         let lhs_val = self.codegen_node(lhs.clone())?.value()?;
-        let rhs_ty =
-            rhs.ty().unwrap_or_else(|| unreachable!("Internal error: missing type for rhs expr in `codegen_binop()`"));
+        let rhs_ty = rhs.ty().unwrap_or_else(|| {
+            unreachable!("Internal error: missing type for rhs expr in `codegen_binop()`")
+        });
         let rhs_val = self.codegen_node(rhs)?.value()?;
 
         // Generate the proper instruction for each op
@@ -738,10 +740,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         };
 
         // Get the allocated array ptr
-        let array_ptr = self
-            .scope_table
-            .get(name)
-            .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve array name `{}`", name));
+        let array_ptr = self.scope_table.get(name).unwrap_or_else(|| {
+            unreachable!("Internal error: codegen failed to resolve array name `{}`", name)
+        });
 
         // Codegen the index
         let idx = self

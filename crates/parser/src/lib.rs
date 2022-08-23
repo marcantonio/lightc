@@ -18,13 +18,13 @@ type ParseResult = Result<Node, ParseError>;
 
 pub struct Parser<'a> {
     ast: Ast<Node>,
-    symbol_table: &'a mut SymbolTable,
+    _symbol_table: &'a mut SymbolTable,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable) -> Self {
-        Parser { ast: Ast::new(), symbol_table, tokens: tokens.iter().peekable() }
+        Parser { ast: Ast::new(), _symbol_table: symbol_table, tokens: tokens.iter().peekable() }
     }
 
     // Parse each token using recursive descent
@@ -469,11 +469,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        let proto = Prototype::new(fn_name.to_string(), args, ret_type);
-        if self.symbol_table.insert(fn_name, &proto).is_some() {
-            return Err(ParseError::from(format!("Function `{}` can't be redefined", proto.name())));
-        }
-        Ok(proto)
+        Ok(Prototype::new(fn_name.to_string(), args, ret_type))
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;

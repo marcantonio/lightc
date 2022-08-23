@@ -1,9 +1,9 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 441
+assertion_line: 454
 expression: "(test[1], res)"
 ---
-- "\nfn foo() {\n    let x: int32 = 1\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
+- "\nfn foo() {\n    let x: [int32; 3] = [1, 2, 3]\n    x[0]\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
 - Ok:
     nodes:
       - Stmt:
@@ -19,13 +19,53 @@ expression: "(test[1], res)"
                     - Stmt:
                         Let:
                           name: x
-                          antn: Int32
+                          antn:
+                            Array:
+                              - Int32
+                              - 3
                           init:
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 1
+                                  Array:
+                                    elements:
+                                      - Expr:
+                                          Lit:
+                                            value:
+                                              Int32: 1
+                                            ty: Int32
+                                      - Expr:
+                                          Lit:
+                                            value:
+                                              Int32: 2
+                                            ty: Int32
+                                      - Expr:
+                                          Lit:
+                                            value:
+                                              Int32: 3
+                                            ty: Int32
+                                    inner_ty: Int32
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                    - Expr:
+                        Index:
+                          binding:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                          idx:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
                                 ty: Int32
+                          ty: Int32
                     - Stmt:
                         For:
                           start_name: x

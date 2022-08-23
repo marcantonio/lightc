@@ -81,7 +81,7 @@ impl Node {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Statement {
     For {
-        start_name: String,
+        start_name: String, // XXX: make this a Statementn::Let?
         start_antn: Type,
         start_expr: Option<Box<Node>>,
         cond_expr: Box<Node>,

@@ -42,11 +42,16 @@ impl Prototype {
 
 impl ToSymbol for Prototype {
     fn to_symbol(&self) -> Symbol {
+        let args_str = self.args.iter().fold(String::new(), |mut acc, (name, ty)| {
+            acc += format!("{}:{}~", name, ty).as_str();
+            acc
+        });
+        let ret_ty_str = format!("{}", self.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
+
         Symbol::new_fn(
+            &format!("{}~{}{}", self.name(), args_str, ret_ty_str),
             self.name(),
-            // XXX: ignore these for now. Maybe this should just be types and not symbols,
-            // i.e., a signature?
-            self.args().iter().map(|(name, ty)| (name.as_ref(), ty).to_symbol()).collect::<Vec<Symbol>>(),
+            self.args.clone(),
             self.ret_ty().unwrap_or_default(),
         )
     }
@@ -61,5 +66,61 @@ impl Display for Prototype {
             }
         }
         write!(f, "{})", s)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::Prototype;
+    use common::{Symbol, ToSymbol, Type};
+
+    #[test]
+    fn test_prototype_to_symbol() {
+        use Type::*;
+
+        let tests = [
+            (
+                Prototype {
+                    name: String::from("foo"),
+                    args: vec![(String::from("bar"), Int32)],
+                    ret_ty: Some(Float),
+                },
+                Symbol::new_fn("foo~bar:int32~float", "foo", vec![(String::from("bar"), Int32)], &Float),
+            ),
+            (
+                Prototype {
+                    name: String::from("foo"),
+                    args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    ret_ty: Some(Float),
+                },
+                Symbol::new_fn(
+                    "foo~bar:int32~baz:int32~float",
+                    "foo",
+                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    &Float,
+                ),
+            ),
+            (
+                Prototype {
+                    name: String::from("foo"),
+                    args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    ret_ty: None,
+                },
+                Symbol::new_fn(
+                    "foo~bar:int32~baz:int32~void",
+                    "foo",
+                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    &Void,
+                ),
+            ),
+            (
+                Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float) },
+                Symbol::new_fn("foo~float", "foo", vec![], &Float),
+            ),
+        ];
+
+        for test in tests {
+            assert_eq!(test.0.to_symbol(), test.1)
+        }
     }
 }

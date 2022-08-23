@@ -374,10 +374,23 @@ fn foo() {
 "#,
         ],
         [
-            "for_shadowing",
+            "for_shadowing1",
             r#"
 fn foo() {
     let x: int32 = 1
+    for x: int8 = 1; x < 2; 1 {
+        x
+    }
+    x
+}
+"#,
+        ],
+        [
+            "for_shadowing2",
+            r#"
+fn foo() {
+    let x: [int32; 3] = [1, 2, 3]
+    x[0]
     for x: int8 = 1; x < 2; 1 {
         x
     }
@@ -443,14 +456,12 @@ fn foo() {
 
 #[test]
 fn test_ident() {
-    let tests = [
-        [
-            "basic",
-            r#"
+    let tests = [[
+        "basic",
+        r#"
 fn foo(x: int) { x }
 "#,
-        ],
-    ];
+    ]];
     run_insta!("ident", tests);
 }
 
@@ -812,26 +823,16 @@ fn test_tyc_int_with_hint() {
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
+        st.insert("x", &("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        tc.check_let(
-            String::from("x"),
-            $variant,
-            Some(Box::new(Node::Expr(Expression::Lit { value: Literal::$variant(0), ty: Some($variant) }))),
-        )
-        .unwrap();
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
+        st.insert("x", &("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        tc.check_let(
-            String::from("x"),
-            $variant,
-            Some(Box::new(Node::Expr(Expression::Lit { value: Literal::$variant(0), ty: Some($variant) }))),
-        )
-        .unwrap();
         let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
@@ -844,26 +845,16 @@ macro_rules! test_lit_hint_binop_int {
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
+        st.insert("x", &("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        tc.check_let(
-            String::from("x"),
-            $variant,
-            Some(Box::new(Node::Expr(Expression::Lit { value: Literal::$variant(0.0), ty: Some($variant) }))),
-        )
-        .unwrap();
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
+        st.insert("x", &("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        tc.check_let(
-            String::from("x"),
-            $variant,
-            Some(Box::new(Node::Expr(Expression::Lit { value: Literal::$variant(0.0), ty: Some($variant) }))),
-        )
-        .unwrap();
         let lhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
