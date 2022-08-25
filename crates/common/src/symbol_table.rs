@@ -91,7 +91,6 @@ pub struct FnSymbol {
 pub struct VarSymbol {
     id: u32,
     name: String,
-    uniq_name: Option<String>,
     ty: Type,
 }
 
@@ -113,7 +112,7 @@ impl Symbol {
     }
 
     pub fn new_var(name: &str, ty: &Type) -> Self {
-        Symbol::Var(VarSymbol { id: 0, name: name.to_owned(), uniq_name: None, ty: ty.to_owned() })
+        Symbol::Var(VarSymbol { id: 0, name: name.to_owned(), ty: ty.to_owned() })
     }
 
     pub fn ty(&self) -> &Type {
@@ -151,24 +150,23 @@ impl Symbol {
         }
     }
 
-    pub fn uniq_name(&mut self) -> &str {
+    pub fn uniq_name(&self) -> String {
         match self {
-            Symbol::Fn(f) => &f.uniq_name,
-            Symbol::Var(v) => {
-                if v.uniq_name.is_some() {
-                    v.uniq_name.as_ref().unwrap()
-                } else {
-                    v.uniq_name = Some(format!("{}@{}", v.name, v.id));
-                    v.uniq_name.as_ref().unwrap()
-                }
-            }
+            Symbol::Fn(f) => f.uniq_name.clone(),
+            Symbol::Var(v) => format!("{}@{}", v.name, v.id),
         }
     }
-
 }
 
 pub trait ToSymbol: Clone {
     fn to_symbol(&self) -> Symbol;
+}
+
+// Convenience to pass a Symbol directly
+impl ToSymbol for Symbol {
+    fn to_symbol(&self) -> Symbol {
+        self.clone()
+    }
 }
 
 // For new variables
@@ -192,12 +190,6 @@ mod test {
         fn with_id(mut self, id: u32) -> Self {
             self.set_id(id);
             self
-        }
-    }
-
-    impl ToSymbol for Symbol {
-        fn to_symbol(&self) -> Symbol {
-            self.clone()
         }
     }
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process;
 
@@ -12,7 +13,7 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{CliArgs, Operator, ScopeTable, SymbolTable, Type};
+use common::{CliArgs, Operator, SymbolTable, ToSymbol, Type};
 
 #[macro_use]
 extern crate common;
@@ -35,8 +36,8 @@ pub struct Codegen<'a, 'ctx> {
     builder: Builder<'ctx>,
     module: Module<'ctx>,
     fpm: PassManager<FunctionValue<'ctx>>,
-    scope_table: ScopeTable<PointerValue<'ctx>>,
-    _symbol_table: &'a SymbolTable,
+    symbol_table: &'a mut SymbolTable,
+    pointer_table: HashMap<String, PointerValue<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     no_verify: bool,
@@ -58,7 +59,7 @@ impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn run_pass(
-        hir: Ast<Node>, module_name: &str, _symbol_table: &'a SymbolTable, build_dir: PathBuf,
+        hir: Ast<Node>, module_name: &str, symbol_table: &'a mut SymbolTable, build_dir: PathBuf,
         args: &CliArgs, is_test: bool,
     ) -> Result<CodegenResult, String> {
         let context = Context::create();
@@ -83,8 +84,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             builder,
             module,
             fpm,
-            scope_table: ScopeTable::new(),
-            _symbol_table,
+            symbol_table,
+            pointer_table: HashMap::new(),
             main: None,
             opt_level: args.opt_level,
             no_verify: args.no_verify,
@@ -216,9 +217,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Save the variable value if we are shadowing and insert alloca into
         // local map
-        let old_var = self.scope_table.remove(&start_name);
-        self.scope_table.insert(&start_name, start_alloca)?;
-
+        // let old_var = self.scope_table.remove(&start_name);
+        // self.scope_table.insert(&start_name, start_alloca)?;
+        let start_sym = (start_name.as_str(), &start_antn).to_symbol();
+        self.symbol_table.insert(&start_name, &start_sym);
+        self.pointer_table.insert(start_sym.uniq_name().to_string(), start_alloca);
+        //XXXXXXX
         // Create all the blocks
         let cond_bb = self.context.append_basic_block(parent, "for.cond");
         let body_bb = self.context.append_basic_block(parent, "for.body");
@@ -270,10 +274,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.position_at_end(post_bb);
 
         // Reset shadowed variable
-        self.scope_table.remove(&start_name);
-        if let Some(v) = old_var {
-            self.scope_table.insert(&start_name, v)?;
-        }
+        // self.scope_table.remove(&start_name);
+        // if let Some(v) = old_var {
+        //     self.scope_table.insert(&start_name, v)?;
+        // }
+        self.pointer_table.remove(&start_sym.uniq_name());
 
         Ok(())
     }
@@ -289,12 +294,19 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         let init_alloca = self.create_entry_block_alloca(&name, &ty, &parent);
         self.builder.build_store(init_alloca, init_code);
-        self.scope_table.insert(&name, init_alloca)?;
+
+        //self.scope_table.insert(&name, init_alloca)?;
+        let sym = (name.as_str(), &ty).to_symbol();
+        self.symbol_table.insert(&name, &sym);
+        self.pointer_table.insert(sym.uniq_name().to_string(), init_alloca);
 
         Ok(())
     }
 
     fn codegen_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult<'ctx> {
+        // Creates interstitial scope for the arguments in the function definition
+        self.symbol_table.enter_scope();
+
         let function = self.codegen_proto(&proto)?;
         // If body is None assume call is an extern
         let body = match body {
@@ -310,10 +322,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
-            let (x, y) = &proto.args()[i];
-            let alloca = self.create_entry_block_alloca(x, y, &function);
+            let (name, ty) = &proto.args()[i];
+            let alloca = self.create_entry_block_alloca(&name, &ty, &function);
             self.builder.build_store(alloca, arg);
-            self.scope_table.insert(&proto.args()[i].0, alloca)?;
+            //self.scope_table.insert(&proto.args()[i].0, alloca)?;
+            let sym = (name.as_str(), ty).to_symbol();
+            self.symbol_table.insert(&name, &sym);
+            self.pointer_table.insert(sym.uniq_name().to_string(), alloca);
         }
 
         let body_val = self.codegen_node(*body)?;
@@ -328,9 +343,11 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         };
 
         // Remove arguments from the table
-        for (i, _) in function.get_param_iter().enumerate() {
-            self.scope_table.remove(&proto.args()[i].0);
-        }
+        // for (i, _) in function.get_param_iter().enumerate() {
+        //     self.scope_table.remove(&proto.args()[i].0);
+        // }
+
+        self.symbol_table.leave_scope();
 
         // Identify main
         let func_name = function.get_name().to_str().unwrap();
@@ -407,7 +424,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         &mut self, _name: String, attributes: Vec<Node>, methods: Vec<Node>,
     ) -> StmtResult<'ctx> {
         // Drop scope
-        self.scope_table.down_scope();
+        //self.scope_table.down_scope();
 
         for node in attributes {
             self.codegen_node(node)?;
@@ -418,7 +435,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
 
         // Pop up 1 level. Drops old scope.
-        self.scope_table.up_scope()?;
+        //self.scope_table.up_scope()?;
 
         Ok(())
     }
@@ -479,11 +496,20 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
-        let var = self
-            .scope_table
+        // let var = self
+        //     .scope_table
+        //     .get(name)
+        //     .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve `{}`", name));
+        let var_sym = self
+            .symbol_table
             .get(name)
-            .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve `{}`", name));
-        Ok(self.builder.build_load(var, name))
+            .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
+        dbg!(var_sym, &self.pointer_table);
+        let var = self
+            .pointer_table
+            .get(&var_sym.uniq_name())
+            .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
+        Ok(self.builder.build_load(*var, name))
     }
 
     fn codegen_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult<'ctx> {
@@ -637,16 +663,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     }
 
     fn codegen_block(&mut self, list: Vec<Node>) -> Result<Option<BasicValueEnum<'ctx>>, String> {
-        // Drop scope
-        self.scope_table.down_scope();
+        self.symbol_table.enter_scope();
 
         let mut node_val = None;
         for node in list {
             node_val = self.codegen_node(node)?;
         }
 
-        // Pop up 1 level. Drops old scope.
-        self.scope_table.up_scope()?;
+        self.symbol_table.leave_scope();
 
         Ok(node_val)
     }
@@ -736,13 +760,22 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let binding = binding.as_expr();
         let name = match binding {
             Expression::Ident { ref name, .. } => name,
-            _ => unreachable!("Internal error: name missing for array index"),
+            _ => unreachable!("name missing for array index"),
         };
 
         // Get the allocated array ptr
-        let array_ptr = self.scope_table.get(name).unwrap_or_else(|| {
-            unreachable!("Internal error: codegen failed to resolve array name `{}`", name)
-        });
+        // let array_ptr = self.scope_table.get(name).unwrap_or_else(|| {
+        //     unreachable!("Internal error: codegen failed to resolve array name `{}`", name)
+        // });
+        let array_sym = self
+            .symbol_table
+            .get(name)
+            .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name));
+        let array_ptr = self
+            .pointer_table
+            .get(&array_sym.uniq_name())
+            .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name))
+            .clone();
 
         // Codegen the index
         let idx = self

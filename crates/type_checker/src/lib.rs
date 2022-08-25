@@ -169,11 +169,6 @@ impl<'a> TypeChecker<'a> {
             ));
         }
 
-        // Pop args
-        // for (name, _) in proto.args() {
-        //     self.scope_table.remove(name);
-        // }
-
         self.symbol_table.leave_scope();
 
         Ok(Statement::Fn { proto: Box::new(proto), body: Some(Box::new(body_node)) })
