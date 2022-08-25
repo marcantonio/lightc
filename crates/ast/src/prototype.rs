@@ -49,8 +49,8 @@ impl ToSymbol for Prototype {
         let ret_ty_str = format!("{}", self.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
 
         Symbol::new_fn(
-            &format!("{}~{}{}", self.name(), args_str, ret_ty_str),
             self.name(),
+            &format!("{}~{}{}", self.name(), args_str, ret_ty_str),
             self.args.clone(),
             self.ret_ty().unwrap_or_default(),
         )
@@ -85,7 +85,7 @@ mod test {
                     args: vec![(String::from("bar"), Int32)],
                     ret_ty: Some(Float),
                 },
-                Symbol::new_fn("foo~bar:int32~float", "foo", vec![(String::from("bar"), Int32)], &Float),
+                Symbol::new_fn("foo", "foo~bar:int32~float", vec![(String::from("bar"), Int32)], &Float),
             ),
             (
                 Prototype {
@@ -94,8 +94,8 @@ mod test {
                     ret_ty: Some(Float),
                 },
                 Symbol::new_fn(
-                    "foo~bar:int32~baz:int32~float",
                     "foo",
+                    "foo~bar:int32~baz:int32~float",
                     vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     &Float,
                 ),
@@ -107,15 +107,15 @@ mod test {
                     ret_ty: None,
                 },
                 Symbol::new_fn(
-                    "foo~bar:int32~baz:int32~void",
                     "foo",
+                    "foo~bar:int32~baz:int32~void",
                     vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     &Void,
                 ),
             ),
             (
                 Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float) },
-                Symbol::new_fn("foo~float", "foo", vec![], &Float),
+                Symbol::new_fn("foo", "foo~float", vec![], &Float),
             ),
         ];
 

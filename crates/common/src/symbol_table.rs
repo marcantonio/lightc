@@ -82,7 +82,7 @@ impl Default for SymbolTable {
 pub struct FnSymbol {
     id: u32,
     name: String,
-    common_name: String,
+    uniq_name: String,
     args: Vec<(String, Type)>,
     ret_ty: Type,
 }
@@ -91,7 +91,7 @@ pub struct FnSymbol {
 pub struct VarSymbol {
     id: u32,
     name: String,
-    //common_name: String,
+    uniq_name: Option<String>,
     ty: Type,
 }
 
@@ -102,18 +102,18 @@ pub enum Symbol {
 }
 
 impl Symbol {
-    pub fn new_fn(name: &str, common_name: &str, args: Vec<(String, Type)>, ret_ty: &Type) -> Self {
+    pub fn new_fn(name: &str, uniq_name: &str, args: Vec<(String, Type)>, ret_ty: &Type) -> Self {
         Symbol::Fn(FnSymbol {
             id: 0,
             name: name.to_owned(),
-            common_name: common_name.to_owned(),
+            uniq_name: uniq_name.to_owned(),
             args,
             ret_ty: ret_ty.to_owned(),
         })
     }
 
     pub fn new_var(name: &str, ty: &Type) -> Self {
-        Symbol::Var(VarSymbol { id: 0, name: name.to_owned(), ty: ty.to_owned() })
+        Symbol::Var(VarSymbol { id: 0, name: name.to_owned(), uniq_name: None, ty: ty.to_owned() })
     }
 
     pub fn ty(&self) -> &Type {
@@ -151,12 +151,20 @@ impl Symbol {
         }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn uniq_name(&mut self) -> &str {
         match self {
-            Symbol::Fn(f) => &f.name,
-            Symbol::Var(v) => &v.name,
+            Symbol::Fn(f) => &f.uniq_name,
+            Symbol::Var(v) => {
+                if v.uniq_name.is_some() {
+                    v.uniq_name.as_ref().unwrap()
+                } else {
+                    v.uniq_name = Some(format!("{}@{}", v.name, v.id));
+                    v.uniq_name.as_ref().unwrap()
+                }
+            }
         }
     }
+
 }
 
 pub trait ToSymbol: Clone {
@@ -200,44 +208,50 @@ mod test {
         assert_eq!(st.scope_depth, 0);
 
         // Insert at global scope
-        let var1 = ("foo", &Type::Bool).to_symbol();
+        let var1 = ("foo", &Type::Bool);
         assert_eq!(st.insert("foo", &var1), None);
-        let var1 = var1.with_id(1);
+        let sym1 = var1.to_symbol().with_id(1);
         // Get from global scope with new id
-        assert_eq!(st.get("foo"), Some(&var1));
+        assert_eq!(st.get("foo"), Some(&sym1));
 
         // Enter scope and insert dup name
         assert_eq!(st.enter_scope(), 1);
-        let var2 = ("foo", &Type::Int32).to_symbol();
+        let var2 = ("foo", &Type::Int32);
         assert_eq!(st.insert("foo", &var2), None);
-        let var2 = var2.with_id(2);
+        let sym2 = var2.to_symbol().with_id(2);
         // Get dup from new scope with new id
-        assert_eq!(st.get("foo"), Some(&var2));
+        assert_eq!(st.get("foo"), Some(&sym2));
 
         // Enter scope and get dup from previous scope with same id
         assert_eq!(st.enter_scope(), 2);
-        assert_eq!(st.get("foo"), Some(&var2));
+        assert_eq!(st.get("foo"), Some(&sym2));
         // Unknown symbol
         assert_eq!(st.get("bar"), None);
         // Insert new symbol at current scope
-        let var3 = ("bar", &Type::Int32).to_symbol();
+        let var3 = ("bar", &Type::Int32);
         assert_eq!(st.insert("bar", &var3), None);
-        let var3 = var3.with_id(3);
+        let sym3 = var3.to_symbol().with_id(3);
         // Get new symbol from current scope
-        assert_eq!(st.get("bar"), Some(&var3));
+        assert_eq!(st.get("bar"), Some(&sym3));
         // Overwrite new symbol with dup at and check that the old symbol is returned
-        let var4 = ("bar", &Type::Float).to_symbol();
-        assert_eq!(st.insert("bar", &var4), Some(var3));
+        let var4 = ("bar", &Type::Float);
+        assert_eq!(st.insert("bar", &var4), Some(sym3));
         // Get dup with new id
-        assert_eq!(st.get("bar"), Some(&var4.with_id(4)));
+        assert_eq!(st.get("bar"), Some(&var4.to_symbol().with_id(4)));
 
         // Pop scope. Symbols at old scope are gone. Symbols at current scope remain
         assert_eq!(st.leave_scope(), 1);
         assert_eq!(st.get("bar"), None);
-        assert_eq!(st.get("foo"), Some(&var2));
+        assert_eq!(st.get("foo"), Some(&sym2));
 
         // Pop scope. Original dup is gone
         assert_eq!(st.leave_scope(), 0);
-        assert_eq!(st.get("foo"), Some(&var1));
+        assert_eq!(st.get("foo"), Some(&sym1));
+    }
+
+    #[test]
+    fn test_symbol_id() {
+        let sym = ("foo", &Type::Int32).to_symbol();
+        assert_eq!(sym.with_id(7).uniq_name(), "foo@7");
     }
 }
