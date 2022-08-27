@@ -3,7 +3,7 @@ use inkwell::FloatPredicate;
 
 use super::*;
 
-impl<'a, 'ctx> Codegen<'a, 'ctx> {
+impl<'ctx> Codegen<'ctx> {
     // Binary operations
 
     pub(super) fn add(
@@ -227,12 +227,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     .symbol_table
                     .get(&name)
                     .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name));
-                self
-                    .pointer_table
-                    .get(&sym.uniq_name())
-                    .ok_or(format!("Unknown variable in assignment: {}", name))?
-                    .to_owned()
-
+                // self
+                //     .pointer_table
+                //     .get(&sym.uniq_name())
+                //     .ok_or(format!("Unknown variable in assignment: {}", name))?
+                //     .to_owned()
+                self.get_ptr_from_symbol(sym)
             },
             Node::Expr(Expression::Index { binding, idx, .. }) => {
                 let (_, element_ptr) = self.get_array_element(*binding, *idx)?;

@@ -83,7 +83,7 @@ impl<'a> TypeChecker<'a> {
         let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
 
         // Insert starting variable
-        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
+        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn));
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -116,7 +116,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, &(name.as_str(), &antn));
+        self.symbol_table.insert(&name, (name.as_str(), &antn));
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
@@ -139,7 +139,7 @@ impl<'a> TypeChecker<'a> {
 
         // Insert args into the local scope table
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg);
+            self.symbol_table.insert(&arg.0, arg.clone());
         }
 
         let body_node = self.check_node(*body, None)?;

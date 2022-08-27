@@ -69,7 +69,7 @@ impl<'a> Hir<'a> {
         step_expr: Node, body: Node,
     ) -> StmtResult {
         // Insert start var
-        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
+        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn));
 
         let start_expr = self.lower_var_init(start_expr, &start_antn)?;
 
@@ -84,13 +84,13 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, &(name.as_str(), &antn));
+        self.symbol_table.insert(&name, (name.as_str(), &antn));
         let init_node = self.lower_var_init(init, &antn)?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        if self.symbol_table.insert(proto.name(), &proto).is_some() {
+        if self.symbol_table.insert(proto.name(), proto.clone()).is_some() {
             return Err(format!("Function `{}` can't be redefined", proto.name()));
         }
 
@@ -100,7 +100,7 @@ impl<'a> Hir<'a> {
         self.symbol_table.enter_scope();
 
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg);
+            self.symbol_table.insert(&arg.0, arg.clone());
         }
 
         let body_node = body.map(|e| self.lower_node(*e));
