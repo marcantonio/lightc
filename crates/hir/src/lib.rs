@@ -1,5 +1,5 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{Operator, SymbolTable, Type};
+use common::{Operator, Symbol, SymbolTable, Type};
 
 #[cfg(test)]
 mod tests;
@@ -13,7 +13,7 @@ type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
 
 pub struct Hir<'a> {
-    symbol_table: &'a mut SymbolTable,
+    symbol_table: &'a mut SymbolTable<Symbol>,
     ast: Ast<Node>,
 }
 
@@ -30,7 +30,7 @@ impl<'a> AstVisitor for Hir<'a> {
 }
 
 impl<'a> Hir<'a> {
-    pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
+    pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
         Hir { symbol_table, ast: Ast::new() }
     }
 
@@ -69,28 +69,34 @@ impl<'a> Hir<'a> {
         step_expr: Node, body: Node,
     ) -> StmtResult {
         // Insert start var
-        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
+        self.symbol_table.enter_scope();
+        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn).into());
 
         let start_expr = self.lower_var_init(start_expr, &start_antn)?;
+        let cond_expr = self.lower_node(cond_expr)?;
+        let step_expr = self.lower_node(step_expr)?;
+        let body = self.lower_node(body)?;
+
+        self.symbol_table.leave_scope();
 
         Ok(Statement::For {
             start_name,
             start_antn,
             start_expr: Some(Box::new(start_expr)),
-            cond_expr: Box::new(self.lower_node(cond_expr)?),
-            step_expr: Box::new(self.lower_node(step_expr)?),
-            body: Box::new(self.lower_node(body)?),
+            cond_expr: Box::new(cond_expr),
+            step_expr: Box::new(step_expr),
+            body: Box::new(body),
         })
     }
 
     fn lower_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, &(name.as_str(), &antn));
+        self.symbol_table.insert(&name, (name.as_str(), &antn).into());
         let init_node = self.lower_var_init(init, &antn)?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        if self.symbol_table.insert(proto.name(), &proto).is_some() {
+        if self.symbol_table.insert(proto.name(), proto.clone().into()).is_some() {
             return Err(format!("Function `{}` can't be redefined", proto.name()));
         }
 
@@ -100,7 +106,7 @@ impl<'a> Hir<'a> {
         self.symbol_table.enter_scope();
 
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg);
+            self.symbol_table.insert(&arg.0, arg.into());
         }
 
         let body_node = body.map(|e| self.lower_node(*e));

@@ -1,9 +1,9 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 454
+assertion_line: 466
 expression: "(test[1], res)"
 ---
-- "\nfn foo() {\n    let x: [int32; 3] = [1, 2, 3]\n    x[0]\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
+- "\nfn foo() {\n    let x: [int32; 3] = [1, 2, 3]\n    x[0]\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x[0]\n}\n"
 - Ok:
     nodes:
       - Stmt:
@@ -108,8 +108,21 @@ expression: "(test[1], res)"
                                         ty: Int8
                                 ty: Int8
                     - Expr:
-                        Ident:
-                          name: x
-                          ty: Int8
-                  ty: Int8
+                        Index:
+                          binding:
+                            Expr:
+                              Ident:
+                                name: x
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                          idx:
+                            Expr:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

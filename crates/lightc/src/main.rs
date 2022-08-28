@@ -31,7 +31,7 @@ fn main() {
     }
 
     // Parser
-    let parser = Parser::new(&tokens, &mut symbol_table);
+    let parser = Parser::new(&tokens);
     let ast = parser.parse().unwrap_or_else(|e| {
         eprintln!("Paring error: {}", e);
         process::exit(1);
@@ -74,7 +74,7 @@ fn main() {
     }
 
     // Codegen
-    let module_file = Codegen::run_pass(tyst, &module_name, &mut symbol_table, build_dir, &args, false)
+    let module_file = Codegen::run_pass(tyst, &module_name, &symbol_table, build_dir, &args, false)
         .unwrap_or_else(|_| panic!("Error compiling `{}`", args.file.display()))
         .as_file_path();
 

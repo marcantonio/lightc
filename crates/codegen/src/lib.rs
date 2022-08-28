@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process;
 
@@ -13,11 +12,13 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{CliArgs, Operator, SymbolTable, ToSymbol, Type};
+use cg_symbol::CgSymbol;
+use common::{CliArgs, Operator, Symbol, SymbolTable, Type};
 
 #[macro_use]
 extern crate common;
 
+mod cg_symbol;
 #[macro_use]
 mod macros;
 mod jit_externs;
@@ -31,20 +32,19 @@ type ExprResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
 // Generate IR for the AST. If types mismatch at this stage, it's a compiler
 // bug, not user error.
 
-pub struct Codegen<'a, 'ctx> {
+pub struct Codegen<'ctx> {
     context: &'ctx Context,
     builder: Builder<'ctx>,
     module: Module<'ctx>,
     fpm: PassManager<FunctionValue<'ctx>>,
-    symbol_table: &'a mut SymbolTable,
-    pointer_table: HashMap<String, PointerValue<'ctx>>,
+    symbol_table: SymbolTable<CgSymbol<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     no_verify: bool,
     require_main: bool,
 }
 
-impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
+impl<'ctx> AstVisitor for Codegen<'ctx> {
     type Result = Result<(), String>;
 
     fn visit_stmt(&mut self, s: Statement) -> Self::Result {
@@ -57,9 +57,9 @@ impl<'a, 'ctx> AstVisitor for Codegen<'a, 'ctx> {
     }
 }
 
-impl<'a, 'ctx> Codegen<'a, 'ctx> {
+impl<'ctx> Codegen<'ctx> {
     pub fn run_pass(
-        hir: Ast<Node>, module_name: &str, symbol_table: &'a mut SymbolTable, build_dir: PathBuf,
+        hir: Ast<Node>, module_name: &str, symbol_table: &SymbolTable<Symbol>, build_dir: PathBuf,
         args: &CliArgs, is_test: bool,
     ) -> Result<CodegenResult, String> {
         let context = Context::create();
@@ -79,13 +79,14 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             fpm.initialize();
         }
 
+        let symbol_table: SymbolTable<CgSymbol<'ctx>> = Codegen::convert_symbol_table(symbol_table)?;
+
         let mut codegen = Codegen {
             context: &context,
             builder,
             module,
             fpm,
             symbol_table,
-            pointer_table: HashMap::new(),
             main: None,
             opt_level: args.opt_level,
             no_verify: args.no_verify,
@@ -215,14 +216,17 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         let start_code = self.codegen_var_init(&start_antn, start_expr)?;
         self.builder.build_store(start_alloca, start_code);
 
+        // Create interstitial scope to protect the induction variable
+        self.symbol_table.enter_scope();
+
         // Save the variable value if we are shadowing and insert alloca into
         // local map
         // let old_var = self.scope_table.remove(&start_name);
         // self.scope_table.insert(&start_name, start_alloca)?;
-        let start_sym = (start_name.as_str(), &start_antn).to_symbol();
-        self.symbol_table.insert(&start_name, &start_sym);
-        self.pointer_table.insert(start_sym.uniq_name().to_string(), start_alloca);
-        //XXXXXXX
+        let start_sym = CgSymbol::from((start_name.as_str(), &start_antn, start_alloca));
+        self.symbol_table.insert(&start_name, start_sym);
+        //self.pointer_table.insert(start_sym.name().to_string(), start_alloca);
+
         // Create all the blocks
         let cond_bb = self.context.append_basic_block(parent, "for.cond");
         let body_bb = self.context.append_basic_block(parent, "for.body");
@@ -278,7 +282,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // if let Some(v) = old_var {
         //     self.scope_table.insert(&start_name, v)?;
         // }
-        self.pointer_table.remove(&start_sym.uniq_name());
+        //self.pointer_table.remove(start_sym.name());
+        self.symbol_table.leave_scope();
 
         Ok(())
     }
@@ -296,9 +301,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         self.builder.build_store(init_alloca, init_code);
 
         //self.scope_table.insert(&name, init_alloca)?;
-        let sym = (name.as_str(), &ty).to_symbol();
-        self.symbol_table.insert(&name, &sym);
-        self.pointer_table.insert(sym.uniq_name().to_string(), init_alloca);
+        let sym = CgSymbol::from((name.as_str(), &ty, init_alloca));
+        self.symbol_table.insert(&name, sym);
+        //self.pointer_table.insert(sym.name().to_string(), init_alloca);
 
         Ok(())
     }
@@ -323,12 +328,12 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
             let (name, ty) = &proto.args()[i];
-            let alloca = self.create_entry_block_alloca(&name, &ty, &function);
+            let alloca = self.create_entry_block_alloca(name, ty, &function);
             self.builder.build_store(alloca, arg);
             //self.scope_table.insert(&proto.args()[i].0, alloca)?;
-            let sym = (name.as_str(), ty).to_symbol();
-            self.symbol_table.insert(&name, &sym);
-            self.pointer_table.insert(sym.uniq_name().to_string(), alloca);
+            let sym = CgSymbol::from((name.as_str(), ty, alloca));
+            self.symbol_table.insert(name, sym);
+            //self.pointer_table.insert(sym.name().to_string(), alloca);
         }
 
         let body_val = self.codegen_node(*body)?;
@@ -500,16 +505,17 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         //     .scope_table
         //     .get(name)
         //     .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve `{}`", name));
-        let var_sym = self
+        let ptr = self
             .symbol_table
             .get(name)
-            .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
-        dbg!(var_sym, &self.pointer_table);
-        let var = self
-            .pointer_table
-            .get(&var_sym.uniq_name())
-            .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
-        Ok(self.builder.build_load(*var, name))
+            .unwrap_or_else(|| panic!("codegen failed to resolve `{}`", name))
+            .pointer()
+            .expect("missing pointer on symbol");
+        // let var = self
+        //     .pointer_table
+        //     .get(var_sym.name())
+        //     .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
+        Ok(self.builder.build_load(ptr, name))
     }
 
     fn codegen_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult<'ctx> {
@@ -743,7 +749,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 builder.build_alloca(
                     array_ty
                         .0
-                        .array_type((*array_ty.1).try_into().expect("Internal error: this is embarrassing")),
+                        .array_type((*array_ty.1).try_into().expect("internal error: this is embarrassing")),
                     name,
                 )
             },
@@ -767,15 +773,16 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         // let array_ptr = self.scope_table.get(name).unwrap_or_else(|| {
         //     unreachable!("Internal error: codegen failed to resolve array name `{}`", name)
         // });
-        let array_sym = self
+        let array_ptr = self
             .symbol_table
             .get(name)
-            .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name));
-        let array_ptr = self
-            .pointer_table
-            .get(&array_sym.uniq_name())
             .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name))
-            .clone();
+            .pointer()
+            .expect("missing pointer on symbol");
+        // let array_ptr = *self
+        //     .pointer_table
+        //     .get(array_sym.name())
+        //     .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name));
 
         // Codegen the index
         let idx = self
@@ -803,7 +810,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             Type::Bool => self.context.bool_type().as_any_type_enum(),
             Type::Void => self.context.void_type().as_any_type_enum(),
             Type::Array(ty, size) => {
-                let size = size.try_into().expect("Internal error: this is embarrassing");
+                let size = size.try_into().expect("internal error: this is embarrassing");
                 match self.get_llvm_ty(*ty) {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),

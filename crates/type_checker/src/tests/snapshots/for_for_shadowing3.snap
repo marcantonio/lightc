@@ -3,7 +3,7 @@ source: crates/type_checker/src/tests.rs
 assertion_line: 466
 expression: "(test[1], res)"
 ---
-- "\nfn foo() {\n    let x: int32 = 1\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
+- "\nfn foo() -> float {\n    let x: float = 1.0\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
 - Ok:
     nodes:
       - Stmt:
@@ -11,7 +11,7 @@ expression: "(test[1], res)"
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: Float
             body:
               Expr:
                 Block:
@@ -19,13 +19,13 @@ expression: "(test[1], res)"
                     - Stmt:
                         Let:
                           name: x
-                          antn: Int32
+                          antn: Float
                           init:
                             Expr:
                               Lit:
                                 value:
-                                  Int32: 1
-                                ty: Int32
+                                  Float: 1.0
+                                ty: Float
                     - Stmt:
                         For:
                           start_name: x
@@ -70,6 +70,6 @@ expression: "(test[1], res)"
                     - Expr:
                         Ident:
                           name: x
-                          ty: Int32
-                  ty: Int32
+                          ty: Float
+                  ty: Float
 

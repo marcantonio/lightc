@@ -9,7 +9,7 @@ macro_rules! run_insta {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let ast = Parser::new(&tokens).parse().unwrap();
                 let res = Hir::new(&mut symbol_table).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }

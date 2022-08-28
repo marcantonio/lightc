@@ -1,6 +1,5 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::SymbolTable;
-use common::{Operator, Type};
+use common::{Operator, Symbol, SymbolTable, Symbolic, Type};
 
 #[macro_use]
 extern crate common;
@@ -24,7 +23,7 @@ type ExprResult = Result<Expression, String>;
 
 pub struct TypeChecker<'a> {
     ast: Ast<Node>,
-    symbol_table: &'a mut SymbolTable,
+    symbol_table: &'a mut SymbolTable<Symbol>,
 }
 
 impl<'a> AstVisitor for TypeChecker<'a> {
@@ -40,7 +39,7 @@ impl<'a> AstVisitor for TypeChecker<'a> {
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(symbol_table: &'a mut SymbolTable) -> Self {
+    pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
         TypeChecker { ast: Ast::new(), symbol_table }
     }
 
@@ -83,7 +82,8 @@ impl<'a> TypeChecker<'a> {
         let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
 
         // Insert starting variable
-        self.symbol_table.insert(&start_name, &(start_name.as_str(), &start_antn));
+        self.symbol_table.enter_scope();
+        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn).into());
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -105,6 +105,8 @@ impl<'a> TypeChecker<'a> {
         // Check body
         let body_node = self.check_node(body, None)?;
 
+        self.symbol_table.leave_scope();
+
         Ok(Statement::For {
             start_name,
             start_antn,
@@ -116,7 +118,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, &(name.as_str(), &antn));
+        self.symbol_table.insert(&name, (name.as_str(), &antn).into());
         let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
         Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
     }
@@ -139,7 +141,7 @@ impl<'a> TypeChecker<'a> {
 
         // Insert args into the local scope table
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg);
+            self.symbol_table.insert(&arg.0, arg.into());
         }
 
         let body_node = self.check_node(*body, None)?;

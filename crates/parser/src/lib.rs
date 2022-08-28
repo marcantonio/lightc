@@ -5,7 +5,7 @@ use std::slice::Iter;
 use self::errors::ParseError;
 use self::precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, SymbolTable, Token, TokenType, Type};
+use common::{Operator, Token, TokenType, Type};
 
 #[macro_use]
 mod macros;
@@ -18,13 +18,12 @@ type ParseResult = Result<Node, ParseError>;
 
 pub struct Parser<'a> {
     ast: Ast<Node>,
-    _symbol_table: &'a mut SymbolTable,
     tokens: Peekable<Iter<'a, Token>>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable) -> Self {
-        Parser { ast: Ast::new(), _symbol_table: symbol_table, tokens: tokens.iter().peekable() }
+    pub fn new(tokens: &'a [Token]) -> Self {
+        Parser { ast: Ast::new(), tokens: tokens.iter().peekable() }
     }
 
     // Parse each token using recursive descent

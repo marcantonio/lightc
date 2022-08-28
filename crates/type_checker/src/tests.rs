@@ -12,7 +12,7 @@ macro_rules! run_insta {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let ast = Parser::new(&tokens).parse().unwrap();
                 let hir = Hir::new(&mut symbol_table).walk(ast).unwrap();
                 let res = TypeChecker::new(&mut symbol_table).walk(hir);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
@@ -363,7 +363,7 @@ fn main() -> int { }
 #[test]
 fn test_for() {
     let tests = [
-        [
+         [
             "basic",
             r#"
 fn foo() {
@@ -391,6 +391,18 @@ fn foo() {
 fn foo() {
     let x: [int32; 3] = [1, 2, 3]
     x[0]
+    for x: int8 = 1; x < 2; 1 {
+        x
+    }
+    x[0]
+}
+"#,
+        ],
+        [
+            "for_shadowing3",
+            r#"
+fn foo() -> float {
+    let x: float = 1.0
     for x: int8 = 1; x < 2; 1 {
         x
     }
@@ -823,7 +835,7 @@ fn test_tyc_int_with_hint() {
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
-        st.insert("x", &("x", &$variant));
+        st.insert("x", ("x", &$variant).into());
         let mut tc = TypeChecker::new(&mut st);
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
@@ -831,7 +843,7 @@ macro_rules! test_lit_hint_binop_int {
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
-        st.insert("x", &("x", &$variant));
+        st.insert("x", ("x", &$variant).into());
         let mut tc = TypeChecker::new(&mut st);
         let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
@@ -845,7 +857,7 @@ macro_rules! test_lit_hint_binop_int {
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
-        st.insert("x", &("x", &$variant));
+        st.insert("x", ("x", &$variant).into());
         let mut tc = TypeChecker::new(&mut st);
         let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
         let rhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
@@ -853,7 +865,7 @@ macro_rules! test_lit_hint_binop_float {
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
-        st.insert("x", &("x", &$variant));
+        st.insert("x", ("x", &$variant).into());
         let mut tc = TypeChecker::new(&mut st);
         let lhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
         let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });

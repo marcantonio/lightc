@@ -12,22 +12,22 @@ macro_rules! run_insta {
                 // Unoptimized code
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let ast = Parser::new(&tokens).parse().unwrap();
                 let hir = Hir::new(&mut symbol_table).walk(ast).unwrap();
                 let tyst = TypeChecker::new(&mut symbol_table).walk(hir).unwrap();
                 let args = CliArgs::new();
-                let res = Codegen::run_pass(tyst, "test", &mut symbol_table, PathBuf::new(), &args, true)
+                let res = Codegen::run_pass(tyst, "test", &symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 // Optimized code
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let ast = Parser::new(&tokens).parse().unwrap();
                 let hir = Hir::new(&mut symbol_table).walk(ast).unwrap();
                 let tyst = TypeChecker::new(&mut symbol_table).walk(hir).unwrap();
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
-                let res_opt = Codegen::run_pass(tyst, "test", &mut symbol_table, PathBuf::new(), &args, true)
+                let res_opt = Codegen::run_pass(tyst, "test", &symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));
