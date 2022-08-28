@@ -222,18 +222,12 @@ impl<'ctx> Codegen<'ctx> {
 
     pub(super) fn assign(&mut self, lhs: Node, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
         let lhs_var = match lhs {
-            Node::Expr(Expression::Ident { name, .. }) => {
-                self.symbol_table
-                    .get(&name)
-                    .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name))
-                    .pointer()
-                    .expect("missing pointer on symbol")
-                // self
-                //     .pointer_table
-                //     .get(sym.name())
-                //     .ok_or(format!("Unknown variable in assignment: {}", name))?
-                //     .to_owned()
-            },
+            Node::Expr(Expression::Ident { name, .. }) => self
+                .symbol_table
+                .get(&name)
+                .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name))
+                .pointer()
+                .expect("missing pointer on symbol"),
             Node::Expr(Expression::Index { binding, idx, .. }) => {
                 let (_, element_ptr) = self.get_array_element(*binding, *idx)?;
                 element_ptr

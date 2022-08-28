@@ -12,13 +12,14 @@ use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use cg_symbol::CgSymbol;
-use common::{CliArgs, Operator, Symbol, SymbolTable, Type};
+use codegen_symbol::CodegenSymbol;
+use common::{CliArgs, Operator, Type};
+use symbol_table::{Symbol, SymbolTable};
 
 #[macro_use]
 extern crate common;
 
-mod cg_symbol;
+mod codegen_symbol;
 #[macro_use]
 mod macros;
 mod jit_externs;
@@ -37,7 +38,7 @@ pub struct Codegen<'ctx> {
     builder: Builder<'ctx>,
     module: Module<'ctx>,
     fpm: PassManager<FunctionValue<'ctx>>,
-    symbol_table: SymbolTable<CgSymbol<'ctx>>,
+    symbol_table: SymbolTable<CodegenSymbol<'ctx>>,
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     no_verify: bool,
@@ -59,7 +60,7 @@ impl<'ctx> AstVisitor for Codegen<'ctx> {
 
 impl<'ctx> Codegen<'ctx> {
     pub fn run_pass(
-        hir: Ast<Node>, module_name: &str, symbol_table: &SymbolTable<Symbol>, build_dir: PathBuf,
+        hir: Ast<Node>, module_name: &str, symbol_table: SymbolTable<Symbol>, build_dir: PathBuf,
         args: &CliArgs, is_test: bool,
     ) -> Result<CodegenResult, String> {
         let context = Context::create();
@@ -79,7 +80,7 @@ impl<'ctx> Codegen<'ctx> {
             fpm.initialize();
         }
 
-        let symbol_table: SymbolTable<CgSymbol<'ctx>> = Codegen::convert_symbol_table(symbol_table)?;
+        let symbol_table: SymbolTable<CodegenSymbol<'ctx>> = Codegen::convert_table(symbol_table)?;
 
         let mut codegen = Codegen {
             context: &context,
@@ -219,13 +220,9 @@ impl<'ctx> Codegen<'ctx> {
         // Create interstitial scope to protect the induction variable
         self.symbol_table.enter_scope();
 
-        // Save the variable value if we are shadowing and insert alloca into
-        // local map
-        // let old_var = self.scope_table.remove(&start_name);
-        // self.scope_table.insert(&start_name, start_alloca)?;
-        let start_sym = CgSymbol::from((start_name.as_str(), &start_antn, start_alloca));
+        // Save new symbol with alloca
+        let start_sym = CodegenSymbol::from((start_name.as_str(), &start_antn, start_alloca));
         self.symbol_table.insert(&start_name, start_sym);
-        //self.pointer_table.insert(start_sym.name().to_string(), start_alloca);
 
         // Create all the blocks
         let cond_bb = self.context.append_basic_block(parent, "for.cond");
@@ -277,12 +274,6 @@ impl<'ctx> Codegen<'ctx> {
         // Set insertion to after the loop
         self.builder.position_at_end(post_bb);
 
-        // Reset shadowed variable
-        // self.scope_table.remove(&start_name);
-        // if let Some(v) = old_var {
-        //     self.scope_table.insert(&start_name, v)?;
-        // }
-        //self.pointer_table.remove(start_sym.name());
         self.symbol_table.leave_scope();
 
         Ok(())
@@ -300,10 +291,8 @@ impl<'ctx> Codegen<'ctx> {
         let init_alloca = self.create_entry_block_alloca(&name, &ty, &parent);
         self.builder.build_store(init_alloca, init_code);
 
-        //self.scope_table.insert(&name, init_alloca)?;
-        let sym = CgSymbol::from((name.as_str(), &ty, init_alloca));
+        let sym = CodegenSymbol::from((name.as_str(), &ty, init_alloca));
         self.symbol_table.insert(&name, sym);
-        //self.pointer_table.insert(sym.name().to_string(), init_alloca);
 
         Ok(())
     }
@@ -313,6 +302,7 @@ impl<'ctx> Codegen<'ctx> {
         self.symbol_table.enter_scope();
 
         let function = self.codegen_proto(&proto)?;
+
         // If body is None assume call is an extern
         let body = match body {
             Some(body) => body,
@@ -330,10 +320,7 @@ impl<'ctx> Codegen<'ctx> {
             let (name, ty) = &proto.args()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function);
             self.builder.build_store(alloca, arg);
-            //self.scope_table.insert(&proto.args()[i].0, alloca)?;
-            let sym = CgSymbol::from((name.as_str(), ty, alloca));
-            self.symbol_table.insert(name, sym);
-            //self.pointer_table.insert(sym.name().to_string(), alloca);
+            self.symbol_table.insert(name, CodegenSymbol::from((name.as_str(), ty, alloca)));
         }
 
         let body_val = self.codegen_node(*body)?;
@@ -346,11 +333,6 @@ impl<'ctx> Codegen<'ctx> {
             },
             _ => self.builder.build_return(None),
         };
-
-        // Remove arguments from the table
-        // for (i, _) in function.get_param_iter().enumerate() {
-        //     self.scope_table.remove(&proto.args()[i].0);
-        // }
 
         self.symbol_table.leave_scope();
 
@@ -501,20 +483,12 @@ impl<'ctx> Codegen<'ctx> {
 
     fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
-        // let var = self
-        //     .scope_table
-        //     .get(name)
-        //     .unwrap_or_else(|| unreachable!("Internal error: codegen failed to resolve `{}`", name));
         let ptr = self
             .symbol_table
             .get(name)
             .unwrap_or_else(|| panic!("codegen failed to resolve `{}`", name))
             .pointer()
             .expect("missing pointer on symbol");
-        // let var = self
-        //     .pointer_table
-        //     .get(var_sym.name())
-        //     .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name));
         Ok(self.builder.build_load(ptr, name))
     }
 
@@ -569,9 +543,9 @@ impl<'ctx> Codegen<'ctx> {
         // Build the call instruction
         let call_val = self.builder.build_call(func, &args_code, &("call_".to_owned() + name));
 
-        // If func has a non-void return type, it will produce a call_val that
-        // is converted into a BasicValueEnum. Otherwise it becomes an
-        // InstructionValue, which we ignore.
+        // If func has a non-void return type, it will produce a call_val that is
+        // converted into a BasicValueEnum. Otherwise it becomes an InstructionValue,
+        // which we ignore.
         Ok(match call_val.try_as_basic_value() {
             Either::Left(v) => Some(v),
             Either::Right(_) => None,
@@ -770,19 +744,12 @@ impl<'ctx> Codegen<'ctx> {
         };
 
         // Get the allocated array ptr
-        // let array_ptr = self.scope_table.get(name).unwrap_or_else(|| {
-        //     unreachable!("Internal error: codegen failed to resolve array name `{}`", name)
-        // });
         let array_ptr = self
             .symbol_table
             .get(name)
             .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name))
             .pointer()
             .expect("missing pointer on symbol");
-        // let array_ptr = *self
-        //     .pointer_table
-        //     .get(array_sym.name())
-        //     .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name));
 
         // Codegen the index
         let idx = self

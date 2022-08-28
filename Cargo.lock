@@ -16,8 +16,8 @@ name = "ast"
 version = "0.0.0"
 dependencies = [
  "common",
- "insta",
  "serde",
+ "symbol_table",
 ]
 
 [[package]]
@@ -117,6 +117,7 @@ dependencies = [
  "llvm-sys",
  "parser",
  "serde",
+ "symbol_table",
  "type_checker",
 ]
 
@@ -212,6 +213,7 @@ dependencies = [
  "lexer",
  "parser",
  "serde",
+ "symbol_table",
 ]
 
 [[package]]
@@ -309,6 +311,7 @@ dependencies = [
  "hir",
  "lexer",
  "parser",
+ "symbol_table",
  "tempfile",
  "type_checker",
 ]
@@ -569,6 +572,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "symbol_table"
+version = "0.0.0"
+dependencies = [
+ "common",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -629,6 +639,7 @@ dependencies = [
  "lexer",
  "parser",
  "serde",
+ "symbol_table",
 ]
 
 [[package]]

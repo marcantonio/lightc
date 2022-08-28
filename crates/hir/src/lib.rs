@@ -1,5 +1,6 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{Operator, Symbol, SymbolTable, Type};
+use common::{Operator, Type};
+use symbol_table::{Symbol, SymbolTable};
 
 #[cfg(test)]
 mod tests;

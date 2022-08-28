@@ -363,7 +363,7 @@ fn main() -> int { }
 #[test]
 fn test_for() {
     let tests = [
-         [
+        [
             "basic",
             r#"
 fn foo() {

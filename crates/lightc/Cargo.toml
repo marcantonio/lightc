@@ -12,4 +12,5 @@ common = { path = "../common" }
 hir = { path = "../hir" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
+symbol_table = { path = "../symbol_table" }
 type_checker = { path = "../type_checker" }

@@ -5,10 +5,11 @@ use std::{env, fs, process};
 use clap::Parser as Clap;
 
 use codegen::Codegen;
-use common::{CliArgs, SymbolTable};
+use common::CliArgs;
 use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
+use symbol_table::SymbolTable;
 use type_checker::TypeChecker;
 
 fn main() {
@@ -74,7 +75,7 @@ fn main() {
     }
 
     // Codegen
-    let module_file = Codegen::run_pass(tyst, &module_name, &symbol_table, build_dir, &args, false)
+    let module_file = Codegen::run_pass(tyst, &module_name, symbol_table, build_dir, &args, false)
         .unwrap_or_else(|_| panic!("Error compiling `{}`", args.file.display()))
         .as_file_path();
 

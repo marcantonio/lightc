@@ -531,7 +531,6 @@ impl<'a> Parser<'a> {
                 )))
             },
         };
-        // Ok(ty.clone())
         Ok(ty)
     }
 

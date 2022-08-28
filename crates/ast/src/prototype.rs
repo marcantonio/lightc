@@ -1,7 +1,8 @@
 use serde::Serialize;
 use std::fmt::Display;
 
-use common::{Symbol, Type, Symbolic};
+use common::Type;
+use symbol_table::Symbol;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Prototype {
@@ -48,11 +49,11 @@ impl From<Prototype> for Symbol {
         });
         let ret_ty_str = format!("{}", proto.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
 
-        Symbol::new_fn(
-            &format!("{}~{}{}", proto.name(), args_str, ret_ty_str),
-            proto.args.clone(),
+        Symbol::from((
+            format!("{}~{}{}", proto.name(), args_str, ret_ty_str).as_str(),
+            proto.args.as_slice(),
             proto.ret_ty().unwrap_or_default(),
-        )
+        ))
     }
 }
 
@@ -71,7 +72,8 @@ impl Display for Prototype {
 #[cfg(test)]
 mod test {
     use crate::Prototype;
-    use common::{Symbol, Type, Symbolic};
+    use common::Type;
+    use symbol_table::Symbol;
 
     #[test]
     fn test_prototype_to_symbol() {
@@ -84,7 +86,7 @@ mod test {
                     args: vec![(String::from("bar"), Int32)],
                     ret_ty: Some(Float),
                 },
-                Symbol::new_fn("foo~bar:int32~float", vec![(String::from("bar"), Int32)], &Float),
+                Symbol::from(("foo~bar:int32~float", vec![(String::from("bar"), Int32)].as_slice(), &Float)),
             ),
             (
                 Prototype {
@@ -92,11 +94,11 @@ mod test {
                     args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     ret_ty: Some(Float),
                 },
-                Symbol::new_fn(
+                Symbol::from((
                     "foo~bar:int32~baz:int32~float",
-                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)].as_slice(),
                     &Float,
-                ),
+                )),
             ),
             (
                 Prototype {
@@ -104,15 +106,15 @@ mod test {
                     args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     ret_ty: None,
                 },
-                Symbol::new_fn(
+                Symbol::from((
                     "foo~bar:int32~baz:int32~void",
-                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
+                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)].as_slice(),
                     &Void,
-                ),
+                )),
             ),
             (
                 Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float) },
-                Symbol::new_fn("foo~float", vec![], &Float),
+                Symbol::from(("foo~float", vec![].as_slice(), &Float)),
             ),
         ];
 

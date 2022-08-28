@@ -1,5 +1,6 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
-use common::{Operator, Symbol, SymbolTable, Symbolic, Type};
+use common::{Operator, Type};
+use symbol_table::{Symbol, SymbolTable};
 
 #[macro_use]
 extern crate common;

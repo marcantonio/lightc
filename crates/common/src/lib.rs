@@ -3,11 +3,6 @@ use serde::Serialize;
 mod cli_args;
 pub use cli_args::CliArgs;
 mod macros;
-pub mod symbol_table;
-pub use symbol_table::{Symbol, SymbolTable, ToSymbol, Symbolic, SymbolKind};
-pub mod scope_table;
-pub mod symbol_table_alt;
-pub use scope_table::ScopeTable;
 
 #[derive(PartialEq, Clone, Serialize)]
 pub struct Token {
