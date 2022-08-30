@@ -1,10 +1,10 @@
 use serde::Serialize;
 
 use common::{Operator, Type};
-
-pub mod prototype;
 pub use prototype::Prototype;
+
 mod display;
+pub mod prototype;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Ast<T> {
@@ -81,7 +81,7 @@ impl Node {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Statement {
     For {
-        start_name: String, // XXX: make this a Statementn::Let?
+        start_name: String, // TODO: make this a Statement::Let
         start_antn: Type,
         start_expr: Option<Box<Node>>,
         cond_expr: Box<Node>,

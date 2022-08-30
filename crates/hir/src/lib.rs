@@ -144,7 +144,7 @@ impl<'a> Hir<'a> {
             },
             Block { list, ty } => self.lower_block(list, ty)?,
             Index { binding, idx, ty } => self.lower_index(*binding, *idx, ty)?,
-            e => e, // some expressions don't contain other nodes XXX: can't we clone all of these?
+            e => e, // some expressions don't contain other nodes
         };
 
         Ok(Node::Expr(expr))

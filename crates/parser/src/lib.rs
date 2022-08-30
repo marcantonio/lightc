@@ -168,8 +168,6 @@ impl<'a> Parser<'a> {
             // Should always be an operator after a primary
             let op = match next.tt {
                 TokenType::Op(s) => s,
-                // Start a new expression if we see two primaries in a row
-                // XXX: really?
                 _ => break,
             };
 

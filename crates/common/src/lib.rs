@@ -11,7 +11,6 @@ pub struct Token {
     pub column: usize,
 }
 
-// XXX: Token in lexer crate?
 impl Token {
     pub fn new(tt: TokenType, line: usize, column: usize) -> Self {
         Token { tt, line, column }
