@@ -1,9 +1,9 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 92
-expression: "(test[0], ast, ast_string)"
+assertion_line: 87
+expression: "(test[1], ast, ast_string)"
 ---
-- "extern cos(x: float)"
+- "extern fn cos(x: float)"
 - Ok:
     nodes:
       - Stmt:

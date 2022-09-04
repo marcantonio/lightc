@@ -1,8 +1,0 @@
----
-source: crates/hir/src/tests.rs
-assertion_line: 65
-expression: "(test[1], res)"
----
-- "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusThree(1)\n}\n"
-- Err: "Call to undefined function: `plusThree`"
-

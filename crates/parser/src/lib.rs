@@ -6,6 +6,7 @@ use self::errors::ParseError;
 use self::precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
 use common::{Operator, Token, TokenType, Type};
+use symbol_table::{Symbol, SymbolTable};
 
 #[macro_use]
 mod macros;
@@ -19,11 +20,12 @@ type ParseResult = Result<Node, ParseError>;
 pub struct Parser<'a> {
     ast: Ast<Node>,
     tokens: Peekable<Iter<'a, Token>>,
+    symbol_table: &'a mut SymbolTable<Symbol>,
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
-        Parser { ast: Ast::new(), tokens: tokens.iter().peekable() }
+    pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        Parser { ast: Ast::new(), tokens: tokens.iter().peekable(), symbol_table }
     }
 
     // Parse each token using recursive descent
@@ -46,7 +48,7 @@ impl<'a> Parser<'a> {
         let stmt = match &token.tt {
             TokenType::For => self.parse_for()?,
             TokenType::Let => self.parse_let()?,
-            TokenType::Fn => self.parse_function()?,
+            TokenType::Fn => self.parse_func()?,
             TokenType::Extern => self.parse_extern()?,
             TokenType::Struct => self.parse_struct()?,
             _ => self.parse_expr(0)?,
@@ -86,7 +88,7 @@ impl<'a> Parser<'a> {
                     self.tokens.next(); // Eat semicolon
                 },
                 TokenType::Fn => {
-                    methods.push(self.parse_function()?);
+                    methods.push(self.parse_func()?);
                     self.tokens.next(); // Eat semicolon
                 },
                 tt => {
@@ -134,14 +136,23 @@ impl<'a> Parser<'a> {
     }
 
     // FnDecl ::= Prototype Block ;
-    fn parse_function(&mut self) -> ParseResult {
+    fn parse_func(&mut self) -> ParseResult {
         // Eat 'fn'
-        self.tokens.next();
+        let token = self.tokens.next().unwrap();
 
-        Ok(Node::Stmt(Statement::Fn {
-            proto: Box::new(self.parse_proto()?),
-            body: Some(Box::new(self.parse_block()?)),
-        }))
+        let proto = self.parse_proto()?;
+        // Use the old name until later lowering
+        if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
+            return Err(ParseError::from((format!("Function `{}` can't be redefined", proto.name()), token)));
+        }
+
+        // If the next token is a ';', this was an extern
+        let body = match &self.tokens.peek() {
+            Some(Token { tt: TokenType::Semicolon(..), .. }) => None,
+            _ => Some(Box::new(self.parse_block()?)),
+        };
+
+        Ok(Node::Stmt(Statement::Fn { proto: Box::new(proto), body }))
     }
 
     // ExternDecl ::= 'extern' Prototype ;
@@ -149,7 +160,12 @@ impl<'a> Parser<'a> {
         // Eat 'extern'
         self.tokens.next();
 
-        Ok(Node::Stmt(Statement::Fn { proto: Box::new(self.parse_proto()?), body: None }))
+        let next = self.tokens.peek();
+        if !matches!(next, Some(Token { tt: TokenType::Fn, .. })) {
+            return Err(ParseError::from((String::from("Expecting `fn` after `extern`"), *next.unwrap())));
+        }
+
+        self.parse_func()
     }
 
     /// Expression productions
@@ -423,10 +439,10 @@ impl<'a> Parser<'a> {
 
             args.push((name.to_string(), antn));
 
-            // This rustic mess checks for a ',' or a ')' in the argument
-            // list. If one isn't found we try to create a new "error token"
-            // with the right context for the error message. If the bad token is
-            // an implicit semicolon, take the next one in the list or use EOF.
+            // This rusty mess checks for a ',' or a ')' in the argument list. If one
+            // isn't found we try to create a new "error token" with the right context for
+            // the error message. If the bad token is an implicit semicolon, take the next
+            // one in the list or use EOF.
             match self.tokens.peek().cloned() {
                 Some(Token { tt: TokenType::CloseParen, .. }) => break,
                 Some(Token { tt: TokenType::Comma, .. }) => self.tokens.next(), // Eat comma
@@ -447,7 +463,7 @@ impl<'a> Parser<'a> {
                         &err_token,
                     )));
                 },
-                None => unreachable!("Internal error: token can't be None in prototype"),
+                None => unreachable!("token can't be None in prototype"),
             };
         }
 

@@ -1,8 +1,0 @@
----
-source: crates/hir/src/tests.rs
-assertion_line: 48
-expression: "(test[1], res)"
----
-- "\nfn foo() {}\nfn bar() {}\nfn foo() {}\n"
-- Err: "Function `foo` can't be redefined"
-

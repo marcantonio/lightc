@@ -10,14 +10,14 @@ mod macros;
 mod tests;
 
 // Performs the following tasks:
-// - applies types to all expressions
+// - applies types to all nodes
 // - checks for annotation consistency
 // - checks for type consistency and relevance in binops
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - checks main()'s annotation
-// - updates symbol table with type info (not yet, probably won't need this until we
-//   explore type inference)
+// - checks for unknown functions and variables
+// - initializes uninitialized variables
 
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
@@ -46,8 +46,8 @@ impl<'a> TypeChecker<'a> {
 
     pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
         for node in ast.into_nodes() {
-            let thir_node = node.accept(&mut self)?;
-            self.ast.add(thir_node)
+            let tyst_node = node.accept(&mut self)?;
+            self.ast.add(tyst_node)
         }
         Ok(self.ast)
     }
@@ -252,7 +252,7 @@ impl<'a> TypeChecker<'a> {
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     Type::Char => return Err("Literal is a float in a char context".to_string()),
                     Type::Array(..) => return Err("Literal is a float in an array context".to_string()),
-                    _ => unreachable!("Internal error: float conversion error"),
+                    _ => unreachable!("float conversion error"),
                 },
                 Double(_) => (lit, Type::Double),
                 Bool(_) => (lit, Type::Bool),
@@ -269,7 +269,7 @@ impl<'a> TypeChecker<'a> {
                 Bool(_) => (lit, Type::Bool),
                 Char(_) => (lit, Type::Char),
                 Array { .. } => self.check_lit_array(lit, ty_hint)?,
-                x => unreachable!("Internal error: numeric conversion error for {}", x),
+                x => unreachable!("numeric conversion error for {}", x),
             },
         };
 
@@ -281,13 +281,13 @@ impl<'a> TypeChecker<'a> {
         // assigned by the parser as this point.
         let elements = match lit {
             Literal::Array { elements, .. } => elements,
-            _ => unreachable!("Internal error: expected array literal"),
+            _ => unreachable!("expected array literal"),
         };
 
         // Clone the inner type hint
         let (ty, size) = match ty_hint.unwrap() {
             Type::Array(ty, sz) => (ty.clone(), sz),
-            err => unreachable!("Internal error: array literal has invalid type hint `{}`", err),
+            err => unreachable!("array literal has invalid type hint `{}`", err),
         };
 
         // Make sure array is big enough
@@ -311,12 +311,9 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_ident(&self, name: String) -> ExprResult {
-        let ident_ty = self
-            .symbol_table
-            .get(&name)
-            .unwrap_or_else(|| unreachable!("Unknown variable: `{}`", name))
-            .ty()
-            .clone();
+        let ident_ty =
+            self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?.ty().clone();
+        dbg!(&ident_ty);
         Ok(Expression::Ident { name, ty: Some(ident_ty) })
     }
 
@@ -423,11 +420,8 @@ impl<'a> TypeChecker<'a> {
 
     fn check_call(&mut self, name: String, args: Vec<Node>) -> ExprResult {
         // Pull the function for the call from the table
-        let fn_entry = self
-            .symbol_table
-            .get(&name)
-            .unwrap_or_else(|| unreachable!("Call to undefined function: `{}`", name))
-            .clone();
+        let fn_entry =
+            self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
 
         // Pull out the function arg types
         let fe_arg_tys = fn_entry.arg_tys().to_vec();
@@ -544,6 +538,8 @@ impl<'a> TypeChecker<'a> {
     fn check_var_init(
         &mut self, name: &str, init: Option<Box<Node>>, antn: &Type, caller: &str,
     ) -> Result<Node, String> {
+        use Type::*;
+
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
             let init_node = self.check_node(*init, Some(antn))?;
@@ -556,7 +552,24 @@ impl<'a> TypeChecker<'a> {
             }
             Ok(init_node)
         } else {
-            unreachable!("no initializer for variable: `{}`", name);
+            let literal = match antn {
+                Int8 => ast::make_literal!(Int8, 0),
+                Int16 => ast::make_literal!(Int16, 0),
+                Int32 => ast::make_literal!(Int32, 0),
+                Int64 => ast::make_literal!(Int64, 0),
+                UInt8 => ast::make_literal!(UInt8, 0),
+                UInt16 => ast::make_literal!(UInt16, 0),
+                UInt32 => ast::make_literal!(UInt32, 0),
+                UInt64 => ast::make_literal!(UInt64, 0),
+                Float => ast::make_literal!(Float, 0.0),
+                Double => ast::make_literal!(Double, 0.0),
+                Char => ast::make_literal!(Char, 0),
+                Bool => ast::make_literal!(Bool, false),
+                Array(ty, len) => ast::make_literal!(Array, ty.clone(), *len),
+                Void => unreachable!("void type for variable initialization annotation"),
+                Comp(_) => todo!(),
+            };
+            Ok(Node::new(Node::Expr, literal))
         }
     }
 }

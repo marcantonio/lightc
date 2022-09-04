@@ -214,6 +214,7 @@ dependencies = [
  "parser",
  "serde",
  "symbol_table",
+ "type_checker",
 ]
 
 [[package]]
@@ -404,6 +405,7 @@ dependencies = [
  "insta",
  "lexer",
  "serde",
+ "symbol_table",
 ]
 
 [[package]]
@@ -634,7 +636,6 @@ version = "0.0.0"
 dependencies = [
  "ast",
  "common",
- "hir",
  "insta",
  "lexer",
  "parser",

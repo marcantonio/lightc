@@ -1,8 +1,0 @@
----
-source: crates/hir/src/tests.rs
-assertion_line: 59
-expression: "(test[1], res)"
----
-- "\nfn foo(x: int) { y }\n"
-- Err: "Unknown variable: `y`"
-

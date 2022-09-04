@@ -1,4 +1,4 @@
-use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
 use common::{Operator, Type};
 use symbol_table::{Symbol, SymbolTable};
 
@@ -7,8 +7,7 @@ mod tests;
 
 // Performs the following:
 // - desugars x += 1 to x = x + 1
-// - initializes uninitialized variables
-// - makes initial symbol table entries
+// - tracks scope (needed?)
 
 type StmtResult = Result<Statement, String>;
 type ExprResult = Result<Expression, String>;
@@ -73,7 +72,7 @@ impl<'a> Hir<'a> {
         self.symbol_table.enter_scope();
         self.symbol_table.insert(Symbol::from((start_name.as_str(), &start_antn)));
 
-        let start_expr = self.lower_var_init(start_expr, &start_antn)?;
+        let start_expr = self.lower_var_init(&start_name, start_expr)?;
         let cond_expr = self.lower_node(cond_expr)?;
         let step_expr = self.lower_node(step_expr)?;
         let body = self.lower_node(body)?;
@@ -92,15 +91,11 @@ impl<'a> Hir<'a> {
 
     fn lower_let(&mut self, l: ast::Let) -> StmtResult {
         self.symbol_table.insert(Symbol::from((l.name.as_str(), &l.antn)));
-        let init_node = self.lower_var_init(l.init, &l.antn)?;
+        let init_node = self.lower_var_init(&l.name, l.init)?;
         Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        if self.symbol_table.insert(Symbol::from(&proto)).is_some() {
-            return Err(format!("Function `{}` can't be redefined", proto.name()));
-        }
-
         // This creates an interstitial scope for the arguments in the function definition
         // because lower_block() will also create a new scope. Shouldn't be a practical
         // issue.
@@ -120,10 +115,10 @@ impl<'a> Hir<'a> {
     // XXX: struct stuff
     fn lower_struct(&mut self, s: ast::Struct) -> StmtResult {
         // TODO: check for global scope
-        dbg!(&s);
+        //dbg!(&s);
 
         if self.symbol_table.insert(Symbol::from(&s)).is_some() {
-            return Err(format!("Struct `{}` can't be redefined", s.name));
+            return Err(format!("struct `{}` can't be redefined", s.name));
         }
 
         let mut lowered_attrs = vec![];
@@ -135,6 +130,7 @@ impl<'a> Hir<'a> {
         for node in s.methods {
             lowered_meths.push(self.lower_node(node)?);
         }
+
         Ok(Statement::Struct(ast::Struct { name: s.name, fields: lowered_attrs, methods: lowered_meths }))
     }
 
@@ -142,7 +138,7 @@ impl<'a> Hir<'a> {
         use Expression::*;
 
         let expr = match expr {
-            Ident { name, .. } => self.lower_ident(name)?,
+            Ident { name, ty } => self.lower_ident(name, ty)?,
             BinOp { op, lhs, rhs, ty } => self.lower_binop(op, *lhs, *rhs, ty)?,
             UnOp { op, rhs, ty } => self.lower_unop(op, *rhs, ty)?,
             Call { name, args, ty } => self.lower_call(name, args, ty)?,
@@ -157,9 +153,8 @@ impl<'a> Hir<'a> {
         Ok(Node::Expr(expr))
     }
 
-    fn lower_ident(&mut self, name: String) -> ExprResult {
-        self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?;
-        Ok(Expression::Ident { name, ty: None })
+    fn lower_ident(&mut self, name: String, ty: Option<Type>) -> ExprResult {
+        Ok(Expression::Ident { name, ty })
     }
 
     // Lower `x += 1` to `x = x + 1`
@@ -206,8 +201,6 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_call(&mut self, name: String, args: Vec<Node>, ty: Option<Type>) -> ExprResult {
-        self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?;
-
         let mut lowered_args = vec![];
         for node in args {
             lowered_args.push(self.lower_node(node)?);
@@ -248,31 +241,11 @@ impl<'a> Hir<'a> {
     }
 
     // Helper for variable initializations
-    fn lower_var_init(&mut self, init: Option<Box<Node>>, antn: &Type) -> Result<Node, String> {
-        use Type::*;
-
-        let init_node = if let Some(init) = init {
-            self.lower_node(*init)?
+    fn lower_var_init(&mut self, name: &str, init: Option<Box<Node>>) -> Result<Node, String> {
+        if let Some(init) = init {
+            self.lower_node(*init)
         } else {
-            let literal = match antn {
-                Int8 => ast::make_literal!(Int8, 0),
-                Int16 => ast::make_literal!(Int16, 0),
-                Int32 => ast::make_literal!(Int32, 0),
-                Int64 => ast::make_literal!(Int64, 0),
-                UInt8 => ast::make_literal!(UInt8, 0),
-                UInt16 => ast::make_literal!(UInt16, 0),
-                UInt32 => ast::make_literal!(UInt32, 0),
-                UInt64 => ast::make_literal!(UInt64, 0),
-                Float => ast::make_literal!(Float, 0.0),
-                Double => ast::make_literal!(Double, 0.0),
-                Char => ast::make_literal!(Char, 0),
-                Bool => ast::make_literal!(Bool, false),
-                Array(ty, len) => ast::make_literal!(Array, ty.clone(), *len),
-                Void => unreachable!("void type for variable initialization annotation"),
-                Comp(_) => todo!(),
-            };
-            Node::new(Node::Expr, literal)
-        };
-        Ok(init_node)
+            unreachable!("no initializer for variable: `{}`", name);
+        }
     }
 }

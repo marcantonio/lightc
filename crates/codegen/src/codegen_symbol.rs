@@ -28,10 +28,7 @@ impl<'a> Symbolic for CodegenSymbol<'a> {
 impl<'a> From<(&str, &Type, PointerValue<'a>)> for CodegenSymbol<'a> {
     fn from((name, ty, ptr): (&str, &Type, PointerValue<'a>)) -> Self {
         CodegenSymbol {
-            inner: Symbol {
-                name: name.to_owned(),
-                data: AssocData::Var(VarData { ty: ty.to_owned() }),
-            },
+            inner: Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) },
             pointer: Some(ptr),
         }
     }

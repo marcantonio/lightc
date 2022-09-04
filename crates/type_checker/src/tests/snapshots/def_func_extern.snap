@@ -1,9 +1,9 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 386
+assertion_line: 358
 expression: "(test[1], res)"
 ---
-- "\nextern foo()\n"
+- "\nextern fn foo()\n"
 - Ok:
     nodes:
       - Stmt:

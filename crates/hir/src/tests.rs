@@ -1,7 +1,7 @@
+use super::*;
 use lexer::Lexer;
 use parser::Parser;
-
-use super::*;
+use type_checker::TypeChecker;
 
 macro_rules! run_insta {
     ($prefix:expr, $tests:expr) => {
@@ -9,25 +9,13 @@ macro_rules! run_insta {
             for test in $tests {
                 let tokens = Lexer::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens).parse().unwrap();
-                let res = Hir::new(&mut symbol_table).walk(ast);
+                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
+                let res = Hir::new(&mut symbol_table).walk(tyst);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
     };
-}
-
-#[test]
-fn test_func() {
-    let tests = [[
-        "redefine_fn",
-        r#"
-fn foo() {}
-fn bar() {}
-fn foo() {}
-"#,
-    ]];
-    run_insta!("func", tests);
 }
 
 #[test]
@@ -46,139 +34,4 @@ fn main() {
 "#,
     ]];
     run_insta!("binop", tests);
-}
-
-#[test]
-fn test_call() {
-    let tests = [[
-        "undef_func",
-        r#"
-fn plusOne(x: int) -> int {
-    x + 1
-}
-fn main() {
-    plusThree(1)
-}
-"#,
-    ]];
-
-    run_insta!("call", tests);
-}
-
-#[test]
-fn test_ident() {
-    let tests = [[
-        "unknown_var",
-        r#"
-fn foo(x: int) { y }
-"#,
-    ]];
-    run_insta!("ident", tests);
-}
-
-#[test]
-fn test_init_literal() {
-    let tests = [[
-        "all",
-        r#"
-fn main() {
-    let x: int
-    let x: int8
-    let x: int16
-    let x: int32
-    let x: int64
-    let x: uint
-    let x: uint8
-    let x: uint16
-    let x: uint32
-    let x: uint64
-    let x: float
-    let x: double
-    let x: char
-    let x: bool
-    let x: [bool; 3]
-}
-"#,
-    ]];
-    run_insta!("init_literal", tests);
-}
-
-#[test]
-fn test_scope() {
-    let tests = [
-        [
-            "basic_shadowing",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let b: bool = false
-    }
-    b
-}
-"#,
-        ],
-        [
-            "nested_shadowing",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let b: bool = false
-        let a: float = {
-            let b: float = 1.0
-            b
-        }
-    }
-    b
-}
-"#,
-        ],
-        [
-            "delete_scope",
-            r#"
-fn foo(a: int) -> int {
-    let b: int = 1
-    {
-        let c: int = 2
-    }
-    c
-}
-"#,
-        ],
-        [
-            "for_scope",
-            r#"
-let x: float = 1.0
-for x: int = 1; x < 10; 1 {
-    x
-}
-x
-"#,
-        ],
-        [
-            "if_scope",
-            r#"
-let x: float = 1.0
-if x < 2.0 {
-    let y: int = 2
-    x
-}
-y
-"#,
-        ],
-        [
-            "if_else_scope",
-            r#"
-let x: float = 1.0
-if x < 2.0 {
-    let y: int = 2
-    x
-} else {
-    -y
-}
-"#,
-        ],
-    ];
-    run_insta!("scope", tests);
 }

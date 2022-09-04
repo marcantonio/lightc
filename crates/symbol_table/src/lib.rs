@@ -37,6 +37,13 @@ impl<T: Symbolic> SymbolTable<T> {
             .insert(sym.name().to_owned(), sym)
     }
 
+    pub fn insert_with_name(&mut self, name: &str, sym: T) -> Option<T> {
+        self.tables
+            .get_mut(&self.scope_depth)
+            .unwrap_or_else(|| unreachable!("insert at unknown depth"))
+            .insert(name.to_owned(), sym)
+    }
+
     pub fn get(&self, name: &str) -> Option<&T> {
         let mut sym = None;
         for depth in (0..=self.scope_depth).rev() {

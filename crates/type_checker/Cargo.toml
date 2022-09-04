@@ -15,4 +15,3 @@ insta = { version = "1.12.0", features = ["glob"] }
 
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
-hir = { path = "../hir" }

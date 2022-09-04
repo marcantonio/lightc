@@ -265,7 +265,7 @@ impl<'ctx> Codegen<'ctx> {
                 );
                 self.builder.build_store(start_alloca, next);
             },
-            ty => unreachable!("Internal error: invalid type: `{}` found in for step in `codegen_for()`", ty),
+            ty => unreachable!("invalid type: `{}` found in for step in `codegen_for()`", ty),
         };
 
         // Loop around to the beginning
@@ -374,7 +374,7 @@ impl<'ctx> Codegen<'ctx> {
                     AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
                     AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
                     ty => unreachable!(
-                        "Internal error: unsupported argument type `{}` in prototype `{}()`",
+                        "unsupported argument type `{}` in prototype `{}()`",
                         ty.print_to_string(),
                         proto.name(),
                     ),
@@ -388,7 +388,7 @@ impl<'ctx> Codegen<'ctx> {
             AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
             AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
             ty => unreachable!(
-                "Internal error: unsupported return type `{}` in prototype `{}()`",
+                "unsupported return type `{}` in prototype `{}()`",
                 ty.print_to_string(),
                 proto.name(),
             ),
@@ -493,13 +493,11 @@ impl<'ctx> Codegen<'ctx> {
     fn codegen_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult<'ctx> {
         use Operator::*;
 
-        let lhs_ty = lhs.ty().unwrap_or_else(|| {
-            unreachable!("Internal error: missing type for lhs expr in `codegen_binop()`")
-        });
+        let lhs_ty =
+            lhs.ty().unwrap_or_else(|| unreachable!("missing type for lhs expr in `codegen_binop()`"));
         let lhs_val = self.codegen_node(lhs.clone())?.value()?;
-        let rhs_ty = rhs.ty().unwrap_or_else(|| {
-            unreachable!("Internal error: missing type for rhs expr in `codegen_binop()`")
-        });
+        let rhs_ty =
+            rhs.ty().unwrap_or_else(|| unreachable!("missing type for rhs expr in `codegen_binop()`"));
         let rhs_val = self.codegen_node(rhs)?.value()?;
 
         // Generate the proper instruction for each op
@@ -666,7 +664,7 @@ impl<'ctx> Codegen<'ctx> {
                 if init.as_expr().ty().as_ref() == Some(ty) {
                     self.codegen_node(*init)?
                 } else {
-                    unreachable!("Internal error: void type for init expr in `codegen_let()`");
+                    unreachable!("void type for init expr in `codegen_let()`");
                 }
             },
             (int8_types!() | Type::Char, None) => {
@@ -719,9 +717,7 @@ impl<'ctx> Codegen<'ctx> {
                     _ => todo!(),
                 };
                 builder.build_alloca(
-                    array_ty
-                        .0
-                        .array_type((*array_ty.1).try_into().expect("internal error: this is embarrassing")),
+                    array_ty.0.array_type((*array_ty.1).try_into().expect("this is embarrassing")),
                     name,
                 )
             },
@@ -753,7 +749,7 @@ impl<'ctx> Codegen<'ctx> {
         // Codegen the index
         let idx = self
             .codegen_node(idx)?
-            .unwrap_or_else(|| unreachable!("Internal error: missing value in index of `{}`", name))
+            .unwrap_or_else(|| unreachable!("missing value in index of `{}`", name))
             .into_int_value();
 
         let zero = self.context.i32_type().const_zero();
@@ -776,7 +772,7 @@ impl<'ctx> Codegen<'ctx> {
             Type::Bool => self.context.bool_type().as_any_type_enum(),
             Type::Void => self.context.void_type().as_any_type_enum(),
             Type::Array(ty, size) => {
-                let size = size.try_into().expect("internal error: this is embarrassing");
+                let size = size.try_into().expect("this is embarrassing");
                 match self.get_llvm_ty(*ty) {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),

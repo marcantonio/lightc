@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 614
-expression: "(test[1], res)"
----
-- "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let c: int = 2\n    }\n    c\n}\n"
-- Err: "Unknown variable: `c`"
-
