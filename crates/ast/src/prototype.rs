@@ -16,6 +16,16 @@ impl Prototype {
         Prototype { name, args, ret_ty }
     }
 
+    pub fn make_fqn(name: &str, args: &[&Type], ret_ty: Option<&Type>) -> String {
+        let args_str = args.iter().fold(String::new(), |mut acc, ty| {
+            acc += format!("{}:{}~", name, ty).as_str();
+            acc
+        });
+        let ret_ty_str = format!("{}", ret_ty.unwrap_or(&Type::Void)).to_ascii_lowercase();
+
+        format!("{}~{}{}", name, args_str, ret_ty_str)
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -41,16 +51,10 @@ impl Prototype {
     }
 }
 
-impl From<Prototype> for Symbol {
-    fn from(proto: Prototype) -> Self {
-        let args_str = proto.args.iter().fold(String::new(), |mut acc, (name, ty)| {
-            acc += format!("{}:{}~", name, ty).as_str();
-            acc
-        });
-        let ret_ty_str = format!("{}", proto.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
-
+impl From<&Prototype> for Symbol {
+    fn from(proto: &Prototype) -> Self {
         Symbol::from((
-            format!("{}~{}{}", proto.name(), args_str, ret_ty_str).as_str(),
+            Prototype::make_fqn(&proto.name, &proto.args.iter().map(|(_, ty)| ty).collect::<Vec<_>>(), proto.ret_ty.as_ref()).as_str(),
             proto.args.as_slice(),
             proto.ret_ty().unwrap_or_default(),
         ))
@@ -119,7 +123,7 @@ mod test {
         ];
 
         for test in tests {
-            assert_eq!(test.1, test.0.into())
+            assert_eq!(test.1, Symbol::from(&test.0))
         }
     }
 }

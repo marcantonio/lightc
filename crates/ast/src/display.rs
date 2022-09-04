@@ -23,9 +23,9 @@ impl Display for Statement {
                 }
                 write!(f, "{}) {} {} {})", s, cond_expr, step_expr, body)
             },
-            Let { name, antn, init } => {
-                let mut s = format!("(let {}:{}", name, antn);
-                if let Some(body) = init {
+            Let(l) => {
+                let mut s = format!("(let {}:{}", l.name, l.antn);
+                if let Some(body) = &l.init {
                     s += &format!(" {}", body);
                 }
                 write!(f, "{})", s)
@@ -34,15 +34,15 @@ impl Display for Statement {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
-            Struct { name, attributes, methods } => {
+            Struct(s) => {
                 let mut attr_string = String::from("");
-                attr_string += &attributes.iter().fold(String::new(), |mut acc, n| {
+                attr_string += &s.fields.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!("{} ", n);
                     acc
                 });
 
                 let mut meth_string = String::from("");
-                meth_string += &methods.iter().fold(String::new(), |mut acc, n| {
+                meth_string += &s.methods.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!("{} ", n);
                     acc
                 });
@@ -50,7 +50,7 @@ impl Display for Statement {
                 write!(
                     f,
                     "(struct {} '({}) '({}))",
-                    name,
+                    s.name,
                     attr_string.strip_suffix(' ').unwrap_or(""),
                     meth_string.strip_suffix(' ').unwrap_or("")
                 )

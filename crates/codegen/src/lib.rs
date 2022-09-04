@@ -195,9 +195,9 @@ impl<'ctx> Codegen<'ctx> {
             For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
                 self.codegen_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)
             },
-            Let { name, antn, init } => self.codegen_let(name, antn, init),
+            Let(l) => self.codegen_let(l),
             Fn { proto, body } => self.codegen_func(*proto, body),
-            Struct { name, attributes, methods } => self.codegen_struct(name, attributes, methods),
+            Struct(s) => self.codegen_struct(s),
         }
     }
 
@@ -222,7 +222,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // Save new symbol with alloca
         let start_sym = CodegenSymbol::from((start_name.as_str(), &start_antn, start_alloca));
-        self.symbol_table.insert(&start_name, start_sym);
+        self.symbol_table.insert(start_sym);
 
         // Create all the blocks
         let cond_bb = self.context.append_basic_block(parent, "for.cond");
@@ -279,20 +279,20 @@ impl<'ctx> Codegen<'ctx> {
         Ok(())
     }
 
-    fn codegen_let(&mut self, name: String, ty: Type, init: Option<Box<Node>>) -> StmtResult<'ctx> {
+    fn codegen_let(&mut self, l: ast::Let) -> StmtResult<'ctx> {
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
             .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
 
-        let init_code = self.codegen_var_init(&ty, init)?;
+        let init_code = self.codegen_var_init(&l.antn, l.init)?;
 
-        let init_alloca = self.create_entry_block_alloca(&name, &ty, &parent);
+        let init_alloca = self.create_entry_block_alloca(&l.name, &l.antn, &parent);
         self.builder.build_store(init_alloca, init_code);
 
-        let sym = CodegenSymbol::from((name.as_str(), &ty, init_alloca));
-        self.symbol_table.insert(&name, sym);
+        let sym = CodegenSymbol::from((l.name.as_str(), &l.antn, init_alloca));
+        self.symbol_table.insert(sym);
 
         Ok(())
     }
@@ -320,7 +320,7 @@ impl<'ctx> Codegen<'ctx> {
             let (name, ty) = &proto.args()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function);
             self.builder.build_store(alloca, arg);
-            self.symbol_table.insert(name, CodegenSymbol::from((name.as_str(), ty, alloca)));
+            self.symbol_table.insert(CodegenSymbol::from((name.as_str(), ty, alloca)));
         }
 
         let body_val = self.codegen_node(*body)?;
@@ -407,17 +407,15 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // XXX: not useful yet
-    fn codegen_struct(
-        &mut self, _name: String, attributes: Vec<Node>, methods: Vec<Node>,
-    ) -> StmtResult<'ctx> {
+    fn codegen_struct(&mut self, s: ast::Struct) -> StmtResult<'ctx> {
         // Drop scope
         //self.scope_table.down_scope();
 
-        for node in attributes {
+        for node in s.fields {
             self.codegen_node(node)?;
         }
 
-        for node in methods {
+        for node in s.methods {
             self.codegen_node(node)?;
         }
 
@@ -680,8 +678,8 @@ impl<'ctx> Codegen<'ctx> {
             (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
             (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::Array(..), None) => {
-                unreachable!("Internal error: void type for init annotation in `codegen_let()`")
+            (Type::Void | Type::Array(..) | Type::Comp(_), None) => {
+                unreachable!("void/invalid type for init annotation in `codegen_let()`")
             },
         };
         init_code.value()
@@ -711,7 +709,7 @@ impl<'ctx> Codegen<'ctx> {
             Type::Float => builder.build_alloca(self.context.f32_type(), name),
             Type::Double => builder.build_alloca(self.context.f64_type(), name),
             Type::Void => {
-                unreachable!("Internal error: void type for stack variable in `create_entry_block_alloca()`")
+                unreachable!("void type for stack variable in `create_entry_block_alloca()`")
             },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
             Type::Array(ty, sz) => {
@@ -727,6 +725,7 @@ impl<'ctx> Codegen<'ctx> {
                     name,
                 )
             },
+            Type::Comp(_) => todo!(),
         }
     }
 
@@ -785,6 +784,7 @@ impl<'ctx> Codegen<'ctx> {
                     _ => todo!(),
                 }
             },
+            Type::Comp(_) => todo!(),
         }
     }
 }

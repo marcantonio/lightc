@@ -182,6 +182,7 @@ pub enum Type {
     Char,
     Void,
     Array(Box<Type>, usize),
+    Comp(String),
 }
 
 impl Default for Type {

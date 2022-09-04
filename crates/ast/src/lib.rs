@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use common::{Operator, Type};
 pub use prototype::Prototype;
+use symbol_table::{symbol, Symbol};
 
 mod display;
 pub mod prototype;
@@ -42,11 +43,11 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn new<F, T>(constructor: F, inner: T) -> Self
+    pub fn new<F, T>(cons: F, inner: T) -> Self
     where
         F: Fn(T) -> Self,
     {
-        (constructor)(inner)
+        (cons)(inner)
     }
 
     pub fn ty(&self) -> Option<Type> {
@@ -56,23 +57,30 @@ impl Node {
         }
     }
 
+    pub fn as_stmt(&self) -> &Statement {
+        match self {
+            Node::Stmt(s) => s,
+            Node::Expr(_) => unreachable!("expected Statement"),
+        }
+    }
+
     pub fn to_expr(self) -> Expression {
         match self {
-            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
+            Node::Stmt(_) => unreachable!("expected Expression"),
             Node::Expr(e) => e,
         }
     }
 
     pub fn as_expr(&self) -> &Expression {
         match self {
-            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
+            Node::Stmt(_) => unreachable!("expected Expression"),
             Node::Expr(e) => e,
         }
     }
 
     pub fn as_expr_mut(&mut self) -> &mut Expression {
         match self {
-            Node::Stmt(_) => unreachable!("Internal error: expected Expression"),
+            Node::Stmt(_) => unreachable!("expected Expression"),
             Node::Expr(e) => e,
         }
     }
@@ -88,20 +96,53 @@ pub enum Statement {
         step_expr: Box<Node>,
         body: Box<Node>,
     },
-    Let {
-        name: String,
-        antn: Type,
-        init: Option<Box<Node>>,
-    },
+    Let(Let),
     Fn {
         proto: Box<Prototype>,
         body: Option<Box<Node>>,
     },
-    Struct {
-        name: String,
-        attributes: Vec<Node>,
-        methods: Vec<Node>,
-    },
+    Struct(Struct),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct Let {
+    pub name: String,
+    pub antn: Type,
+    pub init: Option<Box<Node>>,
+}
+
+impl Statement {
+    pub fn as_let(&self) -> &Let {
+        match self {
+            Statement::Let(l) => l,
+            _ => unreachable!("expected Expression"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct Struct {
+    pub name: String,
+    pub fields: Vec<Node>,
+    pub methods: Vec<Node>,
+}
+
+// For new structs
+impl From<&Struct> for Symbol {
+    fn from(s: &Struct) -> Self {
+        let fields = s
+            .fields
+            .iter()
+            .map(|f| {
+                let let_stmt = f.as_stmt().as_let();
+                (let_stmt.name.to_owned(), let_stmt.antn.to_owned())
+            })
+            .collect();
+        Symbol {
+            name: s.name.to_owned(),
+            data: symbol::AssocData::Struct(symbol::StructData { fields, methods: None }),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

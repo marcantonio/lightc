@@ -1,43 +1,66 @@
+use crate::Symbolic;
 use common::Type;
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum SymbolKind {
-    Var,
-    Fn { args: Vec<(String, Type)>, ret_ty: Type },
+pub struct FnData {
+    args: Vec<(String, Type)>,
+    ret_ty: Type,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct VarData {
+    pub ty: Type,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct StructData {
+    pub fields: Vec<(String, Type)>,
+    pub methods: Option<Vec<String>>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Symbol {
-    name: String,
-    ty: Type,
-    kind: SymbolKind,
+    pub name: String,
+    pub data: AssocData,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum AssocData {
+    Fn(FnData),
+    Var(VarData),
+    Struct(StructData),
 }
 
 impl Symbol {
-    pub fn name(&self) -> &str {
-        &self.name
+    pub fn set_name(&mut self, name: &str) {
+        self.name = name.to_owned();
     }
 
     pub fn ty(&self) -> &Type {
-        &self.ty
-    }
-
-    pub fn kind(&self) -> &SymbolKind {
-        &self.kind
+        match &self.data {
+            AssocData::Var(v) => &v.ty,
+            _ => unreachable!("expected symbol to be a variable"),
+        }
     }
 
     pub fn arg_tys(&self) -> Vec<&Type> {
-        match &self.kind {
-            SymbolKind::Fn { args, .. } => args.iter().map(|(_, ty)| ty).collect(),
-            SymbolKind::Var => unreachable!("expected symbol to be a function"),
+        match &self.data {
+            AssocData::Fn(f) => f.args.iter().map(|(_, ty)| ty).collect(),
+            _ => unreachable!("expected symbol to be a function"),
         }
     }
 
     pub fn ret_ty(&self) -> &Type {
-        match &self.kind {
-            SymbolKind::Fn { ret_ty, .. } => ret_ty,
-            SymbolKind::Var => unreachable!("expected symbol to be a function"),
+        match &self.data {
+            AssocData::Fn(f) => &f.ret_ty,
+            _ => unreachable!("expected symbol to be a function"),
         }
+    }
+}
+
+impl Symbolic for Symbol {
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -46,8 +69,7 @@ impl From<(&str, &[(String, Type)], &Type)> for Symbol {
     fn from((name, args, ret_ty): (&str, &[(String, Type)], &Type)) -> Self {
         Symbol {
             name: name.to_owned(),
-            ty: Type::Void, // TODO: make fn type
-            kind: SymbolKind::Fn { args: args.to_owned(), ret_ty: ret_ty.to_owned() },
+            data: AssocData::Fn(FnData { args: args.to_owned(), ret_ty: ret_ty.to_owned() }),
         }
     }
 }
@@ -55,12 +77,12 @@ impl From<(&str, &[(String, Type)], &Type)> for Symbol {
 // For new variables
 impl From<(&str, &Type)> for Symbol {
     fn from((name, ty): (&str, &Type)) -> Self {
-        Symbol { name: name.to_owned(), ty: ty.to_owned(), kind: SymbolKind::Var }
+        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
     }
 }
 
 impl From<&(String, Type)> for Symbol {
     fn from((name, ty): &(String, Type)) -> Self {
-        Symbol { name: name.to_owned(), ty: ty.to_owned(), kind: SymbolKind::Var }
+        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
     }
 }

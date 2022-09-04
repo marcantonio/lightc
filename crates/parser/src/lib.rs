@@ -69,20 +69,20 @@ impl<'a> Parser<'a> {
 
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start struct block");
 
-        let mut attributes = vec![];
+        let mut fields = vec![];
         let mut methods = vec![];
         while let Some(t) = self.tokens.peek() {
             match &t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Stmt(Statement::Struct {
+                    return Ok(Node::Stmt(Statement::Struct(ast::Struct {
                         name: struct_name.to_owned(),
-                        attributes,
+                        fields,
                         methods,
-                    }));
+                    })));
                 },
                 TokenType::Let => {
-                    attributes.push(self.parse_let()?);
+                    fields.push(self.parse_let()?);
                     self.tokens.next(); // Eat semicolon
                 },
                 TokenType::Fn => {
@@ -130,7 +130,7 @@ impl<'a> Parser<'a> {
 
         let (name, antn, init) = self.parse_var_init("let")?;
 
-        Ok(Node::Stmt(Statement::Let { name, antn, init: init.map(Box::new) }))
+        Ok(Node::Stmt(Statement::Let(ast::Let { name, antn, init: init.map(Box::new) })))
     }
 
     // FnDecl ::= Prototype Block ;

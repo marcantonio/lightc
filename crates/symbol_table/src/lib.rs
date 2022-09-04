@@ -1,8 +1,8 @@
 use std::collections::hash_map::Drain;
 use std::collections::HashMap;
 
-mod symbol;
-pub use symbol::{Symbol, SymbolKind};
+pub mod symbol;
+pub use symbol::Symbol;
 
 /*
  * scope           name     symbol
@@ -12,12 +12,12 @@ pub use symbol::{Symbol, SymbolKind};
  */
 
 #[derive(Debug)]
-pub struct SymbolTable<T> {
+pub struct SymbolTable<T: Symbolic> {
     tables: HashMap<u32, HashMap<String, T>>,
     scope_depth: u32,
 }
 
-impl<T> SymbolTable<T> {
+impl<T: Symbolic> SymbolTable<T> {
     pub fn new() -> Self {
         let mut tables = HashMap::new();
         tables.insert(0, HashMap::new());
@@ -96,14 +96,14 @@ mod test {
 
         // Insert at global scope
         let sym1 = Symbol::from(("foo", &Type::Bool));
-        assert_eq!(st.insert("foo", sym1.clone()), None);
+        assert_eq!(st.insert(sym1.clone()), None);
         // Get from global scope
         assert_eq!(st.get("foo"), Some(&sym1));
 
         // Enter scope and insert dup name
         assert_eq!(st.enter_scope(), 1);
         let sym2 = Symbol::from(("foo", &Type::Int32));
-        assert_eq!(st.insert("foo", sym2.clone()), None);
+        assert_eq!(st.insert(sym2.clone()), None);
         // Get dup from new scope
         assert_eq!(st.get("foo"), Some(&sym2));
 
@@ -114,12 +114,12 @@ mod test {
         assert_eq!(st.get("bar"), None);
         // Insert new symbol at current scope
         let sym3 = Symbol::from(("bar", &Type::Int32));
-        assert_eq!(st.insert("bar", sym3.clone()), None);
+        assert_eq!(st.insert(sym3.clone()), None);
         // Get new symbol from current scope
         assert_eq!(st.get("bar"), Some(&sym3));
         // Overwrite new symbol with dup at and check that the old symbol is returned
         let sym4 = Symbol::from(("bar", &Type::Float));
-        assert_eq!(st.insert("bar", sym4.clone()), Some(sym3));
+        assert_eq!(st.insert(sym4.clone()), Some(sym3));
         // Get dup with new id
         assert_eq!(st.get("bar"), Some(&sym4));
 

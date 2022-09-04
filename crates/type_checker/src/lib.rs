@@ -68,9 +68,9 @@ impl<'a> TypeChecker<'a> {
             For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
                 self.check_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)?
             },
-            Let { name, antn, init } => self.check_let(name, antn, init)?,
+            Let(l) => self.check_let(l)?,
             Fn { proto, body } => self.check_func(*proto, body)?,
-            Struct { attributes, methods, .. } => self.check_struct(attributes, methods)?,
+            Struct(s) => self.check_struct(s)?,
         };
 
         Ok(Node::Stmt(stmt))
@@ -84,7 +84,7 @@ impl<'a> TypeChecker<'a> {
 
         // Insert starting variable
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn).into());
+        self.symbol_table.insert(Symbol::from((start_name.as_str(), &start_antn)));
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -118,10 +118,10 @@ impl<'a> TypeChecker<'a> {
         })
     }
 
-    fn check_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, (name.as_str(), &antn).into());
-        let init_node = self.check_var_init(&name, init, &antn, "let statement")?;
-        Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
+    fn check_let(&mut self, l: ast::Let) -> StmtResult {
+        self.symbol_table.insert(Symbol::from((l.name.as_str(), &l.antn)));
+        let init_node = self.check_var_init(&l.name, l.init, &l.antn, "let statement")?;
+        Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
     }
 
     // Check function definitions. This function also does the proto.
@@ -142,7 +142,7 @@ impl<'a> TypeChecker<'a> {
 
         // Insert args into the local scope table
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg.into());
+            self.symbol_table.insert(Symbol::from(arg));
         }
 
         let body_node = self.check_node(*body, None)?;
@@ -177,7 +177,7 @@ impl<'a> TypeChecker<'a> {
         Ok(Statement::Fn { proto: Box::new(proto), body: Some(Box::new(body_node)) })
     }
 
-    fn check_struct(&mut self, _attributes: Vec<Node>, _methods: Vec<Node>) -> StmtResult {
+    fn check_struct(&mut self, _s: ast::Struct) -> StmtResult {
         // // Drop scope
         // self.symbol_table.down_scope();
 
@@ -193,7 +193,7 @@ impl<'a> TypeChecker<'a> {
         // self.symbol_table.up_scope()?;
 
         // Ok(())
-        todo!()
+        todo!("NOT HERE")
     }
 
     fn check_expr(&mut self, expr: Expression, ty_hint: Option<&Type>) -> Result<Node, String> {
@@ -243,6 +243,7 @@ impl<'a> TypeChecker<'a> {
                     Type::Char => return Err("Literal is an integer in a char context".to_string()),
                     Type::Array(..) => return Err("Literal is an integer in an array context".to_string()),
                     Type::Void => return Err("Literal is an integer in a void context".to_string()),
+                    Type::Comp(_) => return Err("Literal is an integer in a compound context".to_string()),
                 },
                 Float(v) => match hint {
                     Type::Float => convert_num!(v, Float, f32),

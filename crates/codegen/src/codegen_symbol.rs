@@ -2,15 +2,14 @@ use inkwell::values::PointerValue;
 use std::collections::HashMap;
 
 use common::Type;
-use symbol_table::{Symbol, SymbolKind, SymbolTable};
+use symbol_table::symbol::{AssocData, VarData};
+use symbol_table::{Symbol, SymbolTable, Symbolic};
 
 use crate::Codegen;
 
 #[derive(PartialEq, Debug)]
 pub struct CodegenSymbol<'a> {
-    name: String,
-    ty: Type,
-    kind: SymbolKind,
+    inner: Symbol,
     pointer: Option<PointerValue<'a>>,
 }
 
@@ -20,30 +19,27 @@ impl<'a> CodegenSymbol<'a> {
     }
 }
 
+impl<'a> Symbolic for CodegenSymbol<'a> {
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+}
+
 impl<'a> From<(&str, &Type, PointerValue<'a>)> for CodegenSymbol<'a> {
     fn from((name, ty, ptr): (&str, &Type, PointerValue<'a>)) -> Self {
-        CodegenSymbol { name: name.to_owned(), ty: ty.to_owned(), kind: SymbolKind::Var, pointer: Some(ptr) }
+        CodegenSymbol {
+            inner: Symbol {
+                name: name.to_owned(),
+                data: AssocData::Var(VarData { ty: ty.to_owned() }),
+            },
+            pointer: Some(ptr),
+        }
     }
 }
 
 impl<'a> From<Symbol> for CodegenSymbol<'a> {
     fn from(sym: Symbol) -> Self {
-        let name = sym.name();
-        let ty = sym.ty();
-        match sym.kind() {
-            SymbolKind::Fn { args, ret_ty } => CodegenSymbol {
-                name: name.to_owned(),
-                ty: Type::Void,
-                kind: SymbolKind::Fn { args: args.to_owned(), ret_ty: ret_ty.to_owned() },
-                pointer: None,
-            },
-            SymbolKind::Var => CodegenSymbol {
-                name: name.to_owned(),
-                ty: ty.to_owned(),
-                kind: SymbolKind::Var,
-                pointer: None,
-            },
-        }
+        CodegenSymbol { inner: sym, pointer: None }
     }
 }
 

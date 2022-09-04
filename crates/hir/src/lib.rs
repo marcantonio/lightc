@@ -1,6 +1,6 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::{Operator, Type};
-use symbol_table::{Symbol, SymbolTable};
+use symbol_table::{Symbol, SymbolTable, Symbolic};
 
 #[cfg(test)]
 mod tests;
@@ -57,9 +57,9 @@ impl<'a> Hir<'a> {
             For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
                 self.lower_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)?
             },
-            Let { name, antn, init } => self.lower_let(name, antn, init)?,
+            Let(l) => self.lower_let(l)?,
             Fn { proto, body } => self.lower_func(*proto, body)?,
-            Struct { name, attributes, methods } => self.lower_struct(name, attributes, methods)?,
+            Struct(s) => self.lower_struct(s)?,
         };
 
         Ok(Node::Stmt(stmt))
@@ -71,7 +71,7 @@ impl<'a> Hir<'a> {
     ) -> StmtResult {
         // Insert start var
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(&start_name, (start_name.as_str(), &start_antn).into());
+        self.symbol_table.insert(Symbol::from((start_name.as_str(), &start_antn)));
 
         let start_expr = self.lower_var_init(start_expr, &start_antn)?;
         let cond_expr = self.lower_node(cond_expr)?;
@@ -90,10 +90,10 @@ impl<'a> Hir<'a> {
         })
     }
 
-    fn lower_let(&mut self, name: String, antn: Type, init: Option<Box<Node>>) -> StmtResult {
-        self.symbol_table.insert(&name, (name.as_str(), &antn).into());
-        let init_node = self.lower_var_init(init, &antn)?;
-        Ok(Statement::Let { name, antn, init: Some(Box::new(init_node)) })
+    fn lower_let(&mut self, l: ast::Let) -> StmtResult {
+        self.symbol_table.insert(Symbol::from((l.name.as_str(), &l.antn)));
+        let init_node = self.lower_var_init(l.init, &l.antn)?;
+        Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
@@ -107,7 +107,7 @@ impl<'a> Hir<'a> {
         self.symbol_table.enter_scope();
 
         for arg in proto.args() {
-            self.symbol_table.insert(&arg.0, arg.into());
+            self.symbol_table.insert(Symbol::from(arg));
         }
 
         let body_node = body.map(|e| self.lower_node(*e));
@@ -118,17 +118,24 @@ impl<'a> Hir<'a> {
     }
 
     // XXX: struct stuff
-    fn lower_struct(&mut self, name: String, attributes: Vec<Node>, methods: Vec<Node>) -> StmtResult {
+    fn lower_struct(&mut self, s: ast::Struct) -> StmtResult {
+        // TODO: check for global scope
+        dbg!(&s);
+
+        if self.symbol_table.insert(Symbol::from(&s)).is_some() {
+            return Err(format!("Struct `{}` can't be redefined", s.name));
+        }
+
         let mut lowered_attrs = vec![];
-        for node in attributes {
+        for node in s.fields {
             lowered_attrs.push(self.lower_node(node)?);
         }
 
         let mut lowered_meths = vec![];
-        for node in methods {
+        for node in s.methods {
             lowered_meths.push(self.lower_node(node)?);
         }
-        Ok(Statement::Struct { name, attributes: lowered_attrs, methods: lowered_meths })
+        Ok(Statement::Struct(ast::Struct { name: s.name, fields: lowered_attrs, methods: lowered_meths }))
     }
 
     fn lower_expr(&mut self, expr: Expression) -> Result<Node, String> {
@@ -262,6 +269,7 @@ impl<'a> Hir<'a> {
                 Bool => ast::make_literal!(Bool, false),
                 Array(ty, len) => ast::make_literal!(Array, ty.clone(), *len),
                 Void => unreachable!("void type for variable initialization annotation"),
+                Comp(_) => todo!(),
             };
             Node::new(Node::Expr, literal)
         };
