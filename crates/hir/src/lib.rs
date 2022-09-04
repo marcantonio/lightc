@@ -1,6 +1,6 @@
 use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
 use common::{Operator, Type};
-use symbol_table::{Symbol, SymbolTable, Symbolic};
+use symbol_table::{Symbol, SymbolTable};
 
 #[cfg(test)]
 mod tests;
@@ -97,7 +97,7 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        if self.symbol_table.insert(proto.name(), proto.clone().into()).is_some() {
+        if self.symbol_table.insert(Symbol::from(&proto)).is_some() {
             return Err(format!("Function `{}` can't be redefined", proto.name()));
         }
 

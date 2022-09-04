@@ -54,7 +54,8 @@ impl Prototype {
 impl From<&Prototype> for Symbol {
     fn from(proto: &Prototype) -> Self {
         Symbol::from((
-            Prototype::make_fqn(&proto.name, &proto.args.iter().map(|(_, ty)| ty).collect::<Vec<_>>(), proto.ret_ty.as_ref()).as_str(),
+            //Prototype::make_fqn(&proto.name, &proto.args.iter().map(|(_, ty)| ty).collect::<Vec<_>>(), proto.ret_ty.as_ref()).as_str(),
+            proto.name.as_str(),
             proto.args.as_slice(),
             proto.ret_ty().unwrap_or_default(),
         ))

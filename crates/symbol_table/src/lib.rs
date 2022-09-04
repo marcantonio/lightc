@@ -30,11 +30,11 @@ impl<T: Symbolic> SymbolTable<T> {
         SymbolTable { tables, scope_depth: 0 }
     }
 
-    pub fn insert(&mut self, name: &str, sym: T) -> Option<T> {
+    pub fn insert(&mut self, sym: T) -> Option<T> {
         self.tables
             .get_mut(&self.scope_depth)
             .unwrap_or_else(|| unreachable!("insert at unknown depth"))
-            .insert(name.to_owned(), sym)
+            .insert(sym.name().to_owned(), sym)
     }
 
     pub fn get(&self, name: &str) -> Option<&T> {
@@ -76,10 +76,14 @@ impl<T: Symbolic> SymbolTable<T> {
     }
 }
 
-impl<T> Default for SymbolTable<T> {
+impl<T: Symbolic> Default for SymbolTable<T> {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub trait Symbolic {
+    fn name(&self) -> &str;
 }
 
 #[cfg(test)]
