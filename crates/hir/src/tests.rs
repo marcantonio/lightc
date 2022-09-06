@@ -35,3 +35,86 @@ fn main() {
     ]];
     run_insta!("binop", tests);
 }
+
+#[test]
+fn test_func_call() {
+    let tests = [
+        [
+            "def_first",
+            r#"
+fn foo() {}
+
+fn main() {
+    foo()
+}
+"#,
+        ],
+        [
+            "def_second",
+            r#"
+fn main() {
+    foo()
+}
+
+fn foo() {}
+"#,
+        ],
+        [
+            "mix1",
+            r#"
+fn main() {
+    foo()
+}
+
+fn foo() {}
+
+fn bar() {
+    foo()
+}
+"#,
+        ],
+        [
+            "mix2",
+            r#"
+fn main() {
+    foo()
+    foo()
+}
+
+fn foo() {}
+
+fn bar() {
+    foo()
+}
+"#,
+        ],
+        [
+            "mix3",
+            r#"
+fn main() {
+    foo()
+}
+
+fn foo() {}
+
+fn bar() {
+    foo()
+    foo()
+}
+"#,
+        ],
+        [
+            "recursive",
+            r#"
+fn foo() {
+    foo()
+}
+
+fn main() {
+    foo()
+}
+"#,
+        ],
+    ];
+    run_insta!("func_call", tests);
+}

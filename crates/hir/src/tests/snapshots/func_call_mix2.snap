@@ -1,0 +1,60 @@
+---
+source: crates/hir/src/tests.rs
+assertion_line: 119
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    foo()\n    foo()\n}\n\nfn foo() {}\n\nfn bar() {\n    foo()\n}\n"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: _main~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                    - Expr:
+                        Call:
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                  ty: Void
+      - Stmt:
+          Fn:
+            proto:
+              name: _foo~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              Expr:
+                Block:
+                  list: []
+                  ty: Void
+      - Stmt:
+          Fn:
+            proto:
+              name: _bar~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                  ty: Void
+

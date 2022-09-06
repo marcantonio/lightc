@@ -1,27 +1,15 @@
 ---
-source: crates/type_checker/src/tests.rs
-assertion_line: 369
+source: crates/hir/src/tests.rs
+assertion_line: 119
 expression: "(test[1], res)"
 ---
-- "\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
+- "\nfn foo() {\n    foo()\n}\n\nfn main() {\n    foo()\n}\n"
 - Ok:
     nodes:
       - Stmt:
           Fn:
             proto:
-              name: bar
-              args: []
-              ret_ty: Void
-              is_extern: false
-            body:
-              Expr:
-                Block:
-                  list: []
-                  ty: Void
-      - Stmt:
-          Fn:
-            proto:
-              name: foo
+              name: _foo~void
               args: []
               ret_ty: Void
               is_extern: false
@@ -31,7 +19,24 @@ expression: "(test[1], res)"
                   list:
                     - Expr:
                         Call:
-                          name: bar
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                  ty: Void
+      - Stmt:
+          Fn:
+            proto:
+              name: _main~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Call:
+                          name: _foo~void
                           args: []
                           ty: Void
                   ty: Void

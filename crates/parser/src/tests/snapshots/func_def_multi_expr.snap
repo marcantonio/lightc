@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 154
+assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n    b + a\n}\n"
@@ -16,6 +16,7 @@ expression: "(test[1], ast, ast_string)"
                 - - c
                   - Int32
               ret_ty: Int32
+              is_extern: false
             body:
               Expr:
                 Block:

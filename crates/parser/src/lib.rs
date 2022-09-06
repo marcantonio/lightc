@@ -141,16 +141,14 @@ impl<'a> Parser<'a> {
         let token = self.tokens.next().unwrap();
 
         let proto = self.parse_proto()?;
-        // Use the old name until later lowering
+
+        // Create symbol table entry. Use the old name as the key until later lowering.
         if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
             return Err(ParseError::from((format!("Function `{}` can't be redefined", proto.name()), token)));
         }
 
-        // If the next token is a ';', this was an extern
-        let body = match &self.tokens.peek() {
-            Some(Token { tt: TokenType::Semicolon(..), .. }) => None,
-            _ => Some(Box::new(self.parse_block()?)),
-        };
+        // No body for externs
+        let body = if proto.is_extern() { None } else { Some(Box::new(self.parse_block()?)) };
 
         Ok(Node::Stmt(Statement::Fn { proto: Box::new(proto), body }))
     }
@@ -482,7 +480,10 @@ impl<'a> Parser<'a> {
             };
         }
 
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type))
+        // If the next token is a ';', this is an extern
+        let is_extern = matches!(&self.tokens.peek(), Some(Token { tt: TokenType::Semicolon(..), .. }));
+
+        Ok(Prototype::new(fn_name.to_string(), args, ret_type, is_extern))
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;

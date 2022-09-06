@@ -14,6 +14,10 @@ pub struct CodegenSymbol<'a> {
 }
 
 impl<'a> CodegenSymbol<'a> {
+    pub fn inner(&self) -> &Symbol {
+        &self.inner
+    }
+
     pub fn pointer(&self) -> Option<PointerValue<'a>> {
         self.pointer
     }

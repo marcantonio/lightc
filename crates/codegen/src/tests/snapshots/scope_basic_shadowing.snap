@@ -4,6 +4,6 @@ assertion_line: 332
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\nfn main() { foo(3) }\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @foo(i32 %a) {\nentry:\n  %b2 = alloca i1, align 1\n  %b = alloca i32, align 4\n  %a1 = alloca i32, align 4\n  store i32 %a, i32* %a1, align 4\n  store i32 1, i32* %b, align 4\n  store i1 false, i1* %b2, align 1\n  %b3 = load i32, i32* %b, align 4\n  ret i32 %b3\n}\n\ndefine void @main() {\nentry:\n  %call_foo = call i32 @foo(i32 3)\n  ret void\n}\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @foo(i32 %a) {\nentry:\n  ret i32 1\n}\n\ndefine void @main() {\nentry:\n  %call_foo = call i32 @foo(i32 3)\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @\"_foo~int32~int32\"(i32 %a) {\nentry:\n  %b2 = alloca i1, align 1\n  %b = alloca i32, align 4\n  %a1 = alloca i32, align 4\n  store i32 %a, i32* %a1, align 4\n  store i32 1, i32* %b, align 4\n  store i1 false, i1* %b2, align 1\n  %b3 = load i32, i32* %b, align 4\n  ret i32 %b3\n}\n\ndefine void @main() {\nentry:\n  %\"call__foo~int32~int32\" = call i32 @\"_foo~int32~int32\"(i32 3)\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine i32 @\"_foo~int32~int32\"(i32 %a) {\nentry:\n  ret i32 1\n}\n\ndefine void @main() {\nentry:\n  %\"call__foo~int32~int32\" = call i32 @\"_foo~int32~int32\"(i32 3)\n  ret void\n}\n"
 

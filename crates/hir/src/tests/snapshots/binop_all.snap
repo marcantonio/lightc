@@ -9,9 +9,10 @@ expression: "(test[1], res)"
       - Stmt:
           Fn:
             proto:
-              name: main
+              name: _main~void
               args: []
               ret_ty: Void
+              is_extern: false
             body:
               Expr:
                 Block:

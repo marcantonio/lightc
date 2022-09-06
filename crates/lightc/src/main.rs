@@ -76,7 +76,7 @@ fn main() {
 
     // Codegen
     let module_file = Codegen::run_pass(hir, &module_name, symbol_table, build_dir, &args, false)
-        .unwrap_or_else(|_| panic!("Error compiling `{}`", args.file.display()))
+        .unwrap_or_else(|e| panic!("Error compiling `{}`: {}", args.file.display(), e))
         .as_file_path();
 
     // If we just want the object file, copy it up to the root and exit

@@ -298,8 +298,12 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn codegen_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult<'ctx> {
-        // Creates interstitial scope for the arguments in the function definition
-        self.symbol_table.enter_scope();
+        let sym = self
+            .symbol_table
+            .get(proto.name())
+            .unwrap_or_else(|| unreachable!("missing symbol in `codegen_func()` for `{}`", proto.name()))
+            .inner()
+            .clone();
 
         let function = self.codegen_proto(&proto)?;
 
@@ -308,6 +312,9 @@ impl<'ctx> Codegen<'ctx> {
             Some(body) => body,
             None => return Ok(()),
         };
+
+        // Creates interstitial scope for the arguments in the function definition
+        self.symbol_table.enter_scope();
 
         // Create new block for function
         let bb = self.context.append_basic_block(function, "entry");
@@ -337,8 +344,7 @@ impl<'ctx> Codegen<'ctx> {
         self.symbol_table.leave_scope();
 
         // Identify main
-        let func_name = function.get_name().to_str().unwrap();
-        if func_name == "main" {
+        if function.get_name().to_str().unwrap() == "main" {
             self.main = Some(function);
         }
 
@@ -357,7 +363,7 @@ impl<'ctx> Codegen<'ctx> {
                 // unsafe {
                 //     function.delete();
                 // }
-                return Err(format!("Error compiling: {}", func_name));
+                return Err(format!("Error compiling: {}", sym.name));
             }
         }
         Ok(())
@@ -394,9 +400,15 @@ impl<'ctx> Codegen<'ctx> {
             ),
         };
 
-        // Add function to current module's symbold table. Defaults to external
+        // Stick with 'main' for main()
+        let fn_name = match proto.name() {
+            name if name.starts_with("_main~") => "main",
+            name => name,
+        };
+
+        // Add function to current module's symbol table. Defaults to external
         // linkage with None.
-        let func = self.module.add_function(proto.name(), func_type, None);
+        let func = self.module.add_function(fn_name, func_type, None);
 
         // Name all args
         func.get_param_iter().enumerate().for_each(|(i, arg)| {

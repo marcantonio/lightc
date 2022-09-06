@@ -3,8 +3,9 @@ use common::Type;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct FnData {
-    args: Vec<(String, Type)>,
+    args: Vec<Type>,
     ret_ty: Type,
+    is_extern: bool,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -45,7 +46,7 @@ impl Symbol {
 
     pub fn arg_tys(&self) -> Vec<&Type> {
         match &self.data {
-            AssocData::Fn(f) => f.args.iter().map(|(_, ty)| ty).collect(),
+            AssocData::Fn(f) => f.args.iter().collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
@@ -53,6 +54,13 @@ impl Symbol {
     pub fn ret_ty(&self) -> &Type {
         match &self.data {
             AssocData::Fn(f) => &f.ret_ty,
+            _ => unreachable!("expected symbol to be a function"),
+        }
+    }
+
+    pub fn is_extern(&self) -> bool {
+        match &self.data {
+            AssocData::Fn(f) => f.is_extern,
             _ => unreachable!("expected symbol to be a function"),
         }
     }
@@ -65,11 +73,11 @@ impl Symbolic for Symbol {
 }
 
 // For new functions
-impl From<(&str, &[(String, Type)], &Type)> for Symbol {
-    fn from((name, args, ret_ty): (&str, &[(String, Type)], &Type)) -> Self {
+impl From<(&str, &[Type], &Type, bool)> for Symbol {
+    fn from((name, args, ret_ty, is_extern): (&str, &[Type], &Type, bool)) -> Self {
         Symbol {
             name: name.to_owned(),
-            data: AssocData::Fn(FnData { args: args.to_owned(), ret_ty: ret_ty.to_owned() }),
+            data: AssocData::Fn(FnData { args: args.to_owned(), ret_ty: ret_ty.to_owned(), is_extern }),
         }
     }
 }

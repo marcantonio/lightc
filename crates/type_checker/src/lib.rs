@@ -131,14 +131,14 @@ impl<'a> TypeChecker<'a> {
             None => unreachable!("missing symbol table entry for function: {}", proto.name()),
         };
 
-        // Creates interstitial scope for the arguments in the function definition
-        self.symbol_table.enter_scope();
-
         // If body is None, this is an extern and no checking is needed
         let body = match body {
             Some(body) => body,
             None => return Ok(Statement::Fn { proto: Box::new(proto), body }),
         };
+
+        // Creates interstitial scope for the arguments in the function definition
+        self.symbol_table.enter_scope();
 
         // Insert args into the local scope table
         for arg in proto.args() {
@@ -313,7 +313,6 @@ impl<'a> TypeChecker<'a> {
     fn check_ident(&self, name: String) -> ExprResult {
         let ident_ty =
             self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?.ty().clone();
-        dbg!(&ident_ty);
         Ok(Expression::Ident { name, ty: Some(ident_ty) })
     }
 

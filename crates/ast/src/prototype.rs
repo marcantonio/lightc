@@ -9,11 +9,12 @@ pub struct Prototype {
     name: String,
     args: Vec<(String, Type)>,
     ret_ty: Option<Type>,
+    is_extern: bool,
 }
 
 impl Prototype {
-    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Option<Type>) -> Prototype {
-        Prototype { name, args, ret_ty }
+    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Option<Type>, is_extern: bool) -> Prototype {
+        Prototype { name, args, ret_ty, is_extern }
     }
 
     pub fn name(&self) -> &str {
@@ -39,20 +40,26 @@ impl Prototype {
     pub fn set_ret_ty(&mut self, ret_ty: Option<&Type>) {
         self.ret_ty = ret_ty.map(Type::to_owned);
     }
+
+    pub fn is_extern(&self) -> bool {
+        self.is_extern
+    }
 }
 
 impl From<&Prototype> for Symbol {
     fn from(proto: &Prototype) -> Self {
-        let args_string = proto.args.iter().fold(String::new(), |mut acc, (_, ty)| {
+        let args = proto.args.iter().map(|(_, ty)| ty).cloned().collect::<Vec<_>>();
+        let args_string = args.iter().fold(String::new(), |mut acc, ty| {
             acc += format!("{}~", ty).as_str();
             acc
         });
         let ret_ty_string = format!("{}", proto.ret_ty.as_ref().unwrap_or(&Type::Void)).to_ascii_lowercase();
 
         Symbol::from((
-            format!("{}~{}{}", proto.name, args_string, ret_ty_string).as_str(),
-            proto.args.clone().as_slice(),
+            format!("_{}~{}{}", proto.name, args_string, ret_ty_string).as_str(),
+            args.as_slice(),
             proto.ret_ty.as_ref().unwrap_or_default(),
+            proto.is_extern,
         ))
     }
 }
@@ -85,36 +92,31 @@ mod test {
                     name: String::from("foo"),
                     args: vec![(String::from("bar"), Int32)],
                     ret_ty: Some(Float),
+                    is_extern: false,
                 },
-                Symbol::from(("foo~int32~float", vec![(String::from("bar"), Int32)].as_slice(), &Float)),
+                Symbol::from(("_foo~int32~float", vec![Int32].as_slice(), &Float, false)),
             ),
             (
                 Prototype {
                     name: String::from("foo"),
                     args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     ret_ty: Some(Float),
+                    is_extern: false,
                 },
-                Symbol::from((
-                    "foo~int32~int32~float",
-                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)].as_slice(),
-                    &Float,
-                )),
+                Symbol::from(("_foo~int32~int32~float", vec![Int32, Int32].as_slice(), &Float, false)),
             ),
             (
                 Prototype {
                     name: String::from("foo"),
                     args: vec![(String::from("bar"), Int32), (String::from("baz"), Int32)],
                     ret_ty: None,
+                    is_extern: false,
                 },
-                Symbol::from((
-                    "foo~int32~int32~void",
-                    vec![(String::from("bar"), Int32), (String::from("baz"), Int32)].as_slice(),
-                    &Void,
-                )),
+                Symbol::from(("_foo~int32~int32~void", vec![Int32, Int32].as_slice(), &Void, false)),
             ),
             (
-                Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float) },
-                Symbol::from(("foo~float", vec![].as_slice(), &Float)),
+                Prototype { name: String::from("foo"), args: vec![], ret_ty: Some(Float), is_extern: false },
+                Symbol::from(("_foo~float", vec![].as_slice(), &Float, false)),
             ),
         ];
 

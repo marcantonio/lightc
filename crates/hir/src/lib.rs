@@ -1,12 +1,13 @@
 use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
 use common::{Operator, Type};
-use symbol_table::{Symbol, SymbolTable};
+use symbol_table::{Symbol, SymbolTable, Symbolic};
 
 #[cfg(test)]
 mod tests;
 
 // Performs the following:
 // - desugars x += 1 to x = x + 1
+// - cooks function names in the AST and symbol table
 // - tracks scope (needed?)
 
 type StmtResult = Result<Statement, String>;
@@ -95,7 +96,20 @@ impl<'a> Hir<'a> {
         Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
     }
 
-    fn lower_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+    fn lower_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+        // Insert a duplicate of the symbol. The new one will have the lowered
+        // name. Update the AST as well. Skip for externs.
+        let sym = self
+            .symbol_table
+            .get(proto.name())
+            .cloned()
+            .unwrap_or_else(|| unreachable!("missing symbol in `lower_func()` for `{}`", proto.name()));
+
+        if !sym.is_extern() {
+            proto.set_name(sym.name().to_owned());
+            self.symbol_table.insert(sym);
+        }
+
         // This creates an interstitial scope for the arguments in the function definition
         // because lower_block() will also create a new scope. Shouldn't be a practical
         // issue.
@@ -201,11 +215,23 @@ impl<'a> Hir<'a> {
     }
 
     fn lower_call(&mut self, name: String, args: Vec<Node>, ty: Option<Type>) -> ExprResult {
+        let sym = self
+            .symbol_table
+            .get(&name)
+            .unwrap_or_else(|| unreachable!("missing symbol in `lower_call()` for `{}`", name));
+
+        // Update the AST with the lowered name if it hasn't been done already and it's
+        // not an extern call
+        let lowered_name = match sym.name() {
+            sym_name if !sym.is_extern() && sym_name != name => sym_name.to_owned(),
+            _ => name,
+        };
+
         let mut lowered_args = vec![];
         for node in args {
             lowered_args.push(self.lower_node(node)?);
         }
-        Ok(Expression::Call { name, args: lowered_args, ty })
+        Ok(Expression::Call { name: lowered_name, args: lowered_args, ty })
     }
 
     fn lower_cond(

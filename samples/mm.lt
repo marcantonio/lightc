@@ -1,4 +1,4 @@
-extern putchar(x: int)
+extern fn putchar(x: int)
 
 fn printDot() {
     putchar(46)

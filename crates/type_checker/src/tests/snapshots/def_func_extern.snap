@@ -1,6 +1,6 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 358
+assertion_line: 369
 expression: "(test[1], res)"
 ---
 - "\nextern fn foo()\n"
@@ -12,5 +12,6 @@ expression: "(test[1], res)"
               name: foo
               args: []
               ret_ty: ~
+              is_extern: true
             body: ~
 

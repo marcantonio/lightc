@@ -12,6 +12,7 @@ expression: "(test[1], res)"
               name: foo
               args: []
               ret_ty: Bool
+              is_extern: false
             body:
               Expr:
                 Block:
