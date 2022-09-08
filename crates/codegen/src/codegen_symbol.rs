@@ -1,3 +1,4 @@
+use ast::Prototype;
 use inkwell::values::PointerValue;
 use std::collections::HashMap;
 
@@ -44,11 +45,30 @@ impl<'a> From<Symbol> for CodegenSymbol<'a> {
     }
 }
 
+impl<'a> From<&CodegenSymbol<'a>> for Prototype {
+    fn from(sym: &CodegenSymbol) -> Self {
+        let sym = &sym.inner;
+        Prototype::new(
+            sym.name().to_owned(),
+            sym.args()
+                .iter()
+                .map(|(n, ty)| ((*n).to_owned(), (*ty).to_owned()))
+                .collect::<Vec<(String, Type)>>(),
+            Some(sym.ret_ty().to_owned()),
+            sym.is_extern(),
+        )
+    }
+}
+
 impl<'ctx> Codegen<'ctx> {
     pub fn convert_table(mut old: SymbolTable<Symbol>) -> Result<SymbolTable<CodegenSymbol<'ctx>>, String> {
         let symbols = old.dump_table(0)?;
         let mut table = HashMap::with_capacity(symbols.len());
-        symbols.for_each(|(k, v)| {
+        // Filter takes advantage of a side-effect that will probably bite us. If the key
+        // name doesn't match the symbol, it's because the symbol is from before the HIR
+        // was constructed. Filtering them out is important since we now call
+        // codegen_proto() on the symbol table.
+        symbols.filter(|(name, sym)| name == &sym.name).for_each(|(k, v)| {
             table.insert(k, CodegenSymbol::from(v));
         });
         Ok(SymbolTable::with_table(table))

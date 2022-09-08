@@ -363,3 +363,28 @@ fn main() {
     ]];
     run_insta!("array", tests);
 }
+
+#[test]
+fn test_order() {
+    let tests = [
+        [
+            "a",
+            r#"
+fn foo() {}
+fn main() {
+    foo()
+}
+"#,
+        ],
+        [
+            "b",
+            r#"
+fn main() {
+    foo()
+}
+fn foo() {}
+"#,
+        ],
+    ];
+    run_insta!("order", tests);
+}

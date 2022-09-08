@@ -1,4 +1,4 @@
-use std::collections::hash_map::Drain;
+use std::collections::hash_map::{Drain, Keys};
 use std::collections::HashMap;
 
 pub mod symbol;
@@ -80,6 +80,10 @@ impl<T: Symbolic> SymbolTable<T> {
     pub fn dump_table(&mut self, scope: u32) -> Result<Drain<String, T>, String> {
         let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
         Ok(table.drain())
+    }
+
+    pub fn global_keys(&self) -> Keys<String, T> {
+        self.tables.get(&0).unwrap_or_else(|| unreachable!("no global scope in symbol table")).keys()
     }
 }
 

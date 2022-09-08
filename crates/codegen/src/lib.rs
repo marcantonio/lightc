@@ -94,6 +94,7 @@ impl<'ctx> Codegen<'ctx> {
             require_main: !args.compile_only,
         };
 
+        codegen.insert_prototypes()?;
         codegen.walk(hir)?;
 
         // This flag is just for the test suite
@@ -305,7 +306,13 @@ impl<'ctx> Codegen<'ctx> {
             .inner()
             .clone();
 
-        let function = self.codegen_proto(&proto)?;
+        // Rather than call codegen_proto() here, we do it early in
+        // insert_prototypes(). This ensures we can codegen a call before the
+        // codegen_func() is called.
+        let function = self
+            .module
+            .get_function(proto.name())
+            .unwrap_or_else(|| unreachable!("missing function `{}` in module table", proto.name()));
 
         // If body is None assume call is an extern
         let body = match body {
@@ -400,15 +407,9 @@ impl<'ctx> Codegen<'ctx> {
             ),
         };
 
-        // Stick with 'main' for main()
-        let fn_name = match proto.name() {
-            name if name.starts_with("_main~") => "main",
-            name => name,
-        };
-
         // Add function to current module's symbol table. Defaults to external
         // linkage with None.
-        let func = self.module.add_function(fn_name, func_type, None);
+        let func = self.module.add_function(proto.name(), func_type, None);
 
         // Name all args
         func.get_param_iter().enumerate().for_each(|(i, arg)| {
@@ -794,6 +795,17 @@ impl<'ctx> Codegen<'ctx> {
             },
             Type::Comp(_) => todo!(),
         }
+    }
+
+    // Codegen all prototypes outside of the AST to ensure that call order doesn't matter
+    fn insert_prototypes(&self) -> Result<(), String> {
+        let mut keys = self.symbol_table.global_keys().collect::<Vec<_>>();
+        keys.sort();
+        for key in keys {
+            let sym = self.symbol_table.get(key).unwrap();
+            self.codegen_proto(&sym.into())?;
+        }
+        Ok(())
     }
 }
 

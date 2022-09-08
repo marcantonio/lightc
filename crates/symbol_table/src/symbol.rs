@@ -3,7 +3,7 @@ use common::Type;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct FnData {
-    args: Vec<Type>,
+    args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
 }
@@ -44,9 +44,16 @@ impl Symbol {
         }
     }
 
+    pub fn args(&self) -> Vec<(&str, &Type)> {
+        match &self.data {
+            AssocData::Fn(f) => f.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
+            _ => unreachable!("expected symbol to be a function"),
+        }
+    }
+
     pub fn arg_tys(&self) -> Vec<&Type> {
         match &self.data {
-            AssocData::Fn(f) => f.args.iter().collect(),
+            AssocData::Fn(f) => f.args.iter().map(|(_, ty)| ty).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
@@ -73,8 +80,8 @@ impl Symbolic for Symbol {
 }
 
 // For new functions
-impl From<(&str, &[Type], &Type, bool)> for Symbol {
-    fn from((name, args, ret_ty, is_extern): (&str, &[Type], &Type, bool)) -> Self {
+impl From<(&str, &[(String, Type)], &Type, bool)> for Symbol {
+    fn from((name, args, ret_ty, is_extern): (&str, &[(String, Type)], &Type, bool)) -> Self {
         Symbol {
             name: name.to_owned(),
             data: AssocData::Fn(FnData { args: args.to_owned(), ret_ty: ret_ty.to_owned(), is_extern }),

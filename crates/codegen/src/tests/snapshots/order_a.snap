@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 389
+expression: "(test[1], res, res_opt)"
+---
+- "\nfn foo() {}\nfn main() {\n    foo()\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @\"_foo~void\"() {\nentry:\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_foo~void\"()\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @\"_foo~void\"() {\nentry:\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_foo~void\"()\n  ret void\n}\n"
+
