@@ -1,11 +1,15 @@
+use std::fmt::Display;
+
 use serde::Serialize;
 
-use common::{Operator, Type};
-pub use prototype::Prototype;
-use symbol_table::{symbol, Symbol};
+use common::Type;
 
-mod display;
 pub mod prototype;
+pub use prototype::Prototype;
+pub mod stmt;
+pub use stmt::*;
+pub mod expr;
+pub use expr::*;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Ast<T> {
@@ -45,7 +49,7 @@ pub enum Node {
 impl Node {
     pub fn new<F, T>(cons: F, inner: T) -> Self
     where
-        F: Fn(T) -> Self,
+        F: core::ops::Fn(T) -> Self,
     {
         (cons)(inner)
     }
@@ -86,143 +90,13 @@ impl Node {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Statement {
-    For {
-        start_name: String, // TODO: make this a Statement::Let
-        start_antn: Type,
-        start_expr: Option<Box<Node>>,
-        cond_expr: Box<Node>,
-        step_expr: Box<Node>,
-        body: Box<Node>,
-    },
-    Let(Let),
-    Fn {
-        proto: Box<Prototype>,
-        body: Option<Box<Node>>,
-    },
-    Struct(Struct),
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Let {
-    pub name: String,
-    pub antn: Type,
-    pub init: Option<Box<Node>>,
-}
-
-impl Statement {
-    pub fn as_let(&self) -> &Let {
+impl Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::Let(l) => l,
-            _ => unreachable!("expected Expression"),
+            Node::Stmt(stmt) => write!(f, "{}", stmt),
+            Node::Expr(expr) => write!(f, "{}", expr),
         }
     }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Struct {
-    pub name: String,
-    pub fields: Vec<Node>,
-    pub methods: Vec<Node>,
-}
-
-// For new structs
-impl From<&Struct> for Symbol {
-    fn from(s: &Struct) -> Self {
-        let fields = s
-            .fields
-            .iter()
-            .map(|f| {
-                let let_stmt = f.as_stmt().as_let();
-                (let_stmt.name.to_owned(), let_stmt.antn.to_owned())
-            })
-            .collect();
-        Symbol {
-            name: s.name.to_owned(),
-            data: symbol::AssocData::Struct(symbol::StructData { fields, methods: None }),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Expression {
-    Lit { value: Literal, ty: Option<Type> },
-    Ident { name: String, ty: Option<Type> },
-    BinOp { op: Operator, lhs: Box<Node>, rhs: Box<Node>, ty: Option<Type> },
-    UnOp { op: Operator, rhs: Box<Node>, ty: Option<Type> },
-    Call { name: String, args: Vec<Node>, ty: Option<Type> },
-    Cond { cond_expr: Box<Node>, then_block: Box<Node>, else_block: Option<Box<Node>>, ty: Option<Type> },
-    Block { list: Vec<Node>, ty: Option<Type> },
-    Index { binding: Box<Node>, idx: Box<Node>, ty: Option<Type> },
-}
-
-impl Expression {
-    pub fn ty(&self) -> Option<Type> {
-        use Expression::*;
-
-        match self {
-            Lit { ty, .. } => ty,
-            Ident { ty, .. } => ty,
-            BinOp { ty, .. } => ty,
-            UnOp { ty, .. } => ty,
-            Call { ty, .. } => ty,
-            Cond { ty, .. } => ty,
-            Block { ty, .. } => ty,
-            Index { ty, .. } => ty,
-        }
-        .clone()
-    }
-
-    pub fn is_num_literal(&self) -> bool {
-        matches!(
-            self,
-            Expression::Lit {
-                value: Literal::Int8(_)
-                    | Literal::Int16(_)
-                    | Literal::Int32(_)
-                    | Literal::Int64(_)
-                    | Literal::UInt8(_)
-                    | Literal::UInt16(_)
-                    | Literal::UInt32(_)
-                    | Literal::UInt64(_)
-                    | Literal::Float(_)
-                    | Literal::Double(_),
-                ..
-            }
-        )
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Literal {
-    Int8(i8),
-    Int16(i16),
-    Int32(i32),
-    Int64(i64),
-    UInt8(u8),
-    UInt16(u16),
-    UInt32(u32),
-    UInt64(u64),
-    Float(f32),
-    Double(f64),
-    Bool(bool),
-    Char(u8),
-    Array { elements: Vec<Node>, inner_ty: Option<Type> },
-}
-
-#[macro_export]
-macro_rules! make_literal {
-    (Array, $ty:expr, $len:expr) => {
-        Expression::Lit {
-            value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty) },
-            ty: Some(Type::Array(Box::new(*$ty), $len)),
-        }
-    };
-
-    ($ty:tt, $val:expr) => {
-        Expression::Lit { value: Literal::$ty($val), ty: Some(Type::$ty) }
-    };
 }
 
 // Immutable visitor interface

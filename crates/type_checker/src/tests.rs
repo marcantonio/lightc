@@ -829,7 +829,7 @@ fn test_tyc_int_no_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc.check_lit(lit.0, None).map(|e| e.ty().unwrap_or_default());
+        let res = tc.check_lit(ast::Lit { value: lit.0, ty: None }, None).map(|e| e.ty().unwrap_or_default());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
     }
 }
@@ -869,7 +869,9 @@ fn test_tyc_int_with_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc.check_lit(lit.0, Some(&lit.1)).map(|e| e.ty().unwrap_or_default());
+        let res = tc
+            .check_lit(ast::Lit { value: lit.0, ty: None }, Some(&lit.1))
+            .map(|e| e.ty().unwrap_or_default());
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
     }
 }
@@ -881,17 +883,21 @@ macro_rules! test_lit_hint_binop_int {
         let mut st = SymbolTable::new();
         st.insert(Symbol::from(("x", &$variant)));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
-        let rhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
-        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
+        let lhs = Node::Expr(Expression::Ident(ast::Ident { name: String::from("x"), ty: None }));
+        let rhs = Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(3), ty: None }));
+        let res = tc
+            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
         st.insert(Symbol::from(("x", &$variant)));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = Node::Expr(Expression::Lit { value: Literal::UInt64(3), ty: None });
-        let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
-        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
+        let lhs = Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(3), ty: None }));
+        let rhs = Node::Expr(Expression::Ident(ast::Ident { name: String::from("x"), ty: None }));
+        let res = tc
+            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};
 }
@@ -903,17 +909,21 @@ macro_rules! test_lit_hint_binop_float {
         let mut st = SymbolTable::new();
         st.insert(Symbol::from(("x", &$variant)));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
-        let rhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
-        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
+        let lhs = Node::Expr(Expression::Ident(ast::Ident { name: String::from("x"), ty: None }));
+        let rhs = Node::Expr(Expression::Lit(ast::Lit { value: Literal::Float(3.0), ty: None }));
+        let res = tc
+            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
         st.insert(Symbol::from(("x", &$variant)));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = Node::Expr(Expression::Lit { value: Literal::Float(3.0), ty: None });
-        let rhs = Node::Expr(Expression::Ident { name: String::from("x"), ty: None });
-        let res = tc.check_binop(Operator::Add, lhs, rhs).map(|e| e.ty().unwrap_or_default().clone());
+        let lhs = Node::Expr(Expression::Lit(ast::Lit { value: Literal::Float(3.0), ty: None }));
+        let rhs = Node::Expr(Expression::Ident(ast::Ident { name: String::from("x"), ty: None }));
+        let res = tc
+            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};
 }

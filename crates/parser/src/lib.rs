@@ -116,14 +116,14 @@ impl<'a> Parser<'a> {
 
         let step_node = self.parse_expr(0)?;
 
-        Ok(Node::Stmt(Statement::For {
+        Ok(Node::Stmt(Statement::For(ast::For {
             start_name: name,
             start_antn: antn,
             start_expr: init.map(Box::new),
             cond_expr: Box::new(cond_node),
             step_expr: Box::new(step_node),
             body: Box::new(self.parse_block()?),
-        }))
+        })))
     }
 
     // LetStmt ::= 'let' VarInit ;
@@ -150,7 +150,7 @@ impl<'a> Parser<'a> {
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(Box::new(self.parse_block()?)) };
 
-        Ok(Node::Stmt(Statement::Fn { proto: Box::new(proto), body }))
+        Ok(Node::Stmt(Statement::Fn(ast::Fn { proto: Box::new(proto), body })))
     }
 
     // ExternDecl ::= 'extern' Prototype ;
@@ -211,7 +211,12 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_expr(p)?;
 
             // Make a new lhs and continue loop
-            lhs = Node::Expr(Expression::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None });
+            lhs = Node::Expr(Expression::BinOp(ast::BinOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                ty: None,
+            }));
         }
         Ok(lhs)
     }
@@ -222,7 +227,7 @@ impl<'a> Parser<'a> {
 
         let p = OpPrec::un_prec(op)?;
         let rhs = self.parse_expr(p)?;
-        Ok(Node::Expr(Expression::UnOp { op, rhs: Box::new(rhs), ty: None }))
+        Ok(Node::Expr(Expression::UnOp(ast::UnOp { op, rhs: Box::new(rhs), ty: None })))
     }
 
     // PrimaryExpr ::= CondExpr | | SelfExpr |LitExpr | IdentExpr | CallExpr | Assignment
@@ -263,7 +268,7 @@ impl<'a> Parser<'a> {
     fn parse_ident_or_call(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 
-        let node = Expression::Ident { name: id.to_owned(), ty: None };
+        let node = Expression::Ident(ast::Ident { name: id.to_owned(), ty: None });
 
         // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
@@ -280,7 +285,7 @@ impl<'a> Parser<'a> {
         // Eat close paren
         expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in function call");
 
-        Ok(Node::Expr(Expression::Call { name: id.to_owned(), args, ty: None }))
+        Ok(Node::Expr(Expression::Call(ast::Call { name: id.to_owned(), args, ty: None })))
     }
 
     // ParenExpr ::= '(' Expr ')' ;
@@ -313,18 +318,18 @@ impl<'a> Parser<'a> {
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
-                Node::Expr(Expression::Block { list: vec![self.parse_expr(0)?], ty: None })
+                Node::Expr(Expression::Block(ast::Block { list: vec![self.parse_expr(0)?], ty: None }))
             } else {
                 self.parse_block()?
             }
         });
 
-        Ok(Node::Expr(Expression::Cond {
+        Ok(Node::Expr(Expression::Cond(ast::Cond {
             cond_expr: Box::new(cond_node),
             then_block: Box::new(then_block),
             else_block: else_block.map(Box::new),
             ty: None,
-        }))
+        })))
     }
 
     // Block ::= '{' StmtList? '}' ;
@@ -337,7 +342,7 @@ impl<'a> Parser<'a> {
             match t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Expr(Expression::Block { list: block, ty: None }));
+                    return Ok(Node::Expr(Expression::Block(ast::Block { list: block, ty: None })));
                 },
                 _ => block.push(self.parse_stmt()?),
             }
@@ -358,7 +363,11 @@ impl<'a> Parser<'a> {
             "Expecting `]` after expression in array index"
         );
 
-        Ok(Node::Expr(Expression::Index { binding: Box::new(binding), idx: Box::new(index), ty: None }))
+        Ok(Node::Expr(Expression::Index(ast::Index {
+            binding: Box::new(binding),
+            idx: Box::new(index),
+            ty: None,
+        })))
     }
 
     /// Literals
@@ -367,7 +376,7 @@ impl<'a> Parser<'a> {
     fn parse_lit_bool(&mut self, b: bool) -> ParseResult {
         self.tokens.next(); // Eat bool
 
-        Ok(Node::Expr(Expression::Lit { value: Literal::Bool(b), ty: None }))
+        Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Bool(b), ty: None })))
     }
 
     // CharLit ::= char ;
@@ -376,7 +385,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat char
 
         match c.parse::<char>() {
-            Ok(c) => Ok(Node::Expr(Expression::Lit { value: Literal::Char(c as u8), ty: None })),
+            Ok(c) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Char(c as u8), ty: None }))),
             Err(_) => Err(ParseError::from((format!("Invalid character literal: {}", token), token))),
         }
     }
@@ -392,12 +401,12 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat num
 
         match n.parse::<u64>() {
-            Ok(n) => Ok(Node::Expr(Expression::Lit { value: Literal::UInt64(n), ty: None })),
+            Ok(n) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(n), ty: None }))),
             Err(e) if e.kind() == &IntErrorKind::PosOverflow || e.kind() == &IntErrorKind::NegOverflow => {
                 Err(ParseError::from((format!("Numeric literal out of integer range: {}", token), token)))
             },
             _ => match n.parse::<f32>() {
-                Ok(n) => Ok(Node::Expr(Expression::Lit { value: Literal::Float(n), ty: None })),
+                Ok(n) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Float(n), ty: None }))),
                 Err(_) => Err(ParseError::from((format!("Invalid numeric literal: {}", token), token))),
             },
         }
@@ -412,7 +421,10 @@ impl<'a> Parser<'a> {
         // Eat close bracket
         expect_next_token!(self.tokens, TokenType::CloseBracket, "Expecting `]` in array literal");
 
-        Ok(ast::Node::Expr(Expression::Lit { value: Literal::Array { elements, inner_ty: None }, ty: None }))
+        Ok(ast::Node::Expr(Expression::Lit(ast::Lit {
+            value: Literal::Array { elements, inner_ty: None },
+            ty: None,
+        })))
     }
 
     /// Misc productions
@@ -517,7 +529,7 @@ impl<'a> Parser<'a> {
                 );
 
                 let size = match self.parse_expr(0)? {
-                    Node::Expr(Expression::Lit { value: Literal::UInt64(s), .. }) => s,
+                    Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(s), .. })) => s,
                     _ => {
                         return Err(ParseError::from((
                             "Expecting a literal int for size in array type".to_string(),

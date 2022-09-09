@@ -1,4 +1,4 @@
-extern putchar(c: int)
+extern fn putchar(c: int)
 
 fn printdensity(d: float) {
     if d > 8.0 {

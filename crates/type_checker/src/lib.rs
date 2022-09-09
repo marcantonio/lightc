@@ -1,4 +1,4 @@
-use ast::{Ast, AstVisitor, Expression, Literal, Node, Prototype, Statement, Visitable};
+use ast::{Ast, AstVisitor, Expression, Literal, Node, Statement, Visitable};
 use common::{Operator, Type};
 use symbol_table::{Symbol, SymbolTable};
 
@@ -65,83 +65,79 @@ impl<'a> TypeChecker<'a> {
         use Statement::*;
 
         let stmt = match stmt {
-            For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
-                self.check_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)?
-            },
-            Let(l) => self.check_let(l)?,
-            Fn { proto, body } => self.check_func(*proto, body)?,
+            For(s) => self.check_for(s)?,
+            Let(s) => self.check_let(s)?,
+            Fn(s) => self.check_func(s)?,
             Struct(s) => self.check_struct(s)?,
         };
 
         Ok(Node::Stmt(stmt))
     }
 
-    fn check_for(
-        &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
-        step_expr: Node, body: Node,
-    ) -> StmtResult {
-        let start_expr = self.check_var_init(&start_name, start_expr, &start_antn, "for statement")?;
+    fn check_for(&mut self, stmt: ast::For) -> StmtResult {
+        let start_expr =
+            self.check_var_init(&stmt.start_name, stmt.start_expr, &stmt.start_antn, "for statement")?;
 
         // Insert starting variable
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::from((start_name.as_str(), &start_antn)));
+        self.symbol_table.insert(Symbol::from((stmt.start_name.as_str(), &stmt.start_antn)));
 
         // Ensure the loop cond is always a bool
-        let cond_expr = self.check_node(cond_expr, None)?;
+        let cond_expr = self.check_node(*stmt.cond_expr, None)?;
 
         if cond_expr.ty().unwrap_or_default() != Type::Bool {
             return Err("For loop conditional should always be a bool".to_string());
         }
 
         // Make sure the step type matches the starting variable
-        let step_expr = self.check_node(step_expr, Some(&start_antn))?;
+        let step_expr = self.check_node(*stmt.step_expr, Some(&stmt.start_antn))?;
         let step_ty = step_expr.ty().unwrap_or_default();
-        if step_ty != start_antn {
+        if step_ty != stmt.start_antn {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
-                step_ty, start_name, start_antn
+                step_ty, stmt.start_name, stmt.start_antn
             ));
         }
 
         // Check body
-        let body_node = self.check_node(body, None)?;
+        let body_node = self.check_node(*stmt.body, None)?;
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::For {
-            start_name,
-            start_antn,
+        Ok(Statement::For(ast::For {
+            start_name: stmt.start_name,
+            start_antn: stmt.start_antn,
             start_expr: Some(Box::new(start_expr)),
             cond_expr: Box::new(cond_expr),
             step_expr: Box::new(step_expr),
             body: Box::new(body_node),
-        })
+        }))
     }
 
-    fn check_let(&mut self, l: ast::Let) -> StmtResult {
-        self.symbol_table.insert(Symbol::from((l.name.as_str(), &l.antn)));
-        let init_node = self.check_var_init(&l.name, l.init, &l.antn, "let statement")?;
-        Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
+    fn check_let(&mut self, stmt: ast::Let) -> StmtResult {
+        self.symbol_table.insert(Symbol::from((stmt.name.as_str(), &stmt.antn)));
+        let init_node = self.check_var_init(&stmt.name, stmt.init, &stmt.antn, "let statement")?;
+        Ok(Statement::Let(ast::Let { name: stmt.name, antn: stmt.antn, init: Some(Box::new(init_node)) }))
     }
 
     // Check function definitions. This function also does the proto.
-    fn check_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
-        let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
+    fn check_func(&mut self, mut stmt: ast::Fn) -> StmtResult {
+        let fn_entry = match self.symbol_table.get(stmt.proto.name()).cloned() {
             Some(sym) => sym,
-            None => unreachable!("missing symbol table entry for function: {}", proto.name()),
+            None => unreachable!("missing symbol table entry for function: {}", stmt.proto.name()),
         };
 
         // If body is None, this is an extern and no checking is needed
-        let body = match body {
+        let body = match stmt.body {
             Some(body) => body,
-            None => return Ok(Statement::Fn { proto: Box::new(proto), body }),
+            None => return Ok(Statement::Fn(ast::Fn { proto: stmt.proto, body: stmt.body })),
         };
 
         // Creates interstitial scope for the arguments in the function definition
         self.symbol_table.enter_scope();
 
         // Insert args into the local scope table
-        for arg in proto.args() {
+        for arg in stmt.proto.args() {
             self.symbol_table.insert(Symbol::from(arg));
         }
 
@@ -149,24 +145,24 @@ impl<'a> TypeChecker<'a> {
         let body_ty = body_node.ty().unwrap_or_default();
 
         // Make sure these are in sync since there's no `check_proto()`
-        if proto.name() == "main" {
-            if proto.ret_ty().is_some() {
+        if stmt.proto.name() == "main" {
+            if stmt.proto.ret_ty().is_some() {
                 return Err(format!(
                     "main()'s return value shouldn't be annotated. Found `{}`",
-                    proto.ret_ty().unwrap()
+                    stmt.proto.ret_ty().unwrap()
                 ));
             }
-            proto.set_ret_ty(Some(&Type::Void));
+            stmt.proto.set_ret_ty(Some(&Type::Void));
         } else {
-            proto.set_ret_ty(Some(fn_entry.ret_ty()));
+            stmt.proto.set_ret_ty(Some(fn_entry.ret_ty()));
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ret_ty() != &body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
+        if fn_entry.ret_ty() != &body_ty && fn_entry.ret_ty() != &Type::Void && stmt.proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
-                proto.name(),
+                stmt.proto.name(),
                 fn_entry.ret_ty(),
                 body_ty
             ));
@@ -174,10 +170,10 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::Fn { proto: Box::new(proto), body: Some(Box::new(body_node)) })
+        Ok(Statement::Fn(ast::Fn { proto: stmt.proto, body: Some(Box::new(body_node)) }))
     }
 
-    fn check_struct(&mut self, _s: ast::Struct) -> StmtResult {
+    fn check_struct(&mut self, _stmt: ast::Struct) -> StmtResult {
         // // Drop scope
         // self.symbol_table.down_scope();
 
@@ -200,16 +196,14 @@ impl<'a> TypeChecker<'a> {
         use Expression::*;
 
         let expr = match expr {
-            Lit { value, .. } => self.check_lit(value, ty_hint)?,
-            Ident { name, .. } => self.check_ident(name)?,
-            BinOp { op, lhs, rhs, .. } => self.check_binop(op, *lhs, *rhs)?,
-            UnOp { op, rhs, .. } => self.check_unop(op, *rhs)?,
-            Call { name, args, .. } => self.check_call(name, args)?,
-            Cond { cond_expr, then_block, else_block, .. } => {
-                self.check_cond(*cond_expr, *then_block, else_block)?
-            },
-            Block { list, .. } => self.check_block(list)?,
-            Index { binding, idx, .. } => self.check_index(*binding, *idx)?,
+            Lit(e) => self.check_lit(e, ty_hint)?,
+            Ident(e) => self.check_ident(e)?,
+            BinOp(e) => self.check_binop(e)?,
+            UnOp(e) => self.check_unop(e)?,
+            Call(e) => self.check_call(e)?,
+            Cond(e) => self.check_cond(e)?,
+            Block(e) => self.check_block(e)?,
+            Index(e) => self.check_index(e)?,
         };
 
         Ok(Node::Expr(expr))
@@ -217,9 +211,10 @@ impl<'a> TypeChecker<'a> {
 
     // If there's a type hint, use it or fail. If not, use the literal's
     // type. Update `lit` with the result and return the type.
-    fn check_lit(&mut self, lit: Literal, ty_hint: Option<&Type>) -> ExprResult {
+    fn check_lit(&mut self, expr: ast::Lit, ty_hint: Option<&Type>) -> ExprResult {
         use Literal::*;
 
+        let lit = expr.value;
         let (new_lit, lit_ty) = match ty_hint {
             Some(hint) => match lit {
                 Int8(_) => (lit, Type::Int8),
@@ -273,7 +268,7 @@ impl<'a> TypeChecker<'a> {
             },
         };
 
-        Ok(Expression::Lit { value: new_lit, ty: Some(lit_ty) })
+        Ok(Expression::Lit(ast::Lit { value: new_lit, ty: Some(lit_ty) }))
     }
 
     fn check_lit_array(&mut self, lit: Literal, ty_hint: Option<&Type>) -> Result<(Literal, Type), String> {
@@ -310,33 +305,35 @@ impl<'a> TypeChecker<'a> {
         Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, *size)))
     }
 
-    fn check_ident(&self, name: String) -> ExprResult {
+    fn check_ident(&self, i: ast::Ident) -> ExprResult {
         let ident_ty =
-            self.symbol_table.get(&name).ok_or(format!("Unknown variable: `{}`", name))?.ty().clone();
-        Ok(Expression::Ident { name, ty: Some(ident_ty) })
+            self.symbol_table.get(&i.name).ok_or(format!("Unknown variable: `{}`", i.name))?.ty().clone();
+        Ok(Expression::Ident(ast::Ident { name: i.name, ty: Some(ident_ty) }))
     }
 
     // TODO: Check overflow on math ops
-    fn check_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult {
+    fn check_binop(&mut self, expr: ast::BinOp) -> ExprResult {
         use Operator::*;
 
         // Make sure LHS is a var in assignments
-        if op == Assign && !matches!(lhs.as_expr(), Expression::Ident { .. } | Expression::Index { .. }) {
+        if expr.op == Assign
+            && !matches!(expr.lhs.as_expr(), Expression::Ident { .. } | Expression::Index { .. })
+        {
             return Err("Expected LHS to be a variable for assignment".to_string());
         }
 
         // Check if either side is a numeric literal. If so use the other side
         // as a type hint for the literal type.
         let (chkd_lhs, lhs_ty, chkd_rhs, rhs_ty);
-        if lhs.as_expr().is_num_literal() {
-            chkd_rhs = self.check_node(rhs, None)?;
+        if expr.lhs.as_expr().is_num_literal() {
+            chkd_rhs = self.check_node(*expr.rhs, None)?;
             rhs_ty = chkd_rhs.ty().unwrap_or_default();
-            chkd_lhs = self.check_node(lhs, Some(&rhs_ty))?;
+            chkd_lhs = self.check_node(*expr.lhs, Some(&rhs_ty))?;
             lhs_ty = chkd_lhs.ty().unwrap_or_default();
         } else {
-            chkd_lhs = self.check_node(lhs, None)?;
+            chkd_lhs = self.check_node(*expr.lhs, None)?;
             lhs_ty = chkd_lhs.ty().unwrap_or_default();
-            chkd_rhs = self.check_node(rhs, Some(&lhs_ty))?;
+            chkd_rhs = self.check_node(*expr.rhs, Some(&lhs_ty))?;
             rhs_ty = chkd_rhs.ty().unwrap_or_default();
         }
 
@@ -347,12 +344,12 @@ impl<'a> TypeChecker<'a> {
 
         // Check the operand types based on the operator used and set the
         // expression type accordingly
-        let ty = match op {
+        let ty = match expr.op {
             And | Or => {
                 if lhs_ty != Type::Bool || rhs_ty != Type::Bool {
                     return Err(format!(
                         "Expected bools on either side of `{}`, got lhs: `{}`, rhs: `{}`",
-                        op, lhs_ty, rhs_ty
+                        expr.op, lhs_ty, rhs_ty
                     ));
                 }
                 Type::Bool
@@ -366,7 +363,7 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(format!(
                             "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
-                            op, lhs_ty, rhs_ty
+                            expr.op, lhs_ty, rhs_ty
                         ))
                     },
                 };
@@ -378,7 +375,7 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(format!(
                             "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
-                            op, lhs_ty, rhs_ty
+                            expr.op, lhs_ty, rhs_ty
                         ))
                     },
                 };
@@ -390,7 +387,7 @@ impl<'a> TypeChecker<'a> {
                     _ => {
                         return Err(format!(
                             "Invalid type combination found in `{}` operation: (lhs: `{}`, rhs: `{}`)",
-                            op, lhs_ty, rhs_ty
+                            expr.op, lhs_ty, rhs_ty
                         ))
                     },
                 };
@@ -399,39 +396,47 @@ impl<'a> TypeChecker<'a> {
             _ => Type::Void,
         };
 
-        Ok(Expression::BinOp { op, lhs: Box::new(chkd_lhs), rhs: Box::new(chkd_rhs), ty: Some(ty) })
+        Ok(Expression::BinOp(ast::BinOp {
+            op: expr.op,
+            lhs: Box::new(chkd_lhs),
+            rhs: Box::new(chkd_rhs),
+            ty: Some(ty),
+        }))
     }
 
-    fn check_unop(&mut self, op: Operator, rhs: Node) -> ExprResult {
-        let chkd_rhs = self.check_node(rhs, None)?;
+    fn check_unop(&mut self, expr: ast::UnOp) -> ExprResult {
+        let chkd_rhs = self.check_node(*expr.rhs, None)?;
         let rhs_ty = chkd_rhs.ty().unwrap_or_default();
         match rhs_ty {
             numeric_types!() => (),
             _ => {
                 return Err(format!(
                     "Expected numeric type in unary operation `{}`, got rhs: `{}`",
-                    op, rhs_ty
+                    expr.op, rhs_ty
                 ))
             },
         }
-        Ok(Expression::UnOp { op, rhs: Box::new(chkd_rhs), ty: Some(rhs_ty) })
+        Ok(Expression::UnOp(ast::UnOp { op: expr.op, rhs: Box::new(chkd_rhs), ty: Some(rhs_ty) }))
     }
 
-    fn check_call(&mut self, name: String, args: Vec<Node>) -> ExprResult {
+    fn check_call(&mut self, expr: ast::Call) -> ExprResult {
         // Pull the function for the call from the table
-        let fn_entry =
-            self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
+        let fn_entry = self
+            .symbol_table
+            .get(&expr.name)
+            .ok_or(format!("Call to undefined function: `{}`", expr.name))?
+            .clone();
 
         // Pull out the function arg types
         let fe_arg_tys = fn_entry.arg_tys().to_vec();
 
         // Check arg length
         let fe_args_len = fe_arg_tys.len();
-        let args_len = args.len();
-        if fe_arg_tys.len() != args.len() {
+        let args_len = expr.args.len();
+        if fe_arg_tys.len() != expr.args.len() {
             return Err(format!(
                 "Call to `{}()` takes {} args and {} were given",
-                name, fe_args_len, args_len
+                expr.name, fe_args_len, args_len
             ));
         }
 
@@ -440,7 +445,7 @@ impl<'a> TypeChecker<'a> {
         let ret_ty = fn_entry.ret_ty().clone();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
-        for (idx, expr) in args.into_iter().enumerate() {
+        for (idx, expr) in expr.args.into_iter().enumerate() {
             let chkd_arg = self.check_node(expr, Some(fe_arg_tys[idx]))?;
             arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
             chkd_args.push(chkd_arg);
@@ -452,7 +457,7 @@ impl<'a> TypeChecker<'a> {
                 Err(format!(
                     "Type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
                     idx + 1,
-                    name,
+                    expr.name,
                     fa_ty,
                     ca_ty
                 ))
@@ -461,22 +466,22 @@ impl<'a> TypeChecker<'a> {
             }
         })?;
 
-        Ok(Expression::Call { name, args: chkd_args, ty: Some(ret_ty) })
+        Ok(Expression::Call(ast::Call { name: expr.name, args: chkd_args, ty: Some(ret_ty) }))
     }
 
-    fn check_cond(&mut self, cond_expr: Node, then_block: Node, else_block: Option<Box<Node>>) -> ExprResult {
-        let chkd_cond = self.check_node(cond_expr, None)?;
+    fn check_cond(&mut self, expr: ast::Cond) -> ExprResult {
+        let chkd_cond = self.check_node(*expr.cond_expr, None)?;
         let cond_ty = chkd_cond.ty().unwrap_or_default();
         if cond_ty != Type::Bool {
             return Err("Conditional should always be a bool".to_string());
         }
 
-        let chkd_then = self.check_node(then_block, None)?;
+        let chkd_then = self.check_node(*expr.then_block, None)?;
         let then_ty = chkd_then.ty().unwrap_or_default();
 
         // Consequent and alternate must match if else exists
         let mut chkd_else = None;
-        if let Some(else_block) = else_block {
+        if let Some(else_block) = expr.else_block {
             let chkd_node = self.check_node(*else_block, Some(&then_ty))?;
             let else_ty = chkd_node.ty().unwrap_or_default();
             chkd_else = Some(Box::new(chkd_node));
@@ -488,22 +493,22 @@ impl<'a> TypeChecker<'a> {
             }
         }
 
-        Ok(Expression::Cond {
+        Ok(Expression::Cond(ast::Cond {
             cond_expr: Box::new(chkd_cond),
             then_block: Box::new(chkd_then),
             else_block: chkd_else,
             ty: Some(then_ty.clone()),
-        })
+        }))
     }
 
     // Check the block expressions. Ensures statements always eval to void.
-    fn check_block(&mut self, list: Vec<Node>) -> ExprResult {
+    fn check_block(&mut self, expr: ast::Block) -> ExprResult {
         self.symbol_table.enter_scope();
 
         // The block type is set to the final node's type
-        let mut chkd_list = Vec::with_capacity(list.len());
+        let mut chkd_list = Vec::with_capacity(expr.list.len());
         let mut list_ty = Type::Void;
-        for node in list {
+        for node in expr.list {
             let chkd_node = self.check_node(node, None)?;
             list_ty = chkd_node.ty().unwrap_or_default().clone();
             chkd_list.push(chkd_node);
@@ -511,18 +516,18 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(Expression::Block { list: chkd_list, ty: Some(list_ty) })
+        Ok(Expression::Block(ast::Block { list: chkd_list, ty: Some(list_ty) }))
     }
 
-    fn check_index(&mut self, binding: Node, idx: Node) -> ExprResult {
-        let chkd_binding = self.check_node(binding, None)?;
+    fn check_index(&mut self, expr: ast::Index) -> ExprResult {
+        let chkd_binding = self.check_node(*expr.binding, None)?;
         let binding_ty = match chkd_binding.ty().unwrap_or_default() {
             Type::Array(t, _) => Some((*t).clone()),
             t => return Err(format!("Can't index `{}`", t)),
         };
 
         // TODO: Coerce into int32
-        let chkd_idx = self.check_node(idx, Some(&Type::Int32))?;
+        let chkd_idx = self.check_node(*expr.idx, Some(&Type::Int32))?;
         let idx_ty = chkd_idx.ty().unwrap_or_default();
         if !matches!(idx_ty, int_types!()) {
             return Err(format!("Array index must be an `int`, found `{}`", idx_ty));
@@ -530,7 +535,11 @@ impl<'a> TypeChecker<'a> {
             return Err("Index must be an int32 (for now)".to_string());
         }
 
-        Ok(Expression::Index { binding: Box::new(chkd_binding), idx: Box::new(chkd_idx), ty: binding_ty })
+        Ok(Expression::Index(ast::Index {
+            binding: Box::new(chkd_binding),
+            idx: Box::new(chkd_idx),
+            ty: binding_ty,
+        }))
     }
 
     // Helper for variable initializations

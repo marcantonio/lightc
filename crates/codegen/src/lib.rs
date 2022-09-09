@@ -193,20 +193,15 @@ impl<'ctx> Codegen<'ctx> {
         use Statement::*;
 
         match stmt {
-            For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
-                self.codegen_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)
-            },
-            Let(l) => self.codegen_let(l),
-            Fn { proto, body } => self.codegen_func(*proto, body),
+            For(s) => self.codegen_for(s),
+            Let(s) => self.codegen_let(s),
+            Fn(s) => self.codegen_func(s),
             Struct(s) => self.codegen_struct(s),
         }
     }
 
     // for start; cond; step { body }
-    fn codegen_for(
-        &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
-        step_expr: Node, body: Node,
-    ) -> StmtResult<'ctx> {
+    fn codegen_for(&mut self, stmt: ast::For) -> StmtResult<'ctx> {
         let parent = self
             .builder
             .get_insert_block()
@@ -214,15 +209,15 @@ impl<'ctx> Codegen<'ctx> {
             .ok_or_else(|| "Parent function not found when building loop".to_string())?;
 
         // Create entry alloca, codegen start expr, and store result
-        let start_alloca = self.create_entry_block_alloca(&start_name, &start_antn, &parent);
-        let start_code = self.codegen_var_init(&start_antn, start_expr)?;
+        let start_alloca = self.create_entry_block_alloca(&stmt.start_name, &stmt.start_antn, &parent);
+        let start_code = self.codegen_var_init(&stmt.start_antn, stmt.start_expr)?;
         self.builder.build_store(start_alloca, start_code);
 
         // Create interstitial scope to protect the induction variable
         self.symbol_table.enter_scope();
 
         // Save new symbol with alloca
-        let start_sym = CodegenSymbol::from((start_name.as_str(), &start_antn, start_alloca));
+        let start_sym = CodegenSymbol::from((stmt.start_name.as_str(), &stmt.start_antn, start_alloca));
         self.symbol_table.insert(start_sym);
 
         // Create all the blocks
@@ -236,20 +231,20 @@ impl<'ctx> Codegen<'ctx> {
 
         // Generate the conditional and branch to either the body or the end
         self.builder.position_at_end(cond_bb);
-        let cond_code = self.codegen_node(cond_expr)?.value()?.into_int_value();
+        let cond_code = self.codegen_node(*stmt.cond_expr)?.value()?.into_int_value();
         self.builder.build_conditional_branch(cond_code, body_bb, post_bb);
 
         // Generate all body expressions
         self.builder.position_at_end(body_bb);
-        self.codegen_node(body)?;
+        self.codegen_node(*stmt.body)?;
         self.builder.build_unconditional_branch(step_bb);
 
         // Generate step value, load the current induction variable from the stack, increment it by
         // step, and store it again. Body could have mutated it.
         self.builder.position_at_end(step_bb);
-        let step_code = self.codegen_node(step_expr)?;
-        let cur = self.builder.build_load(start_alloca, &start_name);
-        match start_antn {
+        let step_code = self.codegen_node(*stmt.step_expr)?;
+        let cur = self.builder.build_load(start_alloca, &stmt.start_name);
+        match stmt.start_antn {
             int_types!() => {
                 let next = self.builder.build_int_add(
                     cur.into_int_value(),
@@ -280,29 +275,29 @@ impl<'ctx> Codegen<'ctx> {
         Ok(())
     }
 
-    fn codegen_let(&mut self, l: ast::Let) -> StmtResult<'ctx> {
+    fn codegen_let(&mut self, stmt: ast::Let) -> StmtResult<'ctx> {
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
             .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
 
-        let init_code = self.codegen_var_init(&l.antn, l.init)?;
+        let init_code = self.codegen_var_init(&stmt.antn, stmt.init)?;
 
-        let init_alloca = self.create_entry_block_alloca(&l.name, &l.antn, &parent);
+        let init_alloca = self.create_entry_block_alloca(&stmt.name, &stmt.antn, &parent);
         self.builder.build_store(init_alloca, init_code);
 
-        let sym = CodegenSymbol::from((l.name.as_str(), &l.antn, init_alloca));
+        let sym = CodegenSymbol::from((stmt.name.as_str(), &stmt.antn, init_alloca));
         self.symbol_table.insert(sym);
 
         Ok(())
     }
 
-    fn codegen_func(&mut self, proto: Prototype, body: Option<Box<Node>>) -> StmtResult<'ctx> {
+    fn codegen_func(&mut self, stmt: ast::Fn) -> StmtResult<'ctx> {
         let sym = self
             .symbol_table
-            .get(proto.name())
-            .unwrap_or_else(|| unreachable!("missing symbol in `codegen_func()` for `{}`", proto.name()))
+            .get(stmt.proto.name())
+            .unwrap_or_else(|| unreachable!("missing symbol in `codegen_func()` for `{}`", stmt.proto.name()))
             .inner()
             .clone();
 
@@ -311,11 +306,11 @@ impl<'ctx> Codegen<'ctx> {
         // codegen_func() is called.
         let function = self
             .module
-            .get_function(proto.name())
-            .unwrap_or_else(|| unreachable!("missing function `{}` in module table", proto.name()));
+            .get_function(stmt.proto.name())
+            .unwrap_or_else(|| unreachable!("missing function `{}` in module table", stmt.proto.name()));
 
         // If body is None assume call is an extern
-        let body = match body {
+        let body = match stmt.body {
             Some(body) => body,
             None => return Ok(()),
         };
@@ -331,7 +326,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
-            let (name, ty) = &proto.args()[i];
+            let (name, ty) = &stmt.proto.args()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function);
             self.builder.build_store(alloca, arg);
             self.symbol_table.insert(CodegenSymbol::from((name.as_str(), ty, alloca)));
@@ -340,7 +335,7 @@ impl<'ctx> Codegen<'ctx> {
         let body_val = self.codegen_node(*body)?;
 
         // Build the return function based on the prototype's return value and the last statement
-        match (proto.ret_ty(), body_val) {
+        match (stmt.proto.ret_ty(), body_val) {
             (Some(numeric_types!() | Type::Bool), Some(v)) => self.builder.build_return(Some(&v)),
             (Some(rt), None) if rt != &Type::Void => {
                 return Err(format!("Function should return `{}` but last statement is void", rt))
@@ -420,15 +415,15 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // XXX: not useful yet
-    fn codegen_struct(&mut self, s: ast::Struct) -> StmtResult<'ctx> {
+    fn codegen_struct(&mut self, stmt: ast::Struct) -> StmtResult<'ctx> {
         // Drop scope
         //self.scope_table.down_scope();
 
-        for node in s.fields {
+        for node in stmt.fields {
             self.codegen_node(node)?;
         }
 
-        for node in s.methods {
+        for node in stmt.methods {
             self.codegen_node(node)?;
         }
 
@@ -442,24 +437,22 @@ impl<'ctx> Codegen<'ctx> {
         use Expression::*;
 
         match expr {
-            Lit { value, .. } => Some(self.codegen_lit(value)),
-            Ident { name, .. } => Some(self.codegen_ident(&name)),
-            BinOp { op, lhs, rhs, .. } => Some(self.codegen_binop(op, *lhs, *rhs)),
-            UnOp { op, rhs, .. } => Some(self.codegen_unop(op, *rhs)),
-            Call { name, args, .. } => self.codegen_call(&name, args).transpose(),
-            Cond { cond_expr, then_block, else_block, ty } => {
-                Some(self.codegen_cond(*cond_expr, *then_block, else_block, ty.as_ref().unwrap()))
-            },
-            Block { list, .. } => self.codegen_block(list).transpose(),
-            Index { binding, idx, .. } => Some(self.codegen_index(*binding, *idx)),
+            Lit(e) => Some(self.codegen_lit(e)),
+            Ident(e) => Some(self.codegen_ident(e)),
+            BinOp(e) => Some(self.codegen_binop(e)),
+            UnOp(e) => Some(self.codegen_unop(e)),
+            Call(e) => self.codegen_call(e).transpose(),
+            Cond(e) => Some(self.codegen_cond(e)),
+            Block(e) => self.codegen_block(e).transpose(),
+            Index(e) => Some(self.codegen_index(e)),
         }
         .transpose()
     }
 
-    fn codegen_lit(&mut self, value: Literal) -> ExprResult<'ctx> {
+    fn codegen_lit(&mut self, l: ast::Lit) -> ExprResult<'ctx> {
         use Literal::*;
 
-        Ok(match value {
+        Ok(match l.value {
             Int8(v) => self.context.i8_type().const_int(v as u64, true).as_basic_value_enum(),
             Int16(v) => self.context.i16_type().const_int(v as u64, true).as_basic_value_enum(),
             Int32(v) => self.context.i32_type().const_int(v as u64, true).as_basic_value_enum(),
@@ -492,29 +485,29 @@ impl<'ctx> Codegen<'ctx> {
         })
     }
 
-    fn codegen_ident(&self, name: &str) -> ExprResult<'ctx> {
+    fn codegen_ident(&self, id: ast::Ident) -> ExprResult<'ctx> {
         // Get the variable pointer and load from the stack
         let ptr = self
             .symbol_table
-            .get(name)
-            .unwrap_or_else(|| panic!("codegen failed to resolve `{}`", name))
+            .get(&id.name)
+            .unwrap_or_else(|| panic!("codegen failed to resolve `{}`", id.name))
             .pointer()
             .expect("missing pointer on symbol");
-        Ok(self.builder.build_load(ptr, name))
+        Ok(self.builder.build_load(ptr, &id.name))
     }
 
-    fn codegen_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> ExprResult<'ctx> {
+    fn codegen_binop(&mut self, expr: ast::BinOp) -> ExprResult<'ctx> {
         use Operator::*;
 
         let lhs_ty =
-            lhs.ty().unwrap_or_else(|| unreachable!("missing type for lhs expr in `codegen_binop()`"));
-        let lhs_val = self.codegen_node(lhs.clone())?.value()?;
+            expr.lhs.ty().unwrap_or_else(|| unreachable!("missing type for lhs expr in `codegen_binop()`"));
+        let lhs_val = self.codegen_node(*expr.lhs.clone())?.value()?;
         let rhs_ty =
-            rhs.ty().unwrap_or_else(|| unreachable!("missing type for rhs expr in `codegen_binop()`"));
-        let rhs_val = self.codegen_node(rhs)?.value()?;
+            expr.rhs.ty().unwrap_or_else(|| unreachable!("missing type for rhs expr in `codegen_binop()`"));
+        let rhs_val = self.codegen_node(*expr.rhs)?.value()?;
 
         // Generate the proper instruction for each op
-        match op {
+        match expr.op {
             Add => self.add((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Sub => self.sub((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Mul => self.mul((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
@@ -522,35 +515,36 @@ impl<'ctx> Codegen<'ctx> {
             And | BitAnd => self.and((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             BitXor => self.xor((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Or | BitOr => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
-            Assign => self.assign(lhs, rhs_val),
+            Assign => self.assign(*expr.lhs, rhs_val),
             op @ (Gt | GtEq | Lt | LtEq | Eq | NotEq) => self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             x => Err(format!("Unknown binary operator: `{}`", x)),
         }
     }
 
-    fn codegen_unop(&mut self, op: Operator, rhs: Node) -> ExprResult<'ctx> {
+    fn codegen_unop(&mut self, expr: ast::UnOp) -> ExprResult<'ctx> {
         use Operator::*;
 
-        let rhs_ty = rhs.as_expr().ty().unwrap();
-        let rhs_val = self.codegen_node(rhs)?.value()?;
-        match op {
+        let rhs_ty = expr.rhs.as_expr().ty().unwrap();
+        let rhs_val = self.codegen_node(*expr.rhs)?.value()?;
+        match expr.op {
             Sub => self.neg((rhs_val, rhs_ty)),
             x => Err(format!("Unknown unary operator: `{}`", x)),
         }
     }
 
-    fn codegen_call(&mut self, name: &str, args: Vec<Node>) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+    fn codegen_call(&mut self, expr: ast::Call) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         // Look up the function. Error if it's not been defined.
-        let func = self.module.get_function(name).ok_or(format!("Unknown function call: {}", name))?;
+        let func =
+            self.module.get_function(&expr.name).ok_or(format!("Unknown function call: {}", expr.name))?;
 
         // Codegen the call args
-        let mut args_code = Vec::with_capacity(args.len());
-        for arg in args {
+        let mut args_code = Vec::with_capacity(expr.args.len());
+        for arg in expr.args {
             args_code.push((self.codegen_node(arg)?.value()?).into());
         }
 
         // Build the call instruction
-        let call_val = self.builder.build_call(func, &args_code, &("call_".to_owned() + name));
+        let call_val = self.builder.build_call(func, &args_code, &("call_".to_owned() + &expr.name));
 
         // If func has a non-void return type, it will produce a call_val that is
         // converted into a BasicValueEnum. Otherwise it becomes an InstructionValue,
@@ -562,11 +556,10 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // if then optional else
-    fn codegen_cond(
-        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Box<Node>>, ty: &Type,
-    ) -> ExprResult<'ctx> {
+    fn codegen_cond(&mut self, expr: ast::Cond) -> ExprResult<'ctx> {
         // Should never be used. Useful for an unused phi branch. Note: undef
         // value must be in sync with phi type.
+        let ty = expr.ty.unwrap_or_else(|| unreachable!("missing type in `codegen_cond()`"));
         let undef_val = make_undef_value!(self.context, ty);
 
         // Get the current function for insertion
@@ -585,7 +578,7 @@ impl<'ctx> Codegen<'ctx> {
         // constants. Otherwise, the value will be IR to evaluate. Result will
         // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
         // "bool".
-        let cond_val = self.codegen_node(cond_expr)?.value()?.into_int_value();
+        let cond_val = self.codegen_node(*expr.cond_expr)?.value()?.into_int_value();
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
             cond_val,
@@ -598,7 +591,7 @@ impl<'ctx> Codegen<'ctx> {
         let mut then_bb = self.context.append_basic_block(parent, "if.then");
         let end_bb = self.context.append_basic_block(parent, "if.end");
         let mut else_bb = end_bb;
-        if else_block.is_some() {
+        if expr.else_block.is_some() {
             else_bb = self.context.append_basic_block(parent, "if.else");
         }
 
@@ -609,7 +602,7 @@ impl<'ctx> Codegen<'ctx> {
         self.builder.position_at_end(then_bb);
 
         // Codegen the then block. Save the last value for phi.
-        let then_val = match self.codegen_node(then_block)? {
+        let then_val = match self.codegen_node(*expr.then_block)? {
             Some(v) => v,
             None => undef_val,
         };
@@ -624,7 +617,7 @@ impl<'ctx> Codegen<'ctx> {
 
         let val;
         // Codegen the else block if we have one
-        if let Some(else_block) = else_block {
+        if let Some(else_block) = expr.else_block {
             // Codegen the else block. Save the last value for phi.
             let else_val = match self.codegen_node(*else_block)? {
                 Some(v) => v,
@@ -651,11 +644,11 @@ impl<'ctx> Codegen<'ctx> {
         Ok(val)
     }
 
-    fn codegen_block(&mut self, list: Vec<Node>) -> Result<Option<BasicValueEnum<'ctx>>, String> {
+    fn codegen_block(&mut self, expr: ast::Block) -> Result<Option<BasicValueEnum<'ctx>>, String> {
         self.symbol_table.enter_scope();
 
         let mut node_val = None;
-        for node in list {
+        for node in expr.list {
             node_val = self.codegen_node(node)?;
         }
 
@@ -664,8 +657,8 @@ impl<'ctx> Codegen<'ctx> {
         Ok(node_val)
     }
 
-    fn codegen_index(&mut self, binding: Node, idx: Node) -> ExprResult<'ctx> {
-        let (binding_name, element_ptr) = self.get_array_element(binding, idx)?;
+    fn codegen_index(&mut self, expr: ast::Index) -> ExprResult<'ctx> {
+        let (binding_name, element_ptr) = self.get_array_element(*expr.binding, *expr.idx)?;
         Ok(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str())))
     }
 
@@ -747,7 +740,7 @@ impl<'ctx> Codegen<'ctx> {
         // TODO: This could be something other than an ident in the future
         let binding = binding.as_expr();
         let name = match binding {
-            Expression::Ident { ref name, .. } => name,
+            Expression::Ident(ast::Ident { ref name, .. }) => name,
             _ => unreachable!("name missing for array index"),
         };
 

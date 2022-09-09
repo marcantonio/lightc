@@ -1,5 +1,5 @@
-use ast::{Ast, AstVisitor, Expression, Node, Prototype, Statement, Visitable};
-use common::{Operator, Type};
+use ast::{Ast, AstVisitor, Expression, Node, Statement, Visitable};
+use common::Operator;
 use symbol_table::{Symbol, SymbolTable, Symbolic};
 
 #[cfg(test)]
@@ -54,59 +54,53 @@ impl<'a> Hir<'a> {
         use Statement::*;
 
         let stmt = match stmt {
-            For { start_name, start_antn, start_expr, cond_expr, step_expr, body } => {
-                self.lower_for(start_name, start_antn, start_expr, *cond_expr, *step_expr, *body)?
-            },
-            Let(l) => self.lower_let(l)?,
-            Fn { proto, body } => self.lower_func(*proto, body)?,
+            For(s) => self.lower_for(s)?,
+            Let(s) => self.lower_let(s)?,
+            Fn(s) => self.lower_func(s)?,
             Struct(s) => self.lower_struct(s)?,
         };
 
         Ok(Node::Stmt(stmt))
     }
 
-    fn lower_for(
-        &mut self, start_name: String, start_antn: Type, start_expr: Option<Box<Node>>, cond_expr: Node,
-        step_expr: Node, body: Node,
-    ) -> StmtResult {
+    fn lower_for(&mut self, stmt: ast::For) -> StmtResult {
         // Insert start var
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::from((start_name.as_str(), &start_antn)));
+        self.symbol_table.insert(Symbol::from((stmt.start_name.as_str(), &stmt.start_antn)));
 
-        let start_expr = self.lower_var_init(&start_name, start_expr)?;
-        let cond_expr = self.lower_node(cond_expr)?;
-        let step_expr = self.lower_node(step_expr)?;
-        let body = self.lower_node(body)?;
+        let start_expr = self.lower_var_init(&stmt.start_name, stmt.start_expr)?;
+        let cond_expr = self.lower_node(*stmt.cond_expr)?;
+        let step_expr = self.lower_node(*stmt.step_expr)?;
+        let body = self.lower_node(*stmt.body)?;
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::For {
-            start_name,
-            start_antn,
+        Ok(Statement::For(ast::For {
+            start_name: stmt.start_name,
+            start_antn: stmt.start_antn,
             start_expr: Some(Box::new(start_expr)),
             cond_expr: Box::new(cond_expr),
             step_expr: Box::new(step_expr),
             body: Box::new(body),
-        })
+        }))
     }
 
-    fn lower_let(&mut self, l: ast::Let) -> StmtResult {
-        self.symbol_table.insert(Symbol::from((l.name.as_str(), &l.antn)));
-        let init_node = self.lower_var_init(&l.name, l.init)?;
-        Ok(Statement::Let(ast::Let { name: l.name, antn: l.antn, init: Some(Box::new(init_node)) }))
+    fn lower_let(&mut self, stmt: ast::Let) -> StmtResult {
+        self.symbol_table.insert(Symbol::from((stmt.name.as_str(), &stmt.antn)));
+        let init_node = self.lower_var_init(&stmt.name, stmt.init)?;
+        Ok(Statement::Let(ast::Let { name: stmt.name, antn: stmt.antn, init: Some(Box::new(init_node)) }))
     }
 
-    fn lower_func(&mut self, mut proto: Prototype, body: Option<Box<Node>>) -> StmtResult {
+    fn lower_func(&mut self, mut stmt: ast::Fn) -> StmtResult {
         // Insert a duplicate of the symbol. The new one will have the lowered
         // name. Update the AST as well. Skip for externs.
-        let sym = self
-            .symbol_table
-            .get(proto.name())
-            .cloned()
-            .unwrap_or_else(|| unreachable!("missing symbol in `lower_func()` for `{}`", proto.name()));
+        let sym =
+            self.symbol_table.get(stmt.proto.name()).cloned().unwrap_or_else(|| {
+                unreachable!("missing symbol in `lower_func()` for `{}`", stmt.proto.name())
+            });
 
         if !sym.is_extern() {
-            proto.set_name(sym.name().to_owned());
+            stmt.proto.set_name(sym.name().to_owned());
             self.symbol_table.insert(sym);
         }
 
@@ -115,155 +109,175 @@ impl<'a> Hir<'a> {
         // issue.
         self.symbol_table.enter_scope();
 
-        for arg in proto.args() {
+        for arg in stmt.proto.args() {
             self.symbol_table.insert(Symbol::from(arg));
         }
 
-        let body_node = body.map(|e| self.lower_node(*e));
+        let body_node = stmt.body.map(|e| self.lower_node(*e));
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::Fn { proto: Box::new(proto), body: body_node.transpose()?.map(Box::new) })
+        Ok(Statement::Fn(ast::Fn { proto: stmt.proto, body: body_node.transpose()?.map(Box::new) }))
     }
 
     // XXX: struct stuff
-    fn lower_struct(&mut self, s: ast::Struct) -> StmtResult {
+    fn lower_struct(&mut self, stmt: ast::Struct) -> StmtResult {
         // TODO: check for global scope
         //dbg!(&s);
 
-        if self.symbol_table.insert(Symbol::from(&s)).is_some() {
-            return Err(format!("struct `{}` can't be redefined", s.name));
+        if self.symbol_table.insert(Symbol::from(&stmt)).is_some() {
+            return Err(format!("struct `{}` can't be redefined", stmt.name));
         }
 
         let mut lowered_attrs = vec![];
-        for node in s.fields {
+        for node in stmt.fields {
             lowered_attrs.push(self.lower_node(node)?);
         }
 
         let mut lowered_meths = vec![];
-        for node in s.methods {
+        for node in stmt.methods {
             lowered_meths.push(self.lower_node(node)?);
         }
 
-        Ok(Statement::Struct(ast::Struct { name: s.name, fields: lowered_attrs, methods: lowered_meths }))
+        Ok(Statement::Struct(ast::Struct { name: stmt.name, fields: lowered_attrs, methods: lowered_meths }))
     }
 
     fn lower_expr(&mut self, expr: Expression) -> Result<Node, String> {
         use Expression::*;
 
         let expr = match expr {
-            Ident { name, ty } => self.lower_ident(name, ty)?,
-            BinOp { op, lhs, rhs, ty } => self.lower_binop(op, *lhs, *rhs, ty)?,
-            UnOp { op, rhs, ty } => self.lower_unop(op, *rhs, ty)?,
-            Call { name, args, ty } => self.lower_call(name, args, ty)?,
-            Cond { cond_expr, then_block, else_block, ty } => {
-                self.lower_cond(*cond_expr, *then_block, else_block, ty)?
-            },
-            Block { list, ty } => self.lower_block(list, ty)?,
-            Index { binding, idx, ty } => self.lower_index(*binding, *idx, ty)?,
+            Ident(e) => self.lower_ident(e)?,
+            BinOp(e) => self.lower_binop(e)?,
+            UnOp(e) => self.lower_unop(e)?,
+            Call(e) => self.lower_call(e)?,
+            Cond(e) => self.lower_cond(e)?,
+            Block(e) => self.lower_block(e)?,
+            Index(e) => self.lower_index(e)?,
             e => e, // some expressions don't contain other nodes
         };
 
         Ok(Node::Expr(expr))
     }
 
-    fn lower_ident(&mut self, name: String, ty: Option<Type>) -> ExprResult {
-        Ok(Expression::Ident { name, ty })
+    fn lower_ident(&mut self, expr: ast::Ident) -> ExprResult {
+        Ok(Expression::Ident(ast::Ident { name: expr.name, ty: expr.ty }))
     }
 
     // Lower `x += 1` to `x = x + 1`
-    fn lower_binop(&mut self, op: Operator, lhs: Node, rhs: Node, ty: Option<Type>) -> ExprResult {
+    fn lower_binop(&mut self, expr: ast::BinOp) -> ExprResult {
         use Operator::*;
 
-        let orig_lhs = lhs.clone();
-        let orig_ty = ty.clone();
+        let orig_lhs = expr.lhs.clone();
+        let orig_ty = expr.ty.clone();
 
         let top_op;
-        let rhs = match op {
+        let rhs = match expr.op {
             AddEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp { op: Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
+                Node::Expr(Expression::BinOp(ast::BinOp {
+                    op: Add,
+                    lhs: expr.lhs,
+                    rhs: expr.rhs,
+                    ty: expr.ty,
+                }))
             },
             SubEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp { op: Sub, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
+                Node::Expr(Expression::BinOp(ast::BinOp {
+                    op: Sub,
+                    lhs: expr.lhs,
+                    rhs: expr.rhs,
+                    ty: expr.ty,
+                }))
             },
             MulEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp { op: Mul, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
+                Node::Expr(Expression::BinOp(ast::BinOp {
+                    op: Mul,
+                    lhs: expr.lhs,
+                    rhs: expr.rhs,
+                    ty: expr.ty,
+                }))
             },
             DivEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp { op: Div, lhs: Box::new(lhs), rhs: Box::new(rhs), ty })
+                Node::Expr(Expression::BinOp(ast::BinOp {
+                    op: Div,
+                    lhs: expr.lhs,
+                    rhs: expr.rhs,
+                    ty: expr.ty,
+                }))
             },
             _ => {
-                top_op = op;
-                rhs
+                top_op = expr.op;
+                *expr.rhs
             },
         };
 
-        Ok(Expression::BinOp {
+        Ok(Expression::BinOp(ast::BinOp {
             op: top_op,
-            lhs: Box::new(self.lower_node(orig_lhs)?),
+            lhs: Box::new(self.lower_node(*orig_lhs)?),
             rhs: Box::new(self.lower_node(rhs)?),
             ty: orig_ty,
-        })
+        }))
     }
 
-    fn lower_unop(&mut self, op: Operator, rhs: Node, ty: Option<Type>) -> ExprResult {
-        Ok(Expression::UnOp { op, rhs: Box::new(self.lower_node(rhs)?), ty })
+    fn lower_unop(&mut self, expr: ast::UnOp) -> ExprResult {
+        Ok(Expression::UnOp(ast::UnOp {
+            op: expr.op,
+            rhs: Box::new(self.lower_node(*expr.rhs)?),
+            ty: expr.ty,
+        }))
     }
 
-    fn lower_call(&mut self, name: String, args: Vec<Node>, ty: Option<Type>) -> ExprResult {
+    fn lower_call(&mut self, expr: ast::Call) -> ExprResult {
         let sym = self
             .symbol_table
-            .get(&name)
-            .unwrap_or_else(|| unreachable!("missing symbol in `lower_call()` for `{}`", name));
+            .get(&expr.name)
+            .unwrap_or_else(|| unreachable!("missing symbol in `lower_call()` for `{}`", expr.name));
 
         // Update the AST with the lowered name if it hasn't been done already and it's
         // not an extern call
         let lowered_name = match sym.name() {
-            sym_name if !sym.is_extern() && sym_name != name => sym_name.to_owned(),
-            _ => name,
+            sym_name if !sym.is_extern() && sym_name != expr.name => sym_name.to_owned(),
+            _ => expr.name,
         };
 
         let mut lowered_args = vec![];
-        for node in args {
+        for node in expr.args {
             lowered_args.push(self.lower_node(node)?);
         }
-        Ok(Expression::Call { name: lowered_name, args: lowered_args, ty })
+        Ok(Expression::Call(ast::Call { name: lowered_name, args: lowered_args, ty: expr.ty }))
     }
 
-    fn lower_cond(
-        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Box<Node>>, ty: Option<Type>,
-    ) -> ExprResult {
-        Ok(Expression::Cond {
-            cond_expr: Box::new(self.lower_node(cond_expr)?),
-            then_block: Box::new(self.lower_node(then_block)?),
-            else_block: else_block.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),
-            ty,
-        })
+    fn lower_cond(&mut self, expr: ast::Cond) -> ExprResult {
+        Ok(Expression::Cond(ast::Cond {
+            cond_expr: Box::new(self.lower_node(*expr.cond_expr)?),
+            then_block: Box::new(self.lower_node(*expr.then_block)?),
+            else_block: expr.else_block.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),
+            ty: expr.ty,
+        }))
     }
 
-    fn lower_block(&mut self, list: Vec<Node>, ty: Option<Type>) -> ExprResult {
+    fn lower_block(&mut self, expr: ast::Block) -> ExprResult {
         self.symbol_table.enter_scope();
 
         let mut lowered_list = vec![];
-        for node in list {
+        for node in expr.list {
             lowered_list.push(self.lower_node(node)?);
         }
 
         self.symbol_table.leave_scope();
 
-        Ok(Expression::Block { list: lowered_list, ty })
+        Ok(Expression::Block(ast::Block { list: lowered_list, ty: expr.ty }))
     }
 
-    fn lower_index(&mut self, binding: Node, idx: Node, ty: Option<Type>) -> ExprResult {
-        Ok(Expression::Index {
-            binding: Box::new(self.lower_node(binding)?),
-            idx: Box::new(self.lower_node(idx)?),
-            ty,
-        })
+    fn lower_index(&mut self, expr: ast::Index) -> ExprResult {
+        Ok(Expression::Index(ast::Index {
+            binding: Box::new(self.lower_node(*expr.binding)?),
+            idx: Box::new(self.lower_node(*expr.idx)?),
+            ty: expr.ty,
+        }))
     }
 
     // Helper for variable initializations
