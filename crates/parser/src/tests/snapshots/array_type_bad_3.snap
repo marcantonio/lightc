@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 290
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x: [int]"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting semicolon after `int32` in `let` type annotation. Got `CloseBracket`"
     line: 1
     column: 12
-- "Parsing error: Expecting semicolon after `int32` in `let` type annotation. Got `CloseBracket` at 1:12"
+- "Expecting semicolon after `int32` in `let` type annotation. Got `CloseBracket` at 1:12"
 

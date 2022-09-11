@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 46
+assertion_line: 47
 expression: "(test[1], ast, ast_string)"
 ---
 - 20 - else
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting primary expression. Got `Else`"
     line: 1
     column: 6
-- "Parsing error: Expecting primary expression. Got `Else` at 1:6"
+- "Expecting primary expression. Got `Else` at 1:6"
 

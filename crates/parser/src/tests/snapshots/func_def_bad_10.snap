@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 157
+assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(a: int"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `,` or `)` in prototype. Got `EOF`"
     line: 1
     column: 10
-- "Parsing error: Expecting `,` or `)` in prototype. Got `EOF` at 1:10"
+- "Expecting `,` or `)` in prototype. Got `EOF` at 1:10"
 

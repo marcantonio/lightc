@@ -1,12 +1,12 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 106
-expression: "(test[0], ast, ast_string)"
+assertion_line: 101
+expression: "(test[1], ast, ast_string)"
 ---
 - "for a: int ="
 - Err:
     message: Premature end of expression
     line: 0
     column: 0
-- "Parsing error: Premature end of expression"
+- Premature end of expression
 

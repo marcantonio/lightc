@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 74
+assertion_line: 75
 expression: "(test[1], ast, ast_string)"
 ---
 - "a(a,"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `)` in function call. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting `)` in function call. Got `EOF`"
+- "Expecting `)` in function call. Got `EOF`"
 

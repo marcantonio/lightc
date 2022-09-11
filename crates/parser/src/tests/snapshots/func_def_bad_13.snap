@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 157
+assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - fn a(b)
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `:` after identifier in `prototype` typed declaration. Got `CloseParen`"
     line: 1
     column: 7
-- "Parsing error: Expecting `:` after identifier in `prototype` typed declaration. Got `CloseParen` at 1:7"
+- "Expecting `:` after identifier in `prototype` typed declaration. Got `CloseParen` at 1:7"
 

@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 46
+assertion_line: 47
 expression: "(test[1], ast, ast_string)"
 ---
 - ()
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting primary expression. Got `CloseParen`"
     line: 1
     column: 2
-- "Parsing error: Expecting primary expression. Got `CloseParen` at 1:2"
+- "Expecting primary expression. Got `CloseParen` at 1:2"
 

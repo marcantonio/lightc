@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 286
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "x[]"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting primary expression. Got `CloseBracket`"
     line: 1
     column: 3
-- "Parsing error: Expecting primary expression. Got `CloseBracket` at 1:3"
+- "Expecting primary expression. Got `CloseBracket` at 1:3"
 

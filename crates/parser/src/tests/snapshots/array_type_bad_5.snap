@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 290
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x: [foo]"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting type after `[` in `let` type annotation. Got `foo`"
     line: 1
     column: 9
-- "Parsing error: Expecting type after `[` in `let` type annotation. Got `foo` at 1:9"
+- "Expecting type after `[` in `let` type annotation. Got `foo` at 1:9"
 

@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 287
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "x[0"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `]` after expression in array index. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting `]` after expression in array index. Got `EOF`"
+- "Expecting `]` after expression in array index. Got `EOF`"
 

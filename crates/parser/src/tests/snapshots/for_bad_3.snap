@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 103
+assertion_line: 101
 expression: "(test[1], ast, ast_string)"
 ---
 - "for a:"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting type annotation in `for`. Got `EOF`"
     line: 0
     column: 0
-- "Parsing error: Expecting type annotation in `for`. Got `EOF`"
+- "Expecting type annotation in `for`. Got `EOF`"
 

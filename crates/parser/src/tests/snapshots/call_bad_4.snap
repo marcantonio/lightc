@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 74
+assertion_line: 75
 expression: "(test[1], ast, ast_string)"
 ---
 - a(b b)
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `,` or `CloseParen` in function call argument list. Got `b`"
     line: 1
     column: 3
-- "Parsing error: Expecting `,` or `CloseParen` in function call argument list. Got `b` at 1:3"
+- "Expecting `,` or `CloseParen` in function call argument list. Got `b` at 1:3"
 

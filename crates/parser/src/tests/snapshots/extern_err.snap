@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `fn` after `extern`"
     line: 1
     column: 8
-- "Parsing error: Expecting `fn` after `extern` at 1:8"
+- "Expecting `fn` after `extern` at 1:8"
 

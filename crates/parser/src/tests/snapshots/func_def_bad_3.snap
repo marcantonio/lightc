@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 157
+assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) -> a { b }"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting prototype type annotation. Got `a`"
     line: 1
     column: 17
-- "Parsing error: Expecting prototype type annotation. Got `a` at 1:17"
+- "Expecting prototype type annotation. Got `a` at 1:17"
 

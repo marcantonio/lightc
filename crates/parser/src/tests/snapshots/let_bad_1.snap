@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 214
+assertion_line: 225
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x: int ="
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: Premature end of expression
     line: 0
     column: 0
-- "Parsing error: Premature end of expression"
+- Premature end of expression
 

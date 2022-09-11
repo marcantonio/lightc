@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 59
+assertion_line: 60
 expression: "(test[1], ast, ast_string)"
 ---
 - "if foo {"
@@ -8,5 +8,5 @@ expression: "(test[1], ast, ast_string)"
     message: "Expecting `}` to terminate block"
     line: 0
     column: 0
-- "Parsing error: Expecting `}` to terminate block"
+- "Expecting `}` to terminate block"
 
