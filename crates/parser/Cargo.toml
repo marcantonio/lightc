@@ -8,9 +8,8 @@ serde = { version = "1.0.136", features = ["derive"] }
 
 ast = { path = "../ast" }
 common = { path = "../common" }
+lexer = { path = "../lexer" }
 symbol_table = { path = "../symbol_table" }
 
 [dev-dependencies]
 insta = { version = "1.12.0", features = ["glob"] }
-
-lexer = { path = "../lexer" }

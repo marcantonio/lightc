@@ -1,10 +1,12 @@
 use serde::Serialize;
 use std::iter::Peekable;
 
-use common::{Operator, Token, TokenType, Type};
+use common::Operator;
+use token::{Token, TokenType};
 
 #[cfg(test)]
 mod tests;
+pub mod token;
 
 pub type LexResult = std::result::Result<Token, LexError>;
 
@@ -100,23 +102,8 @@ impl Lexer {
                 "extern" => Extern,
                 "true" => Bool(true),
                 "false" => Bool(false),
-                "int8" => VarType(Type::Int8),
-                "int16" => VarType(Type::Int16),
-                "int32" => VarType(Type::Int32),
-                "int64" => VarType(Type::Int64),
-                "uint8" => VarType(Type::UInt8),
-                "uint16" => VarType(Type::UInt16),
-                "uint32" => VarType(Type::UInt32),
-                "uint64" => VarType(Type::UInt64),
-                "float" => VarType(Type::Float),
-                "double" => VarType(Type::Double),
-                "bool" => VarType(Type::Bool),
-                "char" => VarType(Type::Char),
                 "struct" => Struct,
                 "self" => SelfTt,
-                // TODO: don't hardcode these
-                "int" => VarType(Type::Int32),
-                "uint" => VarType(Type::UInt32),
                 _ => Ident(identifier),
             };
 
@@ -305,7 +292,6 @@ impl Lexer {
                     | Num(_)
                     | Op(Operator::Inc)
                     | Op(Operator::Dec)
-                    | VarType(_)
             )
         } else {
             false

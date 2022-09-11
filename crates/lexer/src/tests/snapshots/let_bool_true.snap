@@ -16,7 +16,7 @@ expression: "(test[1], tokens)"
       line: 1
       column: 6
     - tt:
-        VarType: Bool
+        Ident: bool
       line: 1
       column: 8
     - tt:

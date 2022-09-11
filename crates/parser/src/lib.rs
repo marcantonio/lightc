@@ -2,11 +2,12 @@ use std::iter::Peekable;
 use std::num::IntErrorKind;
 use std::slice::Iter;
 
-use self::errors::ParseError;
-use self::precedence::OpPrec;
+use errors::ParseError;
+use precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, Token, TokenType, Type};
+use common::{Operator, Type};
 use symbol_table::{Symbol, SymbolTable};
+use lexer::token::{Token, TokenType};
 
 #[macro_use]
 mod macros;

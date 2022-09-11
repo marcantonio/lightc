@@ -16,7 +16,7 @@ expression: "(test[1], tokens)"
       line: 1
       column: 6
     - tt:
-        VarType: Int32
+        Ident: int
       line: 1
       column: 8
     - tt:
