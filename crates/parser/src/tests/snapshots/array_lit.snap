@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 290
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x: [int; 3] = [1, 2, 3]"
@@ -9,10 +9,7 @@ expression: "(test[1], ast, ast_string)"
       - Stmt:
           Let:
             name: x
-            antn:
-              Array:
-                - Int32
-                - 3
+            antn: array(int;3)
             init:
               Expr:
                 Lit:
@@ -36,5 +33,5 @@ expression: "(test[1], ast, ast_string)"
                               ty: ~
                       inner_ty: ~
                   ty: ~
-- "(let x:array(int32, 3) [ 1 2 3])"
+- "(let x:array(int;3) [ 1 2 3])"
 

@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 368
+assertion_line: 375
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
@@ -13,12 +13,12 @@ expression: "(test[1], ast, ast_string)"
               - Stmt:
                   Let:
                     name: a
-                    antn: Int32
+                    antn: int
                     init: ~
               - Stmt:
                   Let:
                     name: b
-                    antn: Float
+                    antn: float
                     init:
                       Expr:
                         Lit:
@@ -31,7 +31,7 @@ expression: "(test[1], ast, ast_string)"
                     proto:
                       name: c
                       args: []
-                      ret_ty: Int32
+                      ret_ty: int
                       is_extern: false
                     body:
                       Expr:
@@ -55,5 +55,5 @@ expression: "(test[1], ast, ast_string)"
                         Block:
                           list: []
                           ty: ~
-- "(struct Foo '((let a:int32) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
+- "(struct Foo '((let a:int) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
 

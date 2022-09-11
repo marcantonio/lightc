@@ -12,7 +12,7 @@ expression: "(test[1], ast, ast_string)"
               name: cos
               args:
                 - - x
-                  - Float
+                  - float
               ret_ty: ~
               is_extern: true
             body: ~

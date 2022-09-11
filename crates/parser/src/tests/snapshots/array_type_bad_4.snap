@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "let x: ["
 - Err:
-    message: "Expecting type after `[` in `let` type annotation. Got `EOF`"
+    message: "Expecting identifier after `[` in `let` type annotation. Got `EOF`"
     line: 0
     column: 0
-- "Expecting type after `[` in `let` type annotation. Got `EOF`"
+- "Expecting identifier after `[` in `let` type annotation. Got `EOF`"
 

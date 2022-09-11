@@ -4,9 +4,9 @@ use serde::Serialize;
 
 use crate::Node;
 use common::{Operator, Type};
+pub use literal::Literal;
 
 pub mod literal;
-pub use literal::Literal;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Expression {

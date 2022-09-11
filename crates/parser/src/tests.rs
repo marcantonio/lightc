@@ -148,7 +148,7 @@ fn foo() {}
         ],
         ["bad_1", "fn a(b: int) - { b }"],
         ["bad_2", "fn a(b: int) -> { b }"],
-        ["bad_3", "fn a(b: int) -> a { b }"],
+        ["bad_3", "fn a(b: int) -> not_a_type { b }"],
         ["bad_4", "fn a"],
         ["bad_5", "fn a( {}"],
         ["bad_6", "fn a(a: int, {}"],

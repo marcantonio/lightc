@@ -3,8 +3,8 @@ use common::Type;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct FnData {
-    args: Vec<(String, Type)>,
-    ret_ty: Type,
+    args: Vec<(String, String)>,
+    ret_ty: String,
     is_extern: bool,
 }
 
@@ -15,7 +15,7 @@ pub struct VarData {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct StructData {
-    pub fields: Vec<(String, Type)>,
+    pub fields: Vec<(String, String)>,
     pub methods: Option<Vec<String>>,
 }
 
@@ -34,6 +34,13 @@ pub enum AssocData {
 }
 
 impl Symbol {
+    pub fn new_fn(name: &str, args: &[(String, String)], ret_ty: &str, is_extern: bool) -> Self {
+        Symbol {
+            name: name.to_owned(),
+            data: AssocData::Fn(FnData { args: args.to_vec(), ret_ty: ret_ty.to_owned(), is_extern }),
+        }
+    }
+
     pub fn new_ty(name: &str) -> Self {
         Symbol { name: String::from("_type_") + name, data: AssocData::Type() }
     }
@@ -49,21 +56,21 @@ impl Symbol {
         }
     }
 
-    pub fn args(&self) -> Vec<(&str, &Type)> {
+    pub fn args(&self) -> Vec<(&str, &str)> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty.as_str())).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
-    pub fn arg_tys(&self) -> Vec<&Type> {
+    pub fn arg_tys(&self) -> Vec<&str> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty.as_str()).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
-    pub fn ret_ty(&self) -> &Type {
+    pub fn ret_ty(&self) -> &str {
         match &self.data {
             AssocData::Fn(s) => &s.ret_ty,
             _ => unreachable!("expected symbol to be a function"),
@@ -81,16 +88,6 @@ impl Symbol {
 impl Symbolic for Symbol {
     fn name(&self) -> &str {
         &self.name
-    }
-}
-
-// For new functions
-impl From<(&str, &[(String, Type)], &Type, bool)> for Symbol {
-    fn from((name, args, ret_ty, is_extern): (&str, &[(String, Type)], &Type, bool)) -> Self {
-        Symbol {
-            name: name.to_owned(),
-            data: AssocData::Fn(FnData { args: args.to_owned(), ret_ty: ret_ty.to_owned(), is_extern }),
-        }
     }
 }
 

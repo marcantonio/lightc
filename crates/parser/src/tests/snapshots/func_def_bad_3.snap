@@ -3,10 +3,26 @@ source: crates/parser/src/tests.rs
 assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
-- "fn a(b: int) -> a { b }"
-- Err:
-    message: "Expecting prototype type annotation. Got `a`"
-    line: 1
-    column: 17
-- "Expecting prototype type annotation. Got `a` at 1:17"
+- "fn a(b: int) -> not_a_type { b }"
+- Ok:
+    nodes:
+      - Stmt:
+          Fn:
+            proto:
+              name: a
+              args:
+                - - b
+                  - int
+              ret_ty: not_a_type
+              is_extern: false
+            body:
+              Expr:
+                Block:
+                  list:
+                    - Expr:
+                        Ident:
+                          name: b
+                          ty: ~
+                  ty: ~
+- "(define (a b:int) '(b))"
 

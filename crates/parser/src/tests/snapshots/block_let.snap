@@ -1,7 +1,7 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 60
+expression: "(test[1], ast, ast_string)"
 ---
 - "let x: int = { 1 }"
 - Ok:
@@ -9,7 +9,7 @@ expression: "(input, ast, ast_string)"
       - Stmt:
           Let:
             name: x
-            antn: Int32
+            antn: int
             init:
               Expr:
                 Block:
@@ -20,5 +20,5 @@ expression: "(input, ast, ast_string)"
                             UInt64: 1
                           ty: ~
                   ty: ~
-- "(let x:int32 '(1))"
+- "(let x:int '(1))"
 

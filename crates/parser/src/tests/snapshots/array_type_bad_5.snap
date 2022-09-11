@@ -5,8 +5,8 @@ expression: "(test[1], ast, ast_string)"
 ---
 - "let x: [foo]"
 - Err:
-    message: "Expecting type after `[` in `let` type annotation. Got `foo`"
+    message: "Expecting semicolon after `foo` in `let` type annotation. Got `CloseBracket`"
     line: 1
-    column: 9
-- "Expecting type after `[` in `let` type annotation. Got `foo` at 1:9"
+    column: 12
+- "Expecting semicolon after `foo` in `let` type annotation. Got `CloseBracket` at 1:12"
 

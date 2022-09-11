@@ -2,24 +2,25 @@ use std::iter::Peekable;
 use std::num::IntErrorKind;
 use std::slice::Iter;
 
-use errors::ParseError;
-use precedence::OpPrec;
 use ast::{Ast, Expression, Literal, Node, Prototype, Statement};
-use common::{Operator, Type};
-use symbol_table::{Symbol, SymbolTable};
+use common::Operator;
+use errors::ParseError;
 use lexer::token::{Token, TokenType};
+use precedence::OpPrec;
+use symbol_table::{Symbol, SymbolTable};
 
 #[macro_use]
 mod macros;
+pub mod ast;
 mod errors;
 mod precedence;
 #[cfg(test)]
 mod tests;
 
-type ParseResult = Result<Node, ParseError>;
+type ParseResult = Result<ast::Node, ParseError>;
 
 pub struct Parser<'a> {
-    ast: Ast<Node>,
+    ast: Ast<ast::Node>,
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
 }
@@ -32,7 +33,7 @@ impl<'a> Parser<'a> {
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<Node>, ParseError> {
+    pub fn parse(mut self) -> Result<Ast<ast::Node>, ParseError> {
         while self.tokens.peek().is_some() {
             let node = self.parse_stmt()?;
             self.ast.add(node);
@@ -70,7 +71,7 @@ impl<'a> Parser<'a> {
         let struct_name =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
 
-        if self.symbol_table.insert_with_name(struct_name, Symbol::new_ty(&struct_name)).is_some() {
+        if self.symbol_table.insert_with_name(struct_name, Symbol::new_ty(struct_name)).is_some() {
             return Err(ParseError::from((
                 format!("struct `{}` already defined", struct_name),
                 // TODO: this is the wrong token
@@ -86,7 +87,7 @@ impl<'a> Parser<'a> {
             match &t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Stmt(Statement::Struct(ast::Struct {
+                    return Ok(ast::Node::Stmt(Statement::Struct(ast::Struct {
                         name: struct_name.to_owned(),
                         fields,
                         methods,
@@ -125,7 +126,7 @@ impl<'a> Parser<'a> {
 
         let step_node = self.parse_expr(0)?;
 
-        Ok(Node::Stmt(Statement::For(ast::For {
+        Ok(ast::Node::Stmt(Statement::For(ast::For {
             start_name: name,
             start_antn: antn,
             start_expr: init.map(Box::new),
@@ -141,7 +142,7 @@ impl<'a> Parser<'a> {
 
         let (name, antn, init) = self.parse_var_init("let")?;
 
-        Ok(Node::Stmt(Statement::Let(ast::Let { name, antn, init: init.map(Box::new) })))
+        Ok(ast::Node::Stmt(Statement::Let(ast::Let { name, antn, init: init.map(Box::new) })))
     }
 
     // FnDecl ::= Prototype Block ;
@@ -159,7 +160,7 @@ impl<'a> Parser<'a> {
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(Box::new(self.parse_block()?)) };
 
-        Ok(Node::Stmt(Statement::Fn(ast::Fn { proto: Box::new(proto), body })))
+        Ok(ast::Node::Stmt(Statement::Fn(ast::Fn { proto: Box::new(proto), body })))
     }
 
     // ExternDecl ::= 'extern' Prototype ;
@@ -220,7 +221,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_expr(p)?;
 
             // Make a new lhs and continue loop
-            lhs = Node::Expr(Expression::BinOp(ast::BinOp {
+            lhs = ast::Node::Expr(Expression::BinOp(ast::BinOp {
                 op,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
@@ -236,7 +237,7 @@ impl<'a> Parser<'a> {
 
         let p = OpPrec::un_prec(op)?;
         let rhs = self.parse_expr(p)?;
-        Ok(Node::Expr(Expression::UnOp(ast::UnOp { op, rhs: Box::new(rhs), ty: None })))
+        Ok(ast::Node::Expr(Expression::UnOp(ast::UnOp { op, rhs: Box::new(rhs), ty: None })))
     }
 
     // PrimaryExpr ::= CondExpr | | SelfExpr |LitExpr | IdentExpr | CallExpr | Assignment
@@ -282,7 +283,7 @@ impl<'a> Parser<'a> {
         // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
             Some(Token { tt: TokenType::OpenParen, .. }) => (),
-            _ => return Ok(Node::Expr(node)),
+            _ => return Ok(ast::Node::Expr(node)),
         };
 
         // Eat open paren
@@ -294,7 +295,7 @@ impl<'a> Parser<'a> {
         // Eat close paren
         expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in function call");
 
-        Ok(Node::Expr(Expression::Call(ast::Call { name: id.to_owned(), args, ty: None })))
+        Ok(ast::Node::Expr(Expression::Call(ast::Call { name: id.to_owned(), args, ty: None })))
     }
 
     // ParenExpr ::= '(' Expr ')' ;
@@ -327,13 +328,13 @@ impl<'a> Parser<'a> {
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
-                Node::Expr(Expression::Block(ast::Block { list: vec![self.parse_expr(0)?], ty: None }))
+                ast::Node::Expr(Expression::Block(ast::Block { list: vec![self.parse_expr(0)?], ty: None }))
             } else {
                 self.parse_block()?
             }
         });
 
-        Ok(Node::Expr(Expression::Cond(ast::Cond {
+        Ok(ast::Node::Expr(Expression::Cond(ast::Cond {
             cond_expr: Box::new(cond_node),
             then_block: Box::new(then_block),
             else_block: else_block.map(Box::new),
@@ -343,7 +344,7 @@ impl<'a> Parser<'a> {
 
     // Block ::= '{' StmtList? '}' ;
     fn parse_block(&mut self) -> ParseResult {
-        let mut block: Vec<Node> = vec![];
+        let mut block: Vec<ast::Node> = vec![];
 
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start block");
 
@@ -351,7 +352,7 @@ impl<'a> Parser<'a> {
             match t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Expr(Expression::Block(ast::Block { list: block, ty: None })));
+                    return Ok(ast::Node::Expr(Expression::Block(ast::Block { list: block, ty: None })));
                 },
                 _ => block.push(self.parse_stmt()?),
             }
@@ -361,7 +362,7 @@ impl<'a> Parser<'a> {
     }
 
     // IndexExpr ::= PrimaryExpr '[' Expr ']' ;
-    fn parse_index(&mut self, binding: Node) -> ParseResult {
+    fn parse_index(&mut self, binding: ast::Node) -> ParseResult {
         self.tokens.next(); // Eat open bracket
 
         let index = self.parse_expr(0)?;
@@ -372,7 +373,7 @@ impl<'a> Parser<'a> {
             "Expecting `]` after expression in array index"
         );
 
-        Ok(Node::Expr(Expression::Index(ast::Index {
+        Ok(ast::Node::Expr(Expression::Index(ast::Index {
             binding: Box::new(binding),
             idx: Box::new(index),
             ty: None,
@@ -385,7 +386,7 @@ impl<'a> Parser<'a> {
     fn parse_lit_bool(&mut self, b: bool) -> ParseResult {
         self.tokens.next(); // Eat bool
 
-        Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Bool(b), ty: None })))
+        Ok(ast::Node::Expr(Expression::Lit(ast::Lit { value: Literal::Bool(b), ty: None })))
     }
 
     // CharLit ::= char ;
@@ -394,7 +395,9 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat char
 
         match c.parse::<char>() {
-            Ok(c) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Char(c as u8), ty: None }))),
+            Ok(c) => {
+                Ok(ast::Node::Expr(Expression::Lit(ast::Lit { value: Literal::Char(c as u8), ty: None })))
+            },
             Err(_) => Err(ParseError::from((format!("Invalid character literal: {}", token), token))),
         }
     }
@@ -410,12 +413,14 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat num
 
         match n.parse::<u64>() {
-            Ok(n) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(n), ty: None }))),
+            Ok(n) => Ok(ast::Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(n), ty: None }))),
             Err(e) if e.kind() == &IntErrorKind::PosOverflow || e.kind() == &IntErrorKind::NegOverflow => {
                 Err(ParseError::from((format!("Numeric literal out of integer range: {}", token), token)))
             },
             _ => match n.parse::<f32>() {
-                Ok(n) => Ok(Node::Expr(Expression::Lit(ast::Lit { value: Literal::Float(n), ty: None }))),
+                Ok(n) => {
+                    Ok(ast::Node::Expr(Expression::Lit(ast::Lit { value: Literal::Float(n), ty: None })))
+                },
                 Err(_) => Err(ParseError::from((format!("Invalid numeric literal: {}", token), token))),
             },
         }
@@ -446,7 +451,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(self.tokens, TokenType::OpenParen, "Expecting `(` in prototype");
 
         // Parse args list
-        let mut args: Vec<(String, Type)> = vec![];
+        let mut args: Vec<(String, String)> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
@@ -508,7 +513,7 @@ impl<'a> Parser<'a> {
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;
-    fn parse_var_init(&mut self, caller: &str) -> Result<(String, Type, Option<Node>), ParseError> {
+    fn parse_var_init(&mut self, caller: &str) -> Result<(String, String, Option<ast::Node>), ParseError> {
         // Get the name of the variable and its type annotation
         let (name, antn) = self.parse_typed_decl(caller)?;
 
@@ -522,14 +527,14 @@ impl<'a> Parser<'a> {
     }
 
     // TypeAntn ::= type | '[' type ']' ;
-    fn parse_type_antn(&mut self, caller: &str) -> Result<Type, ParseError> {
+    fn parse_type_antn(&mut self, caller: &str) -> Result<String, ParseError> {
         let token = self.tokens.next();
         let ty = match token {
             Some(Token { tt: TokenType::OpenBracket, .. }) => {
                 let ty = expect_next_token!(
                     self.tokens,
-                    TokenType::VarType(_),
-                    format!("Expecting type after `[` in `{}` type annotation", caller)
+                    TokenType::Ident(_),
+                    format!("Expecting identifier after `[` in `{}` type annotation", caller)
                 );
                 expect_next_token!(
                     self.tokens,
@@ -538,7 +543,7 @@ impl<'a> Parser<'a> {
                 );
 
                 let size = match self.parse_expr(0)? {
-                    Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(s), .. })) => s,
+                    ast::Node::Expr(Expression::Lit(ast::Lit { value: Literal::UInt64(s), .. })) => s,
                     _ => {
                         return Err(ParseError::from((
                             "Expecting a literal int for size in array type".to_string(),
@@ -551,9 +556,9 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(Box::new(ty.clone()), size.try_into().unwrap())
+                format!("array({};{})", ty, size)
             },
-            Some(Token { tt: TokenType::VarType(ty), .. }) => ty.clone(),
+            Some(Token { tt: TokenType::Ident(ty), .. }) => ty.to_owned(),
             Some(next) => {
                 return Err(ParseError::from((
                     format!("Expecting {} type annotation. Got `{}`", caller, next),
@@ -571,7 +576,7 @@ impl<'a> Parser<'a> {
     }
 
     // TypedDecl ::= ident ':' TypeAntn ;
-    fn parse_typed_decl(&mut self, caller: &str) -> Result<(String, Type), ParseError> {
+    fn parse_typed_decl(&mut self, caller: &str) -> Result<(String, String), ParseError> {
         let err = match caller {
             "prototype" => format!("Expecting identifier or `)` in `{}` typed declaration", caller),
             _ => format!("Expecting identifier in `{}` typed declaration", caller),
@@ -588,8 +593,8 @@ impl<'a> Parser<'a> {
     }
 
     // ExprList ::= Expr ','? | Expr ( ',' Expr )* ;
-    fn parse_expr_list(&mut self, term: TokenType, in_err: &str) -> Result<Vec<Node>, ParseError> {
-        let mut args: Vec<Node> = vec![];
+    fn parse_expr_list(&mut self, term: TokenType, in_err: &str) -> Result<Vec<ast::Node>, ParseError> {
+        let mut args: Vec<ast::Node> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate terminator
             if next.tt == term {

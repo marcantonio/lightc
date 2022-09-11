@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 368
+assertion_line: 375
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nstruct Foo {\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
@@ -16,7 +16,7 @@ expression: "(test[1], ast, ast_string)"
                     proto:
                       name: c
                       args: []
-                      ret_ty: Int32
+                      ret_ty: int
                       is_extern: false
                     body:
                       Expr:

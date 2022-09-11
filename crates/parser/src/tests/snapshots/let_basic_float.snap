@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 214
+assertion_line: 225
 expression: "(test[1], ast, ast_string)"
 ---
 - "let x: float = 1.0"
@@ -9,7 +9,7 @@ expression: "(test[1], ast, ast_string)"
       - Stmt:
           Let:
             name: x
-            antn: Float
+            antn: float
             init:
               Expr:
                 Lit:

@@ -1,8 +1,8 @@
 use serde::Serialize;
 use std::fmt::Display;
 
-use crate::{Node, Prototype};
-use common::Type;
+use super::Prototype;
+use crate::Node;
 use symbol_table::{symbol, Symbol};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -36,7 +36,7 @@ impl Display for Statement {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct For {
     pub start_name: String, // TODO: make this a Statement::Let
-    pub start_antn: Type,
+    pub start_antn: String,
     pub start_expr: Option<Box<Node>>,
     pub cond_expr: Box<Node>,
     pub step_expr: Box<Node>,
@@ -56,7 +56,7 @@ impl Display for For {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Let {
     pub name: String,
-    pub antn: Type,
+    pub antn: String,
     pub init: Option<Box<Node>>,
 }
 

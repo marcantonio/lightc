@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use common::Token;
+use lexer::token::Token;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct ParseError {
@@ -11,7 +11,7 @@ pub struct ParseError {
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut msg = format!("{}", self.message);
+        let mut msg = self.message.to_owned();
 
         if self.line != 0 && self.column != 0 {
             msg += &format!(" at {}:{}", self.line, self.column);

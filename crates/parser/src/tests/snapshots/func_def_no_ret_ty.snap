@@ -12,7 +12,7 @@ expression: "(test[1], ast, ast_string)"
               name: a
               args:
                 - - b
-                  - Int32
+                  - int
               ret_ty: ~
               is_extern: false
             body:
@@ -24,5 +24,5 @@ expression: "(test[1], ast, ast_string)"
                           name: b
                           ty: ~
                   ty: ~
-- "(define (a b:int32) '(b))"
+- "(define (a b:int) '(b))"
 

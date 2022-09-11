@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 100
+assertion_line: 101
 expression: "(test[1], ast, ast_string)"
 ---
 - "for x: int = 1; x < 10; 1 { foo }"
@@ -9,7 +9,7 @@ expression: "(test[1], ast, ast_string)"
       - Stmt:
           For:
             start_name: x
-            start_antn: Int32
+            start_antn: int
             start_expr:
               Expr:
                 Lit:
@@ -47,5 +47,5 @@ expression: "(test[1], ast, ast_string)"
                           name: foo
                           ty: ~
                   ty: ~
-- "(for (x: int32 1) (< x 10) 1 '(foo))"
+- "(for (x: int 1) (< x 10) 1 '(foo))"
 

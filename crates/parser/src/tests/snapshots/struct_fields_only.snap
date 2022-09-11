@@ -13,12 +13,12 @@ expression: "(test[1], ast, ast_string)"
               - Stmt:
                   Let:
                     name: a
-                    antn: Int32
+                    antn: int
                     init: ~
               - Stmt:
                   Let:
                     name: b
-                    antn: Float
+                    antn: float
                     init:
                       Expr:
                         Lit:
@@ -26,5 +26,5 @@ expression: "(test[1], ast, ast_string)"
                             Float: 1.0
                           ty: ~
             methods: []
-- "(struct Foo '((let a:int32) (let b:float 1)) '())"
+- "(struct Foo '((let a:int) (let b:float 1)) '())"
 

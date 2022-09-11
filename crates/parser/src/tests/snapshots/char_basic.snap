@@ -1,7 +1,7 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 81
+expression: "(test[1], ast, ast_string)"
 ---
 - "let c: char = 'a'"
 - Ok:
@@ -9,7 +9,7 @@ expression: "(input, ast, ast_string)"
       - Stmt:
           Let:
             name: c
-            antn: Char
+            antn: char
             init:
               Expr:
                 Lit:
