@@ -34,7 +34,7 @@ fn main() {
     // Parser
     let parser = Parser::new(&tokens, &mut symbol_table);
     let ast = parser.parse().unwrap_or_else(|e| {
-        eprintln!("Paring error: {}", e);
+        eprintln!("Parsing error: {}", e);
         process::exit(1);
     });
 

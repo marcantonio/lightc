@@ -9,6 +9,7 @@ pub use symbol::Symbol;
  * 0 (global) ---> foo ---> {...}
  * 1          ---> bar ---> {...}
  *                 foo ---> {...}
+ * 2          ---> baz ---> {...}
  */
 
 #[derive(Debug)]

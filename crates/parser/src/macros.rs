@@ -6,8 +6,7 @@ macro_rules! expect_next_token {
         match t {
             $( Some(Token { tt: TokenType::$v, .. }) => (), )+
                 _ => {
-                    // Default to EOF. Make sure that we ignore inserted
-                    // semicolons.
+                    // Default to EOF. Make sure that we ignore inserted semicolons.
                     let new_t = t.cloned().filter(|n| !n.is_implicit_semi()).unwrap_or_default();
                     return Err(ParseError::from((
                         format!(

@@ -298,7 +298,7 @@ fn test_array() {
 fn test_struct() {
     let tests = [
         [
-            "attr_only",
+            "fields_only",
             r#"
 struct Foo {
     let a: int
@@ -331,6 +331,13 @@ struct Foo {
 }
 "#,
         ],
+        [
+            "dup",
+            r#"
+struct Foo {}
+struct Foo {}
+"#,
+        ]
         //         [
         //             "self",
         //             r#"

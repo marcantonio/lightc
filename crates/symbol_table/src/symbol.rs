@@ -30,44 +30,49 @@ pub enum AssocData {
     Fn(FnData),
     Var(VarData),
     Struct(StructData),
+    Type(),
 }
 
 impl Symbol {
+    pub fn new_ty(name: &str) -> Self {
+        Symbol { name: String::from("_type_") + name, data: AssocData::Type() }
+    }
+
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_owned();
     }
 
     pub fn ty(&self) -> &Type {
         match &self.data {
-            AssocData::Var(v) => &v.ty,
+            AssocData::Var(s) => &s.ty,
             _ => unreachable!("expected symbol to be a variable"),
         }
     }
 
     pub fn args(&self) -> Vec<(&str, &Type)> {
         match &self.data {
-            AssocData::Fn(f) => f.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
     pub fn arg_tys(&self) -> Vec<&Type> {
         match &self.data {
-            AssocData::Fn(f) => f.args.iter().map(|(_, ty)| ty).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
     pub fn ret_ty(&self) -> &Type {
         match &self.data {
-            AssocData::Fn(f) => &f.ret_ty,
+            AssocData::Fn(s) => &s.ret_ty,
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
     pub fn is_extern(&self) -> bool {
         match &self.data {
-            AssocData::Fn(f) => f.is_extern,
+            AssocData::Fn(s) => s.is_extern,
             _ => unreachable!("expected symbol to be a function"),
         }
     }

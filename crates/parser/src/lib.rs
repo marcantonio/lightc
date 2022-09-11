@@ -64,10 +64,18 @@ impl<'a> Parser<'a> {
 
     // StructDecl ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
     fn parse_struct(&mut self) -> ParseResult {
-        self.tokens.next(); // Eat struct
+        let token = self.tokens.next(); // Eat struct
 
         let struct_name =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
+
+        if self.symbol_table.insert_with_name(struct_name, Symbol::new_ty(&struct_name)).is_some() {
+            return Err(ParseError::from((
+                format!("struct `{}` already defined", struct_name),
+                // TODO: this is the wrong token
+                token.unwrap(),
+            )));
+        }
 
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start struct block");
 

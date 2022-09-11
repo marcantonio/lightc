@@ -10,10 +10,6 @@ fn printInt(x: int) {
     putchar(10)
 }
 
-fn getStuff(x: int, y: float) {
-
-}
-
 fn printBang() {
     putchar(33)
     putchar(10)
@@ -46,9 +42,11 @@ fn main() {
     y += 1
     printInt(y)
     printBang()
+
+    let mm: Foo
 }
 
-// struct Foo {
-//     let a: int,
-//     let b: float,
-// }
+struct Foo {
+    // let a: int,
+    // let b: float,
+}

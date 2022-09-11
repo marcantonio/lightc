@@ -173,23 +173,18 @@ impl<'a> TypeChecker<'a> {
         Ok(Statement::Fn(ast::Fn { proto: stmt.proto, body: Some(Box::new(body_node)) }))
     }
 
-    fn check_struct(&mut self, _stmt: ast::Struct) -> StmtResult {
-        // // Drop scope
-        // self.symbol_table.down_scope();
+    fn check_struct(&mut self, stmt: ast::Struct) -> StmtResult {
+        let mut chkd_fields = vec![];
+        for node in stmt.fields {
+            chkd_fields.push(self.check_node(node, None)?);
+        }
 
-        // for node in attributes {
-        //     self.check_node(node)?;
-        // }
+        let mut chkd_methods = vec![];
+        for node in stmt.methods {
+            chkd_methods.push(self.check_node(node, None)?);
+        }
 
-        // for node in methods {
-        //     self.check_node(node)?;
-        // }
-
-        // // Pop up 1 level. Drops old scope.
-        // self.symbol_table.up_scope()?;
-
-        // Ok(())
-        todo!("NOT HERE")
+        Ok(Statement::Struct(ast::Struct { name: stmt.name, fields: chkd_fields, methods: chkd_methods }))
     }
 
     fn check_expr(&mut self, expr: Expression, ty_hint: Option<&Type>) -> Result<Node, String> {

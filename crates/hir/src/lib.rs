@@ -129,9 +129,9 @@ impl<'a> Hir<'a> {
             return Err(format!("struct `{}` can't be redefined", stmt.name));
         }
 
-        let mut lowered_attrs = vec![];
+        let mut lowered_fields = vec![];
         for node in stmt.fields {
-            lowered_attrs.push(self.lower_node(node)?);
+            lowered_fields.push(self.lower_node(node)?);
         }
 
         let mut lowered_meths = vec![];
@@ -139,7 +139,7 @@ impl<'a> Hir<'a> {
             lowered_meths.push(self.lower_node(node)?);
         }
 
-        Ok(Statement::Struct(ast::Struct { name: stmt.name, fields: lowered_attrs, methods: lowered_meths }))
+        Ok(Statement::Struct(ast::Struct { name: stmt.name, fields: lowered_fields, methods: lowered_meths }))
     }
 
     fn lower_expr(&mut self, expr: Expression) -> Result<Node, String> {

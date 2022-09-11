@@ -760,60 +760,46 @@ if x < 2.0 {
     run_insta!("scope", tests);
 }
 
-// #[test]
-// fn test_struct() {
-//     let tests = [
-//         [
-//             "attr_only",
-//             r#"
-// struct Foo {
-//     let a: int
-//     let b: float = 1.0
-// }
-// "#,
-//         ],
-//         [
-//             "methods_only",
-//             r#"
-// struct Foo {
-//     fn c() -> int {
-//         1
-//     }
-//     fn d() {}
-// }
-// "#,
-//         ],
-//         [
-//             "mix",
-//             r#"
-// struct Foo {
-//     let a: int
-//     let b: float = 1.0
+#[test]
+fn test_struct() {
+    let tests = [
+        [
+            "fields_only",
+            r#"
+struct Foo {
+    let a: int
+    let b: float = 1.0
+}
+"#,
+        ],
+        [
+            "methods_only",
+            r#"
+struct Foo {
+    fn c() -> int {
+        1
+    }
+    fn d() {}
+}
+"#,
+        ],
+        [
+            "mix",
+            r#"
+struct Foo {
+    let a: int
+    let b: float = 1.0
 
-//     fn c() -> int {
-//         1
-//     }
-//     fn d() {}
-// }
-// "#,
-//         ],
-//         [
-//             "scope",
-//             r#"
-// struct Foo {
-//     let a: int
-//     let b: float = 1.0
-
-//     fn c() -> int {
-//         a
-//     }
-//     fn d() {}
-// }
-// "#,
-//         ],
-//     ];
-//     run_insta!("struct", tests)
-// }
+    fn c() -> int {
+        a
+    }
+    fn d() {}
+}
+"#,
+        ],
+    ];
+    run_insta!("struct", tests)
+}
 
 #[test]
 fn test_tyc_int_no_hint() {
