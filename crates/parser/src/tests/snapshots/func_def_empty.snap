@@ -17,6 +17,5 @@ expression: "(test[1], ast, ast_string)"
               Expr:
                 Block:
                   list: []
-                  ty: ~
 - "(define (a) '()))"
 

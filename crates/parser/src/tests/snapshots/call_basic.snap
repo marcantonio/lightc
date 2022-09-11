@@ -1,7 +1,7 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 16
-expression: "(input, ast, ast_string)"
+assertion_line: 75
+expression: "(test[1], ast, ast_string)"
 ---
 - "a(b, c)"
 - Ok:
@@ -13,11 +13,8 @@ expression: "(input, ast, ast_string)"
               - Expr:
                   Ident:
                     name: b
-                    ty: ~
               - Expr:
                   Ident:
                     name: c
-                    ty: ~
-            ty: ~
 - (a b c)
 

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::Serialize;
 
 use crate::Node;
-use common::{Operator, Type};
+use common::Operator;
 pub use literal::Literal;
 
 pub mod literal;
@@ -21,20 +21,6 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn ty(&self) -> Option<Type> {
-        match self {
-            Expression::Lit(Lit { ty, .. }) => ty,
-            Expression::Ident(Ident { ty, .. }) => ty,
-            Expression::BinOp(BinOp { ty, .. }) => ty,
-            Expression::UnOp(UnOp { ty, .. }) => ty,
-            Expression::Call(Call { ty, .. }) => ty,
-            Expression::Cond(Cond { ty, .. }) => ty,
-            Expression::Block(Block { ty, .. }) => ty,
-            Expression::Index(Index { ty, .. }) => ty,
-        }
-        .clone()
-    }
-
     pub fn is_num_literal(&self) -> bool {
         use Literal::*;
 
@@ -77,7 +63,6 @@ impl Display for Expression {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Lit {
     pub value: Literal,
-    pub ty: Option<Type>,
 }
 
 impl Display for Lit {
@@ -89,7 +74,6 @@ impl Display for Lit {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Ident {
     pub name: String,
-    pub ty: Option<Type>,
 }
 
 impl Display for Ident {
@@ -103,7 +87,6 @@ pub struct BinOp {
     pub op: Operator,
     pub lhs: Box<Node>,
     pub rhs: Box<Node>,
-    pub ty: Option<Type>,
 }
 
 impl Display for BinOp {
@@ -116,7 +99,6 @@ impl Display for BinOp {
 pub struct UnOp {
     pub op: Operator,
     pub rhs: Box<Node>,
-    pub ty: Option<Type>,
 }
 
 impl Display for UnOp {
@@ -129,7 +111,6 @@ impl Display for UnOp {
 pub struct Call {
     pub name: String,
     pub args: Vec<Node>,
-    pub ty: Option<Type>,
 }
 
 impl Display for Call {
@@ -149,7 +130,6 @@ pub struct Cond {
     pub cond_expr: Box<Node>,
     pub then_block: Box<Node>,
     pub else_block: Option<Box<Node>>,
-    pub ty: Option<Type>,
 }
 
 impl Display for Cond {
@@ -165,7 +145,6 @@ impl Display for Cond {
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Block {
     pub list: Vec<Node>,
-    pub ty: Option<Type>,
 }
 
 impl Display for Block {
@@ -183,7 +162,6 @@ impl Display for Block {
 pub struct Index {
     pub binding: Box<Node>,
     pub idx: Box<Node>,
-    pub ty: Option<Type>,
 }
 
 impl Display for Index {

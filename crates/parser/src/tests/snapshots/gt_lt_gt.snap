@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 160
+assertion_line: 169
 expression: "(test[1], ast, ast_string)"
 ---
 - a + b > 40
@@ -17,19 +17,14 @@ expression: "(test[1], ast, ast_string)"
                     Expr:
                       Ident:
                         name: a
-                        ty: ~
                   rhs:
                     Expr:
                       Ident:
                         name: b
-                        ty: ~
-                  ty: ~
             rhs:
               Expr:
                 Lit:
                   value:
                     UInt64: 40
-                  ty: ~
-            ty: ~
 - (> (+ a b) 40)
 

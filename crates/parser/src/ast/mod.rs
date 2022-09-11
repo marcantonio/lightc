@@ -2,8 +2,6 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use common::Type;
-
 pub mod prototype;
 pub use prototype::Prototype;
 pub mod stmt;
@@ -52,13 +50,6 @@ impl Node {
         F: core::ops::Fn(T) -> Self,
     {
         (cons)(inner)
-    }
-
-    pub fn ty(&self) -> Option<Type> {
-        match self {
-            Node::Stmt(_) => None,
-            Node::Expr(e) => e.ty(),
-        }
     }
 
     pub fn as_stmt(&self) -> &Statement {

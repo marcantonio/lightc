@@ -15,6 +15,5 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     UInt64: 1
-                  ty: ~
 - "(let x:int 1)"
 

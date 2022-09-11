@@ -22,7 +22,5 @@ expression: "(test[1], ast, ast_string)"
                     - Expr:
                         Ident:
                           name: b
-                          ty: ~
-                  ty: ~
 - "(define (a b:int) '(b))"
 

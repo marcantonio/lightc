@@ -24,7 +24,6 @@ expression: "(test[1], ast, ast_string)"
                         Lit:
                           value:
                             Float: 1.0
-                          ty: ~
             methods: []
 - "(struct Foo '((let a:int) (let b:float 1)) '())"
 

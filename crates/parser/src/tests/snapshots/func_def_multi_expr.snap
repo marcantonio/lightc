@@ -33,20 +33,15 @@ expression: "(test[1], ast, ast_string)"
                                     Lit:
                                       value:
                                         UInt64: 19
-                                      ty: ~
                                 rhs:
                                   Expr:
                                     Ident:
                                       name: a
-                                      ty: ~
-                                ty: ~
                           rhs:
                             Expr:
                               Lit:
                                 value:
                                   UInt64: 40
-                                ty: ~
-                          ty: ~
                     - Expr:
                         BinOp:
                           op: Add
@@ -54,13 +49,9 @@ expression: "(test[1], ast, ast_string)"
                             Expr:
                               Ident:
                                 name: b
-                                ty: ~
                           rhs:
                             Expr:
                               Ident:
                                 name: a
-                                ty: ~
-                          ty: ~
-                  ty: ~
 - "(define (a b:int c:int) '((+ (+ 19 a) 40) (+ b a)))"
 

@@ -15,7 +15,6 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     UInt64: 1
-                  ty: ~
             cond_expr:
               Expr:
                 BinOp:
@@ -24,20 +23,16 @@ expression: "(test[1], ast, ast_string)"
                     Expr:
                       Ident:
                         name: x
-                        ty: ~
                   rhs:
                     Expr:
                       Lit:
                         value:
                           UInt64: 10
-                        ty: ~
-                  ty: ~
             step_expr:
               Expr:
                 Lit:
                   value:
                     UInt64: 1
-                  ty: ~
             body:
               Expr:
                 Block:
@@ -45,7 +40,5 @@ expression: "(test[1], ast, ast_string)"
                     - Expr:
                         Ident:
                           name: foo
-                          ty: ~
-                  ty: ~
 - "(for (x: int 1) (< x 10) 1 '(foo))"
 

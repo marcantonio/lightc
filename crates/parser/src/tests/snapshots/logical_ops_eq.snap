@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 228
+assertion_line: 237
 expression: "(test[1], ast, ast_string)"
 ---
 - x == 1
@@ -13,13 +13,10 @@ expression: "(test[1], ast, ast_string)"
               Expr:
                 Ident:
                   name: x
-                  ty: ~
             rhs:
               Expr:
                 Lit:
                   value:
                     UInt64: 1
-                  ty: ~
-            ty: ~
 - (== x 1)
 

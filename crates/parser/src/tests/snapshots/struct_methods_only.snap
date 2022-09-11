@@ -26,8 +26,6 @@ expression: "(test[1], ast, ast_string)"
                                 Lit:
                                   value:
                                     UInt64: 1
-                                  ty: ~
-                          ty: ~
               - Stmt:
                   Fn:
                     proto:
@@ -39,6 +37,5 @@ expression: "(test[1], ast, ast_string)"
                       Expr:
                         Block:
                           list: []
-                          ty: ~
 - "(struct Foo '() '((define (c) '(1)) (define (d) '()))))"
 

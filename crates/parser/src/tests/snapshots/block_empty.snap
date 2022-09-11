@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 59
+assertion_line: 60
 expression: "(test[1], ast, ast_string)"
 ---
 - "if foo {}"
@@ -12,13 +12,10 @@ expression: "(test[1], ast, ast_string)"
               Expr:
                 Ident:
                   name: foo
-                  ty: ~
             then_block:
               Expr:
                 Block:
                   list: []
-                  ty: ~
             else_block: ~
-            ty: ~
 - "(if foo '()))"
 

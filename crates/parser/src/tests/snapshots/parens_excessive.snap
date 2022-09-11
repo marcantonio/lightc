@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 251
+assertion_line: 258
 expression: "(test[1], ast, ast_string)"
 ---
 - (((0)))
@@ -10,6 +10,5 @@ expression: "(test[1], ast, ast_string)"
           Lit:
             value:
               UInt64: 0
-            ty: ~
 - "0"
 

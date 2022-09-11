@@ -15,6 +15,5 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     Char: 10
-                  ty: ~
 - "(let nl:char \n)"
 

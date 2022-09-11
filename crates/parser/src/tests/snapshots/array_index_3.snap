@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 288
+assertion_line: 294
 expression: "(test[1], ast, ast_string)"
 ---
 - "x[y[0]]"
@@ -12,7 +12,6 @@ expression: "(test[1], ast, ast_string)"
               Expr:
                 Ident:
                   name: x
-                  ty: ~
             idx:
               Expr:
                 Index:
@@ -20,14 +19,10 @@ expression: "(test[1], ast, ast_string)"
                     Expr:
                       Ident:
                         name: y
-                        ty: ~
                   idx:
                     Expr:
                       Lit:
                         value:
                           UInt64: 0
-                        ty: ~
-                  ty: ~
-            ty: ~
 - "x[y[0]]"
 

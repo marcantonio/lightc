@@ -1,6 +1,6 @@
 ---
 source: crates/parser/src/tests.rs
-assertion_line: 202
+assertion_line: 211
 expression: "(test[1], ast, ast_string)"
 ---
 - "if a > b { foo }"
@@ -16,13 +16,10 @@ expression: "(test[1], ast, ast_string)"
                     Expr:
                       Ident:
                         name: a
-                        ty: ~
                   rhs:
                     Expr:
                       Ident:
                         name: b
-                        ty: ~
-                  ty: ~
             then_block:
               Expr:
                 Block:
@@ -30,9 +27,6 @@ expression: "(test[1], ast, ast_string)"
                     - Expr:
                         Ident:
                           name: foo
-                          ty: ~
-                  ty: ~
             else_block: ~
-            ty: ~
 - "(if (> a b) '(foo))"
 
