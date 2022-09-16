@@ -3,35 +3,7 @@ use std::fmt::Display;
 
 use super::Prototype;
 use crate::Node;
-use symbol_table::{symbol, Symbol};
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Statement {
-    For(For),
-    Let(Let),
-    Fn(Fn),
-    Struct(Struct),
-}
-
-impl Statement {
-    pub fn as_let(&self) -> &Let {
-        match self {
-            Statement::Let(l) => l,
-            _ => unreachable!("expected Expression"),
-        }
-    }
-}
-
-impl Display for Statement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Statement::For(s) => write!(f, "{}", s),
-            Statement::Let(s) => write!(f, "{}", s),
-            Statement::Fn(s) => write!(f, "{}", s),
-            Statement::Struct(s) => write!(f, "{}", s),
-        }
-    }
-}
+//use symbol_table::{symbol, Symbol};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct For {
@@ -116,20 +88,20 @@ impl Display for Struct {
     }
 }
 
-// For new structs
-impl From<&Struct> for Symbol {
-    fn from(s: &Struct) -> Self {
-        let fields = s
-            .fields
-            .iter()
-            .map(|f| {
-                let let_stmt = f.as_stmt().as_let();
-                (let_stmt.name.to_owned(), let_stmt.antn.to_owned())
-            })
-            .collect();
-        Symbol {
-            name: s.name.to_owned(),
-            data: symbol::AssocData::Struct(symbol::StructData { fields, methods: None }),
-        }
-    }
-}
+// // For new structs
+// impl From<&Struct> for Symbol {
+//     fn from(s: &Struct) -> Self {
+//         let fields = s
+//             .fields
+//             .iter()
+//             .map(|f| {
+//                 let let_stmt = f.as_stmt().as_let();
+//                 (let_stmt.name.to_owned(), let_stmt.antn.to_owned())
+//             })
+//             .collect();
+//         Symbol {
+//             name: s.name.to_owned(),
+//             data: symbol::AssocData::Struct(symbol::StructData { fields, methods: None }),
+//         }
+//     }
+// }

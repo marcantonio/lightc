@@ -8,57 +8,28 @@ pub use literal::Literal;
 
 pub mod literal;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Expression {
-    Lit(Lit),
-    Ident(Ident),
-    BinOp(BinOp),
-    UnOp(UnOp),
-    Call(Call),
-    Cond(Cond),
-    Block(Block),
-    Index(Index),
-}
+// impl Expression {
+//     pub fn is_num_literal(&self) -> bool {
+//         use Literal::*;
 
-impl Expression {
-    pub fn is_num_literal(&self) -> bool {
-        use Literal::*;
-
-        matches!(
-            self,
-            Expression::Lit(Lit {
-                value: Int8(_)
-                    | Int16(_)
-                    | Int32(_)
-                    | Int64(_)
-                    | UInt8(_)
-                    | UInt16(_)
-                    | UInt32(_)
-                    | UInt64(_)
-                    | Float(_)
-                    | Double(_),
-                ..
-            })
-        )
-    }
-}
-
-impl Display for Expression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Expression::*;
-
-        match self {
-            Lit(e) => write!(f, "{}", e),
-            BinOp(e) => write!(f, "{}", e),
-            UnOp(e) => write!(f, "{}", e),
-            Ident(e) => write!(f, "{}", e),
-            Call(e) => write!(f, "{}", e),
-            Cond(e) => write!(f, "{}", e),
-            Block(e) => write!(f, "{}", e),
-            Index(e) => write!(f, "{}", e),
-        }
-    }
-}
+//         matches!(
+//             self,
+//             Expression::Lit(Lit {
+//                 value: Int8(_)
+//                     | Int16(_)
+//                     | Int32(_)
+//                     | Int64(_)
+//                     | UInt8(_)
+//                     | UInt16(_)
+//                     | UInt32(_)
+//                     | UInt64(_)
+//                     | Float(_)
+//                     | Double(_),
+//                 ..
+//             })
+//         )
+//     }
+// }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Lit {

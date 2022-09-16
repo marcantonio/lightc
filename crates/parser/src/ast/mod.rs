@@ -40,8 +40,22 @@ impl<T> Default for Ast<T> {
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Node {
-    Stmt(Statement),
-    Expr(Expression),
+    // Statements
+    For(For),
+    Let(Let),
+    Fn(Fn),
+    Struct(Struct),
+    // Expressions
+    Lit(Lit),
+    Ident(Ident),
+    BinOp(BinOp),
+    UnOp(UnOp),
+    Call(Call),
+    Cond(Cond),
+    Block(Block),
+    Index(Index),
+    // Stmt(Statement),
+    // Expr(Expression),
 }
 
 impl Node {
@@ -51,41 +65,24 @@ impl Node {
     {
         (cons)(inner)
     }
-
-    pub fn as_stmt(&self) -> &Statement {
-        match self {
-            Node::Stmt(s) => s,
-            Node::Expr(_) => unreachable!("expected Statement"),
-        }
-    }
-
-    pub fn to_expr(self) -> Expression {
-        match self {
-            Node::Stmt(_) => unreachable!("expected Expression"),
-            Node::Expr(e) => e,
-        }
-    }
-
-    pub fn as_expr(&self) -> &Expression {
-        match self {
-            Node::Stmt(_) => unreachable!("expected Expression"),
-            Node::Expr(e) => e,
-        }
-    }
-
-    pub fn as_expr_mut(&mut self) -> &mut Expression {
-        match self {
-            Node::Stmt(_) => unreachable!("expected Expression"),
-            Node::Expr(e) => e,
-        }
-    }
 }
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Node::*;
         match self {
-            Node::Stmt(stmt) => write!(f, "{}", stmt),
-            Node::Expr(expr) => write!(f, "{}", expr),
+            For(s) => write!(f, "{}", s),
+            Let(s) => write!(f, "{}", s),
+            Fn(s) => write!(f, "{}", s),
+            Struct(s) => write!(f, "{}", s),
+            Lit(e) => write!(f, "{}", e),
+            BinOp(e) => write!(f, "{}", e),
+            UnOp(e) => write!(f, "{}", e),
+            Ident(e) => write!(f, "{}", e),
+            Call(e) => write!(f, "{}", e),
+            Cond(e) => write!(f, "{}", e),
+            Block(e) => write!(f, "{}", e),
+            Index(e) => write!(f, "{}", e),
         }
     }
 }
@@ -95,8 +92,18 @@ impl Display for Node {
 pub trait AstVisitor {
     type Result;
 
-    fn visit_stmt(&mut self, s: Statement) -> Self::Result;
-    fn visit_expr(&mut self, e: Expression) -> Self::Result;
+    fn visit_for(&mut self, s: For) -> Self::Result;
+    fn visit_let(&mut self, s: Let) -> Self::Result;
+    fn visit_fn(&mut self, s: Fn) -> Self::Result;
+    fn visit_struct(&mut self, s: Struct) -> Self::Result;
+    fn visit_lit(&mut self, e: Lit) -> Self::Result;
+    fn visit_binop(&mut self, e: BinOp) -> Self::Result;
+    fn visit_unop(&mut self, e: UnOp) -> Self::Result;
+    fn visit_ident(&mut self, e: Ident) -> Self::Result;
+    fn visit_call(&mut self, e: Call) -> Self::Result;
+    fn visit_cond(&mut self, e: Cond) -> Self::Result;
+    fn visit_block(&mut self, e: Block) -> Self::Result;
+    fn visit_index(&mut self, e: Index) -> Self::Result;
 }
 
 pub trait Visitable {
@@ -106,20 +113,18 @@ pub trait Visitable {
 impl Visitable for Node {
     fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
         match self {
-            Node::Stmt(s) => v.visit_stmt(s),
-            Node::Expr(e) => v.visit_expr(e),
+            Node::For(s) => v.visit_for(s),
+            Node::Let(s) => v.visit_let(s),
+            Node::Fn(s) => v.visit_fn(s),
+            Node::Struct(s) => v.visit_struct(s),
+            Node::Lit(e) => v.visit_lit(e),
+            Node::BinOp(e) => v.visit_binop(e),
+            Node::UnOp(e) => v.visit_unop(e),
+            Node::Ident(e) => v.visit_ident(e),
+            Node::Call(e) => v.visit_call(e),
+            Node::Cond(e) => v.visit_cond(e),
+            Node::Block(e) => v.visit_block(e),
+            Node::Index(e) => v.visit_index(e),
         }
-    }
-}
-
-impl Visitable for Statement {
-    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
-        v.visit_stmt(self)
-    }
-}
-
-impl Visitable for Expression {
-    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
-        v.visit_expr(self)
     }
 }
