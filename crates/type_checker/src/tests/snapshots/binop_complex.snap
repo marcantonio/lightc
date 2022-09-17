@@ -6,74 +6,76 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let a: int = 1\n    a + 2 / 4 + (2 * 2)\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: a
-                          antn: Int32
+                          antn: int
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 1
-                                ty: Int32
-                    - Expr:
+                            ty: Int32
+                      ty: ~
+                    - node:
                         BinOp:
                           op: Add
                           lhs:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Add
                                 lhs:
-                                  Expr:
+                                  node:
                                     Ident:
                                       name: a
-                                      ty: Int32
+                                  ty: Int32
                                 rhs:
-                                  Expr:
+                                  node:
                                     BinOp:
                                       op: Div
                                       lhs:
-                                        Expr:
+                                        node:
                                           Lit:
                                             value:
                                               Int32: 2
-                                            ty: Int32
+                                        ty: Int32
                                       rhs:
-                                        Expr:
+                                        node:
                                           Lit:
                                             value:
                                               Int32: 4
-                                            ty: Int32
-                                      ty: Int32
-                                ty: Int32
+                                        ty: Int32
+                                  ty: Int32
+                            ty: Int32
                           rhs:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Mul
                                 lhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int32: 2
-                                      ty: Int32
+                                  ty: Int32
                                 rhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int32: 2
-                                      ty: Int32
-                                ty: Int32
-                          ty: Int32
-                  ty: Int32
+                                  ty: Int32
+                            ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

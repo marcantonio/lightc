@@ -6,33 +6,34 @@ expression: "(test[1], res)"
 - "\nfn main(x: char) {\n    x > 'c'\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: main
               args:
                 - - x
-                  - Char
-              ret_ty: Void
+                  - char
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         BinOp:
                           op: Gt
                           lhs:
-                            Expr:
+                            node:
                               Ident:
                                 name: x
-                                ty: Char
+                            ty: Char
                           rhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Char: 99
-                                ty: Char
-                          ty: Bool
-                  ty: Bool
+                            ty: Char
+                      ty: Bool
+              ty: Bool
+        ty: ~
 

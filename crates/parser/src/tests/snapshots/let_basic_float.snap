@@ -6,14 +6,12 @@ expression: "(test[1], ast, ast_string)"
 - "let x: float = 1.0"
 - Ok:
     nodes:
-      - Stmt:
-          Let:
-            name: x
-            antn: float
-            init:
-              Expr:
-                Lit:
-                  value:
-                    Float: 1.0
+      - Let:
+          name: x
+          antn: float
+          init:
+            Lit:
+              value:
+                Float: 1.0
 - "(let x:float 1)"
 

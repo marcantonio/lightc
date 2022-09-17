@@ -6,26 +6,28 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let a: int8 = 1\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: a
-                          antn: Int8
+                          antn: int8
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
-                  ty: Void
+                            ty: Int8
+                      ty: ~
+              ty: Void
+        ty: ~
 

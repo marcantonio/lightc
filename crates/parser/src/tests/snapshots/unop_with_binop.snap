@@ -6,21 +6,17 @@ expression: "(test[1], ast, ast_string)"
 - "-a * 2"
 - Ok:
     nodes:
-      - Expr:
-          BinOp:
-            op: Mul
-            lhs:
-              Expr:
-                UnOp:
-                  op: Sub
-                  rhs:
-                    Expr:
-                      Ident:
-                        name: a
-            rhs:
-              Expr:
-                Lit:
-                  value:
-                    UInt64: 2
+      - BinOp:
+          op: Mul
+          lhs:
+            UnOp:
+              op: Sub
+              rhs:
+                Ident:
+                  name: a
+          rhs:
+            Lit:
+              value:
+                UInt64: 2
 - (* (- a) 2)
 

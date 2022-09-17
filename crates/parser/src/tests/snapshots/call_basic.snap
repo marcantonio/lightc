@@ -6,15 +6,12 @@ expression: "(test[1], ast, ast_string)"
 - "a(b, c)"
 - Ok:
     nodes:
-      - Expr:
-          Call:
-            name: a
-            args:
-              - Expr:
-                  Ident:
-                    name: b
-              - Expr:
-                  Ident:
-                    name: c
+      - Call:
+          name: a
+          args:
+            - Ident:
+                name: b
+            - Ident:
+                name: c
 - (a b c)
 

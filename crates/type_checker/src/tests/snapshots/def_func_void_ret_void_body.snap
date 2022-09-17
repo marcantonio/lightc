@@ -6,33 +6,35 @@ expression: "(test[1], res)"
 - "\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: bar
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list: []
-                  ty: Void
-      - Stmt:
+              ty: Void
+        ty: ~
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         Call:
                           name: bar
                           args: []
-                          ty: Void
-                  ty: Void
+                      ty: Void
+              ty: Void
+        ty: ~
 

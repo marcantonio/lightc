@@ -60,14 +60,14 @@ impl From<&Prototype> for Symbol {
                 acc += format!("{}~", ty).as_str();
                 acc
             });
-            let ret_ty_string = proto.ret_ty.as_ref().unwrap_or(&String::from("Void")).to_ascii_lowercase();
+            let ret_ty_string = proto.ret_ty.as_ref().unwrap_or(&String::from("void")).to_ascii_lowercase();
             format!("_{}~{}{}", proto.name, args_string, ret_ty_string)
         };
 
         Symbol::new_fn(
             proto_name.as_str(),
             args,
-            proto.ret_ty.as_ref().unwrap_or(&String::from("Void")),
+            proto.ret_ty.as_ref().unwrap_or(&String::from("void")),
             proto.is_extern,
         )
     }

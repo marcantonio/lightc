@@ -6,124 +6,124 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let x: [int32; 3] = [1, 2, 3]\n    x[0]\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x[0]\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: x
-                          antn:
-                            Array:
-                              - Int32
-                              - 3
+                          antn: int32;3
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Array:
                                     elements:
-                                      - Expr:
+                                      - node:
                                           Lit:
                                             value:
                                               Int32: 1
-                                            ty: Int32
-                                      - Expr:
+                                        ty: Int32
+                                      - node:
                                           Lit:
                                             value:
                                               Int32: 2
-                                            ty: Int32
-                                      - Expr:
+                                        ty: Int32
+                                      - node:
                                           Lit:
                                             value:
                                               Int32: 3
-                                            ty: Int32
+                                        ty: Int32
                                     inner_ty: Int32
-                                ty:
-                                  Array:
-                                    - Int32
-                                    - 3
-                    - Expr:
+                            ty:
+                              Array:
+                                - Int32
+                                - 3
+                      ty: ~
+                    - node:
                         Index:
                           binding:
-                            Expr:
+                            node:
                               Ident:
                                 name: x
-                                ty:
-                                  Array:
-                                    - Int32
-                                    - 3
+                            ty:
+                              Array:
+                                - Int32
+                                - 3
                           idx:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 0
-                                ty: Int32
-                          ty: Int32
-                    - Stmt:
+                            ty: Int32
+                      ty: Int32
+                    - node:
                         For:
                           start_name: x
-                          start_antn: Int8
+                          start_antn: int8
                           start_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           cond_expr:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Lt
                                 lhs:
-                                  Expr:
+                                  node:
                                     Ident:
                                       name: x
-                                      ty: Int8
+                                  ty: Int8
                                 rhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int8: 2
-                                      ty: Int8
-                                ty: Bool
+                                  ty: Int8
+                            ty: Bool
                           step_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           body:
-                            Expr:
+                            node:
                               Block:
                                 list:
-                                  - Expr:
+                                  - node:
                                       Ident:
                                         name: x
-                                        ty: Int8
-                                ty: Int8
-                    - Expr:
+                                    ty: Int8
+                            ty: Int8
+                      ty: ~
+                    - node:
                         Index:
                           binding:
-                            Expr:
+                            node:
                               Ident:
                                 name: x
-                                ty:
-                                  Array:
-                                    - Int32
-                                    - 3
+                            ty:
+                              Array:
+                                - Int32
+                                - 3
                           idx:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 0
-                                ty: Int32
-                          ty: Int32
-                  ty: Int32
+                            ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

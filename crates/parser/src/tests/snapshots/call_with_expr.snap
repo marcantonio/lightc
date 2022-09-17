@@ -6,42 +6,33 @@ expression: "(test[1], ast, ast_string)"
 - "a(b + 1, c - 2 / 4)"
 - Ok:
     nodes:
-      - Expr:
-          Call:
-            name: a
-            args:
-              - Expr:
+      - Call:
+          name: a
+          args:
+            - BinOp:
+                op: Add
+                lhs:
+                  Ident:
+                    name: b
+                rhs:
+                  Lit:
+                    value:
+                      UInt64: 1
+            - BinOp:
+                op: Sub
+                lhs:
+                  Ident:
+                    name: c
+                rhs:
                   BinOp:
-                    op: Add
+                    op: Div
                     lhs:
-                      Expr:
-                        Ident:
-                          name: b
+                      Lit:
+                        value:
+                          UInt64: 2
                     rhs:
-                      Expr:
-                        Lit:
-                          value:
-                            UInt64: 1
-              - Expr:
-                  BinOp:
-                    op: Sub
-                    lhs:
-                      Expr:
-                        Ident:
-                          name: c
-                    rhs:
-                      Expr:
-                        BinOp:
-                          op: Div
-                          lhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 2
-                          rhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 4
+                      Lit:
+                        value:
+                          UInt64: 4
 - (a (+ b 1) (- c (/ 2 4)))
 

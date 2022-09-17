@@ -41,6 +41,10 @@ impl Symbol {
         }
     }
 
+    pub fn new_var(name: &str, ty: &Type) -> Self {
+        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
+    }
+
     pub fn new_ty(name: &str) -> Self {
         Symbol { name: String::from("_type_") + name, data: AssocData::Type() }
     }
@@ -88,18 +92,5 @@ impl Symbol {
 impl Symbolic for Symbol {
     fn name(&self) -> &str {
         &self.name
-    }
-}
-
-// For new variables
-impl From<(&str, &Type)> for Symbol {
-    fn from((name, ty): (&str, &Type)) -> Self {
-        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
-    }
-}
-
-impl From<&(String, Type)> for Symbol {
-    fn from((name, ty): &(String, Type)) -> Self {
-        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
     }
 }

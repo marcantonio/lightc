@@ -1,8 +1,8 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 376
+assertion_line: 369
 expression: "(test[1], res)"
 ---
 - "\nfn main() -> int { }\n"
-- Err: "main()'s return value shouldn't be annotated. Found `int32`"
+- Err: "main()'s return value shouldn't be annotated. Found `int`"
 

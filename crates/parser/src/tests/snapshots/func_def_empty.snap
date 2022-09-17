@@ -6,16 +6,14 @@ expression: "(test[1], ast, ast_string)"
 - "fn a() {}"
 - Ok:
     nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: a
-              args: []
-              ret_ty: ~
-              is_extern: false
-            body:
-              Expr:
-                Block:
-                  list: []
+      - Fn:
+          proto:
+            name: a
+            args: []
+            ret_ty: ~
+            is_extern: false
+          body:
+            Block:
+              list: []
 - "(define (a) '()))"
 

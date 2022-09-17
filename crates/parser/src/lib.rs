@@ -2,7 +2,7 @@ use std::iter::Peekable;
 use std::num::IntErrorKind;
 use std::slice::Iter;
 
-use ast::{Ast, Literal, Node, Prototype};
+use ast::{Ast, Literal, ParsedNode, Prototype};
 use common::Operator;
 use errors::ParseError;
 use lexer::token::{Token, TokenType};
@@ -17,10 +17,10 @@ mod precedence;
 #[cfg(test)]
 mod tests;
 
-type ParseResult = Result<ast::Node, ParseError>;
+type ParseResult = Result<ParsedNode, ParseError>;
 
 pub struct Parser<'a> {
-    ast: Ast<ast::Node>,
+    ast: Ast<ParsedNode>, // xxx return ast rather than store?
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
 }
@@ -33,7 +33,7 @@ impl<'a> Parser<'a> {
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<ast::Node>, ParseError> {
+    pub fn parse(mut self) -> Result<Ast<ParsedNode>, ParseError> {
         while self.tokens.peek().is_some() {
             let node = self.parse_stmt()?;
             self.ast.add(node);
@@ -87,7 +87,11 @@ impl<'a> Parser<'a> {
             match &t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Struct(ast::Struct { name: struct_name.to_owned(), fields, methods }));
+                    return Ok(ParsedNode::Struct(ast::Struct {
+                        name: struct_name.to_owned(),
+                        fields,
+                        methods,
+                    }));
                 },
                 TokenType::Let => {
                     fields.push(self.parse_let()?);
@@ -122,7 +126,7 @@ impl<'a> Parser<'a> {
 
         let step_node = self.parse_expr(0)?;
 
-        Ok(Node::For(ast::For {
+        Ok(ParsedNode::For(ast::For {
             start_name: name,
             start_antn: antn,
             start_expr: init.map(Box::new),
@@ -138,7 +142,7 @@ impl<'a> Parser<'a> {
 
         let (name, antn, init) = self.parse_var_init("let")?;
 
-        Ok(Node::Let(ast::Let { name, antn, init: init.map(Box::new) }))
+        Ok(ParsedNode::Let(ast::Let { name, antn, init: init.map(Box::new) }))
     }
 
     // FnDecl ::= Prototype Block ;
@@ -156,7 +160,7 @@ impl<'a> Parser<'a> {
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(Box::new(self.parse_block()?)) };
 
-        Ok(Node::Fn(ast::Fn { proto: Box::new(proto), body }))
+        Ok(ParsedNode::Fn(ast::Fn { proto: Box::new(proto), body }))
     }
 
     // ExternDecl ::= 'extern' Prototype ;
@@ -217,7 +221,7 @@ impl<'a> Parser<'a> {
             let rhs = self.parse_expr(p)?;
 
             // Make a new lhs and continue loop
-            lhs = Node::BinOp(ast::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs) });
+            lhs = ParsedNode::BinOp(ast::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs) });
         }
         Ok(lhs)
     }
@@ -228,7 +232,7 @@ impl<'a> Parser<'a> {
 
         let p = OpPrec::un_prec(op)?;
         let rhs = self.parse_expr(p)?;
-        Ok(Node::UnOp(ast::UnOp { op, rhs: Box::new(rhs) }))
+        Ok(ParsedNode::UnOp(ast::UnOp { op, rhs: Box::new(rhs) }))
     }
 
     // PrimaryExpr ::= CondExpr | | SelfExpr |LitExpr | IdentExpr | CallExpr | Assignment
@@ -274,7 +278,7 @@ impl<'a> Parser<'a> {
         // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
             Some(Token { tt: TokenType::OpenParen, .. }) => (),
-            _ => return Ok(ast::Node::Ident(node)),
+            _ => return Ok(ParsedNode::Ident(node)),
         };
 
         // Eat open paren
@@ -286,7 +290,7 @@ impl<'a> Parser<'a> {
         // Eat close paren
         expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in function call");
 
-        Ok(Node::Call(ast::Call { name: id.to_owned(), args }))
+        Ok(ParsedNode::Call(ast::Call { name: id.to_owned(), args }))
     }
 
     // ParenExpr ::= '(' Expr ')' ;
@@ -319,13 +323,13 @@ impl<'a> Parser<'a> {
             // If there's another `if`, put it the `else_block` vec
             if let Some(TokenType::If) = self.tokens.peek().map(|t| &t.tt) {
                 // An `if` is always an expression so this is ok
-                Node::Block(ast::Block { list: vec![self.parse_expr(0)?] })
+                ParsedNode::Block(ast::Block { list: vec![self.parse_expr(0)?] })
             } else {
                 self.parse_block()?
             }
         });
 
-        Ok(Node::Cond(ast::Cond {
+        Ok(ParsedNode::Cond(ast::Cond {
             cond_expr: Box::new(cond_node),
             then_block: Box::new(then_block),
             else_block: else_block.map(Box::new),
@@ -334,7 +338,7 @@ impl<'a> Parser<'a> {
 
     // Block ::= '{' StmtList? '}' ;
     fn parse_block(&mut self) -> ParseResult {
-        let mut block: Vec<ast::Node> = vec![];
+        let mut block: Vec<ParsedNode> = vec![];
 
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start block");
 
@@ -342,7 +346,7 @@ impl<'a> Parser<'a> {
             match t.tt {
                 TokenType::CloseBrace => {
                     self.tokens.next();
-                    return Ok(Node::Block(ast::Block { list: block }));
+                    return Ok(ParsedNode::Block(ast::Block { list: block }));
                 },
                 _ => block.push(self.parse_stmt()?),
             }
@@ -352,7 +356,7 @@ impl<'a> Parser<'a> {
     }
 
     // IndexExpr ::= PrimaryExpr '[' Expr ']' ;
-    fn parse_index(&mut self, binding: ast::Node) -> ParseResult {
+    fn parse_index(&mut self, binding: ParsedNode) -> ParseResult {
         self.tokens.next(); // Eat open bracket
 
         let index = self.parse_expr(0)?;
@@ -363,7 +367,7 @@ impl<'a> Parser<'a> {
             "Expecting `]` after expression in array index"
         );
 
-        Ok(Node::Index(ast::Index { binding: Box::new(binding), idx: Box::new(index) }))
+        Ok(ParsedNode::Index(ast::Index { binding: Box::new(binding), idx: Box::new(index) }))
     }
 
     /// Literals
@@ -372,7 +376,7 @@ impl<'a> Parser<'a> {
     fn parse_lit_bool(&mut self, b: bool) -> ParseResult {
         self.tokens.next(); // Eat bool
 
-        Ok(Node::Lit(ast::Lit { value: Literal::Bool(b) }))
+        Ok(ParsedNode::Lit(ast::Lit { value: Literal::Bool(b) }))
     }
 
     // CharLit ::= char ;
@@ -381,7 +385,7 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat char
 
         match c.parse::<char>() {
-            Ok(c) => Ok(Node::Lit(ast::Lit { value: Literal::Char(c as u8) })),
+            Ok(c) => Ok(ParsedNode::Lit(ast::Lit { value: Literal::Char(c as u8) })),
             Err(_) => Err(ParseError::from((format!("Invalid character literal: {}", token), token))),
         }
     }
@@ -397,12 +401,12 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Eat num
 
         match n.parse::<u64>() {
-            Ok(n) => Ok(Node::Lit(ast::Lit { value: Literal::UInt64(n) })),
+            Ok(n) => Ok(ParsedNode::Lit(ast::Lit { value: Literal::UInt64(n) })),
             Err(e) if e.kind() == &IntErrorKind::PosOverflow || e.kind() == &IntErrorKind::NegOverflow => {
                 Err(ParseError::from((format!("Numeric literal out of integer range: {}", token), token)))
             },
             _ => match n.parse::<f32>() {
-                Ok(n) => Ok(Node::Lit(ast::Lit { value: Literal::Float(n) })),
+                Ok(n) => Ok(ParsedNode::Lit(ast::Lit { value: Literal::Float(n) })),
                 Err(_) => Err(ParseError::from((format!("Invalid numeric literal: {}", token), token))),
             },
         }
@@ -417,7 +421,7 @@ impl<'a> Parser<'a> {
         // Eat close bracket
         expect_next_token!(self.tokens, TokenType::CloseBracket, "Expecting `]` in array literal");
 
-        Ok(Node::Lit(ast::Lit { value: Literal::Array { elements, inner_ty: None } }))
+        Ok(ParsedNode::Lit(ast::Lit { value: Literal::Array { elements, inner_ty: None } }))
     }
 
     /// Misc productions
@@ -492,7 +496,7 @@ impl<'a> Parser<'a> {
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;
-    fn parse_var_init(&mut self, caller: &str) -> Result<(String, String, Option<ast::Node>), ParseError> {
+    fn parse_var_init(&mut self, caller: &str) -> Result<(String, String, Option<ParsedNode>), ParseError> {
         // Get the name of the variable and its type annotation
         let (name, antn) = self.parse_typed_decl(caller)?;
 
@@ -522,7 +526,7 @@ impl<'a> Parser<'a> {
                 );
 
                 let size = match self.parse_expr(0)? {
-                    Node::Lit(ast::Lit { value: Literal::UInt64(s), .. }) => s,
+                    ParsedNode::Lit(ast::Lit { value: Literal::UInt64(s), .. }) => s,
                     _ => {
                         return Err(ParseError::from((
                             "Expecting a literal int for size in array type".to_string(),
@@ -535,7 +539,7 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                format!("array({};{})", ty, size)
+                format!("{};{}", ty, size)
             },
             Some(Token { tt: TokenType::Ident(ty), .. }) => ty.to_owned(),
             Some(next) => {
@@ -572,8 +576,8 @@ impl<'a> Parser<'a> {
     }
 
     // ExprList ::= Expr ','? | Expr ( ',' Expr )* ;
-    fn parse_expr_list(&mut self, term: TokenType, in_err: &str) -> Result<Vec<ast::Node>, ParseError> {
-        let mut args: Vec<ast::Node> = vec![];
+    fn parse_expr_list(&mut self, term: TokenType, in_err: &str) -> Result<Vec<ParsedNode>, ParseError> {
+        let mut args: Vec<ParsedNode> = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate terminator
             if next.tt == term {

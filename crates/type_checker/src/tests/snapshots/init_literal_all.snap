@@ -6,174 +6,187 @@ expression: "(test[1], res)"
 - "\nfn main() {\n    let x: int\n    let x: int8\n    let x: int16\n    let x: int32\n    let x: int64\n    let x: uint\n    let x: uint8\n    let x: uint16\n    let x: uint32\n    let x: uint64\n    let x: float\n    let x: double\n    let x: char\n    let x: bool\n    let x: [bool; 3]\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: main
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: x
-                          antn: Int32
+                          antn: int
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 0
-                                ty: Int32
-                    - Stmt:
+                            ty: Int32
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Int8
+                          antn: int8
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 0
-                                ty: Int8
-                    - Stmt:
+                            ty: Int8
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Int16
+                          antn: int16
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int16: 0
-                                ty: Int16
-                    - Stmt:
+                            ty: Int16
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Int32
+                          antn: int32
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 0
-                                ty: Int32
-                    - Stmt:
+                            ty: Int32
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Int64
+                          antn: int64
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int64: 0
-                                ty: Int64
-                    - Stmt:
+                            ty: Int64
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: UInt32
+                          antn: uint
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   UInt32: 0
-                                ty: UInt32
-                    - Stmt:
+                            ty: UInt32
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: UInt8
+                          antn: uint8
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   UInt8: 0
-                                ty: UInt8
-                    - Stmt:
+                            ty: UInt8
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: UInt16
+                          antn: uint16
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   UInt16: 0
-                                ty: UInt16
-                    - Stmt:
+                            ty: UInt16
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: UInt32
+                          antn: uint32
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   UInt32: 0
-                                ty: UInt32
-                    - Stmt:
+                            ty: UInt32
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: UInt64
+                          antn: uint64
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   UInt64: 0
-                                ty: UInt64
-                    - Stmt:
+                            ty: UInt64
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Float
+                          antn: float
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Float: 0.0
-                                ty: Float
-                    - Stmt:
+                            ty: Float
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Double
+                          antn: double
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Double: 0.0
-                                ty: Double
-                    - Stmt:
+                            ty: Double
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Char
+                          antn: char
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Char: 0
-                                ty: Char
-                    - Stmt:
+                            ty: Char
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn: Bool
+                          antn: bool
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Bool: false
-                                ty: Bool
-                    - Stmt:
+                            ty: Bool
+                      ty: ~
+                    - node:
                         Let:
                           name: x
-                          antn:
-                            Array:
-                              - Bool
-                              - 3
+                          antn: bool;3
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Array:
                                     elements: []
                                     inner_ty: Bool
-                                ty:
-                                  Array:
-                                    - Bool
-                                    - 3
-                  ty: Void
+                            ty:
+                              Array:
+                                - Bool
+                                - 3
+                      ty: ~
+              ty: Void
+        ty: ~
 

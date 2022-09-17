@@ -6,33 +6,34 @@ expression: "(test[1], res)"
 - "\nfn foo(a: int) {\n    a + 1\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args:
                 - - a
-                  - Int32
-              ret_ty: Void
+                  - int
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         BinOp:
                           op: Add
                           lhs:
-                            Expr:
+                            node:
                               Ident:
                                 name: a
-                                ty: Int32
+                            ty: Int32
                           rhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 1
-                                ty: Int32
-                          ty: Int32
-                  ty: Int32
+                            ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

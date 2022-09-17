@@ -6,34 +6,35 @@ expression: "(test[1], res)"
 - "\nfn main(x: int) {\n    true || false\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: main
               args:
                 - - x
-                  - Int32
-              ret_ty: Void
+                  - int
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         BinOp:
                           op: Or
                           lhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Bool: true
-                                ty: Bool
+                            ty: Bool
                           rhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Bool: false
-                                ty: Bool
-                          ty: Bool
-                  ty: Bool
+                            ty: Bool
+                      ty: Bool
+              ty: Bool
+        ty: ~
 

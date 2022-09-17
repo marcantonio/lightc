@@ -1,68 +1,67 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 723
+assertion_line: 653
 expression: "(test[1], res)"
 ---
 - "\nlet x: [int; 3] = [1, 2, 3]\nlet y: int = 1\nx[y]\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Let:
             name: x
-            antn:
-              Array:
-                - Int32
-                - 3
+            antn: int;3
             init:
-              Expr:
+              node:
                 Lit:
                   value:
                     Array:
                       elements:
-                        - Expr:
+                        - node:
                             Lit:
                               value:
                                 Int32: 1
-                              ty: Int32
-                        - Expr:
+                          ty: Int32
+                        - node:
                             Lit:
                               value:
                                 Int32: 2
-                              ty: Int32
-                        - Expr:
+                          ty: Int32
+                        - node:
                             Lit:
                               value:
                                 Int32: 3
-                              ty: Int32
+                          ty: Int32
                       inner_ty: Int32
-                  ty:
-                    Array:
-                      - Int32
-                      - 3
-      - Stmt:
+              ty:
+                Array:
+                  - Int32
+                  - 3
+        ty: ~
+      - node:
           Let:
             name: y
-            antn: Int32
+            antn: int
             init:
-              Expr:
+              node:
                 Lit:
                   value:
                     Int32: 1
-                  ty: Int32
-      - Expr:
+              ty: Int32
+        ty: ~
+      - node:
           Index:
             binding:
-              Expr:
+              node:
                 Ident:
                   name: x
-                  ty:
-                    Array:
-                      - Int32
-                      - 3
+              ty:
+                Array:
+                  - Int32
+                  - 3
             idx:
-              Expr:
+              node:
                 Ident:
                   name: y
-                  ty: Int32
-            ty: Int32
+              ty: Int32
+        ty: Int32
 

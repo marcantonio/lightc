@@ -12,9 +12,9 @@ pub struct CliArgs {
     #[clap(long, parse(from_flag))]
     pub show_ast: bool,
 
-    /// Display TYped aST
+    /// Display Typed AST
     #[clap(long, parse(from_flag))]
-    pub show_tyst: bool,
+    pub show_typed_ast: bool,
 
     /// Display HIR
     #[clap(long, parse(from_flag))]
@@ -55,7 +55,7 @@ impl CliArgs {
         CliArgs {
             show_tokens: false,
             show_ast: false,
-            show_tyst: false,
+            show_typed_ast: false,
             show_hir: false,
             show_ir: false,
             run_jit: false,

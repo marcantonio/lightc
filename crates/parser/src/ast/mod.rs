@@ -10,11 +10,11 @@ pub mod expr;
 pub use expr::*;
 
 #[derive(Debug, PartialEq, Serialize)]
-pub struct Ast<T> {
+pub struct Ast<T: Node> {
     nodes: Vec<T>,
 }
 
-impl<T> Ast<T> {
+impl<T: Node> Ast<T> {
     pub fn new() -> Self {
         Ast { nodes: vec![] }
     }
@@ -32,44 +32,93 @@ impl<T> Ast<T> {
     }
 }
 
-impl<T> Default for Ast<T> {
+impl<T: Node> Default for Ast<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Node {
-    // Statements
-    For(For),
-    Let(Let),
-    Fn(Fn),
-    Struct(Struct),
-    // Expressions
-    Lit(Lit),
-    Ident(Ident),
-    BinOp(BinOp),
-    UnOp(UnOp),
-    Call(Call),
-    Cond(Cond),
-    Block(Block),
-    Index(Index),
-    // Stmt(Statement),
-    // Expr(Expression),
+// Immutable visitor interface
+
+pub trait AstVisitor {
+    type Node: Node;
+    type Result;
+
+    fn visit_for(&mut self, s: For<Self::Node>) -> Self::Result;
+    fn visit_let(&mut self, s: Let<Self::Node>) -> Self::Result;
+    fn visit_fn(&mut self, s: Fn<Self::Node>) -> Self::Result;
+    fn visit_struct(&mut self, s: Struct<Self::Node>) -> Self::Result;
+    fn visit_lit(&mut self, e: Lit<Self::Node>) -> Self::Result;
+    fn visit_binop(&mut self, e: BinOp<Self::Node>) -> Self::Result;
+    fn visit_unop(&mut self, e: UnOp<Self::Node>) -> Self::Result;
+    fn visit_ident(&mut self, e: Ident) -> Self::Result;
+    fn visit_call(&mut self, e: Call<Self::Node>) -> Self::Result;
+    fn visit_cond(&mut self, e: Cond<Self::Node>) -> Self::Result;
+    fn visit_block(&mut self, e: Block<Self::Node>) -> Self::Result;
+    fn visit_index(&mut self, e: Index<Self::Node>) -> Self::Result;
 }
 
-impl Node {
+pub trait Visitable {
+    fn accept<V>(self, v: &mut V) -> V::Result
+    where
+        V: AstVisitor<Node = Self>;
+}
+
+pub trait Node {}
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub enum ParsedNode {
+    // Statements
+    For(For<ParsedNode>),
+    Let(Let<ParsedNode>),
+    Fn(Fn<ParsedNode>),
+    Struct(Struct<ParsedNode>),
+    // Expressions
+    Lit(Lit<ParsedNode>),
+    Ident(Ident),
+    BinOp(BinOp<ParsedNode>),
+    UnOp(UnOp<ParsedNode>),
+    Call(Call<ParsedNode>),
+    Cond(Cond<ParsedNode>),
+    Block(Block<ParsedNode>),
+    Index(Index<ParsedNode>),
+}
+
+impl ParsedNode {
     pub fn new<F, T>(cons: F, inner: T) -> Self
     where
         F: core::ops::Fn(T) -> Self,
     {
         (cons)(inner)
     }
+
+    pub fn is_num_literal(&self) -> bool {
+        use Literal::*;
+
+        matches!(
+            self,
+            Self::Lit(Lit {
+                value: Int8(_)
+                    | Int16(_)
+                    | Int32(_)
+                    | Int64(_)
+                    | UInt8(_)
+                    | UInt16(_)
+                    | UInt32(_)
+                    | UInt64(_)
+                    | Float(_)
+                    | Double(_),
+                ..
+            })
+        )
+    }
 }
 
-impl Display for Node {
+impl Node for ParsedNode {}
+
+impl Display for ParsedNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Node::*;
+        use ParsedNode::*;
         match self {
             For(s) => write!(f, "{}", s),
             Let(s) => write!(f, "{}", s),
@@ -87,44 +136,23 @@ impl Display for Node {
     }
 }
 
-// Immutable visitor interface
+impl Visitable for ParsedNode {
+    fn accept<V: AstVisitor<Node = Self>>(self, v: &mut V) -> V::Result {
+        use ParsedNode::*;
 
-pub trait AstVisitor {
-    type Result;
-
-    fn visit_for(&mut self, s: For) -> Self::Result;
-    fn visit_let(&mut self, s: Let) -> Self::Result;
-    fn visit_fn(&mut self, s: Fn) -> Self::Result;
-    fn visit_struct(&mut self, s: Struct) -> Self::Result;
-    fn visit_lit(&mut self, e: Lit) -> Self::Result;
-    fn visit_binop(&mut self, e: BinOp) -> Self::Result;
-    fn visit_unop(&mut self, e: UnOp) -> Self::Result;
-    fn visit_ident(&mut self, e: Ident) -> Self::Result;
-    fn visit_call(&mut self, e: Call) -> Self::Result;
-    fn visit_cond(&mut self, e: Cond) -> Self::Result;
-    fn visit_block(&mut self, e: Block) -> Self::Result;
-    fn visit_index(&mut self, e: Index) -> Self::Result;
-}
-
-pub trait Visitable {
-    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result;
-}
-
-impl Visitable for Node {
-    fn accept<V: AstVisitor>(self, v: &mut V) -> V::Result {
         match self {
-            Node::For(s) => v.visit_for(s),
-            Node::Let(s) => v.visit_let(s),
-            Node::Fn(s) => v.visit_fn(s),
-            Node::Struct(s) => v.visit_struct(s),
-            Node::Lit(e) => v.visit_lit(e),
-            Node::BinOp(e) => v.visit_binop(e),
-            Node::UnOp(e) => v.visit_unop(e),
-            Node::Ident(e) => v.visit_ident(e),
-            Node::Call(e) => v.visit_call(e),
-            Node::Cond(e) => v.visit_cond(e),
-            Node::Block(e) => v.visit_block(e),
-            Node::Index(e) => v.visit_index(e),
+            For(s) => v.visit_for(s),
+            Let(s) => v.visit_let(s),
+            Fn(s) => v.visit_fn(s),
+            Struct(s) => v.visit_struct(s),
+            Lit(e) => v.visit_lit(e),
+            BinOp(e) => v.visit_binop(e),
+            UnOp(e) => v.visit_unop(e),
+            Ident(e) => v.visit_ident(e),
+            Call(e) => v.visit_call(e),
+            Cond(e) => v.visit_cond(e),
+            Block(e) => v.visit_block(e),
+            Index(e) => v.visit_index(e),
         }
     }
 }

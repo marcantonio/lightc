@@ -6,16 +6,17 @@ expression: "(test[1], res)"
 - "\nfn main() { }\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: main
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list: []
-                  ty: Void
+              ty: Void
+        ty: ~
 

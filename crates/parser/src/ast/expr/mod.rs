@@ -2,41 +2,21 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::Node;
+use super::Node;
 use common::Operator;
 pub use literal::Literal;
 
 pub mod literal;
 
-// impl Expression {
-//     pub fn is_num_literal(&self) -> bool {
-//         use Literal::*;
-
-//         matches!(
-//             self,
-//             Expression::Lit(Lit {
-//                 value: Int8(_)
-//                     | Int16(_)
-//                     | Int32(_)
-//                     | Int64(_)
-//                     | UInt8(_)
-//                     | UInt16(_)
-//                     | UInt32(_)
-//                     | UInt64(_)
-//                     | Float(_)
-//                     | Double(_),
-//                 ..
-//             })
-//         )
-//     }
-// }
-
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Lit {
-    pub value: Literal,
+pub struct Lit<T: Node> {
+    pub value: Literal<T>,
 }
 
-impl Display for Lit {
+impl<T> Display for Lit<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
@@ -54,37 +34,46 @@ impl Display for Ident {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct BinOp {
+pub struct BinOp<T: Node> {
     pub op: Operator,
-    pub lhs: Box<Node>,
-    pub rhs: Box<Node>,
+    pub lhs: Box<T>,
+    pub rhs: Box<T>,
 }
 
-impl Display for BinOp {
+impl<T> Display for BinOp<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {} {})", self.op, self.lhs, self.rhs)
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct UnOp {
+pub struct UnOp<T: Node> {
     pub op: Operator,
-    pub rhs: Box<Node>,
+    pub rhs: Box<T>,
 }
 
-impl Display for UnOp {
+impl<T> Display for UnOp<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {})", self.op, self.rhs)
     }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Call {
+pub struct Call<T: Node> {
     pub name: String,
-    pub args: Vec<Node>,
+    pub args: Vec<T>,
 }
 
-impl Display for Call {
+impl<T> Display for Call<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("({}", self.name);
         if !self.args.is_empty() {
@@ -97,13 +86,16 @@ impl Display for Call {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Cond {
-    pub cond_expr: Box<Node>,
-    pub then_block: Box<Node>,
-    pub else_block: Option<Box<Node>>,
+pub struct Cond<T: Node> {
+    pub cond_expr: Box<T>,
+    pub then_block: Box<T>,
+    pub else_block: Option<Box<T>>,
 }
 
-impl Display for Cond {
+impl<T> Display for Cond<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("(if {} {}", self.cond_expr, self.then_block);
         if let Some(alt) = &self.else_block {
@@ -114,11 +106,14 @@ impl Display for Cond {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Block {
-    pub list: Vec<Node>,
+pub struct Block<T: Node> {
+    pub list: Vec<T>,
 }
 
-impl Display for Block {
+impl<T> Display for Block<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = "'(".to_string();
         s += &self.list.iter().fold(String::new(), |mut acc, n| {
@@ -130,12 +125,15 @@ impl Display for Block {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Index {
-    pub binding: Box<Node>,
-    pub idx: Box<Node>,
+pub struct Index<T: Node> {
+    pub binding: Box<T>,
+    pub idx: Box<T>,
 }
 
-impl Display for Index {
+impl<T> Display for Index<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}[{}]", self.binding, self.idx)
     }

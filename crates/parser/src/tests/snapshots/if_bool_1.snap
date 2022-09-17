@@ -6,26 +6,20 @@ expression: "(test[1], ast, ast_string)"
 - "if true { foo } else { bar }"
 - Ok:
     nodes:
-      - Expr:
-          Cond:
-            cond_expr:
-              Expr:
-                Lit:
-                  value:
-                    Bool: true
-            then_block:
-              Expr:
-                Block:
-                  list:
-                    - Expr:
-                        Ident:
-                          name: foo
-            else_block:
-              Expr:
-                Block:
-                  list:
-                    - Expr:
-                        Ident:
-                          name: bar
+      - Cond:
+          cond_expr:
+            Lit:
+              value:
+                Bool: true
+          then_block:
+            Block:
+              list:
+                - Ident:
+                    name: foo
+          else_block:
+            Block:
+              list:
+                - Ident:
+                    name: bar
 - "(if true '(foo) '(bar))"
 

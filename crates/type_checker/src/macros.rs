@@ -7,3 +7,19 @@ macro_rules! convert_num {
         (Literal::$variant(v), Type::$variant)
     }};
 }
+
+#[macro_export]
+macro_rules! make_literal {
+    (Array, $ty:expr, $len:expr) => {
+        TypedNode {
+            node: NodeKind::Lit(ast::Lit {
+                value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty) },
+            }),
+            ty: Some(Type::Array(Box::new(*$ty), $len)),
+        }
+    };
+
+    ($ty:tt, $val:expr) => {
+        TypedNode { node: NodeKind::Lit(ast::Lit { value: Literal::$ty($val) }), ty: Some(Type::$ty) }
+    };
+}

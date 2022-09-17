@@ -1,64 +1,66 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 610
+assertion_line: 760
 expression: "(test[1], res)"
 ---
 - "\nlet x: float = 1.0\nfor x: int = 1; x < 10; 1 {\n    x\n}\nx\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Let:
             name: x
-            antn: Float
+            antn: float
             init:
-              Expr:
+              node:
                 Lit:
                   value:
                     Float: 1.0
-                  ty: Float
-      - Stmt:
+              ty: Float
+        ty: ~
+      - node:
           For:
             start_name: x
-            start_antn: Int32
+            start_antn: int
             start_expr:
-              Expr:
+              node:
                 Lit:
                   value:
                     Int32: 1
-                  ty: Int32
+              ty: Int32
             cond_expr:
-              Expr:
+              node:
                 BinOp:
                   op: Lt
                   lhs:
-                    Expr:
+                    node:
                       Ident:
                         name: x
-                        ty: Int32
+                    ty: Int32
                   rhs:
-                    Expr:
+                    node:
                       Lit:
                         value:
                           Int32: 10
-                        ty: Int32
-                  ty: Bool
+                    ty: Int32
+              ty: Bool
             step_expr:
-              Expr:
+              node:
                 Lit:
                   value:
                     Int32: 1
-                  ty: Int32
+              ty: Int32
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         Ident:
                           name: x
-                          ty: Int32
-                  ty: Int32
-      - Expr:
+                      ty: Int32
+              ty: Int32
+        ty: ~
+      - node:
           Ident:
             name: x
-            ty: Float
+        ty: Float
 

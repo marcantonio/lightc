@@ -6,32 +6,33 @@ expression: "(test[1], res)"
 - "\nfn foo() -> bool {\n    2 == 1\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Bool
+              ret_ty: bool
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         BinOp:
                           op: Eq
                           lhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 2
-                                ty: Int32
+                            ty: Int32
                           rhs:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 1
-                                ty: Int32
-                          ty: Bool
-                  ty: Bool
+                            ty: Int32
+                      ty: Bool
+              ty: Bool
+        ty: ~
 

@@ -6,52 +6,42 @@ expression: "(test[1], ast, ast_string)"
 - "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n    b + a\n}\n"
 - Ok:
     nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: a
-              args:
-                - - b
-                  - int
-                - - c
-                  - int
-              ret_ty: int
-              is_extern: false
-            body:
-              Expr:
-                Block:
-                  list:
-                    - Expr:
-                        BinOp:
-                          op: Add
-                          lhs:
-                            Expr:
-                              BinOp:
-                                op: Add
-                                lhs:
-                                  Expr:
-                                    Lit:
-                                      value:
-                                        UInt64: 19
-                                rhs:
-                                  Expr:
-                                    Ident:
-                                      name: a
-                          rhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 40
-                    - Expr:
-                        BinOp:
-                          op: Add
-                          lhs:
-                            Expr:
-                              Ident:
-                                name: b
-                          rhs:
-                            Expr:
-                              Ident:
-                                name: a
+      - Fn:
+          proto:
+            name: a
+            args:
+              - - b
+                - int
+              - - c
+                - int
+            ret_ty: int
+            is_extern: false
+          body:
+            Block:
+              list:
+                - BinOp:
+                    op: Add
+                    lhs:
+                      BinOp:
+                        op: Add
+                        lhs:
+                          Lit:
+                            value:
+                              UInt64: 19
+                        rhs:
+                          Ident:
+                            name: a
+                    rhs:
+                      Lit:
+                        value:
+                          UInt64: 40
+                - BinOp:
+                    op: Add
+                    lhs:
+                      Ident:
+                        name: b
+                    rhs:
+                      Ident:
+                        name: a
 - "(define (a b:int c:int) '((+ (+ 19 a) 40) (+ b a)))"
 

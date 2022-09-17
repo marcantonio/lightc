@@ -6,57 +6,59 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         For:
                           start_name: x
-                          start_antn: Int8
+                          start_antn: int8
                           start_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           cond_expr:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Lt
                                 lhs:
-                                  Expr:
+                                  node:
                                     Ident:
                                       name: x
-                                      ty: Int8
+                                  ty: Int8
                                 rhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int8: 2
-                                      ty: Int8
-                                ty: Bool
+                                  ty: Int8
+                            ty: Bool
                           step_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           body:
-                            Expr:
+                            node:
                               Block:
                                 list:
-                                  - Expr:
+                                  - node:
                                       Ident:
                                         name: x
-                                        ty: Int8
-                                ty: Int8
-                  ty: Void
+                                    ty: Int8
+                            ty: Int8
+                      ty: ~
+              ty: Void
+        ty: ~
 

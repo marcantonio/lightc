@@ -6,71 +6,74 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let x: int32 = 1\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: x
-                          antn: Int32
+                          antn: int32
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 1
-                                ty: Int32
-                    - Stmt:
+                            ty: Int32
+                      ty: ~
+                    - node:
                         For:
                           start_name: x
-                          start_antn: Int8
+                          start_antn: int8
                           start_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           cond_expr:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Lt
                                 lhs:
-                                  Expr:
+                                  node:
                                     Ident:
                                       name: x
-                                      ty: Int8
+                                  ty: Int8
                                 rhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int8: 2
-                                      ty: Int8
-                                ty: Bool
+                                  ty: Int8
+                            ty: Bool
                           step_expr:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
+                            ty: Int8
                           body:
-                            Expr:
+                            node:
                               Block:
                                 list:
-                                  - Expr:
+                                  - node:
                                       Ident:
                                         name: x
-                                        ty: Int8
-                                ty: Int8
-                    - Expr:
+                                    ty: Int8
+                            ty: Int8
+                      ty: ~
+                    - node:
                         Ident:
                           name: x
-                          ty: Int32
-                  ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

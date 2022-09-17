@@ -6,17 +6,14 @@ expression: "(test[1], ast, ast_string)"
 - "-(-21)"
 - Ok:
     nodes:
-      - Expr:
-          UnOp:
-            op: Sub
-            rhs:
-              Expr:
-                UnOp:
-                  op: Sub
-                  rhs:
-                    Expr:
-                      Lit:
-                        value:
-                          UInt64: 21
+      - UnOp:
+          op: Sub
+          rhs:
+            UnOp:
+              op: Sub
+              rhs:
+                Lit:
+                  value:
+                    UInt64: 21
 - (- (- 21))
 

@@ -6,35 +6,37 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let xy: int8 = 1\n    -xy\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: xy
-                          antn: Int8
+                          antn: int8
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int8: 1
-                                ty: Int8
-                    - Expr:
+                            ty: Int8
+                      ty: ~
+                    - node:
                         UnOp:
                           op: Sub
                           rhs:
-                            Expr:
+                            node:
                               Ident:
                                 name: xy
-                                ty: Int8
-                          ty: Int8
-                  ty: Int8
+                            ty: Int8
+                      ty: Int8
+              ty: Int8
+        ty: ~
 

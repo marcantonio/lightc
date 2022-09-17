@@ -6,10 +6,9 @@ expression: "(test[1], ast, ast_string)"
 - "let x: [int; 3]"
 - Ok:
     nodes:
-      - Stmt:
-          Let:
-            name: x
-            antn: array(int;3)
-            init: ~
-- "(let x:array(int;3))"
+      - Let:
+          name: x
+          antn: int;3
+          init: ~
+- "(let x:int;3)"
 

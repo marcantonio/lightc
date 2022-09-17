@@ -1,43 +1,46 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 815
+assertion_line: 801
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Struct:
             name: Foo
             fields: []
             methods:
-              - Stmt:
+              - node:
                   Fn:
                     proto:
                       name: c
                       args: []
-                      ret_ty: Int32
+                      ret_ty: int
                       is_extern: false
                     body:
-                      Expr:
+                      node:
                         Block:
                           list:
-                            - Expr:
+                            - node:
                                 Lit:
                                   value:
                                     Int32: 1
-                                  ty: Int32
-                          ty: Int32
-              - Stmt:
+                              ty: Int32
+                      ty: Int32
+                ty: ~
+              - node:
                   Fn:
                     proto:
                       name: d
                       args: []
-                      ret_ty: Void
+                      ret_ty: void
                       is_extern: false
                     body:
-                      Expr:
+                      node:
                         Block:
                           list: []
-                          ty: Void
+                      ty: Void
+                ty: ~
+        ty: ~
 

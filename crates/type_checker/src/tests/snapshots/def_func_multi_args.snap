@@ -6,20 +6,21 @@ expression: "(test[1], res)"
 - "\nfn foo(a: int, b: float) { }\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args:
                 - - a
-                  - Int32
+                  - int
                 - - b
-                  - Float
-              ret_ty: Void
+                  - float
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list: []
-                  ty: Void
+              ty: Void
+        ty: ~
 

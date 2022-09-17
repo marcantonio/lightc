@@ -6,24 +6,20 @@ expression: "(test[1], ast, ast_string)"
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n}\n"
 - Ok:
     nodes:
-      - Stmt:
-          Struct:
-            name: Foo
-            fields:
-              - Stmt:
-                  Let:
-                    name: a
-                    antn: int
-                    init: ~
-              - Stmt:
-                  Let:
-                    name: b
-                    antn: float
-                    init:
-                      Expr:
-                        Lit:
-                          value:
-                            Float: 1.0
-            methods: []
+      - Struct:
+          name: Foo
+          fields:
+            - Let:
+                name: a
+                antn: int
+                init: ~
+            - Let:
+                name: b
+                antn: float
+                init:
+                  Lit:
+                    value:
+                      Float: 1.0
+          methods: []
 - "(struct Foo '((let a:int) (let b:float 1)) '())"
 

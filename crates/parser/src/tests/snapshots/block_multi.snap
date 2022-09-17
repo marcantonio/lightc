@@ -6,46 +6,36 @@ expression: "(test[1], ast, ast_string)"
 - "y = { 1 + 4; foo(); 4 / 2 }"
 - Ok:
     nodes:
-      - Expr:
-          BinOp:
-            op: Assign
-            lhs:
-              Expr:
-                Ident:
-                  name: y
-            rhs:
-              Expr:
-                Block:
-                  list:
-                    - Expr:
-                        BinOp:
-                          op: Add
-                          lhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 1
-                          rhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 4
-                    - Expr:
-                        Call:
-                          name: foo
-                          args: []
-                    - Expr:
-                        BinOp:
-                          op: Div
-                          lhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 4
-                          rhs:
-                            Expr:
-                              Lit:
-                                value:
-                                  UInt64: 2
+      - BinOp:
+          op: Assign
+          lhs:
+            Ident:
+              name: y
+          rhs:
+            Block:
+              list:
+                - BinOp:
+                    op: Add
+                    lhs:
+                      Lit:
+                        value:
+                          UInt64: 1
+                    rhs:
+                      Lit:
+                        value:
+                          UInt64: 4
+                - Call:
+                    name: foo
+                    args: []
+                - BinOp:
+                    op: Div
+                    lhs:
+                      Lit:
+                        value:
+                          UInt64: 4
+                    rhs:
+                      Lit:
+                        value:
+                          UInt64: 2
 - "(= y '((+ 1 4) (foo) (/ 4 2)))"
 

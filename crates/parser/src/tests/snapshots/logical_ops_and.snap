@@ -6,17 +6,14 @@ expression: "(test[1], ast, ast_string)"
 - x && 1
 - Ok:
     nodes:
-      - Expr:
-          BinOp:
-            op: And
-            lhs:
-              Expr:
-                Ident:
-                  name: x
-            rhs:
-              Expr:
-                Lit:
-                  value:
-                    UInt64: 1
+      - BinOp:
+          op: And
+          lhs:
+            Ident:
+              name: x
+          rhs:
+            Lit:
+              value:
+                UInt64: 1
 - (&& x 1)
 

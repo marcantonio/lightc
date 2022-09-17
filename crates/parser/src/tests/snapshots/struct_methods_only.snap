@@ -6,36 +6,30 @@ expression: "(test[1], ast, ast_string)"
 - "\nstruct Foo {\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - Stmt:
-          Struct:
-            name: Foo
-            fields: []
-            methods:
-              - Stmt:
-                  Fn:
-                    proto:
-                      name: c
-                      args: []
-                      ret_ty: int
-                      is_extern: false
-                    body:
-                      Expr:
-                        Block:
-                          list:
-                            - Expr:
-                                Lit:
-                                  value:
-                                    UInt64: 1
-              - Stmt:
-                  Fn:
-                    proto:
-                      name: d
-                      args: []
-                      ret_ty: ~
-                      is_extern: false
-                    body:
-                      Expr:
-                        Block:
-                          list: []
+      - Struct:
+          name: Foo
+          fields: []
+          methods:
+            - Fn:
+                proto:
+                  name: c
+                  args: []
+                  ret_ty: int
+                  is_extern: false
+                body:
+                  Block:
+                    list:
+                      - Lit:
+                          value:
+                            UInt64: 1
+            - Fn:
+                proto:
+                  name: d
+                  args: []
+                  ret_ty: ~
+                  is_extern: false
+                body:
+                  Block:
+                    list: []
 - "(struct Foo '() '((define (c) '(1)) (define (d) '()))))"
 

@@ -6,21 +6,18 @@ expression: "(test[1], ast, ast_string)"
 - "fn a(b: int) -> not_a_type { b }"
 - Ok:
     nodes:
-      - Stmt:
-          Fn:
-            proto:
-              name: a
-              args:
-                - - b
-                  - int
-              ret_ty: not_a_type
-              is_extern: false
-            body:
-              Expr:
-                Block:
-                  list:
-                    - Expr:
-                        Ident:
-                          name: b
+      - Fn:
+          proto:
+            name: a
+            args:
+              - - b
+                - int
+            ret_ty: not_a_type
+            is_extern: false
+          body:
+            Block:
+              list:
+                - Ident:
+                    name: b
 - "(define (a b:int) '(b))"
 

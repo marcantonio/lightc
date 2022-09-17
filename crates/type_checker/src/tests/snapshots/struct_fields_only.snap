@@ -1,34 +1,37 @@
 ---
 source: crates/type_checker/src/tests.rs
-assertion_line: 815
+assertion_line: 801
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Struct:
             name: Foo
             fields:
-              - Stmt:
+              - node:
                   Let:
                     name: a
-                    antn: Int32
+                    antn: int
                     init:
-                      Expr:
+                      node:
                         Lit:
                           value:
                             Int32: 0
-                          ty: Int32
-              - Stmt:
+                      ty: Int32
+                ty: ~
+              - node:
                   Let:
                     name: b
-                    antn: Float
+                    antn: float
                     init:
-                      Expr:
+                      node:
                         Lit:
                           value:
                             Float: 1.0
-                          ty: Float
+                      ty: Float
+                ty: ~
             methods: []
+        ty: ~
 

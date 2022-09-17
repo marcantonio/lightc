@@ -6,21 +6,22 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    1\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         Lit:
                           value:
                             Int32: 1
-                          ty: Int32
-                  ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

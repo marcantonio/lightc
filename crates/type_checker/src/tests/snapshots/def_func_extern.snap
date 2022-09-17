@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nextern fn foo()\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
@@ -14,4 +14,5 @@ expression: "(test[1], res)"
               ret_ty: ~
               is_extern: true
             body: ~
+        ty: ~
 

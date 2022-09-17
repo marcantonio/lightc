@@ -6,57 +6,62 @@ expression: "(test[1], res)"
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n\n    fn c() -> int {\n        a\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Struct:
             name: Foo
             fields:
-              - Stmt:
+              - node:
                   Let:
                     name: a
-                    antn: Int32
+                    antn: int
                     init:
-                      Expr:
+                      node:
                         Lit:
                           value:
                             Int32: 0
-                          ty: Int32
-              - Stmt:
+                      ty: Int32
+                ty: ~
+              - node:
                   Let:
                     name: b
-                    antn: Float
+                    antn: float
                     init:
-                      Expr:
+                      node:
                         Lit:
                           value:
                             Float: 1.0
-                          ty: Float
+                      ty: Float
+                ty: ~
             methods:
-              - Stmt:
+              - node:
                   Fn:
                     proto:
                       name: c
                       args: []
-                      ret_ty: Int32
+                      ret_ty: int
                       is_extern: false
                     body:
-                      Expr:
+                      node:
                         Block:
                           list:
-                            - Expr:
+                            - node:
                                 Ident:
                                   name: a
-                                  ty: Int32
-                          ty: Int32
-              - Stmt:
+                              ty: Int32
+                      ty: Int32
+                ty: ~
+              - node:
                   Fn:
                     proto:
                       name: d
                       args: []
-                      ret_ty: Void
+                      ret_ty: void
                       is_extern: false
                     body:
-                      Expr:
+                      node:
                         Block:
                           list: []
-                          ty: Void
+                      ty: Void
+                ty: ~
+        ty: ~
 

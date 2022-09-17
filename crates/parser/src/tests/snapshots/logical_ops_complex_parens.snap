@@ -6,51 +6,40 @@ expression: "(test[1], ast, ast_string)"
 - x == 1 && (y == 2 || z == 3)
 - Ok:
     nodes:
-      - Expr:
-          BinOp:
-            op: And
-            lhs:
-              Expr:
+      - BinOp:
+          op: And
+          lhs:
+            BinOp:
+              op: Eq
+              lhs:
+                Ident:
+                  name: x
+              rhs:
+                Lit:
+                  value:
+                    UInt64: 1
+          rhs:
+            BinOp:
+              op: Or
+              lhs:
                 BinOp:
                   op: Eq
                   lhs:
-                    Expr:
-                      Ident:
-                        name: x
+                    Ident:
+                      name: y
                   rhs:
-                    Expr:
-                      Lit:
-                        value:
-                          UInt64: 1
-            rhs:
-              Expr:
+                    Lit:
+                      value:
+                        UInt64: 2
+              rhs:
                 BinOp:
-                  op: Or
+                  op: Eq
                   lhs:
-                    Expr:
-                      BinOp:
-                        op: Eq
-                        lhs:
-                          Expr:
-                            Ident:
-                              name: y
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                UInt64: 2
+                    Ident:
+                      name: z
                   rhs:
-                    Expr:
-                      BinOp:
-                        op: Eq
-                        lhs:
-                          Expr:
-                            Ident:
-                              name: z
-                        rhs:
-                          Expr:
-                            Lit:
-                              value:
-                                UInt64: 3
+                    Lit:
+                      value:
+                        UInt64: 3
 - (&& (== x 1) (|| (== y 2) (== z 3)))
 

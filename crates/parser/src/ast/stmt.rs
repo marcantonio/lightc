@@ -1,21 +1,23 @@
 use serde::Serialize;
 use std::fmt::Display;
 
-use super::Prototype;
-use crate::Node;
+use super::{Node, Prototype};
 //use symbol_table::{symbol, Symbol};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct For {
+pub struct For<T: Node> {
     pub start_name: String, // TODO: make this a Statement::Let
     pub start_antn: String,
-    pub start_expr: Option<Box<Node>>,
-    pub cond_expr: Box<Node>,
-    pub step_expr: Box<Node>,
-    pub body: Box<Node>,
+    pub start_expr: Option<Box<T>>,
+    pub cond_expr: Box<T>,
+    pub step_expr: Box<T>,
+    pub body: Box<T>,
 }
 
-impl Display for For {
+impl<T> Display for For<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("(for ({}: {}", self.start_name, self.start_antn);
         if let Some(init) = &self.start_expr {
@@ -26,13 +28,16 @@ impl Display for For {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Let {
+pub struct Let<T: Node> {
     pub name: String,
     pub antn: String,
-    pub init: Option<Box<Node>>,
+    pub init: Option<Box<T>>,
 }
 
-impl Display for Let {
+impl<T> Display for Let<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("(let {}:{}", self.name, self.antn);
         if let Some(body) = &self.init {
@@ -43,12 +48,15 @@ impl Display for Let {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Fn {
+pub struct Fn<T: Node> {
     pub proto: Box<Prototype>,
-    pub body: Option<Box<Node>>,
+    pub body: Option<Box<T>>,
 }
 
-impl Display for Fn {
+impl<T> Display for Fn<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.body {
             Some(body) => write!(f, "(define {} {})", self.proto, body),
@@ -58,13 +66,16 @@ impl Display for Fn {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Struct {
+pub struct Struct<T: Node> {
     pub name: String,
-    pub fields: Vec<Node>,
-    pub methods: Vec<Node>,
+    pub fields: Vec<T>,
+    pub methods: Vec<T>,
 }
 
-impl Display for Struct {
+impl<T> Display for Struct<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut attr_string = String::from("");
         attr_string += &self.fields.iter().fold(String::new(), |mut acc, n| {

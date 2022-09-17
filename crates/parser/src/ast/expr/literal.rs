@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::Node;
+use crate::ast::Node;
 use common::Type;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Literal {
+pub enum Literal<T: Node> {
     Int8(i8),
     Int16(i16),
     Int32(i32),
@@ -19,10 +19,13 @@ pub enum Literal {
     Double(f64),
     Bool(bool),
     Char(u8),
-    Array { elements: Vec<Node>, inner_ty: Option<Type> },
+    Array { elements: Vec<T>, inner_ty: Option<Type> },
 }
 
-impl Display for Literal {
+impl<T> Display for Literal<T>
+where
+    T: Node + Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Literal::*;
 
@@ -50,18 +53,4 @@ impl Display for Literal {
             },
         }
     }
-}
-
-#[macro_export]
-macro_rules! make_literal {
-    (Array, $ty:expr, $len:expr) => {
-        Expression::Lit(ast::Lit {
-            value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty) },
-            ty: Some(Type::Array(Box::new(*$ty), $len)),
-        })
-    };
-
-    ($ty:tt, $val:expr) => {
-        Expression::Lit(ast::Lit { value: Literal::$ty($val), ty: Some(Type::$ty) })
-    };
 }

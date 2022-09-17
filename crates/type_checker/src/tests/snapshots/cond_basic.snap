@@ -6,56 +6,57 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2\n    }\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args: []
-              ret_ty: Void
+              ret_ty: void
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Expr:
+                    - node:
                         Cond:
                           cond_expr:
-                            Expr:
+                            node:
                               BinOp:
                                 op: Gt
                                 lhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int32: 1
-                                      ty: Int32
+                                  ty: Int32
                                 rhs:
-                                  Expr:
+                                  node:
                                     Lit:
                                       value:
                                         Int32: 2
-                                      ty: Int32
-                                ty: Bool
+                                  ty: Int32
+                            ty: Bool
                           then_block:
-                            Expr:
+                            node:
                               Block:
                                 list:
-                                  - Expr:
+                                  - node:
                                       Lit:
                                         value:
                                           Int32: 1
-                                        ty: Int32
-                                ty: Int32
+                                    ty: Int32
+                            ty: Int32
                           else_block:
-                            Expr:
+                            node:
                               Block:
                                 list:
-                                  - Expr:
+                                  - node:
                                       Lit:
                                         value:
                                           Int32: 2
-                                        ty: Int32
-                                ty: Int32
-                          ty: Int32
-                  ty: Int32
+                                    ty: Int32
+                            ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 

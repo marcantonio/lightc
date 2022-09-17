@@ -6,46 +6,49 @@ expression: "(test[1], res)"
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\n"
 - Ok:
     nodes:
-      - Stmt:
+      - node:
           Fn:
             proto:
               name: foo
               args:
                 - - a
-                  - Int32
-              ret_ty: Int32
+                  - int
+              ret_ty: int
               is_extern: false
             body:
-              Expr:
+              node:
                 Block:
                   list:
-                    - Stmt:
+                    - node:
                         Let:
                           name: b
-                          antn: Int32
+                          antn: int
                           init:
-                            Expr:
+                            node:
                               Lit:
                                 value:
                                   Int32: 1
-                                ty: Int32
-                    - Expr:
+                            ty: Int32
+                      ty: ~
+                    - node:
                         Block:
                           list:
-                            - Stmt:
+                            - node:
                                 Let:
                                   name: b
-                                  antn: Bool
+                                  antn: bool
                                   init:
-                                    Expr:
+                                    node:
                                       Lit:
                                         value:
                                           Bool: false
-                                        ty: Bool
-                          ty: Void
-                    - Expr:
+                                    ty: Bool
+                              ty: ~
+                      ty: Void
+                    - node:
                         Ident:
                           name: b
-                          ty: Int32
-                  ty: Int32
+                      ty: Int32
+              ty: Int32
+        ty: ~
 
