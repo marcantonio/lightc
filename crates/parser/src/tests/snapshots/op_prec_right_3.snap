@@ -6,29 +6,36 @@ expression: "(test[1], ast, ast_string)"
 - 19 ** 21 ** 40 / 2
 - Ok:
     nodes:
-      - BinOp:
-          op: Div
-          lhs:
-            BinOp:
-              op: Pow
-              lhs:
-                Lit:
-                  value:
-                    UInt64: 19
-              rhs:
+      - node:
+          BinOp:
+            op: Div
+            lhs:
+              node:
                 BinOp:
                   op: Pow
                   lhs:
-                    Lit:
-                      value:
-                        UInt64: 21
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 19
                   rhs:
-                    Lit:
-                      value:
-                        UInt64: 40
-          rhs:
-            Lit:
-              value:
-                UInt64: 2
+                    node:
+                      BinOp:
+                        op: Pow
+                        lhs:
+                          node:
+                            Lit:
+                              value:
+                                UInt64: 21
+                        rhs:
+                          node:
+                            Lit:
+                              value:
+                                UInt64: 40
+            rhs:
+              node:
+                Lit:
+                  value:
+                    UInt64: 2
 - (/ (** 19 (** 21 40)) 2)
 

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
+use ast::*;
 use common::Type;
-use parser::ast::*;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct TypedNode {
@@ -15,26 +15,6 @@ impl TypedNode {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum NodeKind<T: Node> {
-    // Statements
-    For(For<T>),
-    Let(Let<T>),
-    Fn(Fn<T>),
-    Struct(Struct<T>),
-
-    // Expressions
-    Lit(Lit<T>),
-    Ident(Ident),
-    BinOp(BinOp<T>),
-    UnOp(UnOp<T>),
-    Call(Call<T>),
-    Cond(Cond<T>),
-    Block(Block<T>),
-    Index(Index<T>),
-}
-
-// XXX move Display into Node
 impl Node for TypedNode {}
 
 impl Display for TypedNode {

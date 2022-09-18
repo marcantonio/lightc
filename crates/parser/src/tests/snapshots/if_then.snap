@@ -6,21 +6,27 @@ expression: "(test[1], ast, ast_string)"
 - "if a > b { foo }"
 - Ok:
     nodes:
-      - Cond:
-          cond_expr:
-            BinOp:
-              op: Gt
-              lhs:
-                Ident:
-                  name: a
-              rhs:
-                Ident:
-                  name: b
-          then_block:
-            Block:
-              list:
-                - Ident:
-                    name: foo
-          else_block: ~
+      - node:
+          Cond:
+            cond_expr:
+              node:
+                BinOp:
+                  op: Gt
+                  lhs:
+                    node:
+                      Ident:
+                        name: a
+                  rhs:
+                    node:
+                      Ident:
+                        name: b
+            then_block:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: foo
+            else_block: ~
 - "(if (> a b) '(foo))"
 

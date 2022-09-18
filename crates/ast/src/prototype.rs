@@ -87,7 +87,7 @@ impl Display for Prototype {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::Prototype;
+    use crate::Prototype;
     use symbol_table::Symbol;
 
     #[test]

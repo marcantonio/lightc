@@ -6,31 +6,39 @@ expression: "(test[1], ast, ast_string)"
 - "for x: int = 1; x < 10; 1 { foo }"
 - Ok:
     nodes:
-      - For:
-          start_name: x
-          start_antn: int
-          start_expr:
-            Lit:
-              value:
-                UInt64: 1
-          cond_expr:
-            BinOp:
-              op: Lt
-              lhs:
-                Ident:
-                  name: x
-              rhs:
+      - node:
+          For:
+            start_name: x
+            start_antn: int
+            start_expr:
+              node:
                 Lit:
                   value:
-                    UInt64: 10
-          step_expr:
-            Lit:
-              value:
-                UInt64: 1
-          body:
-            Block:
-              list:
-                - Ident:
-                    name: foo
+                    UInt64: 1
+            cond_expr:
+              node:
+                BinOp:
+                  op: Lt
+                  lhs:
+                    node:
+                      Ident:
+                        name: x
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 10
+            step_expr:
+              node:
+                Lit:
+                  value:
+                    UInt64: 1
+            body:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: foo
 - "(for (x: int 1) (< x 10) 1 '(foo))"
 

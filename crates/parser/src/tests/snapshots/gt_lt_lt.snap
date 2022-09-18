@@ -6,20 +6,25 @@ expression: "(test[1], ast, ast_string)"
 - a < b / 40
 - Ok:
     nodes:
-      - BinOp:
-          op: Lt
-          lhs:
-            Ident:
-              name: a
-          rhs:
-            BinOp:
-              op: Div
-              lhs:
+      - node:
+          BinOp:
+            op: Lt
+            lhs:
+              node:
                 Ident:
-                  name: b
-              rhs:
-                Lit:
-                  value:
-                    UInt64: 40
+                  name: a
+            rhs:
+              node:
+                BinOp:
+                  op: Div
+                  lhs:
+                    node:
+                      Ident:
+                        name: b
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 40
 - (< a (/ b 40))
 

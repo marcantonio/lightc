@@ -6,18 +6,22 @@ expression: "(test[1], ast, ast_string)"
 - 3 - -21
 - Ok:
     nodes:
-      - BinOp:
-          op: Sub
-          lhs:
-            Lit:
-              value:
-                UInt64: 3
-          rhs:
-            UnOp:
-              op: Sub
-              rhs:
+      - node:
+          BinOp:
+            op: Sub
+            lhs:
+              node:
                 Lit:
                   value:
-                    UInt64: 21
+                    UInt64: 3
+            rhs:
+              node:
+                UnOp:
+                  op: Sub
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 21
 - (- 3 (- 21))
 

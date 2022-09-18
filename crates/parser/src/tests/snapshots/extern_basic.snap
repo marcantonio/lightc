@@ -6,14 +6,15 @@ expression: "(test[1], ast, ast_string)"
 - "extern fn cos(x: float)"
 - Ok:
     nodes:
-      - Fn:
-          proto:
-            name: cos
-            args:
-              - - x
-                - float
-            ret_ty: ~
-            is_extern: true
-          body: ~
+      - node:
+          Fn:
+            proto:
+              name: cos
+              args:
+                - - x
+                  - float
+              ret_ty: ~
+              is_extern: true
+            body: ~
 - "(define (cos x:float))"
 

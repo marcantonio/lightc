@@ -6,25 +6,33 @@ expression: "(test[1], ast, ast_string)"
 - "\nif a > b {\n    foo\n} else {\n    bar\n}"
 - Ok:
     nodes:
-      - Cond:
-          cond_expr:
-            BinOp:
-              op: Gt
-              lhs:
-                Ident:
-                  name: a
-              rhs:
-                Ident:
-                  name: b
-          then_block:
-            Block:
-              list:
-                - Ident:
-                    name: foo
-          else_block:
-            Block:
-              list:
-                - Ident:
-                    name: bar
+      - node:
+          Cond:
+            cond_expr:
+              node:
+                BinOp:
+                  op: Gt
+                  lhs:
+                    node:
+                      Ident:
+                        name: a
+                  rhs:
+                    node:
+                      Ident:
+                        name: b
+            then_block:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: foo
+            else_block:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: bar
 - "(if (> a b) '(foo) '(bar))"
 

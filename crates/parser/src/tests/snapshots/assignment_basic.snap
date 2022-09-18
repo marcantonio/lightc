@@ -6,20 +6,25 @@ expression: "(test[1], ast, ast_string)"
 - x = x + 1
 - Ok:
     nodes:
-      - BinOp:
-          op: Assign
-          lhs:
-            Ident:
-              name: x
-          rhs:
-            BinOp:
-              op: Add
-              lhs:
+      - node:
+          BinOp:
+            op: Assign
+            lhs:
+              node:
                 Ident:
                   name: x
-              rhs:
-                Lit:
-                  value:
-                    UInt64: 1
+            rhs:
+              node:
+                BinOp:
+                  op: Add
+                  lhs:
+                    node:
+                      Ident:
+                        name: x
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 1
 - (= x (+ x 1))
 

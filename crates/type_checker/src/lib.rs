@@ -1,7 +1,6 @@
-use crate::typed_node::NodeKind;
+use ast::{Ast, AstVisitor, Literal, NodeKind, Visitable};
 use common::{Operator, Type};
-use parser::ast::{Ast, AstVisitor, Literal, ParsedNode, Visitable};
-use parser::*;
+use parser::ParsedNode;
 use symbol_table::{Symbol, SymbolTable};
 use typed_node::TypedNode;
 
@@ -99,9 +98,9 @@ impl<'a> TypeChecker<'a> {
     // Helper function for when we don't know if we have a statement or an
     // expression
     fn check_node(&mut self, node: ParsedNode, ty_hint: Option<&Type>) -> Result<TypedNode, String> {
-        use ParsedNode::*;
+        use NodeKind::*;
 
-        Ok(match node {
+        Ok(match node.node {
             For(s) => self.check_for(s)?,
             Let(s) => self.check_let(s)?,
             Fn(s) => self.check_func(s)?,
@@ -372,7 +371,12 @@ impl<'a> TypeChecker<'a> {
         use Operator::*;
 
         // Make sure LHS is a var in assignments
-        if expr.op == Assign && !matches!(*expr.lhs, ParsedNode::Ident { .. } | ParsedNode::Index { .. }) {
+        if expr.op == Assign
+            && !matches!(
+                *expr.lhs,
+                ParsedNode { node: NodeKind::Ident { .. } } | ParsedNode { node: NodeKind::Index { .. } }
+            )
+        {
             return Err("Expected LHS to be a variable for assignment".to_string());
         }
 

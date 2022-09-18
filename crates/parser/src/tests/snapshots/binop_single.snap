@@ -6,8 +6,9 @@ expression: "(test[1], ast, ast_string)"
 - "19"
 - Ok:
     nodes:
-      - Lit:
-          value:
-            UInt64: 19
+      - node:
+          Lit:
+            value:
+              UInt64: 19
 - "19"
 

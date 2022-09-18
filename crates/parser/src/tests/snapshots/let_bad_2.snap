@@ -6,9 +6,10 @@ expression: "(test[1], ast, ast_string)"
 - "let x: int"
 - Ok:
     nodes:
-      - Let:
-          name: x
-          antn: int
-          init: ~
+      - node:
+          Let:
+            name: x
+            antn: int
+            init: ~
 - "(let x:int)"
 

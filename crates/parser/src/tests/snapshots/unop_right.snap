@@ -6,18 +6,22 @@ expression: "(test[1], ast, ast_string)"
 - "-4 ** 2"
 - Ok:
     nodes:
-      - UnOp:
-          op: Sub
-          rhs:
-            BinOp:
-              op: Pow
-              lhs:
-                Lit:
-                  value:
-                    UInt64: 4
-              rhs:
-                Lit:
-                  value:
-                    UInt64: 2
+      - node:
+          UnOp:
+            op: Sub
+            rhs:
+              node:
+                BinOp:
+                  op: Pow
+                  lhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 4
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 2
 - (- (** 4 2))
 

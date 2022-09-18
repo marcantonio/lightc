@@ -6,18 +6,21 @@ expression: "(test[1], ast, ast_string)"
 - "\nfn a(b: int) {\n    b\n}\n"
 - Ok:
     nodes:
-      - Fn:
-          proto:
-            name: a
-            args:
-              - - b
-                - int
-            ret_ty: ~
-            is_extern: false
-          body:
-            Block:
-              list:
-                - Ident:
-                    name: b
+      - node:
+          Fn:
+            proto:
+              name: a
+              args:
+                - - b
+                  - int
+              ret_ty: ~
+              is_extern: false
+            body:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: b
 - "(define (a b:int) '(b))"
 

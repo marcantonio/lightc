@@ -6,13 +6,16 @@ expression: "(test[1], ast, ast_string)"
 - a(b(c))
 - Ok:
     nodes:
-      - Call:
-          name: a
-          args:
-            - Call:
-                name: b
-                args:
-                  - Ident:
-                      name: c
+      - node:
+          Call:
+            name: a
+            args:
+              - node:
+                  Call:
+                    name: b
+                    args:
+                      - node:
+                          Ident:
+                            name: c
 - (a (b c))
 

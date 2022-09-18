@@ -6,46 +6,58 @@ expression: "(test[1], ast, ast_string)"
 - 19 ** 21 ** 40; 19 - 21 * 20 + 40
 - Ok:
     nodes:
-      - BinOp:
-          op: Pow
-          lhs:
-            Lit:
-              value:
-                UInt64: 19
-          rhs:
-            BinOp:
-              op: Pow
-              lhs:
-                Lit:
-                  value:
-                    UInt64: 21
-              rhs:
-                Lit:
-                  value:
-                    UInt64: 40
-      - BinOp:
-          op: Add
-          lhs:
-            BinOp:
-              op: Sub
-              lhs:
+      - node:
+          BinOp:
+            op: Pow
+            lhs:
+              node:
                 Lit:
                   value:
                     UInt64: 19
-              rhs:
+            rhs:
+              node:
                 BinOp:
-                  op: Mul
+                  op: Pow
                   lhs:
-                    Lit:
-                      value:
-                        UInt64: 21
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 21
                   rhs:
-                    Lit:
-                      value:
-                        UInt64: 20
-          rhs:
-            Lit:
-              value:
-                UInt64: 40
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 40
+      - node:
+          BinOp:
+            op: Add
+            lhs:
+              node:
+                BinOp:
+                  op: Sub
+                  lhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 19
+                  rhs:
+                    node:
+                      BinOp:
+                        op: Mul
+                        lhs:
+                          node:
+                            Lit:
+                              value:
+                                UInt64: 21
+                        rhs:
+                          node:
+                            Lit:
+                              value:
+                                UInt64: 20
+            rhs:
+              node:
+                Lit:
+                  value:
+                    UInt64: 40
 - (** 19 (** 21 40))(+ (- 19 (* 21 20)) 40)
 

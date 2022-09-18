@@ -6,13 +6,16 @@ expression: "(test[1], ast, ast_string)"
 - "x[0]"
 - Ok:
     nodes:
-      - Index:
-          binding:
-            Ident:
-              name: x
-          idx:
-            Lit:
-              value:
-                UInt64: 0
+      - node:
+          Index:
+            binding:
+              node:
+                Ident:
+                  name: x
+            idx:
+              node:
+                Lit:
+                  value:
+                    UInt64: 0
 - "x[0]"
 

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0.136", features = ["derive"] }
 
+ast = { path = "../ast" }
 common = { path = "../common" }
 parser = { path = "../parser" }
 symbol_table = { path = "../symbol_table" }

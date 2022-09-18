@@ -6,12 +6,14 @@ expression: "(test[1], ast, ast_string)"
 - "let x: int = 1"
 - Ok:
     nodes:
-      - Let:
-          name: x
-          antn: int
-          init:
-            Lit:
-              value:
-                UInt64: 1
+      - node:
+          Let:
+            name: x
+            antn: int
+            init:
+              node:
+                Lit:
+                  value:
+                    UInt64: 1
 - "(let x:int 1)"
 

@@ -869,8 +869,8 @@ macro_rules! test_lit_hint_binop_int {
         let mut st = SymbolTable::new();
         st.insert(Symbol::new_var("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = ParsedNode::Ident(ast::Ident { name: String::from("x") });
-        let rhs = ParsedNode::Lit(ast::Lit { value: Literal::UInt64(3) });
+        let lhs = ParsedNode { node: NodeKind::Ident(ast::Ident { name: String::from("x") }) };
+        let rhs = ParsedNode { node: NodeKind::Lit(ast::Lit { value: Literal::UInt64(3) }) };
         let res = tc
             .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs) })
             .map(|e| e.ty().unwrap_or_default().clone());
@@ -879,8 +879,8 @@ macro_rules! test_lit_hint_binop_int {
         let mut st = SymbolTable::new();
         st.insert(Symbol::new_var("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = ParsedNode::Lit(ast::Lit { value: Literal::UInt64(3) });
-        let rhs = ParsedNode::Ident(ast::Ident { name: String::from("x") });
+        let lhs = ParsedNode { node: NodeKind::Lit(ast::Lit { value: Literal::UInt64(3) }) };
+        let rhs = ParsedNode { node: NodeKind::Ident(ast::Ident { name: String::from("x") }) };
         let res = tc
             .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs) })
             .map(|e| e.ty().unwrap_or_default().clone());
@@ -895,8 +895,8 @@ macro_rules! test_lit_hint_binop_float {
         let mut st = SymbolTable::new();
         st.insert(Symbol::new_var("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = ParsedNode::Ident(ast::Ident { name: String::from("x") });
-        let rhs = ParsedNode::Lit(ast::Lit { value: Literal::Float(3.0) });
+        let lhs = ParsedNode { node: NodeKind::Ident(ast::Ident { name: String::from("x") }) };
+        let rhs = ParsedNode { node: NodeKind::Lit(ast::Lit { value: Literal::Float(3.0) }) };
         let res = tc
             .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs) })
             .map(|e| e.ty().unwrap_or_default().clone());
@@ -905,8 +905,8 @@ macro_rules! test_lit_hint_binop_float {
         let mut st = SymbolTable::new();
         st.insert(Symbol::new_var("x", &$variant));
         let mut tc = TypeChecker::new(&mut st);
-        let lhs = ParsedNode::Lit(ast::Lit { value: Literal::Float(3.0) });
-        let rhs = ParsedNode::Ident(ast::Ident { name: String::from("x") });
+        let lhs = ParsedNode { node: NodeKind::Lit(ast::Lit { value: Literal::Float(3.0) }) };
+        let rhs = ParsedNode { node: NodeKind::Ident(ast::Ident { name: String::from("x") }) };
         let res = tc
             .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs) })
             .map(|e| e.ty().unwrap_or_default().clone());

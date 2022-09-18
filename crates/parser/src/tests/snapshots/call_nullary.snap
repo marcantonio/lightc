@@ -6,8 +6,9 @@ expression: "(test[1], ast, ast_string)"
 - a()
 - Ok:
     nodes:
-      - Call:
-          name: a
-          args: []
+      - node:
+          Call:
+            name: a
+            args: []
 - (a)
 

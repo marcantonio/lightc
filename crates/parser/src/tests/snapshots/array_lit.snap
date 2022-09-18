@@ -6,23 +6,28 @@ expression: "(test[1], ast, ast_string)"
 - "let x: [int; 3] = [1, 2, 3]"
 - Ok:
     nodes:
-      - Let:
-          name: x
-          antn: int;3
-          init:
-            Lit:
-              value:
-                Array:
-                  elements:
-                    - Lit:
-                        value:
-                          UInt64: 1
-                    - Lit:
-                        value:
-                          UInt64: 2
-                    - Lit:
-                        value:
-                          UInt64: 3
-                  inner_ty: ~
+      - node:
+          Let:
+            name: x
+            antn: int;3
+            init:
+              node:
+                Lit:
+                  value:
+                    Array:
+                      elements:
+                        - node:
+                            Lit:
+                              value:
+                                UInt64: 1
+                        - node:
+                            Lit:
+                              value:
+                                UInt64: 2
+                        - node:
+                            Lit:
+                              value:
+                                UInt64: 3
+                      inner_ty: ~
 - "(let x:int;3 [ 1 2 3])"
 

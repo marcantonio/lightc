@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::ast::Node;
+use crate::Node;
 use common::Type;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

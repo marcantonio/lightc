@@ -6,20 +6,25 @@ expression: "(test[1], ast, ast_string)"
 - "x[1 + 2]"
 - Ok:
     nodes:
-      - Index:
-          binding:
-            Ident:
-              name: x
-          idx:
-            BinOp:
-              op: Add
-              lhs:
-                Lit:
-                  value:
-                    UInt64: 1
-              rhs:
-                Lit:
-                  value:
-                    UInt64: 2
+      - node:
+          Index:
+            binding:
+              node:
+                Ident:
+                  name: x
+            idx:
+              node:
+                BinOp:
+                  op: Add
+                  lhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 1
+                  rhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 2
 - "x[(+ 1 2)]"
 

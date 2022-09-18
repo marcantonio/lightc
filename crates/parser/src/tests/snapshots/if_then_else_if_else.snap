@@ -6,43 +6,58 @@ expression: "(test[1], ast, ast_string)"
 - "\nif a > b {\n    foo\n} else if c < a {\n    bar\n} else {\n    baz\n}\n"
 - Ok:
     nodes:
-      - Cond:
-          cond_expr:
-            BinOp:
-              op: Gt
-              lhs:
-                Ident:
-                  name: a
-              rhs:
-                Ident:
-                  name: b
-          then_block:
-            Block:
-              list:
-                - Ident:
-                    name: foo
-          else_block:
-            Block:
-              list:
-                - Cond:
-                    cond_expr:
-                      BinOp:
-                        op: Lt
-                        lhs:
-                          Ident:
-                            name: c
-                        rhs:
-                          Ident:
-                            name: a
-                    then_block:
-                      Block:
-                        list:
-                          - Ident:
-                              name: bar
-                    else_block:
-                      Block:
-                        list:
-                          - Ident:
-                              name: baz
+      - node:
+          Cond:
+            cond_expr:
+              node:
+                BinOp:
+                  op: Gt
+                  lhs:
+                    node:
+                      Ident:
+                        name: a
+                  rhs:
+                    node:
+                      Ident:
+                        name: b
+            then_block:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Ident:
+                          name: foo
+            else_block:
+              node:
+                Block:
+                  list:
+                    - node:
+                        Cond:
+                          cond_expr:
+                            node:
+                              BinOp:
+                                op: Lt
+                                lhs:
+                                  node:
+                                    Ident:
+                                      name: c
+                                rhs:
+                                  node:
+                                    Ident:
+                                      name: a
+                          then_block:
+                            node:
+                              Block:
+                                list:
+                                  - node:
+                                      Ident:
+                                        name: bar
+                          else_block:
+                            node:
+                              Block:
+                                list:
+                                  - node:
+                                      Ident:
+                                        name: baz
 - "(if (> a b) '(foo) '((if (< c a) '(bar) '(baz))))"
 

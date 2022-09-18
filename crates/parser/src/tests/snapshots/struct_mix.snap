@@ -6,41 +6,50 @@ expression: "(test[1], ast, ast_string)"
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - Struct:
-          name: Foo
-          fields:
-            - Let:
-                name: a
-                antn: int
-                init: ~
-            - Let:
-                name: b
-                antn: float
-                init:
-                  Lit:
-                    value:
-                      Float: 1.0
-          methods:
-            - Fn:
-                proto:
-                  name: c
-                  args: []
-                  ret_ty: int
-                  is_extern: false
-                body:
-                  Block:
-                    list:
-                      - Lit:
+      - node:
+          Struct:
+            name: Foo
+            fields:
+              - node:
+                  Let:
+                    name: a
+                    antn: int
+                    init: ~
+              - node:
+                  Let:
+                    name: b
+                    antn: float
+                    init:
+                      node:
+                        Lit:
                           value:
-                            UInt64: 1
-            - Fn:
-                proto:
-                  name: d
-                  args: []
-                  ret_ty: ~
-                  is_extern: false
-                body:
-                  Block:
-                    list: []
+                            Float: 1.0
+            methods:
+              - node:
+                  Fn:
+                    proto:
+                      name: c
+                      args: []
+                      ret_ty: int
+                      is_extern: false
+                    body:
+                      node:
+                        Block:
+                          list:
+                            - node:
+                                Lit:
+                                  value:
+                                    UInt64: 1
+              - node:
+                  Fn:
+                    proto:
+                      name: d
+                      args: []
+                      ret_ty: ~
+                      is_extern: false
+                    body:
+                      node:
+                        Block:
+                          list: []
 - "(struct Foo '((let a:int) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
 

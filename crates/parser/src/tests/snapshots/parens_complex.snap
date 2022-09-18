@@ -6,36 +6,45 @@ expression: "(test[1], ast, ast_string)"
 - 3 * ((19 + 21) - 5) / 40
 - Ok:
     nodes:
-      - BinOp:
-          op: Div
-          lhs:
-            BinOp:
-              op: Mul
-              lhs:
+      - node:
+          BinOp:
+            op: Div
+            lhs:
+              node:
+                BinOp:
+                  op: Mul
+                  lhs:
+                    node:
+                      Lit:
+                        value:
+                          UInt64: 3
+                  rhs:
+                    node:
+                      BinOp:
+                        op: Sub
+                        lhs:
+                          node:
+                            BinOp:
+                              op: Add
+                              lhs:
+                                node:
+                                  Lit:
+                                    value:
+                                      UInt64: 19
+                              rhs:
+                                node:
+                                  Lit:
+                                    value:
+                                      UInt64: 21
+                        rhs:
+                          node:
+                            Lit:
+                              value:
+                                UInt64: 5
+            rhs:
+              node:
                 Lit:
                   value:
-                    UInt64: 3
-              rhs:
-                BinOp:
-                  op: Sub
-                  lhs:
-                    BinOp:
-                      op: Add
-                      lhs:
-                        Lit:
-                          value:
-                            UInt64: 19
-                      rhs:
-                        Lit:
-                          value:
-                            UInt64: 21
-                  rhs:
-                    Lit:
-                      value:
-                        UInt64: 5
-          rhs:
-            Lit:
-              value:
-                UInt64: 40
+                    UInt64: 40
 - (/ (* 3 (- (+ 19 21) 5)) 40)
 
