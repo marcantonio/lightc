@@ -12,8 +12,8 @@ expression: "(test[1], res)"
               name: foo
               args:
                 - - a
-                  - int
-              ret_ty: int
+                  - Int32
+              ret_ty: Int32
               is_extern: false
             body:
               node:
@@ -22,7 +22,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: b
-                          antn: int
+                          antn: Int32
                           init:
                             node:
                               Lit:
@@ -36,7 +36,7 @@ expression: "(test[1], res)"
                             - node:
                                 Let:
                                   name: b
-                                  antn: bool
+                                  antn: Bool
                                   init:
                                     node:
                                       Lit:
@@ -47,7 +47,7 @@ expression: "(test[1], res)"
                             - node:
                                 Let:
                                   name: a
-                                  antn: float
+                                  antn: Float
                                   init:
                                     node:
                                       Block:
@@ -55,7 +55,7 @@ expression: "(test[1], res)"
                                           - node:
                                               Let:
                                                 name: b
-                                                antn: float
+                                                antn: Float
                                                 init:
                                                   node:
                                                     Lit:

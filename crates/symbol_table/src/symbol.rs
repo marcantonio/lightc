@@ -1,10 +1,10 @@
-use crate::Symbolic;
 use common::Type;
+use crate::Symbolic;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct FnData {
-    args: Vec<(String, String)>,
-    ret_ty: String,
+    args: Vec<(String, Type)>,
+    ret_ty: Type,
     is_extern: bool,
 }
 
@@ -20,21 +20,22 @@ pub struct StructData {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct Symbol {
-    pub name: String,
-    pub data: AssocData,
-}
-
-#[derive(Clone, PartialEq, Debug)]
 pub enum AssocData {
     Fn(FnData),
     Var(VarData),
     Struct(StructData),
     Type(),
+    TypeAlias(String),
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Symbol {
+    pub name: String,
+    pub data: AssocData,
 }
 
 impl Symbol {
-    pub fn new_fn(name: &str, args: &[(String, String)], ret_ty: &str, is_extern: bool) -> Self {
+    pub fn new_fn(name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool) -> Self {
         Symbol {
             name: name.to_owned(),
             data: AssocData::Fn(FnData { args: args.to_vec(), ret_ty: ret_ty.to_owned(), is_extern }),
@@ -45,8 +46,11 @@ impl Symbol {
         Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
     }
 
-    pub fn new_ty(name: &str) -> Self {
-        Symbol { name: String::from("_type_") + name, data: AssocData::Type() }
+    pub fn new_ty(name: &str, alias: Option<&str>) -> Self {
+        match alias {
+            Some(a) => Symbol { name: name.to_owned(), data: AssocData::TypeAlias(a.to_owned()) },
+            None => Symbol { name: name.to_owned(), data: AssocData::Type() },
+        }
     }
 
     pub fn set_name(&mut self, name: &str) {
@@ -60,21 +64,21 @@ impl Symbol {
         }
     }
 
-    pub fn args(&self) -> Vec<(&str, &str)> {
+    pub fn args(&self) -> Vec<(&str, &Type)> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty.as_str())).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
-    pub fn arg_tys(&self) -> Vec<&str> {
+    pub fn arg_tys(&self) -> Vec<&Type> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty.as_str()).collect(),
+            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
-    pub fn ret_ty(&self) -> &str {
+    pub fn ret_ty(&self) -> &Type {
         match &self.data {
             AssocData::Fn(s) => &s.ret_ty,
             _ => unreachable!("expected symbol to be a function"),

@@ -9,7 +9,10 @@ expression: "(test[1], ast, ast_string)"
       - node:
           Let:
             name: x
-            antn: int;3
+            antn:
+              Array:
+                - Int32
+                - 3
             init:
               node:
                 Lit:
@@ -17,5 +20,5 @@ expression: "(test[1], ast, ast_string)"
                     Array:
                       elements: []
                       inner_ty: ~
-- "(let x:int;3 [])"
+- "(let x:array(int32, 3) [])"
 

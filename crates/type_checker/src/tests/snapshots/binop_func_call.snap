@@ -12,8 +12,8 @@ expression: "(test[1], res)"
               name: plusOne
               args:
                 - - x
-                  - int
-              ret_ty: int
+                  - Int32
+              ret_ty: Int32
               is_extern: false
             body:
               node:
@@ -41,7 +41,7 @@ expression: "(test[1], res)"
             proto:
               name: main
               args: []
-              ret_ty: void
+              ret_ty: Void
               is_extern: false
             body:
               node:

@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use common::Type;
 use serde::Serialize;
 
 use symbol_table::Symbol;
@@ -7,15 +8,13 @@ use symbol_table::Symbol;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Prototype {
     name: String,
-    args: Vec<(String, String)>,
-    ret_ty: Option<String>,
+    args: Vec<(String, Type)>,
+    ret_ty: Type,
     is_extern: bool,
 }
 
 impl Prototype {
-    pub fn new(
-        name: String, args: Vec<(String, String)>, ret_ty: Option<String>, is_extern: bool,
-    ) -> Prototype {
+    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool) -> Prototype {
         Prototype { name, args, ret_ty, is_extern }
     }
 
@@ -27,19 +26,19 @@ impl Prototype {
         self.name = name;
     }
 
-    pub fn args(&self) -> &[(String, String)] {
+    pub fn args(&self) -> &[(String, Type)] {
         &self.args
     }
 
-    pub fn set_args(&mut self, args: Vec<(String, String)>) {
+    pub fn set_args(&mut self, args: Vec<(String, Type)>) {
         self.args = args;
     }
 
-    pub fn ret_ty(&self) -> Option<&str> {
-        self.ret_ty.as_deref()
+    pub fn ret_ty(&self) -> &Type {
+        &self.ret_ty
     }
 
-    pub fn set_ret_ty(&mut self, ret_ty: Option<String>) {
+    pub fn set_ret_ty(&mut self, ret_ty: Type) {
         self.ret_ty = ret_ty;
     }
 
@@ -60,16 +59,10 @@ impl From<&Prototype> for Symbol {
                 acc += format!("{}~", ty).as_str();
                 acc
             });
-            let ret_ty_string = proto.ret_ty.as_ref().unwrap_or(&String::from("void")).to_ascii_lowercase();
-            format!("_{}~{}{}", proto.name, args_string, ret_ty_string)
+            format!("_{}~{}{}", proto.name, args_string, proto.ret_ty)
         };
 
-        Symbol::new_fn(
-            proto_name.as_str(),
-            args,
-            proto.ret_ty.as_ref().unwrap_or(&String::from("void")),
-            proto.is_extern,
-        )
+        Symbol::new_fn(proto_name.as_str(), args, &proto.ret_ty, proto.is_extern)
     }
 }
 
@@ -88,6 +81,7 @@ impl Display for Prototype {
 #[cfg(test)]
 mod test {
     use crate::Prototype;
+    use common::Type;
     use symbol_table::Symbol;
 
     #[test]
@@ -96,8 +90,8 @@ mod test {
             (
                 Prototype {
                     name: String::from("foo"),
-                    args: vec![(String::from("bar"), String::from("int32"))],
-                    ret_ty: Some(String::from("Float")),
+                    args: vec![(String::from("bar"), Type::Int32)],
+                    ret_ty: Type::Float,
                     is_extern: false,
                 },
                 "_foo~int32~float",
@@ -105,11 +99,8 @@ mod test {
             (
                 Prototype {
                     name: String::from("foo"),
-                    args: vec![
-                        (String::from("bar"), String::from("int32")),
-                        (String::from("baz"), String::from("int32")),
-                    ],
-                    ret_ty: Some(String::from("Float")),
+                    args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
+                    ret_ty: Type::Float,
                     is_extern: false,
                 },
                 "_foo~int32~int32~float",
@@ -117,22 +108,14 @@ mod test {
             (
                 Prototype {
                     name: String::from("foo"),
-                    args: vec![
-                        (String::from("bar"), String::from("int32")),
-                        (String::from("baz"), String::from("int32")),
-                    ],
-                    ret_ty: None,
+                    args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
+                    ret_ty: Type::Void,
                     is_extern: false,
                 },
                 "_foo~int32~int32~void",
             ),
             (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![],
-                    ret_ty: Some(String::from("Float")),
-                    is_extern: false,
-                },
+                Prototype { name: String::from("foo"), args: vec![], ret_ty: Type::Float, is_extern: false },
                 "_foo~float",
             ),
         ];

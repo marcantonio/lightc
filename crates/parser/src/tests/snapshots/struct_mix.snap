@@ -13,12 +13,12 @@ expression: "(test[1], ast, ast_string)"
               - node:
                   Let:
                     name: a
-                    antn: int
+                    antn: Int32
                     init: ~
               - node:
                   Let:
                     name: b
-                    antn: float
+                    antn: Float
                     init:
                       node:
                         Lit:
@@ -30,7 +30,7 @@ expression: "(test[1], ast, ast_string)"
                     proto:
                       name: c
                       args: []
-                      ret_ty: int
+                      ret_ty: Int32
                       is_extern: false
                     body:
                       node:
@@ -45,11 +45,11 @@ expression: "(test[1], ast, ast_string)"
                     proto:
                       name: d
                       args: []
-                      ret_ty: ~
+                      ret_ty: Void
                       is_extern: false
                     body:
                       node:
                         Block:
                           list: []
-- "(struct Foo '((let a:int) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
+- "(struct Foo '((let a:int32) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
 

@@ -11,7 +11,7 @@ expression: "(test[1], res)"
             proto:
               name: foo
               args: []
-              ret_ty: void
+              ret_ty: Void
               is_extern: false
             body:
               node:
@@ -20,7 +20,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: xy
-                          antn: int8
+                          antn: Int8
                           init:
                             node:
                               Lit:

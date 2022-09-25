@@ -4,5 +4,5 @@ assertion_line: 475
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    let y: int8 = 2\n    for x: int = 1; x < 3; y {\n        x\n    }\n}\n"
-- Err: "Step type mismatch in for statement. Step is `int8` but `x` is `int`"
+- Err: "Step type mismatch in for statement. Step is `int8` but `x` is `int32`"
 

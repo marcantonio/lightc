@@ -1,8 +1,9 @@
 use std::collections::hash_map::{Drain, Keys};
 use std::collections::HashMap;
 
-pub mod symbol;
 pub use symbol::Symbol;
+
+pub mod symbol;
 
 /*
  * scope           name     symbol
@@ -20,9 +21,7 @@ pub struct SymbolTable<T: Symbolic> {
 
 impl<T: Symbolic> SymbolTable<T> {
     pub fn new() -> Self {
-        let mut tables = HashMap::new();
-        tables.insert(0, HashMap::new());
-        SymbolTable { tables, scope_depth: 0 }
+        SymbolTable::with_table(HashMap::new())
     }
 
     pub fn with_table(table: HashMap<String, T>) -> Self {

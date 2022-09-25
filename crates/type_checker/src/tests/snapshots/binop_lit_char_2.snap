@@ -12,8 +12,8 @@ expression: "(test[1], res)"
               name: main
               args:
                 - - x
-                  - char
-              ret_ty: void
+                  - Char
+              ret_ty: Void
               is_extern: false
             body:
               node:

@@ -120,13 +120,13 @@ impl<'a> TypeChecker<'a> {
         let start_expr = self.check_var_init(
             &stmt.start_name,
             stmt.start_expr,
-            &as_type(&stmt.start_antn),
+            &stmt.start_antn,
             "for statement",
         )?;
 
         // Insert starting variable
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::new_var(stmt.start_name.as_str(), &as_type(&stmt.start_antn)));
+        self.symbol_table.insert(Symbol::new_var(stmt.start_name.as_str(), &stmt.start_antn));
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(*stmt.cond_expr, None)?;
@@ -136,9 +136,9 @@ impl<'a> TypeChecker<'a> {
         }
 
         // Make sure the step type matches the starting variable
-        let step_expr = self.check_node(*stmt.step_expr, Some(&as_type(&stmt.start_antn)))?;
+        let step_expr = self.check_node(*stmt.step_expr, Some(&stmt.start_antn))?;
         let step_ty = step_expr.ty().unwrap_or_default();
-        if step_ty != &as_type(&stmt.start_antn) {
+        if step_ty != &stmt.start_antn {
             return Err(format!(
                 "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
                 step_ty, stmt.start_name, stmt.start_antn
@@ -164,8 +164,8 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_let(&mut self, stmt: ast::Let<ParsedNode>) -> TypedResult {
-        self.symbol_table.insert(Symbol::new_var(stmt.name.as_str(), &as_type(&stmt.antn)));
-        let init_node = self.check_var_init(&stmt.name, stmt.init, &as_type(&stmt.antn), "let statement")?;
+        self.symbol_table.insert(Symbol::new_var(stmt.name.as_str(), &stmt.antn));
+        let init_node = self.check_var_init(&stmt.name, stmt.init, &stmt.antn, "let statement")?;
         Ok(TypedNode {
             node: NodeKind::Let(ast::Let {
                 name: stmt.name,
@@ -199,7 +199,7 @@ impl<'a> TypeChecker<'a> {
 
         // Insert args into the local scope table
         for arg in stmt.proto.args() {
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &as_type(&arg.1)));
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
         }
 
         let body_node = self.check_node(*body, None)?;
@@ -207,21 +207,21 @@ impl<'a> TypeChecker<'a> {
 
         // Make sure these are in sync since there's no `check_proto()`
         if stmt.proto.name() == "main" {
-            if stmt.proto.ret_ty().is_some() {
+            if stmt.proto.ret_ty() != &Type::Void {
                 return Err(format!(
                     "main()'s return value shouldn't be annotated. Found `{}`",
-                    stmt.proto.ret_ty().unwrap()
+                    stmt.proto.ret_ty()
                 ));
             }
-            stmt.proto.set_ret_ty(Some(String::from("void")));
+            stmt.proto.set_ret_ty(Type::Void);
         } else {
-            stmt.proto.set_ret_ty(Some(fn_entry.ret_ty().to_owned()));
+            stmt.proto.set_ret_ty(fn_entry.ret_ty().to_owned());
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if &as_type(fn_entry.ret_ty()) != body_ty
-            && as_type(fn_entry.ret_ty()) != Type::Void
+        if fn_entry.ret_ty() != body_ty
+            && fn_entry.ret_ty() != &Type::Void
             && stmt.proto.name() != "main"
         {
             return Err(format!(
@@ -305,7 +305,7 @@ impl<'a> TypeChecker<'a> {
                 Double(v) => (Double(v), Type::Double),
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
-                Array { .. } => self.check_lit_array(lit, ty_hint)?,
+                Array { .. } => self.check_lit_array(lit, Some(hint))?,
             },
             None => match lit {
                 Int32(v) => (Int32(v), Type::Int32), // Only used for main's return value
@@ -316,7 +316,7 @@ impl<'a> TypeChecker<'a> {
                 Float(v) => (Float(v), Type::Float),
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
-                Array { .. } => self.check_lit_array(lit, ty_hint)?,
+                Array { .. } => self.check_lit_array(lit, None)?,
                 x => unreachable!("numeric conversion error for {}", x),
             },
         };
@@ -335,6 +335,7 @@ impl<'a> TypeChecker<'a> {
         };
 
         // Clone the inner type hint
+        // XXX: Could ty_hint be None?
         let (ty, size) = match ty_hint.unwrap() {
             Type::Array(ty, sz) => (ty.clone(), sz),
             err => unreachable!("array literal has invalid type hint `{}`", err),
@@ -509,14 +510,14 @@ impl<'a> TypeChecker<'a> {
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in expr.args.into_iter().enumerate() {
-            let chkd_arg = self.check_node(expr, Some(&as_type(fe_arg_tys[idx])))?;
+            let chkd_arg = self.check_node(expr, Some(&fe_arg_tys[idx]))?;
             arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
             chkd_args.push(chkd_arg);
         }
 
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
-            if as_type(fa_ty) != ca_ty {
+            if *fa_ty != &ca_ty {
                 Err(format!(
                     "Type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
                     idx + 1,
@@ -531,7 +532,7 @@ impl<'a> TypeChecker<'a> {
 
         Ok(TypedNode {
             node: NodeKind::Call(ast::Call { name: expr.name, args: chkd_args }),
-            ty: Some(as_type(ret_ty)),
+            ty: Some(ret_ty.clone()),
         })
     }
 
@@ -617,7 +618,7 @@ impl<'a> TypeChecker<'a> {
 
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
-            let init_node = self.check_node(*init, Some(antn))?;
+            let init_node = self.check_node(*init, Some(&antn))?;
             let init_ty = init_node.ty().unwrap_or_default();
             if antn != init_ty {
                 return Err(format!(
@@ -640,40 +641,10 @@ impl<'a> TypeChecker<'a> {
                 Double => make_literal!(Double, 0.0),
                 Char => make_literal!(Char, 0),
                 Bool => make_literal!(Bool, false),
-                Array(ty, len) => make_literal!(Array, ty.clone(), *len),
+                Array(ty, len) => make_literal!(Array, *ty, *len),
                 Void => unreachable!("void type for variable initialization annotation"),
                 Comp(_) => todo!(),
             })
         }
-    }
-}
-
-fn as_type(ty: &str) -> Type {
-    use Type::*;
-
-    match ty {
-        "int8" => Int8,
-        "int16" => Int16,
-        "int32" => Int32,
-        "int64" => Int64,
-        "uint8" => UInt8,
-        "uint16" => UInt16,
-        "uint32" => UInt32,
-        "uint64" => UInt64,
-        "float" => Float,
-        "double" => Double,
-        "bool" => Bool,
-        "char" => Char,
-        "void" => Void,
-        "int" => Int32,
-        "uint" => UInt32,
-        x => {
-            let parts = x.split(';').collect::<Vec<_>>();
-            if parts.len() == 2 {
-                Array(Box::new(as_type(parts[0])), parts[1].parse::<usize>().unwrap())
-            } else {
-                unreachable!("invalid type: `{}`", x)
-            }
-        },
     }
 }

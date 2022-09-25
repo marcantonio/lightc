@@ -88,6 +88,31 @@ pub enum Type {
     Comp(String),
 }
 
+impl Type {
+    pub fn resolve_primitive(ty: &str) -> Self {
+        use Type::*;
+
+        match ty {
+            "int8" => Int8,
+            "int16" => Int16,
+            "int32" => Int32,
+            "int64" => Int64,
+            "uint8" => UInt8,
+            "uint16" => UInt16,
+            "uint32" => UInt32,
+            "uint64" => UInt64,
+            "float" => Float,
+            "double" => Double,
+            "bool" => Bool,
+            "char" => Char,
+            "void" => Void,
+            "int" => Int32,
+            "uint" => UInt32,
+            x => Comp(x.to_owned()),
+        }
+    }
+}
+
 impl Default for Type {
     fn default() -> Self {
         Self::Void
@@ -104,5 +129,16 @@ impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = format!("{:?}", self).to_ascii_lowercase();
         write!(f, "{}", s)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::Type;
+
+    #[test]
+    fn test_resolve_primitive() {
+        assert_eq!(Type::resolve_primitive("int32"), Type::Int32);
+        assert_eq!(Type::resolve_primitive("Int32"), Type::Comp(String::from("Int32")));
     }
 }

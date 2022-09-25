@@ -3,7 +3,7 @@ use std::num::IntErrorKind;
 use std::slice::Iter;
 
 use ast::{Ast, Literal, NodeKind, Prototype};
-use common::Operator;
+use common::{Operator, Type};
 use errors::ParseError;
 use lexer::token::{Token, TokenType};
 pub use parsed_node::ParsedNode;
@@ -21,25 +21,25 @@ mod tests;
 type ParseResult = Result<ParsedNode, ParseError>;
 
 pub struct Parser<'a> {
-    ast: Ast<ParsedNode>, // xxx return ast rather than store?
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parser { ast: Ast::new(), tokens: tokens.iter().peekable(), symbol_table }
+        Parser { tokens: tokens.iter().peekable(), symbol_table }
     }
 
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
     pub fn parse(mut self) -> Result<Ast<ParsedNode>, ParseError> {
+        let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
             let node = self.parse_stmt()?;
-            self.ast.add(node);
+            ast.add(node);
         }
-        Ok(self.ast)
+        Ok(ast)
     }
 
     /// Statement productions
@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         let struct_name =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
 
-        if self.symbol_table.insert_with_name(struct_name, Symbol::new_ty(struct_name)).is_some() {
+        if self.symbol_table.insert_with_name(struct_name, Symbol::new_ty(struct_name, None)).is_some() {
             return Err(ParseError::from((
                 format!("struct `{}` already defined", struct_name),
                 // TODO: this is the wrong token
@@ -443,7 +443,7 @@ impl<'a> Parser<'a> {
         expect_next_token!(self.tokens, TokenType::OpenParen, "Expecting `(` in prototype");
 
         // Parse args list
-        let mut args: Vec<(String, String)> = vec![];
+        let mut args = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
@@ -501,11 +501,11 @@ impl<'a> Parser<'a> {
         // If the next token is a ';', this is an extern
         let is_extern = matches!(&self.tokens.peek(), Some(Token { tt: TokenType::Semicolon(..), .. }));
 
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type, is_extern))
+        Ok(Prototype::new(fn_name.to_string(), args, ret_type.unwrap_or_default(), is_extern))
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;
-    fn parse_var_init(&mut self, caller: &str) -> Result<(String, String, Option<ParsedNode>), ParseError> {
+    fn parse_var_init(&mut self, caller: &str) -> Result<(String, Type, Option<ParsedNode>), ParseError> {
         // Get the name of the variable and its type annotation
         let (name, antn) = self.parse_typed_decl(caller)?;
 
@@ -519,7 +519,7 @@ impl<'a> Parser<'a> {
     }
 
     // TypeAntn ::= type | '[' type ']' ;
-    fn parse_type_antn(&mut self, caller: &str) -> Result<String, ParseError> {
+    fn parse_type_antn(&mut self, caller: &str) -> Result<Type, ParseError> {
         let token = self.tokens.next();
         let ty = match token {
             Some(Token { tt: TokenType::OpenBracket, .. }) => {
@@ -548,9 +548,9 @@ impl<'a> Parser<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                format!("{};{}", ty, size)
+                Type::Array(Box::new(Type::resolve_primitive(ty)), size.try_into().unwrap())
             },
-            Some(Token { tt: TokenType::Ident(ty), .. }) => ty.to_owned(),
+            Some(Token { tt: TokenType::Ident(ty), .. }) => Type::resolve_primitive(ty),
             Some(next) => {
                 return Err(ParseError::from((
                     format!("Expecting {} type annotation. Got `{}`", caller, next),
@@ -568,7 +568,7 @@ impl<'a> Parser<'a> {
     }
 
     // TypedDecl ::= ident ':' TypeAntn ;
-    fn parse_typed_decl(&mut self, caller: &str) -> Result<(String, String), ParseError> {
+    fn parse_typed_decl(&mut self, caller: &str) -> Result<(String, Type), ParseError> {
         let err = match caller {
             "prototype" => format!("Expecting identifier or `)` in `{}` typed declaration", caller),
             _ => format!("Expecting identifier in `{}` typed declaration", caller),

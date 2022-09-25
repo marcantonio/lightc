@@ -13,9 +13,9 @@ macro_rules! make_literal {
     (Array, $ty:expr, $len:expr) => {
         TypedNode {
             node: NodeKind::Lit(ast::Lit {
-                value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty) },
+                value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty.clone()) },
             }),
-            ty: Some(Type::Array(Box::new(*$ty), $len)),
+            ty: Some(Type::Array(Box::new(*$ty.clone()), $len)),
         }
     };
 

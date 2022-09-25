@@ -13,7 +13,7 @@ expression: "(test[1], res)"
               - node:
                   Let:
                     name: a
-                    antn: int
+                    antn: Int32
                     init:
                       node:
                         Lit:
@@ -24,7 +24,7 @@ expression: "(test[1], res)"
               - node:
                   Let:
                     name: b
-                    antn: float
+                    antn: Float
                     init:
                       node:
                         Lit:
@@ -38,7 +38,7 @@ expression: "(test[1], res)"
                     proto:
                       name: c
                       args: []
-                      ret_ty: int
+                      ret_ty: Int32
                       is_extern: false
                     body:
                       node:
@@ -55,7 +55,7 @@ expression: "(test[1], res)"
                     proto:
                       name: d
                       args: []
-                      ret_ty: void
+                      ret_ty: Void
                       is_extern: false
                     body:
                       node:

@@ -12,10 +12,10 @@ expression: "(test[1], res)"
               name: foo
               args:
                 - - a
-                  - int
+                  - Int32
                 - - b
-                  - float
-              ret_ty: void
+                  - Float
+              ret_ty: Void
               is_extern: false
             body:
               node:

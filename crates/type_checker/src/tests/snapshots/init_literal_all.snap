@@ -11,7 +11,7 @@ expression: "(test[1], res)"
             proto:
               name: main
               args: []
-              ret_ty: void
+              ret_ty: Void
               is_extern: false
             body:
               node:
@@ -20,7 +20,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: int
+                          antn: Int32
                           init:
                             node:
                               Lit:
@@ -31,7 +31,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: int8
+                          antn: Int8
                           init:
                             node:
                               Lit:
@@ -42,7 +42,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: int16
+                          antn: Int16
                           init:
                             node:
                               Lit:
@@ -53,7 +53,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: int32
+                          antn: Int32
                           init:
                             node:
                               Lit:
@@ -64,7 +64,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: int64
+                          antn: Int64
                           init:
                             node:
                               Lit:
@@ -75,7 +75,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: uint
+                          antn: UInt32
                           init:
                             node:
                               Lit:
@@ -86,7 +86,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: uint8
+                          antn: UInt8
                           init:
                             node:
                               Lit:
@@ -97,7 +97,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: uint16
+                          antn: UInt16
                           init:
                             node:
                               Lit:
@@ -108,7 +108,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: uint32
+                          antn: UInt32
                           init:
                             node:
                               Lit:
@@ -119,7 +119,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: uint64
+                          antn: UInt64
                           init:
                             node:
                               Lit:
@@ -130,7 +130,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: float
+                          antn: Float
                           init:
                             node:
                               Lit:
@@ -141,7 +141,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: double
+                          antn: Double
                           init:
                             node:
                               Lit:
@@ -152,7 +152,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: char
+                          antn: Char
                           init:
                             node:
                               Lit:
@@ -163,7 +163,7 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: bool
+                          antn: Bool
                           init:
                             node:
                               Lit:
@@ -174,7 +174,10 @@ expression: "(test[1], res)"
                     - node:
                         Let:
                           name: x
-                          antn: bool;3
+                          antn:
+                            Array:
+                              - Bool
+                              - 3
                           init:
                             node:
                               Lit:

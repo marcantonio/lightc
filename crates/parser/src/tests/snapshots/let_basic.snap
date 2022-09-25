@@ -9,11 +9,11 @@ expression: "(test[1], ast, ast_string)"
       - node:
           Let:
             name: x
-            antn: int
+            antn: Int32
             init:
               node:
                 Lit:
                   value:
                     UInt64: 1
-- "(let x:int 1)"
+- "(let x:int32 1)"
 

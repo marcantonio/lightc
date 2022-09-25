@@ -1,3 +1,4 @@
+use common::Type;
 use serde::Serialize;
 use std::fmt::Display;
 
@@ -7,7 +8,7 @@ use super::{Node, Prototype};
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct For<T: Node> {
     pub start_name: String, // TODO: make this a Statement::Let
-    pub start_antn: String,
+    pub start_antn: Type,
     pub start_expr: Option<Box<T>>,
     pub cond_expr: Box<T>,
     pub step_expr: Box<T>,
@@ -30,7 +31,7 @@ where
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Let<T: Node> {
     pub name: String,
-    pub antn: String,
+    pub antn: Type,
     pub init: Option<Box<T>>,
 }
 

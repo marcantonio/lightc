@@ -12,8 +12,9 @@ expression: "(test[1], ast, ast_string)"
               name: a
               args:
                 - - b
-                  - int
-              ret_ty: not_a_type
+                  - Int32
+              ret_ty:
+                Comp: not_a_type
               is_extern: false
             body:
               node:
@@ -22,5 +23,5 @@ expression: "(test[1], ast, ast_string)"
                     - node:
                         Ident:
                           name: b
-- "(define (a b:int) '(b))"
+- "(define (a b:int32) '(b))"
 

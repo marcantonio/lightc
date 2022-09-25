@@ -9,7 +9,7 @@ expression: "(test[1], ast, ast_string)"
       - node:
           Let:
             name: x
-            antn: int
+            antn: Int32
             init: ~
-- "(let x:int)"
+- "(let x:int32)"
 

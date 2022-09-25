@@ -12,8 +12,8 @@ expression: "(test[1], ast, ast_string)"
               name: cos
               args:
                 - - x
-                  - float
-              ret_ty: ~
+                  - Float
+              ret_ty: Void
               is_extern: true
             body: ~
 - "(define (cos x:float))"

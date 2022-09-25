@@ -12,10 +12,10 @@ expression: "(test[1], ast, ast_string)"
               name: a
               args:
                 - - b
-                  - int
+                  - Int32
                 - - c
-                  - int
-              ret_ty: int
+                  - Int32
+              ret_ty: Int32
               is_extern: false
             body:
               node:
@@ -42,5 +42,5 @@ expression: "(test[1], ast, ast_string)"
                               Lit:
                                 value:
                                   UInt64: 40
-- "(define (a b:int c:int) '((+ (+ 19 a) 40)))"
+- "(define (a b:int32 c:int32) '((+ (+ 19 a) 40)))"
 

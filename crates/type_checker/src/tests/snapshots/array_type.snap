@@ -9,7 +9,10 @@ expression: "(test[1], res)"
       - node:
           Let:
             name: x
-            antn: int;3
+            antn:
+              Array:
+                - Int32
+                - 3
             init:
               node:
                 Lit:

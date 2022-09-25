@@ -12,8 +12,8 @@ expression: "(test[1], res)"
               name: foo
               args:
                 - - x
-                  - int
-              ret_ty: void
+                  - Int32
+              ret_ty: Void
               is_extern: false
             body:
               node:

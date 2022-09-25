@@ -13,17 +13,17 @@ expression: "(test[1], ast, ast_string)"
               - node:
                   Let:
                     name: a
-                    antn: int
+                    antn: Int32
                     init: ~
               - node:
                   Let:
                     name: b
-                    antn: float
+                    antn: Float
                     init:
                       node:
                         Lit:
                           value:
                             Float: 1.0
             methods: []
-- "(struct Foo '((let a:int) (let b:float 1)) '())"
+- "(struct Foo '((let a:int32) (let b:float 1)) '())"
 
