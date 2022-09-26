@@ -6,27 +6,27 @@ expression: "(test[1], res)"
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Struct:
             name: Foo
             fields:
-              - node:
+              - kind:
                   Let:
                     name: a
                     antn: Int32
                     init:
-                      node:
+                      kind:
                         Lit:
                           value:
                             Int32: 0
                       ty: Int32
                 ty: ~
-              - node:
+              - kind:
                   Let:
                     name: b
                     antn: Float
                     init:
-                      node:
+                      kind:
                         Lit:
                           value:
                             Float: 1.0

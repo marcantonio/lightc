@@ -6,60 +6,60 @@ expression: "(test[1], res)"
 - "\nlet x: float = 1.0\nfor x: int = 1; x < 10; 1 {\n    x\n}\nx\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Let:
             name: x
             antn: Float
             init:
-              node:
+              kind:
                 Lit:
                   value:
                     Float: 1.0
               ty: Float
         ty: ~
-      - node:
+      - kind:
           For:
             start_name: x
             start_antn: Int32
             start_expr:
-              node:
+              kind:
                 Lit:
                   value:
                     Int32: 1
               ty: Int32
             cond_expr:
-              node:
+              kind:
                 BinOp:
                   op: Lt
                   lhs:
-                    node:
+                    kind:
                       Ident:
                         name: x
                     ty: Int32
                   rhs:
-                    node:
+                    kind:
                       Lit:
                         value:
                           Int32: 10
                     ty: Int32
               ty: Bool
             step_expr:
-              node:
+              kind:
                 Lit:
                   value:
                     Int32: 1
               ty: Int32
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Ident:
                           name: x
                       ty: Int32
               ty: Int32
         ty: ~
-      - node:
+      - kind:
           Ident:
             name: x
         ty: Float

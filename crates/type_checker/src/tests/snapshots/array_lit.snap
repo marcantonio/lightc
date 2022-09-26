@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "let x: [int; 3] = [1, 2, 3]"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Let:
             name: x
             antn:
@@ -14,22 +14,22 @@ expression: "(test[1], res)"
                 - Int32
                 - 3
             init:
-              node:
+              kind:
                 Lit:
                   value:
                     Array:
                       elements:
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 1
                           ty: Int32
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 2
                           ty: Int32
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 3

@@ -39,27 +39,27 @@ impl<T: Node> Default for Ast<T> {
 // Immutable visitor interface
 
 pub trait AstVisitor {
-    type Node: Node;
+    type AstNode: Node;
     type Result;
 
-    fn visit_for(&mut self, s: For<Self::Node>) -> Self::Result;
-    fn visit_let(&mut self, s: Let<Self::Node>) -> Self::Result;
-    fn visit_fn(&mut self, s: Fn<Self::Node>) -> Self::Result;
-    fn visit_struct(&mut self, s: Struct<Self::Node>) -> Self::Result;
-    fn visit_lit(&mut self, e: Lit<Self::Node>) -> Self::Result;
-    fn visit_binop(&mut self, e: BinOp<Self::Node>) -> Self::Result;
-    fn visit_unop(&mut self, e: UnOp<Self::Node>) -> Self::Result;
+    fn visit_for(&mut self, s: For<Self::AstNode>) -> Self::Result;
+    fn visit_let(&mut self, s: Let<Self::AstNode>) -> Self::Result;
+    fn visit_fn(&mut self, s: Fn<Self::AstNode>) -> Self::Result;
+    fn visit_struct(&mut self, s: Struct<Self::AstNode>) -> Self::Result;
+    fn visit_lit(&mut self, e: Lit<Self::AstNode>) -> Self::Result;
+    fn visit_binop(&mut self, e: BinOp<Self::AstNode>) -> Self::Result;
+    fn visit_unop(&mut self, e: UnOp<Self::AstNode>) -> Self::Result;
     fn visit_ident(&mut self, e: Ident) -> Self::Result;
-    fn visit_call(&mut self, e: Call<Self::Node>) -> Self::Result;
-    fn visit_cond(&mut self, e: Cond<Self::Node>) -> Self::Result;
-    fn visit_block(&mut self, e: Block<Self::Node>) -> Self::Result;
-    fn visit_index(&mut self, e: Index<Self::Node>) -> Self::Result;
+    fn visit_call(&mut self, e: Call<Self::AstNode>) -> Self::Result;
+    fn visit_cond(&mut self, e: Cond<Self::AstNode>) -> Self::Result;
+    fn visit_block(&mut self, e: Block<Self::AstNode>) -> Self::Result;
+    fn visit_index(&mut self, e: Index<Self::AstNode>) -> Self::Result;
 }
 
 pub trait Visitable {
     fn accept<V>(self, v: &mut V) -> V::Result
     where
-        V: AstVisitor<Node = Self>;
+        V: AstVisitor<AstNode = Self>;
 }
 
 pub trait Node {}

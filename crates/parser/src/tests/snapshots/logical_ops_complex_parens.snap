@@ -6,49 +6,49 @@ expression: "(test[1], ast, ast_string)"
 - x == 1 && (y == 2 || z == 3)
 - Ok:
     nodes:
-      - node:
+      - kind:
           BinOp:
             op: And
             lhs:
-              node:
+              kind:
                 BinOp:
                   op: Eq
                   lhs:
-                    node:
+                    kind:
                       Ident:
                         name: x
                   rhs:
-                    node:
+                    kind:
                       Lit:
                         value:
                           UInt64: 1
             rhs:
-              node:
+              kind:
                 BinOp:
                   op: Or
                   lhs:
-                    node:
+                    kind:
                       BinOp:
                         op: Eq
                         lhs:
-                          node:
+                          kind:
                             Ident:
                               name: y
                         rhs:
-                          node:
+                          kind:
                             Lit:
                               value:
                                 UInt64: 2
                   rhs:
-                    node:
+                    kind:
                       BinOp:
                         op: Eq
                         lhs:
-                          node:
+                          kind:
                             Ident:
                               name: z
                         rhs:
-                          node:
+                          kind:
                             Lit:
                               value:
                                 UInt64: 3

@@ -6,7 +6,7 @@ expression: "(test[1], ast, ast_string)"
 - "fn a(b: int) -> not_a_type { b }"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: a
@@ -17,10 +17,10 @@ expression: "(test[1], ast, ast_string)"
                 Comp: not_a_type
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Ident:
                           name: b
 - "(define (a b:int32) '(b))"

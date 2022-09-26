@@ -6,23 +6,23 @@ expression: "(test[1], ast, ast_string)"
 - x = x + 1
 - Ok:
     nodes:
-      - node:
+      - kind:
           BinOp:
             op: Assign
             lhs:
-              node:
+              kind:
                 Ident:
                   name: x
             rhs:
-              node:
+              kind:
                 BinOp:
                   op: Add
                   lhs:
-                    node:
+                    kind:
                       Ident:
                         name: x
                   rhs:
-                    node:
+                    kind:
                       Lit:
                         value:
                           UInt64: 1

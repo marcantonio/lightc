@@ -1,6 +1,6 @@
-use ast::{Ast, AstVisitor, Literal, NodeKind, Visitable};
+use ast::{Ast, AstVisitor, Literal, Visitable};
 use common::{Operator, Type};
-use parser::ParsedNode;
+use parser::parsed_node::{self, ParsedNode};
 use symbol_table::{Symbol, SymbolTable};
 use typed_node::TypedNode;
 
@@ -25,39 +25,38 @@ mod typed_node;
 type TypedResult = Result<TypedNode, String>;
 
 pub struct TypeChecker<'a> {
-    ast: Ast<TypedNode>,
     symbol_table: &'a mut SymbolTable<Symbol>,
 }
 
 impl<'a> AstVisitor for TypeChecker<'a> {
-    type Node = ParsedNode;
+    type AstNode = ParsedNode;
     type Result = Result<TypedNode, String>;
 
-    fn visit_for(&mut self, s: ast::For<Self::Node>) -> Self::Result {
+    fn visit_for(&mut self, s: ast::For<Self::AstNode>) -> Self::Result {
         self.check_for(s)
     }
 
-    fn visit_let(&mut self, s: ast::Let<Self::Node>) -> Self::Result {
+    fn visit_let(&mut self, s: ast::Let<Self::AstNode>) -> Self::Result {
         self.check_let(s)
     }
 
-    fn visit_fn(&mut self, s: ast::Fn<Self::Node>) -> Self::Result {
+    fn visit_fn(&mut self, s: ast::Fn<Self::AstNode>) -> Self::Result {
         self.check_func(s)
     }
 
-    fn visit_struct(&mut self, s: ast::Struct<Self::Node>) -> Self::Result {
+    fn visit_struct(&mut self, s: ast::Struct<Self::AstNode>) -> Self::Result {
         self.check_struct(s)
     }
 
-    fn visit_lit(&mut self, e: ast::Lit<Self::Node>) -> Self::Result {
+    fn visit_lit(&mut self, e: ast::Lit<Self::AstNode>) -> Self::Result {
         self.check_lit(e, None)
     }
 
-    fn visit_binop(&mut self, e: ast::BinOp<Self::Node>) -> Self::Result {
+    fn visit_binop(&mut self, e: ast::BinOp<Self::AstNode>) -> Self::Result {
         self.check_binop(e)
     }
 
-    fn visit_unop(&mut self, e: ast::UnOp<Self::Node>) -> Self::Result {
+    fn visit_unop(&mut self, e: ast::UnOp<Self::AstNode>) -> Self::Result {
         self.check_unop(e)
     }
 
@@ -65,42 +64,43 @@ impl<'a> AstVisitor for TypeChecker<'a> {
         self.check_ident(e)
     }
 
-    fn visit_call(&mut self, e: ast::Call<Self::Node>) -> Self::Result {
+    fn visit_call(&mut self, e: ast::Call<Self::AstNode>) -> Self::Result {
         self.check_call(e)
     }
 
-    fn visit_cond(&mut self, e: ast::Cond<Self::Node>) -> Self::Result {
+    fn visit_cond(&mut self, e: ast::Cond<Self::AstNode>) -> Self::Result {
         self.check_cond(e)
     }
 
-    fn visit_block(&mut self, e: ast::Block<Self::Node>) -> Self::Result {
+    fn visit_block(&mut self, e: ast::Block<Self::AstNode>) -> Self::Result {
         self.check_block(e)
     }
 
-    fn visit_index(&mut self, e: ast::Index<Self::Node>) -> Self::Result {
+    fn visit_index(&mut self, e: ast::Index<Self::AstNode>) -> Self::Result {
         self.check_index(e)
     }
 }
 
 impl<'a> TypeChecker<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        TypeChecker { ast: Ast::new(), symbol_table }
+        TypeChecker { symbol_table }
     }
 
     pub fn walk(mut self, ast: Ast<ParsedNode>) -> Result<Ast<TypedNode>, String> {
+        let mut typed_ast = Ast::new();
         for node in ast.into_nodes() {
             let typed_node = node.accept(&mut self)?;
-            self.ast.add(typed_node)
+            typed_ast.add(typed_node)
         }
-        Ok(self.ast)
+        Ok(typed_ast)
     }
 
     // Helper function for when we don't know if we have a statement or an
     // expression
     fn check_node(&mut self, node: ParsedNode, ty_hint: Option<&Type>) -> Result<TypedNode, String> {
-        use NodeKind::*;
+        use parsed_node::Kind::*;
 
-        Ok(match node.node {
+        Ok(match node.kind {
             For(s) => self.check_for(s)?,
             Let(s) => self.check_let(s)?,
             Fn(s) => self.check_func(s)?,
@@ -119,14 +119,14 @@ impl<'a> TypeChecker<'a> {
     fn check_for(&mut self, stmt: ast::For<ParsedNode>) -> TypedResult {
         let start_expr = self.check_var_init(
             &stmt.start_name,
-            stmt.start_expr,
+            stmt.start_expr.as_deref(),
             &stmt.start_antn,
             "for statement",
         )?;
 
         // Insert starting variable
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::new_var(stmt.start_name.as_str(), &stmt.start_antn));
+        self.symbol_table.insert(Symbol::new_var(&stmt.start_name, &stmt.start_antn));
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(*stmt.cond_expr, None)?;
@@ -150,30 +150,21 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(TypedNode {
-            node: NodeKind::For(ast::For {
-                start_name: stmt.start_name,
-                start_antn: stmt.start_antn,
-                start_expr: Some(Box::new(start_expr)),
-                cond_expr: Box::new(cond_expr),
-                step_expr: Box::new(step_expr),
-                body: Box::new(body_node),
-            }),
-            ty: None,
-        })
+        Ok(TypedNode::new_for(
+            stmt.start_name.to_owned(),
+            stmt.start_antn.to_owned(),
+            Some(start_expr),
+            cond_expr,
+            step_expr,
+            body_node,
+            None,
+        ))
     }
 
     fn check_let(&mut self, stmt: ast::Let<ParsedNode>) -> TypedResult {
         self.symbol_table.insert(Symbol::new_var(stmt.name.as_str(), &stmt.antn));
-        let init_node = self.check_var_init(&stmt.name, stmt.init, &stmt.antn, "let statement")?;
-        Ok(TypedNode {
-            node: NodeKind::Let(ast::Let {
-                name: stmt.name,
-                antn: stmt.antn,
-                init: Some(Box::new(init_node)),
-            }),
-            ty: None,
-        })
+        let init_node = self.check_var_init(&stmt.name, stmt.init.as_deref(), &stmt.antn, "let statement")?;
+        Ok(TypedNode::new_let(stmt.name, stmt.antn, Some(init_node), None))
     }
 
     // Check function definitions. This function also does the proto.
@@ -186,12 +177,7 @@ impl<'a> TypeChecker<'a> {
         // If body is None, this is an extern and no checking is needed
         let body = match stmt.body {
             Some(body) => body,
-            None => {
-                return Ok(TypedNode {
-                    node: NodeKind::Fn(ast::Fn { proto: stmt.proto, body: None }),
-                    ty: None,
-                })
-            },
+            None => return Ok(TypedNode::new_fn(*stmt.proto, None, None)),
         };
 
         // Creates interstitial scope for the arguments in the function definition
@@ -220,10 +206,7 @@ impl<'a> TypeChecker<'a> {
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ret_ty() != body_ty
-            && fn_entry.ret_ty() != &Type::Void
-            && stmt.proto.name() != "main"
-        {
+        if fn_entry.ret_ty() != body_ty && fn_entry.ret_ty() != &Type::Void && stmt.proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 stmt.proto.name(),
@@ -234,31 +217,21 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(TypedNode {
-            node: NodeKind::Fn(ast::Fn { proto: stmt.proto, body: Some(Box::new(body_node)) }),
-            ty: None,
-        })
+        Ok(TypedNode::new_fn(*stmt.proto, Some(body_node), None))
     }
 
     fn check_struct(&mut self, stmt: ast::Struct<ParsedNode>) -> TypedResult {
         let mut chkd_fields = vec![];
         for node in stmt.fields {
-            chkd_fields.push(self.check_node(node, None)?);
+            chkd_fields.push(self.check_node(node.clone(), None)?);
         }
 
         let mut chkd_methods = vec![];
         for node in stmt.methods {
-            chkd_methods.push(self.check_node(node, None)?);
+            chkd_methods.push(self.check_node(node.clone(), None)?);
         }
 
-        Ok(TypedNode {
-            node: NodeKind::Struct(ast::Struct {
-                name: stmt.name,
-                fields: chkd_fields,
-                methods: chkd_methods,
-            }),
-            ty: None,
-        })
+        Ok(TypedNode::new_struct(stmt.name, chkd_fields, chkd_methods, None))
     }
 
     // If there's a type hint, use it or fail. If not, use the literal's
@@ -321,7 +294,7 @@ impl<'a> TypeChecker<'a> {
             },
         };
 
-        Ok(TypedNode { node: NodeKind::Lit(ast::Lit { value: new_lit }), ty: Some(lit_ty) })
+        Ok(TypedNode::new_lit(new_lit, Some(lit_ty)))
     }
 
     fn check_lit_array(
@@ -361,10 +334,14 @@ impl<'a> TypeChecker<'a> {
         Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, *size)))
     }
 
-    fn check_ident(&self, i: ast::Ident) -> TypedResult {
-        let ident_ty =
-            self.symbol_table.get(&i.name).ok_or(format!("Unknown variable: `{}`", i.name))?.ty().clone();
-        Ok(TypedNode { node: NodeKind::Ident(ast::Ident { name: i.name }), ty: Some(ident_ty) })
+    fn check_ident(&self, expr: ast::Ident) -> TypedResult {
+        let ident_ty = self
+            .symbol_table
+            .get(&expr.name)
+            .ok_or(format!("Unknown variable: `{}`", expr.name))?
+            .ty()
+            .clone();
+        Ok(TypedNode::new_ident(expr.name, Some(ident_ty)))
     }
 
     // TODO: Check overflow on math ops
@@ -375,7 +352,8 @@ impl<'a> TypeChecker<'a> {
         if expr.op == Assign
             && !matches!(
                 *expr.lhs,
-                ParsedNode { node: NodeKind::Ident { .. } } | ParsedNode { node: NodeKind::Index { .. } }
+                ParsedNode { kind: parsed_node::Kind::Ident { .. } }
+                    | ParsedNode { kind: parsed_node::Kind::Index { .. } }
             )
         {
             return Err("Expected LHS to be a variable for assignment".to_string());
@@ -455,14 +433,7 @@ impl<'a> TypeChecker<'a> {
             _ => Type::Void,
         };
 
-        Ok(TypedNode {
-            node: NodeKind::BinOp(ast::BinOp {
-                op: expr.op,
-                lhs: Box::new(chkd_lhs),
-                rhs: Box::new(chkd_rhs),
-            }),
-            ty: Some(ty),
-        })
+        Ok(TypedNode::new_binop(expr.op, chkd_lhs, chkd_rhs, Some(ty)))
     }
 
     fn check_unop(&mut self, expr: ast::UnOp<ParsedNode>) -> TypedResult {
@@ -477,10 +448,7 @@ impl<'a> TypeChecker<'a> {
                 ))
             },
         }
-        Ok(TypedNode {
-            node: NodeKind::UnOp(ast::UnOp { op: expr.op, rhs: Box::new(chkd_rhs) }),
-            ty: Some(rhs_ty),
-        })
+        Ok(TypedNode::new_unop(expr.op, chkd_rhs, Some(rhs_ty)))
     }
 
     fn check_call(&mut self, expr: ast::Call<ParsedNode>) -> TypedResult {
@@ -510,7 +478,7 @@ impl<'a> TypeChecker<'a> {
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in expr.args.into_iter().enumerate() {
-            let chkd_arg = self.check_node(expr, Some(&fe_arg_tys[idx]))?;
+            let chkd_arg = self.check_node(expr, Some(fe_arg_tys[idx]))?;
             arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
             chkd_args.push(chkd_arg);
         }
@@ -530,10 +498,7 @@ impl<'a> TypeChecker<'a> {
             }
         })?;
 
-        Ok(TypedNode {
-            node: NodeKind::Call(ast::Call { name: expr.name, args: chkd_args }),
-            ty: Some(ret_ty.clone()),
-        })
+        Ok(TypedNode::new_call(expr.name, chkd_args, Some(ret_ty.clone())))
     }
 
     fn check_cond(&mut self, expr: ast::Cond<ParsedNode>) -> TypedResult {
@@ -551,7 +516,7 @@ impl<'a> TypeChecker<'a> {
         if let Some(else_block) = expr.else_block {
             let chkd_node = self.check_node(*else_block, Some(&then_ty))?;
             let else_ty = chkd_node.ty().cloned().unwrap_or_default();
-            chkd_else = Some(Box::new(chkd_node));
+            chkd_else = Some(chkd_node);
             if then_ty != else_ty {
                 return Err(format!(
                     "Both arms of conditional must be the same type: `then` == `{}`; `else` == `{}`",
@@ -560,14 +525,7 @@ impl<'a> TypeChecker<'a> {
             }
         }
 
-        Ok(TypedNode {
-            node: NodeKind::Cond(ast::Cond {
-                cond_expr: Box::new(chkd_cond),
-                then_block: Box::new(chkd_then),
-                else_block: chkd_else,
-            }),
-            ty: Some(then_ty),
-        })
+        Ok(TypedNode::new_cond(chkd_cond, chkd_then, chkd_else, Some(then_ty)))
     }
 
     // Check the block expressions. Ensures statements always eval to void.
@@ -585,7 +543,7 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(TypedNode { node: NodeKind::Block(ast::Block { list: chkd_list }), ty: Some(list_ty) })
+        Ok(TypedNode::new_block(chkd_list, Some(list_ty)))
     }
 
     fn check_index(&mut self, expr: ast::Index<ParsedNode>) -> TypedResult {
@@ -604,21 +562,18 @@ impl<'a> TypeChecker<'a> {
             return Err("Index must be an int32 (for now)".to_string());
         }
 
-        Ok(TypedNode {
-            node: NodeKind::Index(ast::Index { binding: Box::new(chkd_binding), idx: Box::new(chkd_idx) }),
-            ty: Some(binding_ty),
-        })
+        Ok(TypedNode::new_index(chkd_binding, chkd_idx, Some(binding_ty)))
     }
 
     // Helper for variable initializations
     fn check_var_init(
-        &mut self, name: &str, init: Option<Box<ParsedNode>>, antn: &Type, caller: &str,
+        &mut self, name: &str, init: Option<&ParsedNode>, antn: &Type, caller: &str,
     ) -> TypedResult {
         use Type::*;
 
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
-            let init_node = self.check_node(*init, Some(&antn))?;
+            let init_node = self.check_node(init.clone(), Some(antn))?;
             let init_ty = init_node.ty().unwrap_or_default();
             if antn != init_ty {
                 return Err(format!(
@@ -629,19 +584,19 @@ impl<'a> TypeChecker<'a> {
             Ok(init_node)
         } else {
             Ok(match antn {
-                Int8 => make_literal!(Int8, 0),
-                Int16 => make_literal!(Int16, 0),
-                Int32 => make_literal!(Int32, 0),
-                Int64 => make_literal!(Int64, 0),
-                UInt8 => make_literal!(UInt8, 0),
-                UInt16 => make_literal!(UInt16, 0),
-                UInt32 => make_literal!(UInt32, 0),
-                UInt64 => make_literal!(UInt64, 0),
-                Float => make_literal!(Float, 0.0),
-                Double => make_literal!(Double, 0.0),
-                Char => make_literal!(Char, 0),
-                Bool => make_literal!(Bool, false),
-                Array(ty, len) => make_literal!(Array, *ty, *len),
+                Int8 => init_literal!(Int8, 0),
+                Int16 => init_literal!(Int16, 0),
+                Int32 => init_literal!(Int32, 0),
+                Int64 => init_literal!(Int64, 0),
+                UInt8 => init_literal!(UInt8, 0),
+                UInt16 => init_literal!(UInt16, 0),
+                UInt32 => init_literal!(UInt32, 0),
+                UInt64 => init_literal!(UInt64, 0),
+                Float => init_literal!(Float, 0.0),
+                Double => init_literal!(Double, 0.0),
+                Char => init_literal!(Char, 0),
+                Bool => init_literal!(Bool, false),
+                Array(ty, len) => init_literal!(Array, *ty, *len),
                 Void => unreachable!("void type for variable initialization annotation"),
                 Comp(_) => todo!(),
             })

@@ -6,12 +6,12 @@ expression: "(test[1], ast, ast_string)"
 - "let x: int = 1"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Let:
             name: x
             antn: Int32
             init:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 1

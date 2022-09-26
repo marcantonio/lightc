@@ -6,38 +6,38 @@ expression: "(test[1], ast, ast_string)"
 - "for x: int = 1; x < 10; 1 { foo }"
 - Ok:
     nodes:
-      - node:
+      - kind:
           For:
             start_name: x
             start_antn: Int32
             start_expr:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 1
             cond_expr:
-              node:
+              kind:
                 BinOp:
                   op: Lt
                   lhs:
-                    node:
+                    kind:
                       Ident:
                         name: x
                   rhs:
-                    node:
+                    kind:
                       Lit:
                         value:
                           UInt64: 10
             step_expr:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 1
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Ident:
                           name: foo
 - "(for (x: int32 1) (< x 10) 1 '(foo))"

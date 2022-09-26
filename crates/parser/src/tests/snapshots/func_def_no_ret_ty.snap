@@ -6,7 +6,7 @@ expression: "(test[1], ast, ast_string)"
 - "\nfn a(b: int) {\n    b\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: a
@@ -16,10 +16,10 @@ expression: "(test[1], ast, ast_string)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Ident:
                           name: b
 - "(define (a b:int32) '(b))"

@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nlet x: [int; 3] = [1, 2, 3]\nx[1] = 7\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Let:
             name: x
             antn:
@@ -14,22 +14,22 @@ expression: "(test[1], res)"
                 - Int32
                 - 3
             init:
-              node:
+              kind:
                 Lit:
                   value:
                     Array:
                       elements:
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 1
                           ty: Int32
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 2
                           ty: Int32
-                        - node:
+                        - kind:
                             Lit:
                               value:
                                 Int32: 3
@@ -40,14 +40,14 @@ expression: "(test[1], res)"
                   - Int32
                   - 3
         ty: ~
-      - node:
+      - kind:
           BinOp:
             op: Assign
             lhs:
-              node:
+              kind:
                 Index:
                   binding:
-                    node:
+                    kind:
                       Ident:
                         name: x
                     ty:
@@ -55,14 +55,14 @@ expression: "(test[1], res)"
                         - Int32
                         - 3
                   idx:
-                    node:
+                    kind:
                       Lit:
                         value:
                           Int32: 1
                     ty: Int32
               ty: Int32
             rhs:
-              node:
+              kind:
                 Lit:
                   value:
                     Int32: 7

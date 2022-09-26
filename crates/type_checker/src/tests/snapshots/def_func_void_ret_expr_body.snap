@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo(a: int) {\n    a + 1\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -16,19 +16,19 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         BinOp:
                           op: Add
                           lhs:
-                            node:
+                            kind:
                               Ident:
                                 name: a
                             ty: Int32
                           rhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 1

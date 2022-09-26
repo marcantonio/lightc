@@ -9,17 +9,15 @@ macro_rules! convert_num {
 }
 
 #[macro_export]
-macro_rules! make_literal {
+macro_rules! init_literal {
     (Array, $ty:expr, $len:expr) => {
-        TypedNode {
-            node: NodeKind::Lit(ast::Lit {
-                value: Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty.clone()) },
-            }),
-            ty: Some(Type::Array(Box::new(*$ty.clone()), $len)),
-        }
+        TypedNode::new_lit(
+            Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty.clone()) },
+            Some(Type::Array(Box::new(*$ty.clone()), $len)),
+        )
     };
 
     ($ty:tt, $val:expr) => {
-        TypedNode { node: NodeKind::Lit(ast::Lit { value: Literal::$ty($val) }), ty: Some(Type::$ty) }
+        TypedNode::new_lit(Literal::$ty($val), Some(Type::$ty))
     };
 }

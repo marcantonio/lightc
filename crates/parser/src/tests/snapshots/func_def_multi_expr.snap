@@ -6,7 +6,7 @@ expression: "(test[1], ast, ast_string)"
 - "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n    b + a\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: a
@@ -18,39 +18,39 @@ expression: "(test[1], ast, ast_string)"
               ret_ty: Int32
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         BinOp:
                           op: Add
                           lhs:
-                            node:
+                            kind:
                               BinOp:
                                 op: Add
                                 lhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         UInt64: 19
                                 rhs:
-                                  node:
+                                  kind:
                                     Ident:
                                       name: a
                           rhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt64: 40
-                    - node:
+                    - kind:
                         BinOp:
                           op: Add
                           lhs:
-                            node:
+                            kind:
                               Ident:
                                 name: b
                           rhs:
-                            node:
+                            kind:
                               Ident:
                                 name: a
 - "(define (a b:int32 c:int32) '((+ (+ 19 a) 40) (+ b a)))"

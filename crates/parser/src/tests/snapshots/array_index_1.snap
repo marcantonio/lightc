@@ -6,14 +6,14 @@ expression: "(test[1], ast, ast_string)"
 - "x[0]"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Index:
             binding:
-              node:
+              kind:
                 Ident:
                   name: x
             idx:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 0

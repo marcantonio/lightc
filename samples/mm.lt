@@ -43,10 +43,10 @@ fn main() {
     printInt(y)
     printBang()
 
-    let mm: Foo
+    //let mm: Foo
 }
 
 struct Foo {
-    // let a: int,
-    // let b: float,
+    let a: int
+    let b: float = 1.0
 }

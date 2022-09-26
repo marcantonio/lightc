@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nextern fn foo()\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo

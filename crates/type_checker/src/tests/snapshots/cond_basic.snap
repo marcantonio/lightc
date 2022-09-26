@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    if 1 > 2 {\n        1\n    } else {\n        2\n    }\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -14,43 +14,43 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Cond:
                           cond_expr:
-                            node:
+                            kind:
                               BinOp:
                                 op: Gt
                                 lhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         Int32: 1
                                   ty: Int32
                                 rhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         Int32: 2
                                   ty: Int32
                             ty: Bool
                           then_block:
-                            node:
+                            kind:
                               Block:
                                 list:
-                                  - node:
+                                  - kind:
                                       Lit:
                                         value:
                                           Int32: 1
                                     ty: Int32
                             ty: Int32
                           else_block:
-                            node:
+                            kind:
                               Block:
                                 list:
-                                  - node:
+                                  - kind:
                                       Lit:
                                         value:
                                           Int32: 2

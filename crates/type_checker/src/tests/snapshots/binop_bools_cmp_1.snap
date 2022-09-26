@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn main(x: int) {\n    true || false\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: main
@@ -16,20 +16,20 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         BinOp:
                           op: Or
                           lhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Bool: true
                             ty: Bool
                           rhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Bool: false

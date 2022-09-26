@@ -6,12 +6,12 @@ expression: "(test[1], ast, ast_string)"
 - "let nl: char = '\n'"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Let:
             name: nl
             antn: Char
             init:
-              node:
+              kind:
                 Lit:
                   value:
                     Char: 10

@@ -1,5 +1,5 @@
-use common::Type;
 use crate::Symbolic;
+use common::Type;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct FnData {

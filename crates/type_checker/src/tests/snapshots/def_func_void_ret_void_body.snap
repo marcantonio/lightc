@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: bar
@@ -14,12 +14,12 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list: []
               ty: Void
         ty: ~
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -27,10 +27,10 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Call:
                           name: bar
                           args: []

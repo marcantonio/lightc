@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    let a: int = 1\n    a + 2 / 4 + (2 * 2)\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -14,44 +14,44 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Let:
                           name: a
                           antn: Int32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 1
                             ty: Int32
                       ty: ~
-                    - node:
+                    - kind:
                         BinOp:
                           op: Add
                           lhs:
-                            node:
+                            kind:
                               BinOp:
                                 op: Add
                                 lhs:
-                                  node:
+                                  kind:
                                     Ident:
                                       name: a
                                   ty: Int32
                                 rhs:
-                                  node:
+                                  kind:
                                     BinOp:
                                       op: Div
                                       lhs:
-                                        node:
+                                        kind:
                                           Lit:
                                             value:
                                               Int32: 2
                                         ty: Int32
                                       rhs:
-                                        node:
+                                        kind:
                                           Lit:
                                             value:
                                               Int32: 4
@@ -59,17 +59,17 @@ expression: "(test[1], res)"
                                   ty: Int32
                             ty: Int32
                           rhs:
-                            node:
+                            kind:
                               BinOp:
                                 op: Mul
                                 lhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         Int32: 2
                                   ty: Int32
                                 rhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         Int32: 2

@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo() -> bool {\n    2 == 1\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -14,20 +14,20 @@ expression: "(test[1], res)"
               ret_ty: Bool
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         BinOp:
                           op: Eq
                           lhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 2
                             ty: Int32
                           rhs:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 1

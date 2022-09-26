@@ -6,7 +6,7 @@ expression: "(test[1], ast, ast_string)"
 - "19"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Lit:
             value:
               UInt64: 19

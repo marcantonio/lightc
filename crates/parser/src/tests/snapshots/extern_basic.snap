@@ -6,7 +6,7 @@ expression: "(test[1], ast, ast_string)"
 - "extern fn cos(x: float)"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: cos

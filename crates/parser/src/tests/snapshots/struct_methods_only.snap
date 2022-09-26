@@ -6,12 +6,12 @@ expression: "(test[1], ast, ast_string)"
 - "\nstruct Foo {\n    fn c() -> int {\n        1\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Struct:
             name: Foo
             fields: []
             methods:
-              - node:
+              - kind:
                   Fn:
                     proto:
                       name: c
@@ -19,14 +19,14 @@ expression: "(test[1], ast, ast_string)"
                       ret_ty: Int32
                       is_extern: false
                     body:
-                      node:
+                      kind:
                         Block:
                           list:
-                            - node:
+                            - kind:
                                 Lit:
                                   value:
                                     UInt64: 1
-              - node:
+              - kind:
                   Fn:
                     proto:
                       name: d
@@ -34,7 +34,7 @@ expression: "(test[1], ast, ast_string)"
                       ret_ty: Void
                       is_extern: false
                     body:
-                      node:
+                      kind:
                         Block:
                           list: []
 - "(struct Foo '() '((define (c) '(1)) (define (d) '()))))"

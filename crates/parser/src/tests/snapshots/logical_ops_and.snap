@@ -6,15 +6,15 @@ expression: "(test[1], ast, ast_string)"
 - x && 1
 - Ok:
     nodes:
-      - node:
+      - kind:
           BinOp:
             op: And
             lhs:
-              node:
+              kind:
                 Ident:
                   name: x
             rhs:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 1

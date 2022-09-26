@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -16,36 +16,36 @@ expression: "(test[1], res)"
               ret_ty: Int32
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Let:
                           name: b
                           antn: Int32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 1
                             ty: Int32
                       ty: ~
-                    - node:
+                    - kind:
                         Block:
                           list:
-                            - node:
+                            - kind:
                                 Let:
                                   name: b
                                   antn: Bool
                                   init:
-                                    node:
+                                    kind:
                                       Lit:
                                         value:
                                           Bool: false
                                     ty: Bool
                               ty: ~
                       ty: Void
-                    - node:
+                    - kind:
                         Ident:
                           name: b
                       ty: Int32

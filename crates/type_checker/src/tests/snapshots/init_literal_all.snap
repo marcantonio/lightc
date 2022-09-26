@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn main() {\n    let x: int\n    let x: int8\n    let x: int16\n    let x: int32\n    let x: int64\n    let x: uint\n    let x: uint8\n    let x: uint16\n    let x: uint32\n    let x: uint64\n    let x: float\n    let x: double\n    let x: char\n    let x: bool\n    let x: [bool; 3]\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: main
@@ -14,164 +14,164 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Int32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 0
                             ty: Int32
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Int8
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int8: 0
                             ty: Int8
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Int16
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int16: 0
                             ty: Int16
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Int32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int32: 0
                             ty: Int32
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Int64
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int64: 0
                             ty: Int64
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: UInt32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt32: 0
                             ty: UInt32
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: UInt8
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt8: 0
                             ty: UInt8
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: UInt16
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt16: 0
                             ty: UInt16
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: UInt32
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt32: 0
                             ty: UInt32
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: UInt64
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   UInt64: 0
                             ty: UInt64
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Float
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Float: 0.0
                             ty: Float
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Double
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Double: 0.0
                             ty: Double
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Char
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Char: 0
                             ty: Char
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn: Bool
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Bool: false
                             ty: Bool
                       ty: ~
-                    - node:
+                    - kind:
                         Let:
                           name: x
                           antn:
@@ -179,7 +179,7 @@ expression: "(test[1], res)"
                               - Bool
                               - 3
                           init:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Array:

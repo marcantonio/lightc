@@ -6,20 +6,20 @@ expression: "(test[1], ast, ast_string)"
 - 3 - -21
 - Ok:
     nodes:
-      - node:
+      - kind:
           BinOp:
             op: Sub
             lhs:
-              node:
+              kind:
                 Lit:
                   value:
                     UInt64: 3
             rhs:
-              node:
+              kind:
                 UnOp:
                   op: Sub
                   rhs:
-                    node:
+                    kind:
                       Lit:
                         value:
                           UInt64: 21

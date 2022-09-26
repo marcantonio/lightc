@@ -6,34 +6,34 @@ expression: "(test[1], res)"
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n\n    fn c() -> int {\n        a\n    }\n    fn d() {}\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Struct:
             name: Foo
             fields:
-              - node:
+              - kind:
                   Let:
                     name: a
                     antn: Int32
                     init:
-                      node:
+                      kind:
                         Lit:
                           value:
                             Int32: 0
                       ty: Int32
                 ty: ~
-              - node:
+              - kind:
                   Let:
                     name: b
                     antn: Float
                     init:
-                      node:
+                      kind:
                         Lit:
                           value:
                             Float: 1.0
                       ty: Float
                 ty: ~
             methods:
-              - node:
+              - kind:
                   Fn:
                     proto:
                       name: c
@@ -41,16 +41,16 @@ expression: "(test[1], res)"
                       ret_ty: Int32
                       is_extern: false
                     body:
-                      node:
+                      kind:
                         Block:
                           list:
-                            - node:
+                            - kind:
                                 Ident:
                                   name: a
                               ty: Int32
                       ty: Int32
                 ty: ~
-              - node:
+              - kind:
                   Fn:
                     proto:
                       name: d
@@ -58,7 +58,7 @@ expression: "(test[1], res)"
                       ret_ty: Void
                       is_extern: false
                     body:
-                      node:
+                      kind:
                         Block:
                           list: []
                       ty: Void

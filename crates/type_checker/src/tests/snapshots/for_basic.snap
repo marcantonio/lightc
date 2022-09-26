@@ -6,7 +6,7 @@ expression: "(test[1], res)"
 - "\nfn foo() {\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n}\n"
 - Ok:
     nodes:
-      - node:
+      - kind:
           Fn:
             proto:
               name: foo
@@ -14,46 +14,46 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
             body:
-              node:
+              kind:
                 Block:
                   list:
-                    - node:
+                    - kind:
                         For:
                           start_name: x
                           start_antn: Int8
                           start_expr:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int8: 1
                             ty: Int8
                           cond_expr:
-                            node:
+                            kind:
                               BinOp:
                                 op: Lt
                                 lhs:
-                                  node:
+                                  kind:
                                     Ident:
                                       name: x
                                   ty: Int8
                                 rhs:
-                                  node:
+                                  kind:
                                     Lit:
                                       value:
                                         Int8: 2
                                   ty: Int8
                             ty: Bool
                           step_expr:
-                            node:
+                            kind:
                               Lit:
                                 value:
                                   Int8: 1
                             ty: Int8
                           body:
-                            node:
+                            kind:
                               Block:
                                 list:
-                                  - node:
+                                  - kind:
                                       Ident:
                                         name: x
                                     ty: Int8
