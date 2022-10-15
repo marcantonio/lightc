@@ -85,6 +85,7 @@ impl<'a> Hir<'a> {
         Ok(hir)
     }
 
+    // XXX replace with accept()
     fn lower_node(&mut self, node: AstNode) -> Result<HirNode, String> {
         use ast::NodeKind::*;
 
@@ -205,27 +206,25 @@ impl<'a> Hir<'a> {
     fn lower_binop(&mut self, expr: ast::BinOp<AstNode>) -> HirResult {
         use Operator::*;
 
-        let orig_lhs = expr.lhs.clone();
-        let orig_ty = expr.ty.clone();
+        let lowered_lhs = self.lower_node(*expr.lhs)?;
 
-        // XXX: write test for inner lhs/rhs
         let top_op;
         let rhs = match expr.op {
             AddEq => {
                 top_op = Assign;
-                HirNode::new_binop(Add, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
+                HirNode::new_binop(Add, lowered_lhs.clone(), self.lower_node(*expr.rhs)?, expr.ty.clone())
             },
             SubEq => {
                 top_op = Assign;
-                HirNode::new_binop(Sub, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
+                HirNode::new_binop(Sub, lowered_lhs.clone(), self.lower_node(*expr.rhs)?, expr.ty.clone())
             },
             MulEq => {
                 top_op = Assign;
-                HirNode::new_binop(Mul, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
+                HirNode::new_binop(Mul, lowered_lhs.clone(), self.lower_node(*expr.rhs)?, expr.ty.clone())
             },
             DivEq => {
                 top_op = Assign;
-                HirNode::new_binop(Div, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
+                HirNode::new_binop(Div, lowered_lhs.clone(), self.lower_node(*expr.rhs)?, expr.ty.clone())
             },
             _ => {
                 top_op = expr.op;
@@ -233,7 +232,7 @@ impl<'a> Hir<'a> {
             },
         };
 
-        Ok(HirNode::new_binop(top_op, self.lower_node(*orig_lhs)?, rhs, orig_ty))
+        Ok(HirNode::new_binop(top_op, lowered_lhs, rhs, expr.ty))
     }
 
     fn lower_unop(&mut self, expr: ast::UnOp<AstNode>) -> HirResult {

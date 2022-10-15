@@ -1,4 +1,4 @@
-use ast::{Ast, AstVisitor, Literal, Visitable, AstNode};
+use ast::{Ast, AstNode, AstVisitor, Literal, Visitable};
 use common::{Operator, Type};
 use symbol_table::{Symbol, SymbolTable};
 
@@ -346,8 +346,7 @@ impl<'a> TypeChecker<'a> {
         if expr.op == Assign
             && !matches!(
                 *expr.lhs,
-                AstNode { kind: ast::NodeKind::Ident { .. } }
-                    | AstNode { kind: ast::NodeKind::Index { .. } }
+                AstNode { kind: ast::NodeKind::Ident { .. } } | AstNode { kind: ast::NodeKind::Index { .. } }
             )
         {
             return Err("Expected LHS to be a variable for assignment".to_string());

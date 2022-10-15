@@ -1,6 +1,6 @@
 ---
 source: crates/hir/src/tests.rs
-assertion_line: 36
+assertion_line: 47
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let y: int\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"

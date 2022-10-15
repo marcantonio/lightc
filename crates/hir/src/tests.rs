@@ -20,9 +20,10 @@ macro_rules! run_insta {
 
 #[test]
 fn test_binop() {
-    let tests = [[
-        "all",
-        r#"
+    let tests = [
+        [
+            "all_ops",
+            r#"
 fn main() {
     let y: int
     y += 1
@@ -32,7 +33,17 @@ fn main() {
     y <= 1
 }
 "#,
-    ]];
+        ],
+        [
+            "inner",
+            r#"
+fn main() {
+    let x: int = 1
+    let y: bool = x <= 3
+}
+"#,
+        ],
+    ];
     run_insta!("binop", tests);
 }
 

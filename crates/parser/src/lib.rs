@@ -508,9 +508,7 @@ impl<'a> Parser<'a> {
                 );
 
                 let size = match self.parse_expr(0)? {
-                    AstNode {
-                        kind: ast::NodeKind::Lit(ast::Lit { value: Literal::UInt64(s), .. }),
-                    } => s,
+                    AstNode { kind: ast::NodeKind::Lit(ast::Lit { value: Literal::UInt64(s), .. }) } => s,
                     _ => {
                         return Err(ParseError::from((
                             "Expecting a literal int for size in array type".to_string(),

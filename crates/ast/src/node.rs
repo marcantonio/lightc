@@ -59,7 +59,9 @@ impl AstNode {
         Self { kind: NodeKind::Call(Call { name, args, ty }) }
     }
 
-    pub fn new_cond(cond_expr: AstNode, then_block: AstNode, else_block: Option<AstNode>, ty: Option<Type>) -> Self {
+    pub fn new_cond(
+        cond_expr: AstNode, then_block: AstNode, else_block: Option<AstNode>, ty: Option<Type>,
+    ) -> Self {
         Self {
             kind: NodeKind::Cond(Cond {
                 cond_expr: Box::new(cond_expr),
@@ -90,7 +92,7 @@ impl AstNode {
             Cond(e) => e.ty.as_ref(),
             Block(e) => e.ty.as_ref(),
             Index(e) => e.ty.as_ref(),
-            _ => None
+            _ => None,
         }
     }
 

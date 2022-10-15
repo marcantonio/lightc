@@ -53,7 +53,7 @@ impl HirNode {
     }
 
     pub fn new_call(name: String, args: Vec<HirNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Call(ast::Call { name, args, ty })}
+        Self { kind: NodeKind::Call(ast::Call { name, args, ty }) }
     }
 
     pub fn new_cond(
@@ -89,7 +89,7 @@ impl HirNode {
             Cond(e) => e.ty.as_ref(),
             Block(e) => e.ty.as_ref(),
             Index(e) => e.ty.as_ref(),
-            _ => None
+            _ => None,
         }
     }
 }
