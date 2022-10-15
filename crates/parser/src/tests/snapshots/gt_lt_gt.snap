@@ -17,14 +17,19 @@ expression: "(test[1], ast, ast_string)"
                     kind:
                       Ident:
                         name: a
+                        ty: ~
                   rhs:
                     kind:
                       Ident:
                         name: b
+                        ty: ~
+                  ty: ~
             rhs:
               kind:
                 Lit:
                   value:
                     UInt64: 40
+                  ty: ~
+            ty: ~
 - (> (+ a b) 40)
 

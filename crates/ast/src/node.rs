@@ -1,21 +1,22 @@
 use std::fmt::Display;
 
-use ast::*;
-use common::{Operator, Type};
 use serde::Serialize;
 
+use crate::*;
+use common::{Operator, Type};
+
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct ParsedNode {
-    pub kind: Kind<ParsedNode>,
+pub struct AstNode {
+    pub kind: NodeKind<AstNode>,
 }
 
-impl ParsedNode {
+impl AstNode {
     pub fn new_for(
-        start_name: String, start_antn: Type, start_expr: Option<ParsedNode>, cond_expr: ParsedNode,
-        step_expr: ParsedNode, body: ParsedNode,
+        start_name: String, start_antn: Type, start_expr: Option<AstNode>, cond_expr: AstNode,
+        step_expr: AstNode, body: AstNode,
     ) -> Self {
         Self {
-            kind: Kind::For(For {
+            kind: NodeKind::For(For {
                 start_name,
                 start_antn,
                 start_expr: start_expr.map(Box::new),
@@ -26,54 +27,71 @@ impl ParsedNode {
         }
     }
 
-    pub fn new_let(name: String, antn: Type, init: Option<ParsedNode>) -> Self {
-        Self { kind: Kind::Let(Let { name, antn, init: init.map(Box::new) }) }
+    pub fn new_let(name: String, antn: Type, init: Option<AstNode>) -> Self {
+        Self { kind: NodeKind::Let(Let { name, antn, init: init.map(Box::new) }) }
     }
 
-    pub fn new_fn(proto: Prototype, body: Option<ParsedNode>) -> Self {
-        Self { kind: Kind::Fn(Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
+    pub fn new_fn(proto: Prototype, body: Option<AstNode>) -> Self {
+        Self { kind: NodeKind::Fn(Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
     }
 
-    pub fn new_struct(name: String, fields: Vec<ParsedNode>, methods: Vec<ParsedNode>) -> Self {
-        Self { kind: Kind::Struct(Struct { name, fields, methods }) }
+    pub fn new_struct(name: String, fields: Vec<AstNode>, methods: Vec<AstNode>) -> Self {
+        Self { kind: NodeKind::Struct(Struct { name, fields, methods }) }
     }
 
-    pub fn new_lit(value: Literal<ParsedNode>) -> Self {
-        Self { kind: Kind::Lit(Lit { value }) }
+    pub fn new_lit(value: Literal<AstNode>, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::Lit(Lit { value, ty }) }
     }
 
-    pub fn new_ident(name: String) -> Self {
-        Self { kind: Kind::Ident(Ident { name }) }
+    pub fn new_ident(name: String, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::Ident(Ident { name, ty }) }
     }
 
-    pub fn new_binop(op: Operator, lhs: ParsedNode, rhs: ParsedNode) -> Self {
-        Self { kind: Kind::BinOp(BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs) }) }
+    pub fn new_binop(op: Operator, lhs: AstNode, rhs: AstNode, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::BinOp(BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty }) }
     }
 
-    pub fn new_unop(op: Operator, rhs: ParsedNode) -> Self {
-        Self { kind: Kind::UnOp(UnOp { op, rhs: Box::new(rhs) }) }
+    pub fn new_unop(op: Operator, rhs: AstNode, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::UnOp(UnOp { op, rhs: Box::new(rhs), ty }) }
     }
 
-    pub fn new_call(name: String, args: Vec<ParsedNode>) -> Self {
-        Self { kind: Kind::Call(Call { name, args }) }
+    pub fn new_call(name: String, args: Vec<AstNode>, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::Call(Call { name, args, ty }) }
     }
 
-    pub fn new_cond(cond_expr: ParsedNode, then_block: ParsedNode, else_block: Option<ParsedNode>) -> Self {
+    pub fn new_cond(cond_expr: AstNode, then_block: AstNode, else_block: Option<AstNode>, ty: Option<Type>) -> Self {
         Self {
-            kind: Kind::Cond(Cond {
+            kind: NodeKind::Cond(Cond {
                 cond_expr: Box::new(cond_expr),
                 then_block: Box::new(then_block),
                 else_block: else_block.map(Box::new),
+                ty,
             }),
         }
     }
 
-    pub fn new_block(list: Vec<ParsedNode>) -> Self {
-        Self { kind: Kind::Block(Block { list }) }
+    pub fn new_block(list: Vec<AstNode>, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::Block(Block { list, ty }) }
     }
 
-    pub fn new_index(binding: ParsedNode, idx: ParsedNode) -> Self {
-        Self { kind: Kind::Index(Index { binding: Box::new(binding), idx: Box::new(idx) }) }
+    pub fn new_index(binding: AstNode, idx: AstNode, ty: Option<Type>) -> Self {
+        Self { kind: NodeKind::Index(Index { binding: Box::new(binding), idx: Box::new(idx), ty }) }
+    }
+
+    pub fn ty(&self) -> Option<&Type> {
+        use NodeKind::*;
+
+        match &self.kind {
+            Lit(e) => e.ty.as_ref(),
+            Ident(e) => e.ty.as_ref(),
+            BinOp(e) => e.ty.as_ref(),
+            UnOp(e) => e.ty.as_ref(),
+            Call(e) => e.ty.as_ref(),
+            Cond(e) => e.ty.as_ref(),
+            Block(e) => e.ty.as_ref(),
+            Index(e) => e.ty.as_ref(),
+            _ => None
+        }
     }
 
     pub fn is_num_literal(&self) -> bool {
@@ -81,7 +99,7 @@ impl ParsedNode {
 
         matches!(
             self.kind,
-            Kind::Lit(Lit {
+            NodeKind::Lit(Lit {
                 value: Int8(_)
                     | Int16(_)
                     | Int32(_)
@@ -98,10 +116,10 @@ impl ParsedNode {
     }
 }
 
-impl Node for ParsedNode {}
+impl Node for AstNode {}
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Kind<T: Node> {
+pub enum NodeKind<T: Node> {
     // Statements
     For(For<T>),
     Let(Let<T>),
@@ -119,9 +137,9 @@ pub enum Kind<T: Node> {
     Index(Index<T>),
 }
 
-impl Visitable for ParsedNode {
+impl Visitable for AstNode {
     fn accept<V: AstVisitor<AstNode = Self>>(self, v: &mut V) -> V::Result {
-        use Kind::*;
+        use NodeKind::*;
 
         match self.kind {
             For(s) => v.visit_for(s),
@@ -140,9 +158,9 @@ impl Visitable for ParsedNode {
     }
 }
 
-impl Display for ParsedNode {
+impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Kind::*;
+        use NodeKind::*;
 
         match &self.kind {
             For(s) => write!(f, "{}", s),

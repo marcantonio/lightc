@@ -27,14 +27,13 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Bool: true
-                            ty: Bool
+                                ty: Bool
                           rhs:
                             kind:
                               Lit:
                                 value:
                                   Bool: false
-                            ty: Bool
-                      ty: Bool
-              ty: Bool
-        ty: ~
+                                ty: Bool
+                          ty: Bool
+                  ty: Bool
 

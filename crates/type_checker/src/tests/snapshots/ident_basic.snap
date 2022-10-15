@@ -22,7 +22,6 @@ expression: "(test[1], res)"
                     - kind:
                         Ident:
                           name: x
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                          ty: Int32
+                  ty: Int32
 

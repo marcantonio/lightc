@@ -1,7 +1,9 @@
-use ast::{Ast, AstVisitor, Expression, Node, Statement, Visitable};
+use ast::{Ast, AstNode, AstVisitor, Visitable};
 use common::Operator;
+use node::HirNode;
 use symbol_table::{Symbol, SymbolTable, Symbolic};
 
+mod node;
 #[cfg(test)]
 mod tests;
 
@@ -10,88 +12,120 @@ mod tests;
 // - cooks function names in the AST and symbol table
 // - tracks scope (needed?)
 
-type StmtResult = Result<Statement, String>;
-type ExprResult = Result<Expression, String>;
+type HirResult = Result<HirNode, String>;
 
 pub struct Hir<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
-    ast: Ast<Node>,
 }
 
 impl<'a> AstVisitor for Hir<'a> {
-    type Result = Result<Node, String>;
+    type AstNode = AstNode;
+    type Result = Result<HirNode, String>;
 
-    fn visit_stmt(&mut self, s: Statement) -> Self::Result {
-        self.lower_stmt(s)
+    fn visit_for(&mut self, s: ast::For<Self::AstNode>) -> Self::Result {
+        self.lower_for(s)
     }
 
-    fn visit_expr(&mut self, e: Expression) -> Self::Result {
-        self.lower_expr(e)
+    fn visit_let(&mut self, s: ast::Let<Self::AstNode>) -> Self::Result {
+        self.lower_let(s)
+    }
+
+    fn visit_fn(&mut self, s: ast::Fn<Self::AstNode>) -> Self::Result {
+        self.lower_func(s)
+    }
+
+    fn visit_struct(&mut self, s: ast::Struct<Self::AstNode>) -> Self::Result {
+        self.lower_struct(s)
+    }
+
+    fn visit_lit(&mut self, e: ast::Lit<Self::AstNode>) -> Self::Result {
+        self.lower_lit(e)
+    }
+
+    fn visit_binop(&mut self, e: ast::BinOp<Self::AstNode>) -> Self::Result {
+        self.lower_binop(e)
+    }
+
+    fn visit_unop(&mut self, e: ast::UnOp<Self::AstNode>) -> Self::Result {
+        self.lower_unop(e)
+    }
+
+    fn visit_ident(&mut self, e: ast::Ident) -> Self::Result {
+        self.lower_ident(e)
+    }
+
+    fn visit_call(&mut self, e: ast::Call<Self::AstNode>) -> Self::Result {
+        self.lower_call(e)
+    }
+
+    fn visit_cond(&mut self, e: ast::Cond<Self::AstNode>) -> Self::Result {
+        self.lower_cond(e)
+    }
+
+    fn visit_block(&mut self, e: ast::Block<Self::AstNode>) -> Self::Result {
+        self.lower_block(e)
+    }
+
+    fn visit_index(&mut self, e: ast::Index<Self::AstNode>) -> Self::Result {
+        self.lower_index(e)
     }
 }
 
 impl<'a> Hir<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Hir { symbol_table, ast: Ast::new() }
+        Hir { symbol_table }
     }
 
-    pub fn walk(mut self, ast: Ast<Node>) -> Result<Ast<Node>, String> {
+    pub fn walk(mut self, ast: Ast<AstNode>) -> Result<Ast<HirNode>, String> {
+        let mut hir = Ast::new();
         for node in ast.into_nodes() {
-            let hir_node = node.accept(&mut self)?;
-            self.ast.add(hir_node)
+            let lowered_node = node.accept(&mut self)?;
+            hir.add(lowered_node)
         }
-        Ok(self.ast)
+        Ok(hir)
     }
 
-    fn lower_node(&mut self, node: Node) -> Result<Node, String> {
-        Ok(match node {
-            Node::Stmt(s) => self.lower_stmt(s)?,
-            Node::Expr(e) => self.lower_expr(e)?,
-        })
-    }
+    fn lower_node(&mut self, node: AstNode) -> Result<HirNode, String> {
+        use ast::NodeKind::*;
 
-    fn lower_stmt(&mut self, stmt: Statement) -> Result<Node, String> {
-        use Statement::*;
-
-        let stmt = match stmt {
+        Ok(match node.kind {
             For(s) => self.lower_for(s)?,
             Let(s) => self.lower_let(s)?,
             Fn(s) => self.lower_func(s)?,
             Struct(s) => self.lower_struct(s)?,
-        };
-
-        Ok(Node::Stmt(stmt))
+            Lit(e) => self.lower_lit(e)?,
+            Ident(e) => self.lower_ident(e)?,
+            BinOp(e) => self.lower_binop(e)?,
+            UnOp(e) => self.lower_unop(e)?,
+            Call(e) => self.lower_call(e)?,
+            Cond(e) => self.lower_cond(e)?,
+            Block(e) => self.lower_block(e)?,
+            Index(e) => self.lower_index(e)?,
+        })
     }
 
-    fn lower_for(&mut self, stmt: ast::For) -> StmtResult {
+    fn lower_for(&mut self, stmt: ast::For<AstNode>) -> HirResult {
         // Insert start var
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::from((stmt.start_name.as_str(), &stmt.start_antn)));
+        self.symbol_table.insert(Symbol::new_var(&stmt.start_name, &stmt.start_antn));
 
-        let start_expr = self.lower_var_init(&stmt.start_name, stmt.start_expr)?;
+        let start_expr = self.lower_var_init(&stmt.start_name, stmt.start_expr.as_deref())?;
         let cond_expr = self.lower_node(*stmt.cond_expr)?;
         let step_expr = self.lower_node(*stmt.step_expr)?;
         let body = self.lower_node(*stmt.body)?;
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::For(ast::For {
-            start_name: stmt.start_name,
-            start_antn: stmt.start_antn,
-            start_expr: Some(Box::new(start_expr)),
-            cond_expr: Box::new(cond_expr),
-            step_expr: Box::new(step_expr),
-            body: Box::new(body),
-        }))
+        Ok(HirNode::new_for(stmt.start_name, stmt.start_antn, Some(start_expr), cond_expr, step_expr, body))
     }
 
-    fn lower_let(&mut self, stmt: ast::Let) -> StmtResult {
-        self.symbol_table.insert(Symbol::from((stmt.name.as_str(), &stmt.antn)));
-        let init_node = self.lower_var_init(&stmt.name, stmt.init)?;
-        Ok(Statement::Let(ast::Let { name: stmt.name, antn: stmt.antn, init: Some(Box::new(init_node)) }))
+    fn lower_let(&mut self, stmt: ast::Let<AstNode>) -> HirResult {
+        self.symbol_table.insert(Symbol::new_var(&stmt.name, &stmt.antn));
+        let init_node = self.lower_var_init(&stmt.name, stmt.init.as_deref())?;
+        Ok(HirNode::new_let(stmt.name, stmt.antn, Some(init_node)))
     }
 
-    fn lower_func(&mut self, mut stmt: ast::Fn) -> StmtResult {
+    fn lower_func(&mut self, mut stmt: ast::Fn<AstNode>) -> HirResult {
         // Insert a duplicate of the symbol. The new one will have the lowered
         // name. Update the AST as well. Skip for externs.
         let sym =
@@ -110,127 +144,103 @@ impl<'a> Hir<'a> {
         self.symbol_table.enter_scope();
 
         for arg in stmt.proto.args() {
-            self.symbol_table.insert(Symbol::from(arg));
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
         }
 
         let body_node = stmt.body.map(|e| self.lower_node(*e));
 
         self.symbol_table.leave_scope();
 
-        Ok(Statement::Fn(ast::Fn { proto: stmt.proto, body: body_node.transpose()?.map(Box::new) }))
+        Ok(HirNode::new_fn(*stmt.proto, body_node.transpose()?))
     }
 
-    // XXX: struct stuff
-    fn lower_struct(&mut self, stmt: ast::Struct) -> StmtResult {
-        // TODO: check for global scope
-        //dbg!(&s);
-
-        if self.symbol_table.insert(Symbol::from(&stmt)).is_some() {
-            return Err(format!("struct `{}` can't be redefined", stmt.name));
-        }
-
-        let mut lowered_fields = vec![];
-        for node in stmt.fields {
-            lowered_fields.push(self.lower_node(node)?);
-        }
-
-        let mut lowered_meths = vec![];
-        for node in stmt.methods {
-            lowered_meths.push(self.lower_node(node)?);
-        }
-
-        Ok(Statement::Struct(ast::Struct { name: stmt.name, fields: lowered_fields, methods: lowered_meths }))
+    fn lower_struct(&mut self, _stmt: ast::Struct<AstNode>) -> HirResult {
+        todo!()
     }
 
-    fn lower_expr(&mut self, expr: Expression) -> Result<Node, String> {
-        use Expression::*;
+    fn lower_lit(&mut self, expr: ast::Lit<AstNode>) -> HirResult {
+        use ast::Literal::*;
 
-        let expr = match expr {
-            Ident(e) => self.lower_ident(e)?,
-            BinOp(e) => self.lower_binop(e)?,
-            UnOp(e) => self.lower_unop(e)?,
-            Call(e) => self.lower_call(e)?,
-            Cond(e) => self.lower_cond(e)?,
-            Block(e) => self.lower_block(e)?,
-            Index(e) => self.lower_index(e)?,
-            e => e, // some expressions don't contain other nodes
+        // Rewrapping primitives is annoying. Remove for pimitives if we dump AstNode -> HirNode
+        let lit = match expr.value {
+            Int8(l) => ast::Literal::Int8(l),
+            Int16(l) => ast::Literal::Int16(l),
+            Int32(l) => ast::Literal::Int32(l),
+            Int64(l) => ast::Literal::Int64(l),
+            UInt8(l) => ast::Literal::UInt8(l),
+            UInt16(l) => ast::Literal::UInt16(l),
+            UInt32(l) => ast::Literal::UInt32(l),
+            UInt64(l) => ast::Literal::UInt64(l),
+            Float(l) => ast::Literal::Float(l),
+            Double(l) => ast::Literal::Double(l),
+            Bool(l) => ast::Literal::Bool(l),
+            Char(l) => ast::Literal::Char(l),
+            Array { .. } => self.lower_lit_array(expr.value)?,
+        };
+        Ok(HirNode::new_lit(lit, expr.ty))
+    }
+
+    fn lower_lit_array(&mut self, lit: ast::Literal<AstNode>) -> Result<ast::Literal<HirNode>, String> {
+        // Extract the elements vec and the type of the array elements.
+        let (elements, ty) = match lit {
+            ast::Literal::Array { elements, inner_ty } => (elements, inner_ty),
+            _ => unreachable!("expected array literal"),
         };
 
-        Ok(Node::Expr(expr))
+        // Rewrap every element
+        let mut chkd_elements = Vec::with_capacity(elements.len());
+        for el in elements {
+            chkd_elements.push(self.lower_node(el)?);
+        }
+
+        // Rebuild the literal and return the type
+        Ok(ast::Literal::Array { elements: chkd_elements, inner_ty: ty })
     }
 
-    fn lower_ident(&mut self, expr: ast::Ident) -> ExprResult {
-        Ok(Expression::Ident(ast::Ident { name: expr.name, ty: expr.ty }))
+    fn lower_ident(&mut self, expr: ast::Ident) -> HirResult {
+        Ok(HirNode::new_ident(expr.name, expr.ty))
     }
 
     // Lower `x += 1` to `x = x + 1`
-    fn lower_binop(&mut self, expr: ast::BinOp) -> ExprResult {
+    fn lower_binop(&mut self, expr: ast::BinOp<AstNode>) -> HirResult {
         use Operator::*;
 
         let orig_lhs = expr.lhs.clone();
         let orig_ty = expr.ty.clone();
 
+        // XXX: write test for inner lhs/rhs
         let top_op;
         let rhs = match expr.op {
             AddEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp(ast::BinOp {
-                    op: Add,
-                    lhs: expr.lhs,
-                    rhs: expr.rhs,
-                    ty: expr.ty,
-                }))
+                HirNode::new_binop(Add, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
             },
             SubEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp(ast::BinOp {
-                    op: Sub,
-                    lhs: expr.lhs,
-                    rhs: expr.rhs,
-                    ty: expr.ty,
-                }))
+                HirNode::new_binop(Sub, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
             },
             MulEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp(ast::BinOp {
-                    op: Mul,
-                    lhs: expr.lhs,
-                    rhs: expr.rhs,
-                    ty: expr.ty,
-                }))
+                HirNode::new_binop(Mul, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
             },
             DivEq => {
                 top_op = Assign;
-                Node::Expr(Expression::BinOp(ast::BinOp {
-                    op: Div,
-                    lhs: expr.lhs,
-                    rhs: expr.rhs,
-                    ty: expr.ty,
-                }))
+                HirNode::new_binop(Div, self.lower_node(*expr.lhs)?, self.lower_node(*expr.rhs)?, expr.ty)
             },
             _ => {
                 top_op = expr.op;
-                *expr.rhs
+                self.lower_node(*expr.rhs)?
             },
         };
 
-        Ok(Expression::BinOp(ast::BinOp {
-            op: top_op,
-            lhs: Box::new(self.lower_node(*orig_lhs)?),
-            rhs: Box::new(self.lower_node(rhs)?),
-            ty: orig_ty,
-        }))
+        Ok(HirNode::new_binop(top_op, self.lower_node(*orig_lhs)?, rhs, orig_ty))
     }
 
-    fn lower_unop(&mut self, expr: ast::UnOp) -> ExprResult {
-        Ok(Expression::UnOp(ast::UnOp {
-            op: expr.op,
-            rhs: Box::new(self.lower_node(*expr.rhs)?),
-            ty: expr.ty,
-        }))
+    fn lower_unop(&mut self, expr: ast::UnOp<AstNode>) -> HirResult {
+        Ok(HirNode::new_unop(expr.op, self.lower_node(*expr.rhs)?, expr.ty))
     }
 
-    fn lower_call(&mut self, expr: ast::Call) -> ExprResult {
+    fn lower_call(&mut self, expr: ast::Call<AstNode>) -> HirResult {
         let sym = self
             .symbol_table
             .get(&expr.name)
@@ -247,19 +257,19 @@ impl<'a> Hir<'a> {
         for node in expr.args {
             lowered_args.push(self.lower_node(node)?);
         }
-        Ok(Expression::Call(ast::Call { name: lowered_name, args: lowered_args, ty: expr.ty }))
+        Ok(HirNode::new_call(lowered_name, lowered_args, expr.ty))
     }
 
-    fn lower_cond(&mut self, expr: ast::Cond) -> ExprResult {
-        Ok(Expression::Cond(ast::Cond {
-            cond_expr: Box::new(self.lower_node(*expr.cond_expr)?),
-            then_block: Box::new(self.lower_node(*expr.then_block)?),
-            else_block: expr.else_block.map(|e| self.lower_node(*e)).transpose()?.map(Box::new),
-            ty: expr.ty,
-        }))
+    fn lower_cond(&mut self, expr: ast::Cond<AstNode>) -> HirResult {
+        Ok(HirNode::new_cond(
+            self.lower_node(*expr.cond_expr)?,
+            self.lower_node(*expr.then_block)?,
+            expr.else_block.map(|e| self.lower_node(*e)).transpose()?,
+            expr.ty,
+        ))
     }
 
-    fn lower_block(&mut self, expr: ast::Block) -> ExprResult {
+    fn lower_block(&mut self, expr: ast::Block<AstNode>) -> HirResult {
         self.symbol_table.enter_scope();
 
         let mut lowered_list = vec![];
@@ -269,21 +279,17 @@ impl<'a> Hir<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(Expression::Block(ast::Block { list: lowered_list, ty: expr.ty }))
+        Ok(HirNode::new_block(lowered_list, expr.ty))
     }
 
-    fn lower_index(&mut self, expr: ast::Index) -> ExprResult {
-        Ok(Expression::Index(ast::Index {
-            binding: Box::new(self.lower_node(*expr.binding)?),
-            idx: Box::new(self.lower_node(*expr.idx)?),
-            ty: expr.ty,
-        }))
+    fn lower_index(&mut self, expr: ast::Index<AstNode>) -> HirResult {
+        Ok(HirNode::new_index(self.lower_node(*expr.binding)?, self.lower_node(*expr.idx)?, expr.ty))
     }
 
     // Helper for variable initializations
-    fn lower_var_init(&mut self, name: &str, init: Option<Box<Node>>) -> Result<Node, String> {
+    fn lower_var_init(&mut self, name: &str, init: Option<&AstNode>) -> HirResult {
         if let Some(init) = init {
-            self.lower_node(*init)
+            self.lower_node(init.clone())
         } else {
             unreachable!("no initializer for variable: `{}`", name);
         }

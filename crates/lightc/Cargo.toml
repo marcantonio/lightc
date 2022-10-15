@@ -9,7 +9,7 @@ tempfile = "3.3.0"
 
 # codegen = { path = "../codegen" }
 common = { path = "../common" }
-# hir = { path = "../hir" }
+hir = { path = "../hir" }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 symbol_table = { path = "../symbol_table" }

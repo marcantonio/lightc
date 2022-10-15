@@ -24,6 +24,7 @@ expression: "(test[1], ast, ast_string)"
                         Lit:
                           value:
                             Float: 1.0
+                          ty: ~
             methods:
               - kind:
                   Fn:
@@ -40,6 +41,8 @@ expression: "(test[1], ast, ast_string)"
                                 Lit:
                                   value:
                                     UInt64: 1
+                                  ty: ~
+                          ty: ~
               - kind:
                   Fn:
                     proto:
@@ -51,5 +54,6 @@ expression: "(test[1], ast, ast_string)"
                       kind:
                         Block:
                           list: []
+                          ty: ~
 - "(struct Foo '((let a:int32) (let b:float 1)) '((define (c) '(1)) (define (d) '()))))"
 

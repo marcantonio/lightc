@@ -26,9 +26,8 @@ expression: "(test[1], res)"
                                 Lit:
                                   value:
                                     Int32: 1
-                              ty: Int32
-                      ty: Int32
-                ty: ~
+                                  ty: Int32
+                          ty: Int32
               - kind:
                   Fn:
                     proto:
@@ -40,7 +39,5 @@ expression: "(test[1], res)"
                       kind:
                         Block:
                           list: []
-                      ty: Void
-                ty: ~
-        ty: ~
+                          ty: Void
 

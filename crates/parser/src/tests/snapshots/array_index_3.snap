@@ -12,6 +12,7 @@ expression: "(test[1], ast, ast_string)"
               kind:
                 Ident:
                   name: x
+                  ty: ~
             idx:
               kind:
                 Index:
@@ -19,10 +20,14 @@ expression: "(test[1], ast, ast_string)"
                     kind:
                       Ident:
                         name: y
+                        ty: ~
                   idx:
                     kind:
                       Lit:
                         value:
                           UInt64: 0
+                        ty: ~
+                  ty: ~
+            ty: ~
 - "x[y[0]]"
 

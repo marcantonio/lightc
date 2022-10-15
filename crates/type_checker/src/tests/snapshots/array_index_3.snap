@@ -23,23 +23,22 @@ expression: "(test[1], res)"
                             Lit:
                               value:
                                 Int32: 1
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 2
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 3
-                          ty: Int32
+                              ty: Int32
                       inner_ty: Int32
-              ty:
-                Array:
-                  - Int32
-                  - 3
-        ty: ~
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
       - kind:
           Let:
             name: y
@@ -49,22 +48,21 @@ expression: "(test[1], res)"
                 Lit:
                   value:
                     Int32: 1
-              ty: Int32
-        ty: ~
+                  ty: Int32
       - kind:
           Index:
             binding:
               kind:
                 Ident:
                   name: x
-              ty:
-                Array:
-                  - Int32
-                  - 3
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
             idx:
               kind:
                 Ident:
                   name: y
-              ty: Int32
-        ty: Int32
+                  ty: Int32
+            ty: Int32
 

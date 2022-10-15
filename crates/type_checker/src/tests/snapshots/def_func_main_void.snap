@@ -17,6 +17,5 @@ expression: "(test[1], res)"
               kind:
                 Block:
                   list: []
-              ty: Void
-        ty: ~
+                  ty: Void
 

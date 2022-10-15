@@ -26,14 +26,13 @@ expression: "(test[1], res)"
                             kind:
                               Ident:
                                 name: x
-                            ty: Char
+                                ty: Char
                           rhs:
                             kind:
                               Lit:
                                 value:
                                   Char: 99
-                            ty: Char
-                      ty: Bool
-              ty: Bool
-        ty: ~
+                                ty: Char
+                          ty: Bool
+                  ty: Bool
 

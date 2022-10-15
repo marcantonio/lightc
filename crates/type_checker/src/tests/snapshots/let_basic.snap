@@ -26,8 +26,6 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int32: 3
-                            ty: Int32
-                      ty: ~
-              ty: Void
-        ty: ~
+                                ty: Int32
+                  ty: Void
 

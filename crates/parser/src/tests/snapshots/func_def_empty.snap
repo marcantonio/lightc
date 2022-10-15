@@ -17,5 +17,6 @@ expression: "(test[1], ast, ast_string)"
               kind:
                 Block:
                   list: []
+                  ty: ~
 - "(define (a) '()))"
 

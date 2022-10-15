@@ -17,11 +17,14 @@ expression: "(test[1], ast, ast_string)"
                       kind:
                         Ident:
                           name: b
+                          ty: ~
                     rhs:
                       kind:
                         Lit:
                           value:
                             UInt64: 1
+                          ty: ~
+                    ty: ~
               - kind:
                   BinOp:
                     op: Sub
@@ -29,6 +32,7 @@ expression: "(test[1], ast, ast_string)"
                       kind:
                         Ident:
                           name: c
+                          ty: ~
                     rhs:
                       kind:
                         BinOp:
@@ -38,10 +42,15 @@ expression: "(test[1], ast, ast_string)"
                               Lit:
                                 value:
                                   UInt64: 2
+                                ty: ~
                           rhs:
                             kind:
                               Lit:
                                 value:
                                   UInt64: 4
+                                ty: ~
+                          ty: ~
+                    ty: ~
+            ty: ~
 - (a (+ b 1) (- c (/ 2 4)))
 

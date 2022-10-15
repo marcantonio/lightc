@@ -7,7 +7,7 @@ use clap::Parser as Clap;
 
 // use codegen::Codegen;
 use common::CliArgs;
-// use hir::Hir;
+use hir::Hir;
 use lexer::Lexer;
 use parser::Parser;
 use symbol_table::SymbolTable;
@@ -61,19 +61,19 @@ fn main() {
         println!();
     }
 
-    // // HIR
-    // let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap_or_else(|e| {
-    //     eprintln!("Lowering error: {}", e);
-    //     process::exit(1);
-    // });
+    // HIR
+    let hir = Hir::new(&mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
+        eprintln!("Lowering error: {}", e);
+        process::exit(1);
+    });
 
-    // if args.show_hir {
-    //     println!("HIR:");
-    //     for node in hir.nodes() {
-    //         println!("{}", node);
-    //     }
-    //     println!();
-    // }
+    if args.show_hir {
+        println!("HIR:");
+        for node in hir.nodes() {
+            println!("{}", node);
+        }
+        println!();
+    }
 
     // // Codegen
     // let module_file = Codegen::run_pass(hir, &module_name, symbol_table, build_dir, &args, false)

@@ -18,5 +18,8 @@ expression: "(test[1], ast, ast_string)"
                       Lit:
                         value:
                           UInt64: 21
+                        ty: ~
+                  ty: ~
+            ty: ~
 - (- (- 21))
 

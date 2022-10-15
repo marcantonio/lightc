@@ -17,5 +17,8 @@ expression: "(test[1], ast, ast_string)"
                       - kind:
                           Ident:
                             name: c
+                            ty: ~
+                    ty: ~
+            ty: ~
 - (a (b c))
 

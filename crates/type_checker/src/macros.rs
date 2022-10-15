@@ -11,13 +11,13 @@ macro_rules! convert_num {
 #[macro_export]
 macro_rules! init_literal {
     (Array, $ty:expr, $len:expr) => {
-        TypedNode::new_lit(
+        AstNode::new_lit(
             Literal::Array { elements: Vec::with_capacity($len), inner_ty: Some(*$ty.clone()) },
             Some(Type::Array(Box::new(*$ty.clone()), $len)),
         )
     };
 
     ($ty:tt, $val:expr) => {
-        TypedNode::new_lit(Literal::$ty($val), Some(Type::$ty))
+        AstNode::new_lit(Literal::$ty($val), Some(Type::$ty))
     };
 }

@@ -26,8 +26,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int8: 1
-                            ty: Int8
-                      ty: ~
+                                ty: Int8
                     - kind:
                         UnOp:
                           op: Sub
@@ -35,8 +34,7 @@ expression: "(test[1], res)"
                             kind:
                               Ident:
                                 name: xy
-                            ty: Int8
-                      ty: Int8
-              ty: Int8
-        ty: ~
+                                ty: Int8
+                          ty: Int8
+                  ty: Int8
 

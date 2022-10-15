@@ -15,5 +15,6 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     Float: 1.0
+                  ty: ~
 - "(let x:float 1)"
 

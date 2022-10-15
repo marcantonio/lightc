@@ -13,10 +13,13 @@ expression: "(test[1], ast, ast_string)"
               kind:
                 Ident:
                   name: x
+                  ty: ~
             rhs:
               kind:
                 Lit:
                   value:
                     UInt64: 1
+                  ty: ~
+            ty: ~
 - (== x 1)
 

@@ -2,7 +2,7 @@ use lexer::Lexer;
 
 use super::*;
 
-fn ast_to_string(ast: Result<&Ast<ParsedNode>, &ParseError>) -> String {
+fn ast_to_string(ast: Result<&Ast<AstNode>, &ParseError>) -> String {
     match ast {
         Ok(ast) => ast.nodes().iter().map(|x| x.to_string()).collect(),
         Err(err) => err.to_string(),

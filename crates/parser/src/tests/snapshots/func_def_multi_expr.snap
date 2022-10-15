@@ -33,15 +33,20 @@ expression: "(test[1], ast, ast_string)"
                                     Lit:
                                       value:
                                         UInt64: 19
+                                      ty: ~
                                 rhs:
                                   kind:
                                     Ident:
                                       name: a
+                                      ty: ~
+                                ty: ~
                           rhs:
                             kind:
                               Lit:
                                 value:
                                   UInt64: 40
+                                ty: ~
+                          ty: ~
                     - kind:
                         BinOp:
                           op: Add
@@ -49,9 +54,13 @@ expression: "(test[1], ast, ast_string)"
                             kind:
                               Ident:
                                 name: b
+                                ty: ~
                           rhs:
                             kind:
                               Ident:
                                 name: a
+                                ty: ~
+                          ty: ~
+                  ty: ~
 - "(define (a b:int32 c:int32) '((+ (+ 19 a) 40) (+ b a)))"
 

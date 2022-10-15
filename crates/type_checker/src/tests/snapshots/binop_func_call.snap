@@ -26,16 +26,15 @@ expression: "(test[1], res)"
                             kind:
                               Ident:
                                 name: x
-                            ty: Int32
+                                ty: Int32
                           rhs:
                             kind:
                               Lit:
                                 value:
                                   Int32: 1
-                            ty: Int32
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
       - kind:
           Fn:
             proto:
@@ -55,7 +54,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int32: 1
-                            ty: Int32
+                                ty: Int32
                           rhs:
                             kind:
                               Call:
@@ -65,9 +64,8 @@ expression: "(test[1], res)"
                                       Lit:
                                         value:
                                           Int32: 3
-                                    ty: Int32
-                            ty: Int32
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                                        ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

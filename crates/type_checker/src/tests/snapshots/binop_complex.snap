@@ -26,8 +26,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int32: 1
-                            ty: Int32
-                      ty: ~
+                                ty: Int32
                     - kind:
                         BinOp:
                           op: Add
@@ -39,7 +38,7 @@ expression: "(test[1], res)"
                                   kind:
                                     Ident:
                                       name: a
-                                  ty: Int32
+                                      ty: Int32
                                 rhs:
                                   kind:
                                     BinOp:
@@ -49,15 +48,15 @@ expression: "(test[1], res)"
                                           Lit:
                                             value:
                                               Int32: 2
-                                        ty: Int32
+                                            ty: Int32
                                       rhs:
                                         kind:
                                           Lit:
                                             value:
                                               Int32: 4
-                                        ty: Int32
-                                  ty: Int32
-                            ty: Int32
+                                            ty: Int32
+                                      ty: Int32
+                                ty: Int32
                           rhs:
                             kind:
                               BinOp:
@@ -67,15 +66,14 @@ expression: "(test[1], res)"
                                     Lit:
                                       value:
                                         Int32: 2
-                                  ty: Int32
+                                      ty: Int32
                                 rhs:
                                   kind:
                                     Lit:
                                       value:
                                         Int32: 2
-                                  ty: Int32
-                            ty: Int32
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                                      ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

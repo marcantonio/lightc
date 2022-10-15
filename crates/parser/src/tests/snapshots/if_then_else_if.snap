@@ -16,10 +16,13 @@ expression: "(test[1], ast, ast_string)"
                     kind:
                       Ident:
                         name: a
+                        ty: ~
                   rhs:
                     kind:
                       Ident:
                         name: b
+                        ty: ~
+                  ty: ~
             then_block:
               kind:
                 Block:
@@ -27,6 +30,8 @@ expression: "(test[1], ast, ast_string)"
                     - kind:
                         Ident:
                           name: foo
+                          ty: ~
+                  ty: ~
             else_block:
               kind:
                 Block:
@@ -41,10 +46,13 @@ expression: "(test[1], ast, ast_string)"
                                   kind:
                                     Ident:
                                       name: c
+                                      ty: ~
                                 rhs:
                                   kind:
                                     Ident:
                                       name: a
+                                      ty: ~
+                                ty: ~
                           then_block:
                             kind:
                               Block:
@@ -52,6 +60,11 @@ expression: "(test[1], ast, ast_string)"
                                   - kind:
                                       Ident:
                                         name: bar
+                                        ty: ~
+                                ty: ~
                           else_block: ~
+                          ty: ~
+                  ty: ~
+            ty: ~
 - "(if (> a b) '(foo) '((if (< c a) '(bar))))"
 

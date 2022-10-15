@@ -13,6 +13,7 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     Bool: false
+                  ty: ~
             then_block:
               kind:
                 Block:
@@ -20,6 +21,8 @@ expression: "(test[1], ast, ast_string)"
                     - kind:
                         Ident:
                           name: foo
+                          ty: ~
+                  ty: ~
             else_block:
               kind:
                 Block:
@@ -27,5 +30,8 @@ expression: "(test[1], ast, ast_string)"
                     - kind:
                         Ident:
                           name: bar
+                          ty: ~
+                  ty: ~
+            ty: ~
 - "(if false '(foo) '(bar))"
 

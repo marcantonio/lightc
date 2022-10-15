@@ -23,23 +23,22 @@ expression: "(test[1], res)"
                             Lit:
                               value:
                                 Int32: 1
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 2
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 3
-                          ty: Int32
+                              ty: Int32
                       inner_ty: Int32
-              ty:
-                Array:
-                  - Int32
-                  - 3
-        ty: ~
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
       - kind:
           BinOp:
             op: Assign
@@ -47,10 +46,10 @@ expression: "(test[1], res)"
               kind:
                 Ident:
                   name: x
-              ty:
-                Array:
-                  - Int32
-                  - 3
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
             rhs:
               kind:
                 Lit:
@@ -61,21 +60,21 @@ expression: "(test[1], res)"
                             Lit:
                               value:
                                 Int32: 4
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 5
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 6
-                          ty: Int32
+                              ty: Int32
                       inner_ty: Int32
-              ty:
-                Array:
-                  - Int32
-                  - 3
-        ty: Void
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
+            ty: Void
 

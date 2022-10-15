@@ -23,23 +23,22 @@ expression: "(test[1], res)"
                             Lit:
                               value:
                                 Int32: 1
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 2
-                          ty: Int32
+                              ty: Int32
                         - kind:
                             Lit:
                               value:
                                 Int32: 3
-                          ty: Int32
+                              ty: Int32
                       inner_ty: Int32
-              ty:
-                Array:
-                  - Int32
-                  - 3
-        ty: ~
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
       - kind:
           BinOp:
             op: Assign
@@ -50,22 +49,22 @@ expression: "(test[1], res)"
                     kind:
                       Ident:
                         name: x
-                    ty:
-                      Array:
-                        - Int32
-                        - 3
+                        ty:
+                          Array:
+                            - Int32
+                            - 3
                   idx:
                     kind:
                       Lit:
                         value:
                           Int32: 1
-                    ty: Int32
-              ty: Int32
+                        ty: Int32
+                  ty: Int32
             rhs:
               kind:
                 Lit:
                   value:
                     Int32: 7
-              ty: Int32
-        ty: Void
+                  ty: Int32
+            ty: Void
 

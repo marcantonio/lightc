@@ -14,5 +14,4 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: true
             body: ~
-        ty: ~
 

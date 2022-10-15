@@ -14,6 +14,7 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     UInt64: 19
+                  ty: ~
             rhs:
               kind:
                 BinOp:
@@ -23,11 +24,15 @@ expression: "(test[1], ast, ast_string)"
                       Lit:
                         value:
                           UInt64: 21
+                        ty: ~
                   rhs:
                     kind:
                       Lit:
                         value:
                           UInt64: 40
+                        ty: ~
+                  ty: ~
+            ty: ~
       - kind:
           BinOp:
             op: Add
@@ -40,6 +45,7 @@ expression: "(test[1], ast, ast_string)"
                       Lit:
                         value:
                           UInt64: 19
+                        ty: ~
                   rhs:
                     kind:
                       BinOp:
@@ -49,15 +55,21 @@ expression: "(test[1], ast, ast_string)"
                             Lit:
                               value:
                                 UInt64: 21
+                              ty: ~
                         rhs:
                           kind:
                             Lit:
                               value:
                                 UInt64: 20
+                              ty: ~
+                        ty: ~
+                  ty: ~
             rhs:
               kind:
                 Lit:
                   value:
                     UInt64: 40
+                  ty: ~
+            ty: ~
 - (** 19 (** 21 40))(+ (- 19 (* 21 20)) 40)
 

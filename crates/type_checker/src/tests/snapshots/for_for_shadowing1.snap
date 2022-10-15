@@ -26,8 +26,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int32: 1
-                            ty: Int32
-                      ty: ~
+                                ty: Int32
                     - kind:
                         For:
                           start_name: x
@@ -37,7 +36,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int8: 1
-                            ty: Int8
+                                ty: Int8
                           cond_expr:
                             kind:
                               BinOp:
@@ -46,20 +45,20 @@ expression: "(test[1], res)"
                                   kind:
                                     Ident:
                                       name: x
-                                  ty: Int8
+                                      ty: Int8
                                 rhs:
                                   kind:
                                     Lit:
                                       value:
                                         Int8: 2
-                                  ty: Int8
-                            ty: Bool
+                                      ty: Int8
+                                ty: Bool
                           step_expr:
                             kind:
                               Lit:
                                 value:
                                   Int8: 1
-                            ty: Int8
+                                ty: Int8
                           body:
                             kind:
                               Block:
@@ -67,13 +66,11 @@ expression: "(test[1], res)"
                                   - kind:
                                       Ident:
                                         name: x
-                                    ty: Int8
-                            ty: Int8
-                      ty: ~
+                                        ty: Int8
+                                ty: Int8
                     - kind:
                         Ident:
                           name: x
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                          ty: Int32
+                  ty: Int32
 

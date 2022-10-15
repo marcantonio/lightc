@@ -26,8 +26,6 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int8: 1
-                            ty: Int8
-                      ty: ~
-              ty: Void
-        ty: ~
+                                ty: Int8
+                  ty: Void
 

@@ -17,8 +17,7 @@ expression: "(test[1], res)"
               kind:
                 Block:
                   list: []
-              ty: Void
-        ty: ~
+                  ty: Void
       - kind:
           Fn:
             proto:
@@ -34,7 +33,6 @@ expression: "(test[1], res)"
                         Call:
                           name: bar
                           args: []
-                      ty: Void
-              ty: Void
-        ty: ~
+                          ty: Void
+                  ty: Void
 

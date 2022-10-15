@@ -14,10 +14,13 @@ expression: "(test[1], ast, ast_string)"
                 Lit:
                   value:
                     UInt64: 20
+                  ty: ~
             rhs:
               kind:
                 Lit:
                   value:
                     UInt64: 19
+                  ty: ~
+            ty: ~
 - (- 20 19)
 

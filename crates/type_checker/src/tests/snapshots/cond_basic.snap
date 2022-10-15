@@ -28,14 +28,14 @@ expression: "(test[1], res)"
                                     Lit:
                                       value:
                                         Int32: 1
-                                  ty: Int32
+                                      ty: Int32
                                 rhs:
                                   kind:
                                     Lit:
                                       value:
                                         Int32: 2
-                                  ty: Int32
-                            ty: Bool
+                                      ty: Int32
+                                ty: Bool
                           then_block:
                             kind:
                               Block:
@@ -44,8 +44,8 @@ expression: "(test[1], res)"
                                       Lit:
                                         value:
                                           Int32: 1
-                                    ty: Int32
-                            ty: Int32
+                                        ty: Int32
+                                ty: Int32
                           else_block:
                             kind:
                               Block:
@@ -54,9 +54,8 @@ expression: "(test[1], res)"
                                       Lit:
                                         value:
                                           Int32: 2
-                                    ty: Int32
-                            ty: Int32
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                                        ty: Int32
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
 

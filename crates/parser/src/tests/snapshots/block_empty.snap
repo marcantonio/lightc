@@ -12,10 +12,13 @@ expression: "(test[1], ast, ast_string)"
               kind:
                 Ident:
                   name: foo
+                  ty: ~
             then_block:
               kind:
                 Block:
                   list: []
+                  ty: ~
             else_block: ~
+            ty: ~
 - "(if foo '()))"
 

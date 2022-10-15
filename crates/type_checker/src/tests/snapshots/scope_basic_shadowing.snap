@@ -28,8 +28,7 @@ expression: "(test[1], res)"
                               Lit:
                                 value:
                                   Int32: 1
-                            ty: Int32
-                      ty: ~
+                                ty: Int32
                     - kind:
                         Block:
                           list:
@@ -42,13 +41,11 @@ expression: "(test[1], res)"
                                       Lit:
                                         value:
                                           Bool: false
-                                    ty: Bool
-                              ty: ~
-                      ty: Void
+                                        ty: Bool
+                          ty: Void
                     - kind:
                         Ident:
                           name: b
-                      ty: Int32
-              ty: Int32
-        ty: ~
+                          ty: Int32
+                  ty: Int32
 

@@ -6,6 +6,8 @@ mod stmt;
 pub use stmt::*;
 mod expr;
 pub use expr::*;
+mod node;
+pub use node::{AstNode, NodeKind};
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Ast<T: Node> {
@@ -64,21 +66,21 @@ pub trait Visitable {
 
 pub trait Node {}
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum NodeKind<T: Node> {
-    // Statements
-    For(For<T>),
-    Let(Let<T>),
-    Fn(Fn<T>),
-    Struct(Struct<T>),
+// #[derive(Debug, PartialEq, Clone, Serialize)]
+// pub enum NodeKind<T: Node> {
+//     // Statements
+//     For(For<T>),
+//     Let(Let<T>),
+//     Fn(Fn<T>),
+//     Struct(Struct<T>),
 
-    // Expressions
-    Lit(Lit<T>),
-    Ident(Ident),
-    BinOp(BinOp<T>),
-    UnOp(UnOp<T>),
-    Call(Call<T>),
-    Cond(Cond<T>),
-    Block(Block<T>),
-    Index(Index<T>),
-}
+//     // Expressions
+//     Lit(Lit<T>),
+//     Ident(Ident),
+//     BinOp(BinOp<T>),
+//     UnOp(UnOp<T>),
+//     Call(Call<T>),
+//     Cond(Cond<T>),
+//     Block(Block<T>),
+//     Index(Index<T>),
+// }

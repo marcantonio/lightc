@@ -19,8 +19,7 @@ expression: "(test[1], res)"
                         Lit:
                           value:
                             Int32: 0
-                      ty: Int32
-                ty: ~
+                          ty: Int32
               - kind:
                   Let:
                     name: b
@@ -30,8 +29,7 @@ expression: "(test[1], res)"
                         Lit:
                           value:
                             Float: 1.0
-                      ty: Float
-                ty: ~
+                          ty: Float
             methods:
               - kind:
                   Fn:
@@ -47,9 +45,8 @@ expression: "(test[1], res)"
                             - kind:
                                 Ident:
                                   name: a
-                              ty: Int32
-                      ty: Int32
-                ty: ~
+                                  ty: Int32
+                          ty: Int32
               - kind:
                   Fn:
                     proto:
@@ -61,7 +58,5 @@ expression: "(test[1], res)"
                       kind:
                         Block:
                           list: []
-                      ty: Void
-                ty: ~
-        ty: ~
+                          ty: Void
 

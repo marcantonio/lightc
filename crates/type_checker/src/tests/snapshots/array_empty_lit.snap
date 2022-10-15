@@ -20,9 +20,8 @@ expression: "(test[1], res)"
                     Array:
                       elements: []
                       inner_ty: Int32
-              ty:
-                Array:
-                  - Int32
-                  - 3
-        ty: ~
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
 
