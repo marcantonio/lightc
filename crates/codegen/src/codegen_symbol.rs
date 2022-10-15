@@ -54,7 +54,7 @@ impl<'a> From<&CodegenSymbol<'a>> for Prototype {
                 .iter()
                 .map(|(n, ty)| ((*n).to_owned(), (*ty).to_owned()))
                 .collect::<Vec<(String, Type)>>(),
-            Some(sym.ret_ty().to_owned()),
+            sym.ret_ty().to_owned(),
             sym.is_extern(),
         )
     }

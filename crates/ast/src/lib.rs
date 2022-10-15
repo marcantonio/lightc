@@ -1,13 +1,14 @@
 use serde::Serialize;
 
-mod prototype;
-pub use prototype::Prototype;
-mod stmt;
-pub use stmt::*;
-mod expr;
 pub use expr::*;
-mod node;
 pub use node::{AstNode, NodeKind};
+pub use prototype::Prototype;
+pub use stmt::*;
+
+mod expr;
+mod node;
+mod prototype;
+mod stmt;
 
 #[derive(Debug, PartialEq, Serialize)]
 pub struct Ast<T: Node> {

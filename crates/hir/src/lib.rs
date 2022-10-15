@@ -1,6 +1,6 @@
 use ast::{Ast, AstNode, AstVisitor, Visitable};
 use common::Operator;
-use node::HirNode;
+pub use node::{HirNode, NodeKind};
 use symbol_table::{Symbol, SymbolTable, Symbolic};
 
 mod node;

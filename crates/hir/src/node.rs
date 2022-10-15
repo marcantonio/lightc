@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use ast::Node;
+use ast::{AstVisitor, Node, Visitable};
 use serde::Serialize;
 
 use common::{Operator, Type};
@@ -96,6 +96,46 @@ impl HirNode {
 
 impl Node for HirNode {}
 
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub enum NodeKind<T: Node> {
+    // Statements
+    For(ast::For<T>),
+    Let(ast::Let<T>),
+    Fn(ast::Fn<T>),
+    Struct(ast::Struct<T>),
+
+    // Expressions
+    Lit(ast::Lit<T>),
+    Ident(ast::Ident),
+    BinOp(ast::BinOp<T>),
+    UnOp(ast::UnOp<T>),
+    Call(ast::Call<T>),
+    Cond(ast::Cond<T>),
+    Block(ast::Block<T>),
+    Index(ast::Index<T>),
+}
+
+impl Visitable for HirNode {
+    fn accept<V: AstVisitor<AstNode = Self>>(self, v: &mut V) -> V::Result {
+        use NodeKind::*;
+
+        match self.kind {
+            For(s) => v.visit_for(s),
+            Let(s) => v.visit_let(s),
+            Fn(s) => v.visit_fn(s),
+            Struct(s) => v.visit_struct(s),
+            Lit(e) => v.visit_lit(e),
+            BinOp(e) => v.visit_binop(e),
+            UnOp(e) => v.visit_unop(e),
+            Ident(e) => v.visit_ident(e),
+            Call(e) => v.visit_call(e),
+            Cond(e) => v.visit_cond(e),
+            Block(e) => v.visit_block(e),
+            Index(e) => v.visit_index(e),
+        }
+    }
+}
+
 impl Display for HirNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use NodeKind::*;
@@ -115,23 +155,4 @@ impl Display for HirNode {
             Index(e) => write!(f, "{}", e),
         }
     }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum NodeKind<T: Node> {
-    // Statements
-    For(ast::For<T>),
-    Let(ast::Let<T>),
-    Fn(ast::Fn<T>),
-    Struct(ast::Struct<T>),
-
-    // Expressions
-    Lit(ast::Lit<T>),
-    Ident(ast::Ident),
-    BinOp(ast::BinOp<T>),
-    UnOp(ast::UnOp<T>),
-    Call(ast::Call<T>),
-    Cond(ast::Cond<T>),
-    Block(ast::Block<T>),
-    Index(ast::Index<T>),
 }

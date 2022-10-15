@@ -7,7 +7,7 @@ edition = "2021"
 clap = { version = "3.0.14", features = ["derive"] }
 tempfile = "3.3.0"
 
-# codegen = { path = "../codegen" }
+codegen = { path = "../codegen" }
 common = { path = "../common" }
 hir = { path = "../hir" }
 lexer = { path = "../lexer" }

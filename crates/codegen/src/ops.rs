@@ -3,12 +3,14 @@ use inkwell::FloatPredicate;
 
 use super::*;
 
+type OpResult<'ctx> = Result<BasicValueEnum<'ctx>, String>;
+
 impl<'ctx> Codegen<'ctx> {
     // Binary operations
 
     pub(super) fn add(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
                 .builder
@@ -23,8 +25,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn sub(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
                 .builder
@@ -39,8 +41,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn mul(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() => Ok(self
                 .builder
@@ -55,8 +57,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn div(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             signed_int_types!() => Ok(self
                 .builder
@@ -75,8 +77,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn and(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
                 .builder
@@ -87,8 +89,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn xor(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
                 .builder
@@ -99,8 +101,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn or(
-        &self, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         match lhs.1 {
             int_types!() | Type::Bool => Ok(self
                 .builder
@@ -111,8 +113,8 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn cmp(
-        &self, op: Operator, lhs: (BasicValueEnum<'ctx>, Type), rhs: (BasicValueEnum<'ctx>, Type),
-    ) -> ExprResult<'ctx> {
+        &self, op: Operator, lhs: (BasicValueEnum<'ctx>, &Type), rhs: (BasicValueEnum<'ctx>, &Type),
+    ) -> OpResult<'ctx> {
         use Operator::*;
 
         let inst = match (lhs.1, op) {
@@ -220,16 +222,18 @@ impl<'ctx> Codegen<'ctx> {
         Ok(self.builder.build_int_cast(inst, self.context.bool_type(), "cmp.bool").as_basic_value_enum())
     }
 
-    pub(super) fn assign(&mut self, lhs: Node, rhs: BasicValueEnum<'ctx>) -> ExprResult<'ctx> {
-        let lhs_var = match lhs {
-            Node::Expr(Expression::Ident(ast::Ident { name, .. })) => self
+    pub(super) fn assign(&mut self, lhs: HirNode, rhs: BasicValueEnum<'ctx>) -> OpResult<'ctx> {
+        use hir::NodeKind::*;
+
+        let lhs_var = match lhs.kind {
+            Ident(e) => self
                 .symbol_table
-                .get(&name)
-                .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name))
+                .get(&e.name)
+                .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", e.name))
                 .pointer()
                 .expect("missing pointer on symbol"),
-            Node::Expr(Expression::Index(ast::Index { binding, idx, .. })) => {
-                let (_, element_ptr) = self.get_array_element(*binding, *idx)?;
+            Index(e) => {
+                let (_, element_ptr) = self.get_array_element(*e.binding, *e.idx)?;
                 element_ptr
             },
             _ => unreachable!("bad LHS in codegen assignment: `{}`", lhs),
@@ -242,7 +246,7 @@ impl<'ctx> Codegen<'ctx> {
 
     // Unary operations
 
-    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, Type)) -> ExprResult<'ctx> {
+    pub(super) fn neg(&self, rhs: (BasicValueEnum<'ctx>, &Type)) -> OpResult<'ctx> {
         match rhs.1 {
             int_types!() => {
                 Ok(self.builder.build_int_neg(rhs.0.into_int_value(), "neg.int").as_basic_value_enum())

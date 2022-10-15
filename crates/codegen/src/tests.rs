@@ -16,7 +16,7 @@ macro_rules! run_insta {
                 let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
                 let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
                 let args = CliArgs::new();
-                let res = Codegen::run_pass(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 // Optimized code
@@ -27,7 +27,7 @@ macro_rules! run_insta {
                 let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
-                let res_opt = Codegen::run_pass(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res_opt = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));
