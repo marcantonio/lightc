@@ -19,68 +19,14 @@ mod tests;
 // - checks for unknown functions and variables
 // - initializes uninitialized variables
 
-type TychResult = Result<AstNode, String>;
-
 pub struct TypeChecker<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
-}
-
-impl<'a> AstVisitor for TypeChecker<'a> {
-    type AstNode = AstNode;
-    type Result = Result<AstNode, String>;
-
-    fn visit_for(&mut self, s: ast::For<Self::AstNode>) -> Self::Result {
-        self.check_for(s)
-    }
-
-    fn visit_let(&mut self, s: ast::Let<Self::AstNode>) -> Self::Result {
-        self.check_let(s)
-    }
-
-    fn visit_fn(&mut self, s: ast::Fn<Self::AstNode>) -> Self::Result {
-        self.check_func(s)
-    }
-
-    fn visit_struct(&mut self, s: ast::Struct<Self::AstNode>) -> Self::Result {
-        self.check_struct(s)
-    }
-
-    fn visit_lit(&mut self, e: ast::Lit<Self::AstNode>) -> Self::Result {
-        self.check_lit(e, None)
-    }
-
-    fn visit_binop(&mut self, e: ast::BinOp<Self::AstNode>) -> Self::Result {
-        self.check_binop(e)
-    }
-
-    fn visit_unop(&mut self, e: ast::UnOp<Self::AstNode>) -> Self::Result {
-        self.check_unop(e)
-    }
-
-    fn visit_ident(&mut self, e: ast::Ident) -> Self::Result {
-        self.check_ident(e)
-    }
-
-    fn visit_call(&mut self, e: ast::Call<Self::AstNode>) -> Self::Result {
-        self.check_call(e)
-    }
-
-    fn visit_cond(&mut self, e: ast::Cond<Self::AstNode>) -> Self::Result {
-        self.check_cond(e)
-    }
-
-    fn visit_block(&mut self, e: ast::Block<Self::AstNode>) -> Self::Result {
-        self.check_block(e)
-    }
-
-    fn visit_index(&mut self, e: ast::Index<Self::AstNode>) -> Self::Result {
-        self.check_index(e)
-    }
+    hint: Option<Type>,
 }
 
 impl<'a> TypeChecker<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        TypeChecker { symbol_table }
+        TypeChecker { symbol_table, hint: None }
     }
 
     pub fn walk(mut self, ast: Ast<AstNode>) -> Result<Ast<AstNode>, String> {
@@ -92,26 +38,97 @@ impl<'a> TypeChecker<'a> {
         Ok(typed_ast)
     }
 
-    fn check_node(&mut self, node: AstNode, ty_hint: Option<&Type>) -> Result<AstNode, String> {
-        use ast::NodeKind::*;
-
-        Ok(match node.kind {
-            For(s) => self.check_for(s)?,
-            Let(s) => self.check_let(s)?,
-            Fn(s) => self.check_func(s)?,
-            Struct(s) => self.check_struct(s)?,
-            Lit(e) => self.check_lit(e, ty_hint)?,
-            Ident(e) => self.check_ident(e)?,
-            BinOp(e) => self.check_binop(e)?,
-            UnOp(e) => self.check_unop(e)?,
-            Call(e) => self.check_call(e)?,
-            Cond(e) => self.check_cond(e)?,
-            Block(e) => self.check_block(e)?,
-            Index(e) => self.check_index(e)?,
-        })
+    // Wrapper for `visit_node()` to handle hint updates
+    fn check_node(&mut self, node: AstNode, hint: Option<&Type>) -> Result<AstNode, String> {
+        self.hint = hint.cloned();
+        self.visit_node(node)
     }
 
-    fn check_for(&mut self, stmt: ast::For<AstNode>) -> TychResult {
+    fn check_lit_array(
+        &mut self, lit: Literal<AstNode>, ty_hint: Option<Type>,
+    ) -> Result<(Literal<AstNode>, Type), String> {
+        // Extract the elements vec and the type of the array elements. Will always be None as
+        // assigned by the parser as this point.
+        let elements = match lit {
+            Literal::Array { elements, .. } => elements,
+            _ => unreachable!("expected array literal"),
+        };
+
+        // Clone the inner type hint
+        // XXX: Could ty_hint be None?
+        let (ty, size) = match ty_hint.unwrap() {
+            Type::Array(ty, sz) => (ty.clone(), sz),
+            err => unreachable!("array literal has invalid type hint `{}`", err),
+        };
+
+        // Make sure array is big enough
+        if elements.len() as u32 as usize > size {
+            return Err(format!("Array literal too big in assignment: `{}` > `{}`", elements.len(), size));
+        }
+
+        // Check every element and make sure they are uniform
+        let mut chkd_elements = Vec::with_capacity(elements.len());
+        for el in elements {
+            let el_node = self.check_node(el, Some(&ty))?;
+            let el_ty = el_node.ty().unwrap_or_default();
+            if el_ty != ty.as_ref() {
+                return Err(format!("Array literal's element wrong type: `{}` isn't a `{}`", el_node, ty));
+            }
+            chkd_elements.push(el_node);
+        }
+
+        // Rebuild the literal and return the type
+        Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, size)))
+    }
+
+    // Helper for variable initializations
+    fn check_var_init(
+        &mut self, name: &str, init: Option<&AstNode>, antn: &Type, caller: &str,
+    ) -> Result<AstNode, String> {
+        use Type::*;
+
+        // If init exists, make sure it matches the variable's annotation
+        if let Some(init) = init {
+            let init_node = self.check_node(init.clone(), Some(antn))?;
+            let init_ty = init_node.ty().unwrap_or_default();
+            if antn != init_ty {
+                return Err(format!(
+                    "Types don't match in {}. `{}` annotated with `{}` but initial value is `{}`",
+                    caller, name, antn, init_ty
+                ));
+            }
+            Ok(init_node)
+        } else {
+            Ok(match antn {
+                Int8 => init_literal!(Int8, 0),
+                Int16 => init_literal!(Int16, 0),
+                Int32 => init_literal!(Int32, 0),
+                Int64 => init_literal!(Int64, 0),
+                UInt8 => init_literal!(UInt8, 0),
+                UInt16 => init_literal!(UInt16, 0),
+                UInt32 => init_literal!(UInt32, 0),
+                UInt64 => init_literal!(UInt64, 0),
+                Float => init_literal!(Float, 0.0),
+                Double => init_literal!(Double, 0.0),
+                Char => init_literal!(Char, 0),
+                Bool => init_literal!(Bool, false),
+                Array(ty, len) => init_literal!(Array, *ty, *len),
+                Void => unreachable!("void type for variable initialization annotation"),
+                Comp(_) => todo!(),
+            })
+        }
+    }
+}
+
+impl<'a> AstVisitor for TypeChecker<'a> {
+    type Node = AstNode;
+    type Result = Result<AstNode, String>;
+
+    fn visit_node(&mut self, node: Self::Node) -> Self::Result {
+        node.accept(self)
+    }
+
+    fn visit_for(&mut self, stmt: ast::For<Self::Node>) -> Self::Result {
         // Insert starting variable
         self.symbol_table.enter_scope();
         self.symbol_table.insert(Symbol::new_var(&stmt.start_name, &stmt.start_antn));
@@ -155,30 +172,30 @@ impl<'a> TypeChecker<'a> {
         ))
     }
 
-    fn check_let(&mut self, stmt: ast::Let<AstNode>) -> TychResult {
+    fn visit_let(&mut self, stmt: ast::Let<Self::Node>) -> Self::Result {
         self.symbol_table.insert(Symbol::new_var(stmt.name.as_str(), &stmt.antn));
         let init_node = self.check_var_init(&stmt.name, stmt.init.as_deref(), &stmt.antn, "let statement")?;
         Ok(AstNode::new_let(stmt.name, stmt.antn, Some(init_node)))
     }
 
-    // Check function definitions. This function also does the proto.
-    fn check_func(&mut self, mut stmt: ast::Fn<AstNode>) -> TychResult {
-        let fn_entry = match self.symbol_table.get(stmt.proto.name()).cloned() {
+    fn visit_fn(&mut self, stmt: ast::Fn<Self::Node>) -> Self::Result {
+        let mut proto = *stmt.proto;
+        let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
             Some(sym) => sym,
-            None => unreachable!("missing symbol table entry for function: {}", stmt.proto.name()),
+            None => unreachable!("missing symbol table entry for function: {}", proto.name()),
         };
 
         // If body is None, this is an extern and no checking is needed
         let body = match stmt.body {
             Some(body) => body,
-            None => return Ok(AstNode::new_fn(*stmt.proto, None)),
+            None => return Ok(AstNode::new_fn(proto, None)),
         };
 
         // Creates interstitial scope for the arguments in the function definition
         self.symbol_table.enter_scope();
 
         // Insert args into the local scope table
-        for arg in stmt.proto.args() {
+        for arg in proto.args() {
             self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
         }
 
@@ -186,24 +203,24 @@ impl<'a> TypeChecker<'a> {
         let body_ty = body_node.ty().unwrap_or_default();
 
         // Make sure these are in sync since there's no `check_proto()`
-        if stmt.proto.name() == "main" {
-            if stmt.proto.ret_ty() != &Type::Void {
+        if proto.name() == "main" {
+            if proto.ret_ty() != &Type::Void {
                 return Err(format!(
                     "main()'s return value shouldn't be annotated. Found `{}`",
-                    stmt.proto.ret_ty()
+                    proto.ret_ty()
                 ));
             }
-            stmt.proto.set_ret_ty(Type::Void);
+            proto.set_ret_ty(Type::Void);
         } else {
-            stmt.proto.set_ret_ty(fn_entry.ret_ty().to_owned());
+            proto.set_ret_ty(fn_entry.ret_ty().to_owned());
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ret_ty() != body_ty && fn_entry.ret_ty() != &Type::Void && stmt.proto.name() != "main" {
+        if fn_entry.ret_ty() != body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
-                stmt.proto.name(),
+                proto.name(),
                 fn_entry.ret_ty(),
                 body_ty
             ));
@@ -211,10 +228,10 @@ impl<'a> TypeChecker<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(AstNode::new_fn(*stmt.proto, Some(body_node)))
+        Ok(AstNode::new_fn(proto, Some(body_node)))
     }
 
-    fn check_struct(&mut self, stmt: ast::Struct<AstNode>) -> TychResult {
+    fn visit_struct(&mut self, stmt: ast::Struct<Self::Node>) -> Self::Result {
         let mut chkd_fields = vec![];
         for node in stmt.fields {
             chkd_fields.push(self.check_node(node.clone(), None)?);
@@ -228,14 +245,14 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_struct(stmt.name, chkd_fields, chkd_methods))
     }
 
-    // If there's a type hint, use it or fail. If not, use the literal's
+    // If there's a type hint (in `self.hint`), use it or fail. If not, use the literal's
     // type. Update `lit` with the result and return the type.
-    fn check_lit(&mut self, expr: ast::Lit<AstNode>, ty_hint: Option<&Type>) -> TychResult {
+    fn visit_lit(&mut self, expr: ast::Lit<Self::Node>) -> Self::Result {
         use Literal::*;
 
         // TODO: Clean this up
         let lit = expr.value;
-        let (new_lit, lit_ty): (Literal<AstNode>, Type) = match ty_hint {
+        let (new_lit, lit_ty): (Literal<AstNode>, Type) = match &self.hint {
             Some(hint) => match lit {
                 Int8(v) => (Int8(v), Type::Int8),
                 Int16(v) => (Int16(v), Type::Int16),
@@ -272,7 +289,7 @@ impl<'a> TypeChecker<'a> {
                 Double(v) => (Double(v), Type::Double),
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
-                Array { .. } => self.check_lit_array(lit, Some(hint))?,
+                Array { .. } => self.check_lit_array(lit, Some(hint.clone()))?,
             },
             None => match lit {
                 Int32(v) => (Int32(v), Type::Int32), // Only used for main's return value
@@ -291,44 +308,7 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_lit(new_lit, Some(lit_ty)))
     }
 
-    fn check_lit_array(
-        &mut self, lit: Literal<AstNode>, ty_hint: Option<&Type>,
-    ) -> Result<(Literal<AstNode>, Type), String> {
-        // Extract the elements vec and the type of the array elements. Will always be None as
-        // assigned by the parser as this point.
-        let elements = match lit {
-            Literal::Array { elements, .. } => elements,
-            _ => unreachable!("expected array literal"),
-        };
-
-        // Clone the inner type hint
-        // XXX: Could ty_hint be None?
-        let (ty, size) = match ty_hint.unwrap() {
-            Type::Array(ty, sz) => (ty.clone(), sz),
-            err => unreachable!("array literal has invalid type hint `{}`", err),
-        };
-
-        // Make sure array is big enough
-        if elements.len() as u32 as usize > *size {
-            return Err(format!("Array literal too big in assignment: `{}` > `{}`", elements.len(), size));
-        }
-
-        // Check every element and make sure they are uniform
-        let mut chkd_elements = Vec::with_capacity(elements.len());
-        for el in elements {
-            let el_node = self.check_node(el, Some(&ty))?;
-            let el_ty = el_node.ty().unwrap_or_default();
-            if el_ty != ty.as_ref() {
-                return Err(format!("Array literal's element wrong type: `{}` isn't a `{}`", el_node, ty));
-            }
-            chkd_elements.push(el_node);
-        }
-
-        // Rebuild the literal and return the type
-        Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, *size)))
-    }
-
-    fn check_ident(&self, expr: ast::Ident) -> TychResult {
+    fn visit_ident(&mut self, expr: ast::Ident) -> Self::Result {
         let ident_ty = self
             .symbol_table
             .get(&expr.name)
@@ -339,7 +319,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     // TODO: Check overflow on math ops
-    fn check_binop(&mut self, expr: ast::BinOp<AstNode>) -> TychResult {
+    fn visit_binop(&mut self, expr: ast::BinOp<Self::Node>) -> Self::Result {
         use Operator::*;
 
         // Make sure LHS is a var in assignments
@@ -429,7 +409,7 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_binop(expr.op, chkd_lhs, chkd_rhs, Some(ty)))
     }
 
-    fn check_unop(&mut self, expr: ast::UnOp<AstNode>) -> TychResult {
+    fn visit_unop(&mut self, expr: ast::UnOp<Self::Node>) -> Self::Result {
         let chkd_rhs = self.check_node(*expr.rhs, None)?;
         let rhs_ty = chkd_rhs.ty().cloned().unwrap_or_default();
         match rhs_ty {
@@ -444,7 +424,7 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_unop(expr.op, chkd_rhs, Some(rhs_ty)))
     }
 
-    fn check_call(&mut self, expr: ast::Call<AstNode>) -> TychResult {
+    fn visit_call(&mut self, expr: ast::Call<Self::Node>) -> Self::Result {
         // Pull the function for the call from the table
         let fn_entry = self
             .symbol_table
@@ -494,7 +474,7 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_call(expr.name, chkd_args, Some(ret_ty.clone())))
     }
 
-    fn check_cond(&mut self, expr: ast::Cond<AstNode>) -> TychResult {
+    fn visit_cond(&mut self, expr: ast::Cond<Self::Node>) -> Self::Result {
         let chkd_cond = self.check_node(*expr.cond_expr, None)?;
         let cond_ty = chkd_cond.ty().unwrap_or_default();
         if cond_ty != &Type::Bool {
@@ -522,7 +502,7 @@ impl<'a> TypeChecker<'a> {
     }
 
     // Check the block expressions. Ensures statements always eval to void.
-    fn check_block(&mut self, expr: ast::Block<AstNode>) -> TychResult {
+    fn visit_block(&mut self, expr: ast::Block<Self::Node>) -> Self::Result {
         self.symbol_table.enter_scope();
 
         // The block type is set to the final node's type
@@ -539,7 +519,7 @@ impl<'a> TypeChecker<'a> {
         Ok(AstNode::new_block(chkd_list, Some(list_ty)))
     }
 
-    fn check_index(&mut self, expr: ast::Index<AstNode>) -> TychResult {
+    fn visit_index(&mut self, expr: ast::Index<Self::Node>) -> Self::Result {
         let chkd_binding = self.check_node(*expr.binding, None)?;
         let binding_ty = match chkd_binding.ty().unwrap_or_default() {
             Type::Array(t, _) => *t.clone(),
@@ -556,43 +536,5 @@ impl<'a> TypeChecker<'a> {
         }
 
         Ok(AstNode::new_index(chkd_binding, chkd_idx, Some(binding_ty)))
-    }
-
-    // Helper for variable initializations
-    fn check_var_init(
-        &mut self, name: &str, init: Option<&AstNode>, antn: &Type, caller: &str,
-    ) -> TychResult {
-        use Type::*;
-
-        // If init exists, make sure it matches the variable's annotation
-        if let Some(init) = init {
-            let init_node = self.check_node(init.clone(), Some(antn))?;
-            let init_ty = init_node.ty().unwrap_or_default();
-            if antn != init_ty {
-                return Err(format!(
-                    "Types don't match in {}. `{}` annotated with `{}` but initial value is `{}`",
-                    caller, name, antn, init_ty
-                ));
-            }
-            Ok(init_node)
-        } else {
-            Ok(match antn {
-                Int8 => init_literal!(Int8, 0),
-                Int16 => init_literal!(Int16, 0),
-                Int32 => init_literal!(Int32, 0),
-                Int64 => init_literal!(Int64, 0),
-                UInt8 => init_literal!(UInt8, 0),
-                UInt16 => init_literal!(UInt16, 0),
-                UInt32 => init_literal!(UInt32, 0),
-                UInt64 => init_literal!(UInt64, 0),
-                Float => init_literal!(Float, 0.0),
-                Double => init_literal!(Double, 0.0),
-                Char => init_literal!(Char, 0),
-                Bool => init_literal!(Bool, false),
-                Array(ty, len) => init_literal!(Array, *ty, *len),
-                Void => unreachable!("void type for variable initialization annotation"),
-                Comp(_) => todo!(),
-            })
-        }
     }
 }

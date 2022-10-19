@@ -116,7 +116,7 @@ pub enum NodeKind<T: Node> {
 }
 
 impl Visitable for HirNode {
-    fn accept<V: AstVisitor<AstNode = Self>>(self, v: &mut V) -> V::Result {
+    fn accept<V: AstVisitor<Node = Self>>(self, v: &mut V) -> V::Result {
         use NodeKind::*;
 
         match self.kind {
@@ -125,9 +125,9 @@ impl Visitable for HirNode {
             Fn(s) => v.visit_fn(s),
             Struct(s) => v.visit_struct(s),
             Lit(e) => v.visit_lit(e),
+            Ident(e) => v.visit_ident(e),
             BinOp(e) => v.visit_binop(e),
             UnOp(e) => v.visit_unop(e),
-            Ident(e) => v.visit_ident(e),
             Call(e) => v.visit_call(e),
             Cond(e) => v.visit_cond(e),
             Block(e) => v.visit_block(e),
@@ -146,9 +146,9 @@ impl Display for HirNode {
             Fn(s) => write!(f, "{}", s),
             Struct(s) => write!(f, "{}", s),
             Lit(e) => write!(f, "{}", e),
+            Ident(e) => write!(f, "{}", e),
             BinOp(e) => write!(f, "{}", e),
             UnOp(e) => write!(f, "{}", e),
-            Ident(e) => write!(f, "{}", e),
             Call(e) => write!(f, "{}", e),
             Cond(e) => write!(f, "{}", e),
             Block(e) => write!(f, "{}", e),

@@ -42,27 +42,28 @@ impl<T: Node> Default for Ast<T> {
 // Immutable visitor interface
 
 pub trait AstVisitor {
-    type AstNode: Node;
+    type Node: Node;
     type Result;
 
-    fn visit_for(&mut self, s: For<Self::AstNode>) -> Self::Result;
-    fn visit_let(&mut self, s: Let<Self::AstNode>) -> Self::Result;
-    fn visit_fn(&mut self, s: Fn<Self::AstNode>) -> Self::Result;
-    fn visit_struct(&mut self, s: Struct<Self::AstNode>) -> Self::Result;
-    fn visit_lit(&mut self, e: Lit<Self::AstNode>) -> Self::Result;
-    fn visit_binop(&mut self, e: BinOp<Self::AstNode>) -> Self::Result;
-    fn visit_unop(&mut self, e: UnOp<Self::AstNode>) -> Self::Result;
-    fn visit_ident(&mut self, e: Ident) -> Self::Result;
-    fn visit_call(&mut self, e: Call<Self::AstNode>) -> Self::Result;
-    fn visit_cond(&mut self, e: Cond<Self::AstNode>) -> Self::Result;
-    fn visit_block(&mut self, e: Block<Self::AstNode>) -> Self::Result;
-    fn visit_index(&mut self, e: Index<Self::AstNode>) -> Self::Result;
+    fn visit_node(&mut self, node: Self::Node) -> Self::Result;
+    fn visit_for(&mut self, stmt: For<Self::Node>) -> Self::Result;
+    fn visit_let(&mut self, stmt: Let<Self::Node>) -> Self::Result;
+    fn visit_fn(&mut self, stmt: Fn<Self::Node>) -> Self::Result;
+    fn visit_struct(&mut self, stmt: Struct<Self::Node>) -> Self::Result;
+    fn visit_lit(&mut self, expr: Lit<Self::Node>) -> Self::Result;
+    fn visit_ident(&mut self, expr: Ident) -> Self::Result;
+    fn visit_binop(&mut self, expr: BinOp<Self::Node>) -> Self::Result;
+    fn visit_unop(&mut self, expr: UnOp<Self::Node>) -> Self::Result;
+    fn visit_call(&mut self, expr: Call<Self::Node>) -> Self::Result;
+    fn visit_cond(&mut self, expr: Cond<Self::Node>) -> Self::Result;
+    fn visit_block(&mut self, expr: Block<Self::Node>) -> Self::Result;
+    fn visit_index(&mut self, expr: Index<Self::Node>) -> Self::Result;
 }
 
 pub trait Visitable {
     fn accept<V>(self, v: &mut V) -> V::Result
     where
-        V: AstVisitor<AstNode = Self>;
+        V: AstVisitor<Node = Self>;
 }
 
 pub trait Node {}

@@ -815,9 +815,8 @@ fn test_tyc_int_no_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc
-            .check_lit(ast::Lit { value: lit.0, ty: None }, None)
-            .map(|e| e.ty().cloned().unwrap_or_default());
+        let res =
+            tc.visit_lit(ast::Lit { value: lit.0, ty: None }).map(|e| e.ty().cloned().unwrap_or_default());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
     }
 }
@@ -857,9 +856,9 @@ fn test_tyc_int_with_hint() {
     let mut symbol_table = SymbolTable::new();
     let mut tc = TypeChecker::new(&mut symbol_table);
     for lit in literals {
-        let res = tc
-            .check_lit(ast::Lit { value: lit.0, ty: None }, Some(&lit.1))
-            .map(|e| e.ty().cloned().unwrap_or_default());
+        tc.hint = Some(lit.1);
+        let res =
+            tc.visit_lit(ast::Lit { value: lit.0, ty: None }).map(|e| e.ty().cloned().unwrap_or_default());
         assert_eq!(res, lit.2.map_err(|x| x.to_string()));
     }
 }
@@ -874,7 +873,7 @@ macro_rules! test_lit_hint_binop_int {
         let lhs = AstNode::new_ident(String::from("x"), None);
         let rhs = AstNode::new_lit(Literal::UInt64(3), None);
         let res = tc
-            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .visit_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
             .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
@@ -884,7 +883,7 @@ macro_rules! test_lit_hint_binop_int {
         let lhs = AstNode::new_lit(Literal::UInt64(3), None);
         let rhs = AstNode::new_ident(String::from("x"), None);
         let res = tc
-            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .visit_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
             .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};
@@ -900,7 +899,7 @@ macro_rules! test_lit_hint_binop_float {
         let lhs = AstNode::new_ident(String::from("x"), None);
         let rhs = AstNode::new_lit(Literal::Float(3.0), None);
         let res = tc
-            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .visit_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
             .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
@@ -910,7 +909,7 @@ macro_rules! test_lit_hint_binop_float {
         let lhs = AstNode::new_lit(Literal::Float(3.0), None);
         let rhs = AstNode::new_ident(String::from("x"), None);
         let res = tc
-            .check_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
+            .visit_binop(ast::BinOp { op: Operator::Add, lhs: Box::new(lhs), rhs: Box::new(rhs), ty: None })
             .map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
     }};

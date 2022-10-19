@@ -337,39 +337,38 @@ struct Foo {
 struct Foo {}
 struct Foo {}
 "#,
-        ]
-        //         [
-        //             "self",
-        //             r#"
-        // struct Foo {
-        //     let a: int
+        ], //         [
+           //             "self",
+           //             r#"
+           // struct Foo {
+           //     let a: int
 
-        //     fn c() -> int {
-        //         self.a + 1
-        //     }
-        // }
-        // "#,
-        //         ],
-        //         [
-        //             "self_bad1",
-        //             r#"
-        // struct Foo {
-        //     fn c() -> int {
-        //         self + 1
-        //     }
-        // }
-        // "#,
-        //         ],
-        //         [
-        //             "self_bad2",
-        //             r#"
-        // struct Foo {
-        //     fn c() -> int {
-        //         self. + 1
-        //     }
-        // }
-        // "#,
-        //         ],
+           //     fn c() -> int {
+           //         self.a + 1
+           //     }
+           // }
+           // "#,
+           //         ],
+           //         [
+           //             "self_bad1",
+           //             r#"
+           // struct Foo {
+           //     fn c() -> int {
+           //         self + 1
+           //     }
+           // }
+           // "#,
+           //         ],
+           //         [
+           //             "self_bad2",
+           //             r#"
+           // struct Foo {
+           //     fn c() -> int {
+           //         self. + 1
+           //     }
+           // }
+           // "#,
+           //         ],
     ];
 
     run_insta!("struct", tests)

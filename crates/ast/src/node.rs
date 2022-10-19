@@ -140,7 +140,7 @@ pub enum NodeKind<T: Node> {
 }
 
 impl Visitable for AstNode {
-    fn accept<V: AstVisitor<AstNode = Self>>(self, v: &mut V) -> V::Result {
+    fn accept<V: AstVisitor<Node = Self>>(self, v: &mut V) -> V::Result {
         use NodeKind::*;
 
         match self.kind {
@@ -149,9 +149,9 @@ impl Visitable for AstNode {
             Fn(s) => v.visit_fn(s),
             Struct(s) => v.visit_struct(s),
             Lit(e) => v.visit_lit(e),
+            Ident(e) => v.visit_ident(e),
             BinOp(e) => v.visit_binop(e),
             UnOp(e) => v.visit_unop(e),
-            Ident(e) => v.visit_ident(e),
             Call(e) => v.visit_call(e),
             Cond(e) => v.visit_cond(e),
             Block(e) => v.visit_block(e),
