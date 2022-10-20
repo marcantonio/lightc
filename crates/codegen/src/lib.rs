@@ -282,7 +282,7 @@ impl<'ctx> Codegen<'ctx> {
         //
         // TODO: This could be something other than an ident in the future
         let name = match binding.kind {
-            hir::NodeKind::Ident(e) => e.name,
+            hir::node::Kind::Ident(e) => e.name,
             _ => unreachable!("name missing for array index"),
         };
 
@@ -453,9 +453,9 @@ impl<'ctx> AstVisitor for Codegen<'ctx> {
             .inner()
             .clone();
 
-        // Rather than call codegen_proto() here, we do it early in
-        // insert_prototypes(). This ensures we can codegen a call before the
-        // codegen_func() is called.
+        // Rather than call `codegen_proto()` here, we do it early in
+        // `insert_prototypes()`. This ensures we can codegen a call before the
+        // `codegen_func()` is called.
         let function = self
             .module
             .get_function(stmt.proto.name())

@@ -223,7 +223,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     pub(super) fn assign(&mut self, lhs: HirNode, rhs: BasicValueEnum<'ctx>) -> OpResult<'ctx> {
-        use hir::NodeKind::*;
+        use hir::node::Kind::*;
 
         let lhs_var = match lhs.kind {
             Ident(e) => self

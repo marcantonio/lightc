@@ -7,7 +7,7 @@ use common::{Operator, Type};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct AstNode {
-    pub kind: NodeKind<AstNode>,
+    pub kind: Kind<AstNode>,
 }
 
 impl AstNode {
@@ -16,7 +16,7 @@ impl AstNode {
         step_expr: AstNode, body: AstNode,
     ) -> Self {
         Self {
-            kind: NodeKind::For(For {
+            kind: Kind::For(For {
                 start_name,
                 start_antn,
                 start_expr: start_expr.map(Box::new),
@@ -28,42 +28,42 @@ impl AstNode {
     }
 
     pub fn new_let(name: String, antn: Type, init: Option<AstNode>) -> Self {
-        Self { kind: NodeKind::Let(Let { name, antn, init: init.map(Box::new) }) }
+        Self { kind: Kind::Let(Let { name, antn, init: init.map(Box::new) }) }
     }
 
     pub fn new_fn(proto: Prototype, body: Option<AstNode>) -> Self {
-        Self { kind: NodeKind::Fn(Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
+        Self { kind: Kind::Fn(Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
     }
 
     pub fn new_struct(name: String, fields: Vec<AstNode>, methods: Vec<AstNode>) -> Self {
-        Self { kind: NodeKind::Struct(Struct { name, fields, methods }) }
+        Self { kind: Kind::Struct(Struct { name, fields, methods }) }
     }
 
     pub fn new_lit(value: Literal<AstNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Lit(Lit { value, ty }) }
+        Self { kind: Kind::Lit(Lit { value, ty }) }
     }
 
     pub fn new_ident(name: String, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Ident(Ident { name, ty }) }
+        Self { kind: Kind::Ident(Ident { name, ty }) }
     }
 
     pub fn new_binop(op: Operator, lhs: AstNode, rhs: AstNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::BinOp(BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty }) }
+        Self { kind: Kind::BinOp(BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty }) }
     }
 
     pub fn new_unop(op: Operator, rhs: AstNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::UnOp(UnOp { op, rhs: Box::new(rhs), ty }) }
+        Self { kind: Kind::UnOp(UnOp { op, rhs: Box::new(rhs), ty }) }
     }
 
     pub fn new_call(name: String, args: Vec<AstNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Call(Call { name, args, ty }) }
+        Self { kind: Kind::Call(Call { name, args, ty }) }
     }
 
     pub fn new_cond(
         cond_expr: AstNode, then_block: AstNode, else_block: Option<AstNode>, ty: Option<Type>,
     ) -> Self {
         Self {
-            kind: NodeKind::Cond(Cond {
+            kind: Kind::Cond(Cond {
                 cond_expr: Box::new(cond_expr),
                 then_block: Box::new(then_block),
                 else_block: else_block.map(Box::new),
@@ -73,15 +73,15 @@ impl AstNode {
     }
 
     pub fn new_block(list: Vec<AstNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Block(Block { list, ty }) }
+        Self { kind: Kind::Block(Block { list, ty }) }
     }
 
     pub fn new_index(binding: AstNode, idx: AstNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Index(Index { binding: Box::new(binding), idx: Box::new(idx), ty }) }
+        Self { kind: Kind::Index(Index { binding: Box::new(binding), idx: Box::new(idx), ty }) }
     }
 
     pub fn ty(&self) -> Option<&Type> {
-        use NodeKind::*;
+        use Kind::*;
 
         match &self.kind {
             Lit(e) => e.ty.as_ref(),
@@ -101,7 +101,7 @@ impl AstNode {
 
         matches!(
             self.kind,
-            NodeKind::Lit(Lit {
+            Kind::Lit(Lit {
                 value: Int8(_)
                     | Int16(_)
                     | Int32(_)
@@ -121,7 +121,7 @@ impl AstNode {
 impl Node for AstNode {}
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum NodeKind<T: Node> {
+pub enum Kind<T: Node> {
     // Statements
     For(For<T>),
     Let(Let<T>),
@@ -141,7 +141,7 @@ pub enum NodeKind<T: Node> {
 
 impl Visitable for AstNode {
     fn accept<V: AstVisitor<Node = Self>>(self, v: &mut V) -> V::Result {
-        use NodeKind::*;
+        use Kind::*;
 
         match self.kind {
             For(s) => v.visit_for(s),
@@ -162,7 +162,7 @@ impl Visitable for AstNode {
 
 impl Display for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use NodeKind::*;
+        use Kind::*;
 
         match &self.kind {
             For(s) => write!(f, "{}", s),

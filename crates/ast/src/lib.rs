@@ -1,12 +1,12 @@
 use serde::Serialize;
 
 pub use expr::*;
-pub use node::{AstNode, NodeKind};
+pub use node::AstNode;
 pub use prototype::Prototype;
 pub use stmt::*;
 
 mod expr;
-mod node;
+pub mod node;
 mod prototype;
 mod stmt;
 

@@ -7,7 +7,7 @@ use common::{Operator, Type};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct HirNode {
-    pub kind: NodeKind<HirNode>,
+    pub kind: Kind<HirNode>,
 }
 
 impl HirNode {
@@ -17,7 +17,7 @@ impl HirNode {
         step_expr: HirNode, body: HirNode,
     ) -> Self {
         Self {
-            kind: NodeKind::For(ast::For {
+            kind: Kind::For(ast::For {
                 start_name,
                 start_antn,
                 start_expr: start_expr.map(Box::new),
@@ -29,38 +29,38 @@ impl HirNode {
     }
 
     pub fn new_let(name: String, antn: Type, init: Option<HirNode>) -> Self {
-        Self { kind: NodeKind::Let(ast::Let { name, antn, init: init.map(Box::new) }) }
+        Self { kind: Kind::Let(ast::Let { name, antn, init: init.map(Box::new) }) }
     }
 
     pub fn new_fn(proto: ast::Prototype, body: Option<HirNode>) -> Self {
-        Self { kind: NodeKind::Fn(ast::Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
+        Self { kind: Kind::Fn(ast::Fn { proto: Box::new(proto), body: body.map(Box::new) }) }
     }
 
     pub fn new_lit(value: ast::Literal<HirNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Lit(ast::Lit { value, ty }) }
+        Self { kind: Kind::Lit(ast::Lit { value, ty }) }
     }
 
     pub fn new_ident(name: String, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Ident(ast::Ident { name, ty }) }
+        Self { kind: Kind::Ident(ast::Ident { name, ty }) }
     }
 
     pub fn new_binop(op: Operator, lhs: HirNode, rhs: HirNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::BinOp(ast::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty }) }
+        Self { kind: Kind::BinOp(ast::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty }) }
     }
 
     pub fn new_unop(op: Operator, rhs: HirNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::UnOp(ast::UnOp { op, rhs: Box::new(rhs), ty }) }
+        Self { kind: Kind::UnOp(ast::UnOp { op, rhs: Box::new(rhs), ty }) }
     }
 
     pub fn new_call(name: String, args: Vec<HirNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Call(ast::Call { name, args, ty }) }
+        Self { kind: Kind::Call(ast::Call { name, args, ty }) }
     }
 
     pub fn new_cond(
         cond_expr: HirNode, then_block: HirNode, else_block: Option<HirNode>, ty: Option<Type>,
     ) -> Self {
         Self {
-            kind: NodeKind::Cond(ast::Cond {
+            kind: Kind::Cond(ast::Cond {
                 cond_expr: Box::new(cond_expr),
                 then_block: Box::new(then_block),
                 else_block: else_block.map(Box::new),
@@ -70,15 +70,15 @@ impl HirNode {
     }
 
     pub fn new_block(list: Vec<HirNode>, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Block(ast::Block { list, ty }) }
+        Self { kind: Kind::Block(ast::Block { list, ty }) }
     }
 
     pub fn new_index(binding: HirNode, idx: HirNode, ty: Option<Type>) -> Self {
-        Self { kind: NodeKind::Index(ast::Index { binding: Box::new(binding), idx: Box::new(idx), ty }) }
+        Self { kind: Kind::Index(ast::Index { binding: Box::new(binding), idx: Box::new(idx), ty }) }
     }
 
     pub fn ty(&self) -> Option<&Type> {
-        use NodeKind::*;
+        use Kind::*;
 
         match &self.kind {
             Lit(e) => e.ty.as_ref(),
@@ -97,7 +97,7 @@ impl HirNode {
 impl Node for HirNode {}
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum NodeKind<T: Node> {
+pub enum Kind<T: Node> {
     // Statements
     For(ast::For<T>),
     Let(ast::Let<T>),
@@ -117,7 +117,7 @@ pub enum NodeKind<T: Node> {
 
 impl Visitable for HirNode {
     fn accept<V: AstVisitor<Node = Self>>(self, v: &mut V) -> V::Result {
-        use NodeKind::*;
+        use Kind::*;
 
         match self.kind {
             For(s) => v.visit_for(s),
@@ -138,7 +138,7 @@ impl Visitable for HirNode {
 
 impl Display for HirNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use NodeKind::*;
+        use Kind::*;
 
         match &self.kind {
             For(s) => write!(f, "{}", s),

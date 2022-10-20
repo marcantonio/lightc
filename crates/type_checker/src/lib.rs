@@ -326,7 +326,7 @@ impl<'a> AstVisitor for TypeChecker<'a> {
         if expr.op == Assign
             && !matches!(
                 *expr.lhs,
-                AstNode { kind: ast::NodeKind::Ident { .. } } | AstNode { kind: ast::NodeKind::Index { .. } }
+                AstNode { kind: ast::node::Kind::Ident { .. } } | AstNode { kind: ast::node::Kind::Index { .. } }
             )
         {
             return Err("Expected LHS to be a variable for assignment".to_string());

@@ -1,9 +1,9 @@
 use ast::{Ast, AstNode, AstVisitor, Visitable};
 use common::Operator;
-pub use node::{HirNode, NodeKind};
+pub use node::HirNode;
 use symbol_table::{Symbol, SymbolTable, Symbolic};
 
-mod node;
+pub mod node;
 #[cfg(test)]
 mod tests;
 
