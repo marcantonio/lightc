@@ -66,7 +66,7 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct Struct<T: Node> {
     pub name: String,
     pub fields: Vec<T>,

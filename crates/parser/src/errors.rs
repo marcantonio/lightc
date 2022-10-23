@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use lexer::token::Token;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct ParseError {
     message: String,
     line: usize,

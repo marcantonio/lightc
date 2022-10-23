@@ -368,7 +368,7 @@ impl Iterator for StreamIter<char> {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct LexError {
     message: String,
     line: usize,

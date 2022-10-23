@@ -10,7 +10,7 @@ pub mod node;
 mod prototype;
 mod stmt;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Ast<T: Node> {
     nodes: Vec<T>,
 }

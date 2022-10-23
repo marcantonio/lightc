@@ -13,7 +13,7 @@ pub struct VarData {
     pub ty: Type,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StructData {
     pub fields: Vec<(String, String)>,
     pub methods: Option<Vec<String>>,

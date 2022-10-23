@@ -1,7 +1,7 @@
 use common::Operator;
 use serde::Serialize;
 
-#[derive(PartialEq, Clone, Serialize)]
+#[derive(PartialEq, Eq, Clone, Serialize)]
 pub struct Token {
     pub tt: TokenType,
     pub line: usize,
@@ -53,7 +53,7 @@ impl Default for Token {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub enum TokenType {
     Bool(bool),
     Char(String),

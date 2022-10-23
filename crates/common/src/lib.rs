@@ -6,7 +6,7 @@ mod macros;
 
 // A Operator is an extra layer of abstraction between TokenType::Op() and the
 // actual character. Convenient in Rust to help constrain matching.
-#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub enum Operator {
     Add,
     AddEq,

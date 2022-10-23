@@ -57,7 +57,7 @@ impl<'a> TypeChecker<'a> {
         // Clone the inner type hint
         // XXX: Could ty_hint be None?
         let (ty, size) = match ty_hint.unwrap() {
-            Type::Array(ty, sz) => (ty.clone(), sz),
+            Type::Array(ty, sz) => (ty, sz),
             err => unreachable!("array literal has invalid type hint `{}`", err),
         };
 
