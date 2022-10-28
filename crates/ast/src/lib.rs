@@ -11,11 +11,11 @@ mod prototype;
 mod stmt;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
-pub struct Ast<T: Node> {
+pub struct Ast<T: VisitableNode> {
     nodes: Vec<T>,
 }
 
-impl<T: Node> Ast<T> {
+impl<T: VisitableNode> Ast<T> {
     pub fn new() -> Self {
         Ast { nodes: vec![] }
     }
@@ -33,7 +33,7 @@ impl<T: Node> Ast<T> {
     }
 }
 
-impl<T: Node> Default for Ast<T> {
+impl<T: VisitableNode> Default for Ast<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -42,7 +42,7 @@ impl<T: Node> Default for Ast<T> {
 // Immutable visitor interface
 
 pub trait AstVisitor {
-    type Node: Node;
+    type Node: VisitableNode;
     type Result;
 
     fn visit_node(&mut self, node: Self::Node) -> Self::Result;
@@ -66,4 +66,4 @@ pub trait Visitable {
         V: AstVisitor<Node = Self>;
 }
 
-pub trait Node {}
+pub trait VisitableNode {}

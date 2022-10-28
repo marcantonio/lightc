@@ -118,10 +118,10 @@ impl AstNode {
     }
 }
 
-impl Node for AstNode {}
+impl VisitableNode for AstNode {}
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Kind<T: Node> {
+pub enum Kind<T: VisitableNode> {
     // Statements
     For(For<T>),
     Let(Let<T>),

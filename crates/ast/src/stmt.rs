@@ -2,11 +2,11 @@ use common::Type;
 use serde::Serialize;
 use std::fmt::Display;
 
-use super::{Node, Prototype};
+use super::{VisitableNode, Prototype};
 //use symbol_table::{symbol, Symbol};
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct For<T: Node> {
+pub struct For<T: VisitableNode> {
     pub start_name: String, // TODO: make this a Statement::Let
     pub start_antn: Type,
     pub start_expr: Option<Box<T>>,
@@ -17,7 +17,7 @@ pub struct For<T: Node> {
 
 impl<T> Display for For<T>
 where
-    T: Node + Display,
+    T: VisitableNode + Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("(for ({}: {}", self.start_name, self.start_antn);
@@ -29,7 +29,7 @@ where
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Let<T: Node> {
+pub struct Let<T: VisitableNode> {
     pub name: String,
     pub antn: Type,
     pub init: Option<Box<T>>,
@@ -37,7 +37,7 @@ pub struct Let<T: Node> {
 
 impl<T> Display for Let<T>
 where
-    T: Node + Display,
+    T: VisitableNode + Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("(let {}:{}", self.name, self.antn);
@@ -49,14 +49,14 @@ where
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Fn<T: Node> {
+pub struct Fn<T: VisitableNode> {
     pub proto: Box<Prototype>,
     pub body: Option<Box<T>>,
 }
 
 impl<T> Display for Fn<T>
 where
-    T: Node + Display,
+    T: VisitableNode + Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.body {
@@ -67,7 +67,7 @@ where
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
-pub struct Struct<T: Node> {
+pub struct Struct<T: VisitableNode> {
     pub name: String,
     pub fields: Vec<T>,
     pub methods: Vec<T>,
@@ -75,7 +75,7 @@ pub struct Struct<T: Node> {
 
 impl<T> Display for Struct<T>
 where
-    T: Node + Display,
+    T: VisitableNode + Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut attr_string = String::from("");

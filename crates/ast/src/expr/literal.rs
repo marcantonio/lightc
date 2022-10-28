@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-use crate::Node;
+use crate::VisitableNode;
 use common::Type;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Literal<T: Node> {
+pub enum Literal<T: VisitableNode> {
     Int8(i8),
     Int16(i16),
     Int32(i32),
@@ -24,7 +24,7 @@ pub enum Literal<T: Node> {
 
 impl<T> Display for Literal<T>
 where
-    T: Node + Display,
+    T: VisitableNode + Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Literal::*;

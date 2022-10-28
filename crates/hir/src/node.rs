@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use ast::{AstVisitor, Node, Visitable};
+use ast::{AstVisitor, VisitableNode, Visitable};
 use serde::Serialize;
 
 use common::{Operator, Type};
@@ -94,10 +94,10 @@ impl HirNode {
     }
 }
 
-impl Node for HirNode {}
+impl VisitableNode for HirNode {}
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Kind<T: Node> {
+pub enum Kind<T: VisitableNode> {
     // Statements
     For(ast::For<T>),
     Let(ast::Let<T>),
