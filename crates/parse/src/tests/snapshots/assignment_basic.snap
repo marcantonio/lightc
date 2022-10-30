@@ -1,0 +1,35 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 29
+expression: "(test[1], ast, ast_string)"
+---
+- x = x + 1
+- Ok:
+    nodes:
+      - kind:
+          BinOp:
+            op: Assign
+            lhs:
+              kind:
+                Ident:
+                  name: x
+                  ty: ~
+            rhs:
+              kind:
+                BinOp:
+                  op: Add
+                  lhs:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  rhs:
+                    kind:
+                      Lit:
+                        value:
+                          UInt64: 1
+                        ty: ~
+                  ty: ~
+            ty: ~
+- (= x (+ x 1))
+

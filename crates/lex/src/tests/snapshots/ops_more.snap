@@ -1,0 +1,40 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 156
+expression: "(test[1], tokens)"
+---
+- x ^ 3 | 7 & 3
+- Ok:
+    - tt:
+        Ident: x
+      line: 1
+      column: 1
+    - tt:
+        Op: BitXor
+      line: 1
+      column: 3
+    - tt:
+        Num: "3"
+      line: 1
+      column: 5
+    - tt:
+        Op: BitOr
+      line: 1
+      column: 7
+    - tt:
+        Num: "7"
+      line: 1
+      column: 9
+    - tt:
+        Op: BitAnd
+      line: 1
+      column: 11
+    - tt:
+        Num: "3"
+      line: 1
+      column: 13
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 14
+

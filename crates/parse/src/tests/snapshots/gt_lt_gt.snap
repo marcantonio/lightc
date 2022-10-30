@@ -1,0 +1,35 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 169
+expression: "(test[1], ast, ast_string)"
+---
+- a + b > 40
+- Ok:
+    nodes:
+      - kind:
+          BinOp:
+            op: Gt
+            lhs:
+              kind:
+                BinOp:
+                  op: Add
+                  lhs:
+                    kind:
+                      Ident:
+                        name: a
+                        ty: ~
+                  rhs:
+                    kind:
+                      Ident:
+                        name: b
+                        ty: ~
+                  ty: ~
+            rhs:
+              kind:
+                Lit:
+                  value:
+                    UInt64: 40
+                  ty: ~
+            ty: ~
+- (> (+ a b) 40)
+

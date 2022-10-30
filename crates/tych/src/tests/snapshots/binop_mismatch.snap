@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 154
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    2.0 + 1\n}\n"
+- Err: Literal is a float in an integer context
+

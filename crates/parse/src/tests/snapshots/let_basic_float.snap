@@ -1,0 +1,20 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 225
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: float = 1.0"
+- Ok:
+    nodes:
+      - kind:
+          Let:
+            name: x
+            antn: Float
+            init:
+              kind:
+                Lit:
+                  value:
+                    Float: 1.0
+                  ty: ~
+- "(let x:float 1)"
+

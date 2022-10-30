@@ -1,0 +1,51 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 760
+expression: "(test[1], res)"
+---
+- "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: foo
+              args:
+                - - a
+                  - Int32
+              ret_ty: Int32
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: b
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                    - kind:
+                        Block:
+                          list:
+                            - kind:
+                                Let:
+                                  name: b
+                                  antn: Bool
+                                  init:
+                                    kind:
+                                      Lit:
+                                        value:
+                                          Bool: false
+                                        ty: Bool
+                          ty: Void
+                    - kind:
+                        Ident:
+                          name: b
+                          ty: Int32
+                  ty: Int32
+

@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 375
+expression: "(test[1], ast, ast_string)"
+---
+- "\nstruct Foo {}\nstruct Foo {}\n"
+- Err:
+    message: "struct `Foo` already defined"
+    line: 3
+    column: 1
+- "struct `Foo` already defined at 3:1"
+

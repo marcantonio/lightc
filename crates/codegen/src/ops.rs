@@ -222,18 +222,18 @@ impl<'ctx> Codegen<'ctx> {
         Ok(self.builder.build_int_cast(inst, self.context.bool_type(), "cmp.bool").as_basic_value_enum())
     }
 
-    pub(super) fn assign(&mut self, lhs: HirNode, rhs: BasicValueEnum<'ctx>) -> OpResult<'ctx> {
+    pub(super) fn assign(&mut self, lhs: hir::Node, rhs: BasicValueEnum<'ctx>) -> OpResult<'ctx> {
         use hir::node::Kind::*;
 
         let lhs_var = match lhs.kind {
-            Ident(e) => self
+            Ident { name, .. } => self
                 .symbol_table
-                .get(&e.name)
-                .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", e.name))
+                .get(&name)
+                .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name))
                 .pointer()
                 .expect("missing pointer on symbol"),
-            Index(e) => {
-                let (_, element_ptr) = self.get_array_element(*e.binding, *e.idx)?;
+            Index { binding, idx, .. } => {
+                let (_, element_ptr) = self.get_array_element(*binding, *idx)?;
                 element_ptr
             },
             _ => unreachable!("bad LHS in codegen assignment: `{}`", lhs),

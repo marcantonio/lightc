@@ -1,0 +1,129 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 475
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: [int32; 3] = [1, 2, 3]\n    x[0]\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x[0]\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn:
+                            Array:
+                              - Int32
+                              - 3
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Array:
+                                    elements:
+                                      - kind:
+                                          Lit:
+                                            value:
+                                              Int32: 1
+                                            ty: Int32
+                                      - kind:
+                                          Lit:
+                                            value:
+                                              Int32: 2
+                                            ty: Int32
+                                      - kind:
+                                          Lit:
+                                            value:
+                                              Int32: 3
+                                            ty: Int32
+                                    inner_ty: Int32
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                    - kind:
+                        Index:
+                          binding:
+                            kind:
+                              Ident:
+                                name: x
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                          idx:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                          ty: Int32
+                    - kind:
+                        For:
+                          start_name: x
+                          start_antn: Int8
+                          start_expr:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                          cond_expr:
+                            kind:
+                              BinOp:
+                                op: Lt
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: x
+                                      ty: Int8
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int8: 2
+                                      ty: Int8
+                                ty: Bool
+                          step_expr:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                          body:
+                            kind:
+                              Block:
+                                list:
+                                  - kind:
+                                      Ident:
+                                        name: x
+                                        ty: Int8
+                                ty: Int8
+                    - kind:
+                        Index:
+                          binding:
+                            kind:
+                              Ident:
+                                name: x
+                                ty:
+                                  Array:
+                                    - Int32
+                                    - 3
+                          idx:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
+

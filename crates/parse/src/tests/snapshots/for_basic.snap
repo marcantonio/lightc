@@ -1,0 +1,51 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 101
+expression: "(test[1], ast, ast_string)"
+---
+- "for x: int = 1; x < 10; 1 { foo }"
+- Ok:
+    nodes:
+      - kind:
+          For:
+            start_name: x
+            start_antn: Int32
+            start_expr:
+              kind:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+            cond_expr:
+              kind:
+                BinOp:
+                  op: Lt
+                  lhs:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  rhs:
+                    kind:
+                      Lit:
+                        value:
+                          UInt64: 10
+                        ty: ~
+                  ty: ~
+            step_expr:
+              kind:
+                Lit:
+                  value:
+                    UInt64: 1
+                  ty: ~
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
+- "(for (x: int32 1) (< x 10) 1 '(foo))"
+

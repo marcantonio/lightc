@@ -12,15 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ast"
-version = "0.0.0"
-dependencies = [
- "common",
- "serde",
- "symbol_table",
-]
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -107,18 +98,16 @@ dependencies = [
 name = "codegen"
 version = "0.0.0"
 dependencies = [
- "ast",
  "common",
  "either",
- "hir",
  "inkwell",
  "insta",
- "lexer",
+ "lex",
  "llvm-sys",
- "parser",
+ "lower",
+ "parse",
  "serde",
- "symbol_table",
- "type_checker",
+ "tych",
 ]
 
 [[package]]
@@ -204,20 +193,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hir"
-version = "0.0.0"
-dependencies = [
- "ast",
- "common",
- "insta",
- "lexer",
- "parser",
- "serde",
- "symbol_table",
- "type_checker",
-]
-
-[[package]]
 name = "indexmap"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -288,7 +263,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lexer"
+name = "lex"
 version = "0.0.0"
 dependencies = [
  "common",
@@ -309,12 +284,11 @@ dependencies = [
  "clap",
  "codegen",
  "common",
- "hir",
- "lexer",
- "parser",
- "symbol_table",
+ "lex",
+ "lower",
+ "parse",
  "tempfile",
- "type_checker",
+ "tych",
 ]
 
 [[package]]
@@ -353,6 +327,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "lower"
+version = "0.0.0"
+dependencies = [
+ "common",
+ "insta",
+ "lex",
+ "parse",
+ "serde",
+ "tych",
 ]
 
 [[package]]
@@ -397,15 +383,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "parser"
+name = "parse"
 version = "0.0.0"
 dependencies = [
- "ast",
  "common",
  "insta",
- "lexer",
+ "lex",
  "serde",
- "symbol_table",
 ]
 
 [[package]]
@@ -574,13 +558,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
-name = "symbol_table"
-version = "0.0.0"
-dependencies = [
- "common",
-]
-
-[[package]]
 name = "syn"
 version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -631,16 +608,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
-name = "type_checker"
+name = "tych"
 version = "0.0.0"
 dependencies = [
- "ast",
  "common",
  "insta",
- "lexer",
- "parser",
+ "lex",
+ "parse",
  "serde",
- "symbol_table",
 ]
 
 [[package]]

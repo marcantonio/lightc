@@ -1,12 +1,9 @@
-use ast::Prototype;
 use inkwell::values::PointerValue;
 use std::collections::HashMap;
 
-use common::Type;
-use symbol_table::symbol::{AssocData, VarData};
-use symbol_table::{Symbol, SymbolTable, Symbolic};
-
 use crate::Codegen;
+use common::symbol_table::{AssocData, Symbolic, VarData};
+use common::{Prototype, Symbol, SymbolTable, Type};
 
 #[derive(PartialEq, Debug)]
 pub struct CodegenSymbol<'a> {

@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 530
-expression: "(test[1], res)"
----
-- "\nfn foo() {\n    let y: float = 1.0\n    let x: int = y\n}\n"
-- Err: "Types don't match in let statement. `x` annotated with `int32` but initial value is `float`"
-

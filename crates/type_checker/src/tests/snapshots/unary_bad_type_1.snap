@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 652
-expression: "(test[1], res)"
----
-- "\nfn foo() {\n    -false\n}\n"
-- Err: "Expected numeric type in unary operation `-`, got rhs: `bool`"
-

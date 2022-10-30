@@ -1,0 +1,146 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 47
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    let y: int\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: y
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - kind:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            kind:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            kind:
+                              BinOp:
+                                op: Add
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - kind:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            kind:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            kind:
+                              BinOp:
+                                op: Sub
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - kind:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            kind:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            kind:
+                              BinOp:
+                                op: Mul
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - kind:
+                        BinOp:
+                          op: Assign
+                          lhs:
+                            kind:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            kind:
+                              BinOp:
+                                op: Div
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: y
+                                      ty: Int32
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int32: 1
+                                      ty: Int32
+                                ty: Void
+                          ty: Void
+                    - kind:
+                        BinOp:
+                          op: LtEq
+                          lhs:
+                            kind:
+                              Ident:
+                                name: y
+                                ty: Int32
+                          rhs:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Bool
+                  ty: Bool
+

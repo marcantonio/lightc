@@ -1,0 +1,24 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 101
+expression: "(test[1], tokens)"
+---
+- x && y
+- Ok:
+    - tt:
+        Ident: x
+      line: 1
+      column: 1
+    - tt:
+        Op: And
+      line: 1
+      column: 3
+    - tt:
+        Ident: y
+      line: 1
+      column: 6
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 7
+

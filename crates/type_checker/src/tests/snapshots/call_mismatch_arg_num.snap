@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 238
-expression: "(test[1], res)"
----
-- "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1, 2)\n}\n"
-- Err: "Call to `plusOne()` takes 1 args and 2 were given"
-

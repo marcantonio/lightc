@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 211
+expression: "(test[1], ast, ast_string)"
+---
+- "if a > b { foo } else bar"
+- Err:
+    message: "Expecting `if` or `{` after `else`"
+    line: 1
+    column: 23
+- "Expecting `if` or `{` after `else` at 1:23"
+

@@ -1,0 +1,11 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 25
+expression: "(test[1], tokens)"
+---
+- "'mm'"
+- Err:
+    message: "Invalid character sequence: `'mm'`"
+    line: 1
+    column: 3
+

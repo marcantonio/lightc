@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 101
+expression: "(test[1], ast, ast_string)"
+---
+- "for a: int = 1"
+- Err:
+    message: "Expecting `;` after starting expression. Got `EOF`"
+    line: 0
+    column: 0
+- "Expecting `;` after starting expression. Got `EOF`"
+

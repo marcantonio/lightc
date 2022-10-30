@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 294
+expression: "(test[1], ast, ast_string)"
+---
+- "let x: [foo]"
+- Err:
+    message: "Expecting semicolon after `foo` in `let` type annotation. Got `CloseBracket`"
+    line: 1
+    column: 12
+- "Expecting semicolon after `foo` in `let` type annotation. Got `CloseBracket` at 1:12"
+

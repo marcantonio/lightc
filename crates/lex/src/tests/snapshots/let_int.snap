@@ -1,0 +1,34 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 120
+expression: "(test[1], tokens)"
+---
+- "let a: int = 1"
+- Ok:
+    - tt: Let
+      line: 1
+      column: 1
+    - tt:
+        Ident: a
+      line: 1
+      column: 5
+    - tt: Colon
+      line: 1
+      column: 6
+    - tt:
+        Ident: int
+      line: 1
+      column: 8
+    - tt:
+        Op: Assign
+      line: 1
+      column: 12
+    - tt:
+        Num: "1"
+      line: 1
+      column: 14
+    - tt:
+        Semicolon: true
+      line: 1
+      column: 15
+

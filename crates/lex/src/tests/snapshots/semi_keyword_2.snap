@@ -1,0 +1,11 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 172
+expression: "(test[1], tokens)"
+---
+- fn
+- Ok:
+    - tt: Fn
+      line: 1
+      column: 1
+

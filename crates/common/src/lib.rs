@@ -1,8 +1,15 @@
 use serde::Serialize;
 
-mod cli_args;
 pub use cli_args::CliArgs;
+pub use literal::Literal;
+pub use prototype::Prototype;
+pub use symbol_table::{Symbol, SymbolTable};
+
+mod cli_args;
+pub mod literal;
 mod macros;
+pub mod prototype;
+pub mod symbol_table;
 
 // A Operator is an extra layer of abstraction between TokenType::Op() and the
 // actual character. Convenient in Rust to help constrain matching.

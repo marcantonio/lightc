@@ -1,0 +1,11 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 25
+expression: "(test[1], tokens)"
+---
+- "'\\c'"
+- Err:
+    message: "Invalid character control sequence: `\\c`"
+    line: 1
+    column: 3
+

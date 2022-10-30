@@ -1,0 +1,11 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 25
+expression: "(test[1], tokens)"
+---
+- "'"
+- Err:
+    message: "Unterminated character literal. Expecting `'`, got `EOF`"
+    line: 1
+    column: 1
+

@@ -1,0 +1,27 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 494
+expression: "(test[1], res)"
+---
+- "\nfn foo(x: int) { x }\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: foo
+              args:
+                - - x
+                  - Int32
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Ident:
+                          name: x
+                          ty: Int32
+                  ty: Int32
+

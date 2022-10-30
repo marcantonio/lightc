@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 163
+expression: "(test[1], ast, ast_string)"
+---
+- "fn a(b: int b: int)"
+- Err:
+    message: "Expecting `,` or `)` in prototype. Got `b`"
+    line: 1
+    column: 13
+- "Expecting `,` or `)` in prototype. Got `b` at 1:13"
+

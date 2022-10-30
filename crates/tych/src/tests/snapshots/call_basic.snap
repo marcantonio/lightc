@@ -1,0 +1,60 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 238
+expression: "(test[1], res)"
+---
+- "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1)\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: plusOne
+              args:
+                - - x
+                  - Int32
+              ret_ty: Int32
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        BinOp:
+                          op: Add
+                          lhs:
+                            kind:
+                              Ident:
+                                name: x
+                                ty: Int32
+                          rhs:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Call:
+                          name: plusOne
+                          args:
+                            - kind:
+                                Lit:
+                                  value:
+                                    Int32: 1
+                                  ty: Int32
+                          ty: Int32
+                  ty: Int32
+

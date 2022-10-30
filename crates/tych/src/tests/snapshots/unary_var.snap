@@ -1,0 +1,40 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 580
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let xy: int8 = 1\n    -xy\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: xy
+                          antn: Int8
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                    - kind:
+                        UnOp:
+                          op: Sub
+                          rhs:
+                            kind:
+                              Ident:
+                                name: xy
+                                ty: Int8
+                          ty: Int8
+                  ty: Int8
+

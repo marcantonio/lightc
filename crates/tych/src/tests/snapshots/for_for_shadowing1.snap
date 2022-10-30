@@ -1,0 +1,76 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 475
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: int32 = 1\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: foo
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                    - kind:
+                        For:
+                          start_name: x
+                          start_antn: Int8
+                          start_expr:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                          cond_expr:
+                            kind:
+                              BinOp:
+                                op: Lt
+                                lhs:
+                                  kind:
+                                    Ident:
+                                      name: x
+                                      ty: Int8
+                                rhs:
+                                  kind:
+                                    Lit:
+                                      value:
+                                        Int8: 2
+                                      ty: Int8
+                                ty: Bool
+                          step_expr:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 1
+                                ty: Int8
+                          body:
+                            kind:
+                              Block:
+                                list:
+                                  - kind:
+                                      Ident:
+                                        name: x
+                                        ty: Int8
+                                ty: Int8
+                    - kind:
+                        Ident:
+                          name: x
+                          ty: Int32
+                  ty: Int32
+

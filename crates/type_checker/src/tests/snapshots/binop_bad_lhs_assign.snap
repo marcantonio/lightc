@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 156
-expression: "(test[1], res)"
----
-- "\nfn main(x: int) {\n    x + 1 = 1\n}\n"
-- Err: Expected LHS to be a variable for assignment
-

@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 652
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    -'c'\n}\n"
+- Err: "Expected numeric type in unary operation `-`, got rhs: `char`"
+

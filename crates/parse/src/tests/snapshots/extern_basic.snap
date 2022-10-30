@@ -1,0 +1,20 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 87
+expression: "(test[1], ast, ast_string)"
+---
+- "extern fn cos(x: float)"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: cos
+              args:
+                - - x
+                  - Float
+              ret_ty: Void
+              is_extern: true
+            body: ~
+- "(define (cos x:float))"
+

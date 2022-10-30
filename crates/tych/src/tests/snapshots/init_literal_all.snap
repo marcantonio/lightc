@@ -1,0 +1,179 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 680
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    let x: int\n    let x: int8\n    let x: int16\n    let x: int32\n    let x: int64\n    let x: uint\n    let x: uint8\n    let x: uint16\n    let x: uint32\n    let x: uint64\n    let x: float\n    let x: double\n    let x: char\n    let x: bool\n    let x: [bool; 3]\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int8
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int8: 0
+                                ty: Int8
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int16
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int16: 0
+                                ty: Int16
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Int64
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int64: 0
+                                ty: Int64
+                    - kind:
+                        Let:
+                          name: x
+                          antn: UInt32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt32: 0
+                                ty: UInt32
+                    - kind:
+                        Let:
+                          name: x
+                          antn: UInt8
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt8: 0
+                                ty: UInt8
+                    - kind:
+                        Let:
+                          name: x
+                          antn: UInt16
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt16: 0
+                                ty: UInt16
+                    - kind:
+                        Let:
+                          name: x
+                          antn: UInt32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt32: 0
+                                ty: UInt32
+                    - kind:
+                        Let:
+                          name: x
+                          antn: UInt64
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt64: 0
+                                ty: UInt64
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Float
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Float: 0.0
+                                ty: Float
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Double
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Double: 0.0
+                                ty: Double
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Char
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Char: 0
+                                ty: Char
+                    - kind:
+                        Let:
+                          name: x
+                          antn: Bool
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Bool: false
+                                ty: Bool
+                    - kind:
+                        Let:
+                          name: x
+                          antn:
+                            Array:
+                              - Bool
+                              - 3
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Array:
+                                    elements: []
+                                    inner_ty: Bool
+                                ty:
+                                  Array:
+                                    - Bool
+                                    - 3
+                  ty: Void
+

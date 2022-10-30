@@ -1,0 +1,45 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 211
+expression: "(test[1], ast, ast_string)"
+---
+- "\nif a > b {\n    foo\n} else {\n    bar\n}"
+- Ok:
+    nodes:
+      - kind:
+          Cond:
+            cond_expr:
+              kind:
+                BinOp:
+                  op: Gt
+                  lhs:
+                    kind:
+                      Ident:
+                        name: a
+                        ty: ~
+                  rhs:
+                    kind:
+                      Ident:
+                        name: b
+                        ty: ~
+                  ty: ~
+            then_block:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Ident:
+                          name: foo
+                          ty: ~
+                  ty: ~
+            else_block:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Ident:
+                          name: bar
+                          ty: ~
+                  ty: ~
+            ty: ~
+- "(if (> a b) '(foo) '(bar))"

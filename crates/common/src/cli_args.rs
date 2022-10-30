@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use clap::Parser as Clap;
+use std::path::PathBuf;
 
 #[derive(Clap, Debug)]
 pub struct CliArgs {

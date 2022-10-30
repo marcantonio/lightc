@@ -1,16 +1,14 @@
+use clap::Parser as Clap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs, process};
 
-use clap::Parser as Clap;
-
 use codegen::Codegen;
-use common::CliArgs;
-use hir::Hir;
-use lexer::Lexer;
-use parser::Parser;
-use symbol_table::SymbolTable;
-use type_checker::TypeChecker;
+use common::{CliArgs, SymbolTable};
+use lex::Lex;
+use lower::Lower;
+use parse::Parse;
+use tych::Tych;
 
 fn main() {
     let args = CliArgs::parse();
@@ -20,7 +18,7 @@ fn main() {
     let mut symbol_table = SymbolTable::new();
 
     // Lexer
-    let tokens = Lexer::new(&source).scan().unwrap_or_else(|e| {
+    let tokens = Lex::new(&source).scan().unwrap_or_else(|e| {
         eprintln!("Lexing error: {}", e);
         process::exit(1);
     });
@@ -32,7 +30,7 @@ fn main() {
     }
 
     // Parser
-    let parser = Parser::new(&tokens, &mut symbol_table);
+    let parser = Parse::new(&tokens, &mut symbol_table);
     let ast = parser.parse().unwrap_or_else(|e| {
         eprintln!("Parsing error: {}", e);
         process::exit(1);
@@ -47,7 +45,7 @@ fn main() {
     }
 
     // Type checker
-    let typed_ast = TypeChecker::new(&mut symbol_table).walk(ast).unwrap_or_else(|e| {
+    let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap_or_else(|e| {
         eprintln!("Type checking error: {}", e);
         process::exit(1);
     });
@@ -60,8 +58,8 @@ fn main() {
         println!();
     }
 
-    // HIR
-    let hir = Hir::new(&mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
+    // Lower
+    let hir = Lower::new(&mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
         eprintln!("Lowering error: {}", e);
         process::exit(1);
     });

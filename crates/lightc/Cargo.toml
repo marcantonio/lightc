@@ -9,8 +9,7 @@ tempfile = "3.3.0"
 
 codegen = { path = "../codegen" }
 common = { path = "../common" }
-hir = { path = "../hir" }
-lexer = { path = "../lexer" }
-parser = { path = "../parser" }
-symbol_table = { path = "../symbol_table" }
-type_checker = { path = "../type_checker" }
+lower = { path = "../lower" }
+lex = { path = "../lex" }
+parse = { path = "../parse" }
+tych = { path = "../tych" }

@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 156
+expression: "(test[1], res)"
+---
+- "\nfn main(x: int) {\n    1.0 || true\n}\n"
+- Err: Literal is a float in a bool context
+

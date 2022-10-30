@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 723
+expression: "(test[1], res)"
+---
+- "let x: [int; 3] = [1, 2.0, 3]"
+- Err: Literal is a float in an integer context
+

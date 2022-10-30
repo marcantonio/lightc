@@ -1,0 +1,22 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 163
+expression: "(test[1], ast, ast_string)"
+---
+- "fn a() {}"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: a
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list: []
+                  ty: ~
+- "(define (a) '()))"
+

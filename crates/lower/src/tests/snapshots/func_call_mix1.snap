@@ -1,0 +1,55 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 119
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    foo()\n}\n\nfn foo() {}\n\nfn bar() {\n    foo()\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Call:
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                  ty: Void
+      - kind:
+          Fn:
+            proto:
+              name: _foo~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list: []
+                  ty: Void
+      - kind:
+          Fn:
+            proto:
+              name: _bar~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Call:
+                          name: _foo~void
+                          args: []
+                          ty: Void
+                  ty: Void
+

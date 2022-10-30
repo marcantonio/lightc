@@ -1,8 +1,0 @@
----
-source: crates/type_checker/src/tests.rs
-assertion_line: 369
-expression: "(test[1], res)"
----
-- "\nfn foo(a: int, b: float) -> int { }\n"
-- Err: "Function `foo` should return type `int32` but last statement is `void`"
-

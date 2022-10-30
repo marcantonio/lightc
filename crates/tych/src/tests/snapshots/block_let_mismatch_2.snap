@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 186
+expression: "(test[1], res)"
+---
+- "\nfn foo() {\n    let x: int = {\n        11.0\n        foo()\n    }\n}\n"
+- Err: "Types don't match in let statement. `x` annotated with `int32` but initial value is `void`"
+

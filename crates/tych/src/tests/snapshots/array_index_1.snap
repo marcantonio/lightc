@@ -1,0 +1,59 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 653
+expression: "(test[1], res)"
+---
+- "\nlet x: [int; 3] = [1, 2, 3]\nx[0]\n"
+- Ok:
+    nodes:
+      - kind:
+          Let:
+            name: x
+            antn:
+              Array:
+                - Int32
+                - 3
+            init:
+              kind:
+                Lit:
+                  value:
+                    Array:
+                      elements:
+                        - kind:
+                            Lit:
+                              value:
+                                Int32: 1
+                              ty: Int32
+                        - kind:
+                            Lit:
+                              value:
+                                Int32: 2
+                              ty: Int32
+                        - kind:
+                            Lit:
+                              value:
+                                Int32: 3
+                              ty: Int32
+                      inner_ty: Int32
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
+      - kind:
+          Index:
+            binding:
+              kind:
+                Ident:
+                  name: x
+                  ty:
+                    Array:
+                      - Int32
+                      - 3
+            idx:
+              kind:
+                Lit:
+                  value:
+                    Int32: 0
+                  ty: Int32
+            ty: Int32
+

@@ -1,30 +1,29 @@
-use hir::Hir;
-use lexer::Lexer;
-use parser::Parser;
-use type_checker::TypeChecker;
-
 use super::*;
+use lex::Lex;
+use lower::Lower;
+use parse::Parse;
+use tych::Tych;
 
 macro_rules! run_insta {
     ($prefix:expr, $tests:expr) => {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 // Unoptimized code
-                let tokens = Lexer::new(test[1]).scan().unwrap();
+                let tokens = Lex::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
+                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
                 let args = CliArgs::new();
                 let res = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 // Optimized code
-                let tokens = Lexer::new(test[1]).scan().unwrap();
+                let tokens = Lex::new(test[1]).scan().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parser::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = TypeChecker::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Hir::new(&mut symbol_table).walk(tyst).unwrap();
+                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
+                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
                 let res_opt = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)

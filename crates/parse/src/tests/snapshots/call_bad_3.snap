@@ -1,0 +1,12 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 75
+expression: "(test[1], ast, ast_string)"
+---
+- "a(a,"
+- Err:
+    message: "Expecting `)` in function call. Got `EOF`"
+    line: 0
+    column: 0
+- "Expecting `)` in function call. Got `EOF`"
+
