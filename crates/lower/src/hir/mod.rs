@@ -7,24 +7,38 @@ pub mod node;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Hir<T: VisitableNode> {
-    nodes: Vec<T>,
+    functions: Vec<T>,
+    structs: Vec<T>,
+    prototypes: Vec<Prototype>,
 }
 
 impl<T: VisitableNode> Hir<T> {
     pub fn new() -> Self {
-        Hir { nodes: vec![] }
+        Hir { functions: vec![], structs: vec![], prototypes: vec![] }
     }
 
-    pub fn add(&mut self, node: T) {
-        self.nodes.push(node)
+    pub fn add_struct(&mut self, node: T) {
+        self.structs.push(node)
     }
 
-    pub fn nodes(&self) -> &[T] {
-        &self.nodes
+    pub fn add_function(&mut self, node: T) {
+        self.functions.push(node);
     }
 
-    pub fn into_nodes(self) -> Vec<T> {
-        self.nodes
+    pub fn add_prototype(&mut self, proto: Prototype) {
+        self.prototypes.push(proto);
+    }
+
+    pub fn into_components(self) -> (Vec<T>, Vec<T>, Vec<Prototype>) {
+        (self.structs, self.functions, self.prototypes)
+    }
+
+    pub fn functions(&self) -> &[T] {
+        &self.functions
+    }
+
+    pub fn structs(&self) -> &[T] {
+        &self.structs
     }
 }
 
@@ -47,7 +61,6 @@ pub trait Visitor {
     ) -> Self::Result;
     fn visit_let(&mut self, name: String, antn: Type, init: Option<Node>) -> Self::Result;
     fn visit_fn(&mut self, proto: Prototype, body: Option<Node>) -> Self::Result;
-    fn visit_struct(&mut self, name: String, fields: Vec<Node>, methods: Vec<Node>) -> Self::Result;
     fn visit_lit(&mut self, value: Literal<Node>, ty: Option<Type>) -> Self::Result;
     fn visit_ident(&mut self, name: String, ty: Option<Type>) -> Self::Result;
     fn visit_binop(&mut self, op: Operator, lhs: Node, rhs: Node, ty: Option<Type>) -> Self::Result;

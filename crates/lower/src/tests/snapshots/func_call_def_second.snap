@@ -1,11 +1,11 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 119
+assertion_line: 130
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    foo()\n}\n\nfn foo() {}\n"
 - Ok:
-    nodes:
+    functions:
       - kind:
           Fn:
             proto:
@@ -35,4 +35,14 @@ expression: "(test[1], res)"
                 Block:
                   list: []
                   ty: Void
+    structs: []
+    prototypes:
+      - name: main
+        args: []
+        ret_ty: Void
+        is_extern: false
+      - name: _foo~void
+        args: []
+        ret_ty: Void
+        is_extern: false
 

@@ -4,7 +4,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::targets::{FileType, InitializationConfig, Target, TargetMachine};
-use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType};
+use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 use lower::hir::{VisitableNode, Visitor};
@@ -77,7 +77,6 @@ impl<'ctx> Codegen<'ctx> {
             require_main: !args.compile_only,
         };
 
-        codegen.insert_prototypes()?;
         codegen.walk(hir)?;
 
         // This flag is just for the test suite
@@ -150,9 +149,20 @@ impl<'ctx> Codegen<'ctx> {
 
     // Iterate over all nodes and codegen
     pub fn walk(&mut self, hir: Hir<hir::Node>) -> Result<(), String> {
-        for node in hir.into_nodes() {
+        let (structs, functions, prototypes) = hir.into_components();
+
+        // Do structs first to all types are complete
+        self.codegen_all_structs(structs)?;
+
+        // Do prototypes next so declaration order doesn't matter
+        self.codegen_all_prototypes(prototypes)?;
+
+        // Do the rest
+        for node in functions {
             node.accept(self)?;
         }
+
+        // Ensure main exists if this is a standalone executable
         if self.require_main && self.main.is_none() {
             Err("Function main() required in executable and not found".to_string())
         } else {
@@ -160,47 +170,70 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn codegen_proto(&self, proto: &Prototype) -> Result<FunctionValue<'ctx>, String> {
-        let args_type = proto
-            .args()
+    // Codegen all structs to ensure that declaration order doesn't matter
+    fn codegen_all_structs(&self, structs: Vec<hir::Node>) -> Result<(), String> {
+        let struct_parts = structs
             .iter()
-            .map(|x| {
-                let (_, ty) = x;
-                match self.get_llvm_ty(ty) {
-                    AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
-                    AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
-                    AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
-                    ty => unreachable!(
-                        "unsupported argument type `{}` in prototype `{}()`",
-                        ty.print_to_string(),
-                        proto.name(),
-                    ),
+            .map(|node| {
+                if let hir::node::Kind::Struct { name, field_tys } = &node.kind {
+                    (self.context.opaque_struct_type(&name), field_tys)
+                } else {
+                    unreachable!("invalid node in struct list")
                 }
             })
-            .collect::<Vec<BasicMetadataTypeEnum>>();
+            .collect::<Vec<_>>();
+        dbg!(&self.symbol_table);
+        for (opaque_struct, field_tys) in struct_parts {
+            let fields = field_tys.iter().map(|ty| self.get_llvm_basic_type(ty)).collect::<Vec<_>>();
+            opaque_struct.set_body(&fields, false);
+        }
 
-        // Generate function based on return type
-        let func_type = match self.get_llvm_ty(proto.ret_ty()) {
-            AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_type, false),
-            AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
-            AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
-            ty => unreachable!(
-                "unsupported return type `{}` in prototype `{}()`",
-                ty.print_to_string(),
-                proto.name(),
-            ),
-        };
+        Ok(())
+    }
 
-        // Add function to current module's symbol table. Defaults to external
-        // linkage with None.
-        let func = self.module.add_function(proto.name(), func_type, None);
+    // Codegen all prototypes to ensure that call order doesn't matter
+    fn codegen_all_prototypes(&self, prototypes: Vec<Prototype>) -> Result<(), String> {
+        for proto in prototypes {
+            let args_type = proto
+                .args()
+                .iter()
+                .map(|x| {
+                    let (_, ty) = x;
+                    match self.get_llvm_any_type(ty) {
+                        AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
+                        AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
+                        AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
+                        ty => unreachable!(
+                            "unsupported argument type `{}` in prototype `{}()`",
+                            ty.print_to_string(),
+                            proto.name(),
+                        ),
+                    }
+                })
+                .collect::<Vec<BasicMetadataTypeEnum>>();
 
-        // Name all args
-        func.get_param_iter().enumerate().for_each(|(i, arg)| {
-            arg.set_name(&proto.args()[i].0);
-        });
+            // Generate function based on return type
+            let func_type = match self.get_llvm_any_type(proto.ret_ty()) {
+                AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_type, false),
+                AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
+                AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
+                ty => unreachable!(
+                    "unsupported return type `{}` in prototype `{}()`",
+                    ty.print_to_string(),
+                    proto.name(),
+                ),
+            };
 
-        Ok(func)
+            // Add function to current module's symbol table. Defaults to external
+            // linkage with None.
+            let func = self.module.add_function(proto.name(), func_type, None);
+
+            // Name all args
+            func.get_param_iter().enumerate().for_each(|(i, arg)| {
+                arg.set_name(&proto.args()[i].0);
+            });
+        }
+        Ok(())
     }
 
     // Codegen variable initializers. Match combinations of init presence and type. When
@@ -260,7 +293,7 @@ impl<'ctx> Codegen<'ctx> {
             },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
             Type::Array(ty, sz) => {
-                let array_ty = match self.get_llvm_ty(&ty.as_ref().clone()) {
+                let array_ty = match self.get_llvm_any_type(&ty.as_ref().clone()) {
                     AnyTypeEnum::FloatType(ty) => (ty.as_basic_type_enum(), sz),
                     AnyTypeEnum::IntType(ty) => (ty.as_basic_type_enum(), sz),
                     _ => todo!(),
@@ -309,38 +342,34 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn get_llvm_ty(&self, ty: &Type) -> AnyTypeEnum<'ctx> {
+    fn get_llvm_basic_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
         match ty {
-            int8_types!() | Type::Char => self.context.i8_type().as_any_type_enum(),
-            int16_types!() => self.context.i16_type().as_any_type_enum(),
-            int32_types!() => self.context.i32_type().as_any_type_enum(),
-            int64_types!() => self.context.i64_type().as_any_type_enum(),
-            Type::Float => self.context.f32_type().as_any_type_enum(),
-            Type::Double => self.context.f64_type().as_any_type_enum(),
-            Type::Bool => self.context.bool_type().as_any_type_enum(),
-            Type::Void => self.context.void_type().as_any_type_enum(),
+            int8_types!() | Type::Char => self.context.i8_type().as_basic_type_enum(),
+            int16_types!() => self.context.i16_type().as_basic_type_enum(),
+            int32_types!() => self.context.i32_type().as_basic_type_enum(),
+            int64_types!() => self.context.i64_type().as_basic_type_enum(),
+            Type::Float => self.context.f32_type().as_basic_type_enum(),
+            Type::Double => self.context.f64_type().as_basic_type_enum(),
+            Type::Bool => self.context.bool_type().as_basic_type_enum(),
             Type::Array(ty, size) => {
                 let size = (*size).try_into().expect("this is embarrassing");
-                match self.get_llvm_ty(ty) {
-                    AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_any_type_enum(),
-                    AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_any_type_enum(),
-                    AnyTypeEnum::IntType(ty) => ty.array_type(size).as_any_type_enum(),
+                match self.get_llvm_any_type(ty) {
+                    AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_basic_type_enum(),
+                    AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_basic_type_enum(),
+                    AnyTypeEnum::IntType(ty) => ty.array_type(size).as_basic_type_enum(),
                     _ => todo!(),
                 }
             },
             Type::Comp(_) => todo!(),
+            Type::Void => unreachable!("void can't be coerced into LLVM basic type"),
         }
     }
 
-    // Codegen all prototypes outside of the AST to ensure that call order doesn't matter
-    fn insert_prototypes(&self) -> Result<(), String> {
-        let mut keys = self.symbol_table.global_keys().collect::<Vec<_>>();
-        keys.sort();
-        for key in keys {
-            let sym = self.symbol_table.get(key).unwrap();
-            self.codegen_proto(&sym.into())?;
+    fn get_llvm_any_type(&self, ty: &Type) -> AnyTypeEnum<'ctx> {
+        match ty {
+            Type::Void => self.context.void_type().as_any_type_enum(),
+            _ => self.get_llvm_basic_type(ty).as_any_type_enum(),
         }
-        Ok(())
     }
 }
 
@@ -526,12 +555,6 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
-    fn visit_struct(
-        &mut self, _name: String, _fields: Vec<hir::Node>, _methods: Vec<hir::Node>,
-    ) -> Self::Result {
-        unreachable!("no structs in codegen")
-    }
-
     fn visit_lit(&mut self, value: Literal<hir::Node>, _ty: Option<Type>) -> Self::Result {
         use Literal::*;
 
@@ -553,7 +576,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
                 for el in elements {
                     vals.push(self.visit_node(el)?.unwrap());
                 }
-                match self.get_llvm_ty(&inner_ty.as_ref().cloned().unwrap()) {
+                match self.get_llvm_any_type(&inner_ty.as_ref().cloned().unwrap()) {
                     AnyTypeEnum::FloatType(ty) => {
                         let vals = vals.iter().map(|v| v.into_float_value()).collect::<Vec<_>>();
                         ty.const_array(&vals).as_basic_value_enum()

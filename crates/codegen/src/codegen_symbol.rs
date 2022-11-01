@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::Codegen;
 use common::symbol_table::{AssocData, Symbolic, VarData};
-use common::{Prototype, Symbol, SymbolTable, Type};
+use common::{Symbol, SymbolTable, Type};
 
 #[derive(PartialEq, Debug)]
 pub struct CodegenSymbol<'a> {
@@ -42,20 +42,20 @@ impl<'a> From<Symbol> for CodegenSymbol<'a> {
     }
 }
 
-impl<'a> From<&CodegenSymbol<'a>> for Prototype {
-    fn from(sym: &CodegenSymbol) -> Self {
-        let sym = &sym.inner;
-        Prototype::new(
-            sym.name().to_owned(),
-            sym.args()
-                .iter()
-                .map(|(n, ty)| ((*n).to_owned(), (*ty).to_owned()))
-                .collect::<Vec<(String, Type)>>(),
-            sym.ret_ty().to_owned(),
-            sym.is_extern(),
-        )
-    }
-}
+// impl<'a> From<&CodegenSymbol<'a>> for Prototype {
+//     fn from(sym: &CodegenSymbol) -> Self {
+//         let sym = &sym.inner;
+//         Prototype::new(
+//             sym.name().to_owned(),
+//             sym.args()
+//                 .iter()
+//                 .map(|(n, ty)| ((*n).to_owned(), (*ty).to_owned()))
+//                 .collect::<Vec<(String, Type)>>(),
+//             sym.ret_ty().to_owned(),
+//             sym.is_extern(),
+//         )
+//     }
+// }
 
 impl<'ctx> Codegen<'ctx> {
     pub fn convert_table(mut old: SymbolTable<Symbol>) -> Result<SymbolTable<CodegenSymbol<'ctx>>, String> {

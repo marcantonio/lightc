@@ -31,7 +31,7 @@ impl Node {
     }
 
     pub fn new_fn(proto: Prototype, body: Option<Node>) -> Self {
-        Self { kind: Kind::Fn { proto: Box::new(proto), body: body.map(Box::new) } }
+        Self { kind: Kind::Fn { proto, body: body.map(Box::new) } }
     }
 
     pub fn new_struct(name: String, fields: Vec<Node>, methods: Vec<Node>) -> Self {
@@ -132,7 +132,7 @@ pub enum Kind {
         init: Option<Box<Node>>,
     },
     Fn {
-        proto: Box<Prototype>,
+        proto: Prototype,
         body: Option<Box<Node>>,
     },
     Struct {
@@ -191,7 +191,7 @@ impl VisitableNode for Node {
                 v.visit_for(start_name, start_antn, start_expr.map(|x| *x), *cond_expr, *step_expr, *body)
             },
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
-            Fn { proto, body } => v.visit_fn(*proto, body.map(|x| *x)),
+            Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Struct { name, fields, methods } => v.visit_struct(name, fields, methods),
             Lit { value, ty } => v.visit_lit(value, ty),
             Ident { name, ty } => v.visit_ident(name, ty),

@@ -46,7 +46,7 @@ fn main() {
     //let mm: Foo
 }
 
-// struct Foo {
-//     let a: int
-//     let b: float = 1.0
-// }
+struct Foo {
+    let a: int
+    let b: float
+}

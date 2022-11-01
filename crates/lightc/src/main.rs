@@ -65,8 +65,13 @@ fn main() {
     });
 
     if args.show_hir {
-        println!("HIR:");
-        for node in hir.nodes() {
+        println!("HIR:\nstructs");
+        for node in hir.structs() {
+            println!("{}", node);
+        }
+        println!();
+        println!("functions");
+        for node in hir.functions() {
             println!("{}", node);
         }
         println!();

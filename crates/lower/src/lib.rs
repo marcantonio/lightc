@@ -8,6 +8,7 @@ pub mod hir;
 mod tests;
 
 // Performs the following:
+// - builds the HIR
 // - desugars x += 1 to x = x + 1
 // - cooks function names in the AST and symbol table
 // - tracks scope (needed?)
@@ -25,7 +26,14 @@ impl<'a> Lower<'a> {
         let mut hir = Hir::new();
         for node in ast.into_nodes() {
             let lowered_node = node.accept(&mut self)?;
-            hir.add(lowered_node)
+            match lowered_node.kind {
+                hir::node::Kind::Struct { .. } => hir.add_struct(lowered_node),
+                hir::node::Kind::Fn { ref proto, .. } => {
+                    hir.add_prototype(proto.clone());
+                    hir.add_function(lowered_node);
+                },
+                _ => unreachable!("invalid node kind at global level"),
+            }
         }
         Ok(hir)
     }
@@ -121,9 +129,16 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_struct(
-        &mut self, _name: String, _fields: Vec<ast::Node>, _methods: Vec<ast::Node>,
+        &mut self, name: String, fields: Vec<ast::Node>, _methods: Vec<ast::Node>,
     ) -> Self::Result {
-        todo!()
+        let field_tys = fields
+            .into_iter()
+            .map(|n| match n.kind {
+                ast::node::Kind::Let { antn, .. } => antn,
+                _ => unreachable!("invalid node type in struct fields"),
+            })
+            .collect();
+        Ok(hir::Node::new_struct(name, field_tys))
     }
 
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {

@@ -31,11 +31,11 @@ impl Node {
     }
 
     pub fn new_fn(proto: Prototype, body: Option<Node>) -> Self {
-        Self { kind: Kind::Fn { proto: Box::new(proto), body: body.map(Box::new) } }
+        Self { kind: Kind::Fn { proto, body: body.map(Box::new) } }
     }
 
-    pub fn new_struct(name: String, fields: Vec<Node>, methods: Vec<Node>) -> Self {
-        Self { kind: Kind::Struct { name, fields, methods } }
+    pub fn new_struct(name: String, field_tys: Vec<Type>) -> Self {
+        Self { kind: Kind::Struct { name, field_tys } }
     }
 
     pub fn new_lit(value: Literal<Node>, ty: Option<Type>) -> Self {
@@ -132,13 +132,12 @@ pub enum Kind {
         init: Option<Box<Node>>,
     },
     Fn {
-        proto: Box<Prototype>,
+        proto: Prototype,
         body: Option<Box<Node>>,
     },
     Struct {
         name: String,
-        fields: Vec<Node>,
-        methods: Vec<Node>,
+        field_tys: Vec<Type>,
     },
     // Expressions
     Lit {
@@ -191,8 +190,7 @@ impl VisitableNode for Node {
                 v.visit_for(start_name, start_antn, start_expr.map(|x| *x), *cond_expr, *step_expr, *body)
             },
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
-            Fn { proto, body } => v.visit_fn(*proto, body.map(|x| *x)),
-            Struct { name, fields, methods } => v.visit_struct(name, fields, methods),
+            Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Lit { value, ty } => v.visit_lit(value, ty),
             Ident { name, ty } => v.visit_ident(name, ty),
             BinOp { op, lhs, rhs, ty } => v.visit_binop(op, *lhs, *rhs, ty),
@@ -203,6 +201,7 @@ impl VisitableNode for Node {
             },
             Block { list, ty } => v.visit_block(list, ty),
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
+            _ => unreachable!("invalid node kind visited"),
         }
     }
 }
@@ -230,26 +229,14 @@ impl Display for Node {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
-            Struct { name, fields, methods } => {
+            Struct { name, field_tys } => {
                 let mut attr_string = String::from("");
-                attr_string += &fields.iter().fold(String::new(), |mut acc, n| {
+                attr_string += &field_tys.iter().fold(String::new(), |mut acc, n| {
                     acc += &format!("{} ", n);
                     acc
                 });
 
-                let mut meth_string = String::from("");
-                meth_string += &methods.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!("{} ", n);
-                    acc
-                });
-
-                write!(
-                    f,
-                    "(struct {} '({}) '({}))",
-                    name,
-                    attr_string.strip_suffix(' ').unwrap_or(""),
-                    meth_string.strip_suffix(' ').unwrap_or("")
-                )
+                write!(f, "(struct {} '({}))", name, attr_string.strip_suffix(' ').unwrap_or(""),)
             },
             Lit { value, .. } => write!(f, "{}", value),
             Ident { name, .. } => write!(f, "{}", name),
