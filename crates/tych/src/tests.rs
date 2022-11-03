@@ -767,7 +767,7 @@ fn test_struct() {
             r#"
 struct Foo {
     let a: int
-    let b: float = 1.0
+    let b: float
 }
 "#,
         ],
@@ -787,12 +787,9 @@ struct Foo {
             r#"
 struct Foo {
     let a: int
-    let b: float = 1.0
+    let b: float
 
-    fn c() -> int {
-        a
-    }
-    fn d() {}
+    fn c() -> int { 1 }
 }
 "#,
         ],

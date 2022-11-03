@@ -1,9 +1,9 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 801
+assertion_line: 797
 expression: "(test[1], res)"
 ---
-- "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n\n    fn c() -> int {\n        a\n    }\n    fn d() {}\n}\n"
+- "\nstruct Foo {\n    let a: int\n    let b: float\n\n    fn c() -> int { 1 }\n}\n"
 - Ok:
     nodes:
       - kind:
@@ -14,22 +14,12 @@ expression: "(test[1], res)"
                   Let:
                     name: a
                     antn: Int32
-                    init:
-                      kind:
-                        Lit:
-                          value:
-                            Int32: 0
-                          ty: Int32
+                    init: ~
               - kind:
                   Let:
                     name: b
                     antn: Float
-                    init:
-                      kind:
-                        Lit:
-                          value:
-                            Float: 1.0
-                          ty: Float
+                    init: ~
             methods:
               - kind:
                   Fn:
@@ -43,20 +33,9 @@ expression: "(test[1], res)"
                         Block:
                           list:
                             - kind:
-                                Ident:
-                                  name: a
+                                Lit:
+                                  value:
+                                    Int32: 1
                                   ty: Int32
                           ty: Int32
-              - kind:
-                  Fn:
-                    proto:
-                      name: d
-                      args: []
-                      ret_ty: Void
-                      is_extern: false
-                    body:
-                      kind:
-                        Block:
-                          list: []
-                          ty: Void
 
