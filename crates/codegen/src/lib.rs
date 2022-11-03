@@ -182,7 +182,7 @@ impl<'ctx> Codegen<'ctx> {
                 }
             })
             .collect::<Vec<_>>();
-        dbg!(&self.symbol_table);
+
         for (opaque_struct, field_tys) in struct_parts {
             let fields = field_tys.iter().map(|ty| self.get_llvm_basic_type(ty)).collect::<Vec<_>>();
             opaque_struct.set_body(&fields, false);

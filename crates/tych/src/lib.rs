@@ -21,11 +21,13 @@ mod tests;
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     hint: Option<Type>,
+    // Remove this if struct fields get a dedicated visitor
+    in_struct: bool,
 }
 
 impl<'a> Tych<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Tych { symbol_table, hint: None }
+        Tych { symbol_table, hint: None, in_struct: false }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Ast<ast::Node>, String> {
@@ -164,9 +166,14 @@ impl<'a> ast::Visitor for Tych<'a> {
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
-        self.symbol_table.insert(Symbol::new_var(&name, &antn));
-        let init_node = self.check_var_init(&name, init.as_ref(), &antn, "let statement")?;
-        Ok(ast::Node::new_let(name, antn, Some(init_node)))
+        let init_node;
+        if !self.in_struct {
+            self.symbol_table.insert(Symbol::new_var(&name, &antn));
+            init_node = Some(self.check_var_init(&name, init.as_ref(), &antn, "let statement")?);
+        } else {
+            init_node = None;
+        }
+        Ok(ast::Node::new_let(name, antn, init_node))
     }
 
     fn visit_fn(&mut self, proto: Prototype, body: Option<ast::Node>) -> Self::Result {
@@ -225,10 +232,12 @@ impl<'a> ast::Visitor for Tych<'a> {
     fn visit_struct(
         &mut self, name: String, fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
+        self.in_struct = true;
         let mut chkd_fields = vec![];
         for node in fields {
             chkd_fields.push(self.check_node(node.clone(), None)?);
         }
+        self.in_struct = false;
 
         let mut chkd_methods = vec![];
         for node in methods {
