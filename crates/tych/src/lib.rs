@@ -20,6 +20,7 @@ mod tests;
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
+    types: Vec<String>,
     hint: Option<Type>,
     // Remove this if struct fields get a dedicated visitor
     in_struct: bool,
@@ -27,7 +28,9 @@ pub struct Tych<'a> {
 
 impl<'a> Tych<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Tych { symbol_table, hint: None, in_struct: false }
+        let mut types = Type::as_strings();
+        types.append(&mut symbol_table.types());
+        Tych { symbol_table, types, hint: None, in_struct: false }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Ast<ast::Node>, String> {
@@ -85,9 +88,7 @@ impl<'a> Tych<'a> {
     // Helper for variable initializations
     fn check_var_init(
         &mut self, name: &str, init: Option<&ast::Node>, antn: &Type, caller: &str,
-    ) -> Result<ast::Node, String> {
-        use Type::*;
-
+    ) -> Result<Option<ast::Node>, String> {
         // If init exists, make sure it matches the variable's annotation
         if let Some(init) = init {
             let init_node = self.check_node(init.clone(), Some(antn))?;
@@ -98,26 +99,14 @@ impl<'a> Tych<'a> {
                     caller, name, antn, init_ty
                 ));
             }
-            Ok(init_node)
+            Ok(Some(init_node))
         } else {
-            Ok(match antn {
-                Int8 => init_literal!(Int8, 0),
-                Int16 => init_literal!(Int16, 0),
-                Int32 => init_literal!(Int32, 0),
-                Int64 => init_literal!(Int64, 0),
-                UInt8 => init_literal!(UInt8, 0),
-                UInt16 => init_literal!(UInt16, 0),
-                UInt32 => init_literal!(UInt32, 0),
-                UInt64 => init_literal!(UInt64, 0),
-                Float => init_literal!(Float, 0.0),
-                Double => init_literal!(Double, 0.0),
-                Char => init_literal!(Char, 0),
-                Bool => init_literal!(Bool, false),
-                Array(ty, len) => init_literal!(Array, *ty, *len),
-                Void => unreachable!("void type for variable initialization annotation"),
-                Comp(_) => todo!(),
-            })
+            Ok(None)
         }
+    }
+
+    fn is_valid_type(&self, ty: &Type) -> bool {
+        self.types.contains(&ty.to_string()) || ty.to_string().starts_with("array")
     }
 }
 
@@ -139,6 +128,10 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         let start_expr =
             self.check_var_init(&start_name, start_expr.as_ref(), &start_antn, "for statement")?;
+
+        if !self.is_valid_type(&start_antn) {
+            return Err(format!("Unknown type for start declaration in for loop: `{}`", start_antn));
+        }
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -162,14 +155,18 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(ast::Node::new_for(start_name, start_antn, Some(start_expr), cond_expr, step_expr, body_node))
+        Ok(ast::Node::new_for(start_name, start_antn, start_expr, cond_expr, step_expr, body_node))
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
+        if !self.is_valid_type(&antn) {
+            return Err(format!("Unknown type in let declaration: `{}`", antn));
+        }
+
         let init_node;
         if !self.in_struct {
             self.symbol_table.insert(Symbol::new_var(&name, &antn));
-            init_node = Some(self.check_var_init(&name, init.as_ref(), &antn, "let statement")?);
+            init_node = self.check_var_init(&name, init.as_ref(), &antn, "let statement")?;
         } else {
             init_node = None;
         }
@@ -180,8 +177,12 @@ impl<'a> ast::Visitor for Tych<'a> {
         let mut proto = proto;
         let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
             Some(sym) => sym,
-            None => unreachable!("missing symbol table entry for function: {}", proto.name()),
+            None => unreachable!("missing symbol table entry for function: `{}`", proto.name()),
         };
+
+        if !self.is_valid_type(proto.ret_ty()) {
+            return Err(format!("Unknown return type in prototype for `{}`: `{}`", proto.name(), proto.ret_ty()));
+        }
 
         // If body is None, this is an extern and no checking is needed
         let body = match body {
@@ -194,6 +195,9 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Insert args into the local scope table
         for arg in proto.args() {
+            if !self.is_valid_type(&arg.1) {
+                return Err(format!("Unknown argument type in prototype for `{}`: `{}`", arg.0, arg.1));
+            }
             self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
         }
 

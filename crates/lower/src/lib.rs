@@ -4,6 +4,7 @@ pub use hir::Hir;
 use parse::ast::{self, Ast, VisitableNode, Visitor};
 
 pub mod hir;
+mod macros;
 #[cfg(test)]
 mod tests;
 
@@ -56,11 +57,31 @@ impl<'a> Lower<'a> {
     }
 
     // Helper for variable initializations
-    fn lower_var_init(&mut self, name: &str, init: Option<&ast::Node>) -> Result<hir::Node, String> {
+    fn lower_var_init(
+        &mut self, name: &str, init: Option<&ast::Node>, antn: &Type,
+    ) -> Result<hir::Node, String> {
+        use Type::*;
+
         if let Some(init) = init {
             self.visit_node(init.clone())
         } else {
-            unreachable!("no initializer for variable: `{}`", name);
+            Ok(match antn {
+                Int8 => init_literal!(Int8, 0),
+                Int16 => init_literal!(Int16, 0),
+                Int32 => init_literal!(Int32, 0),
+                Int64 => init_literal!(Int64, 0),
+                UInt8 => init_literal!(UInt8, 0),
+                UInt16 => init_literal!(UInt16, 0),
+                UInt32 => init_literal!(UInt32, 0),
+                UInt64 => init_literal!(UInt64, 0),
+                Float => init_literal!(Float, 0.0),
+                Double => init_literal!(Double, 0.0),
+                Char => init_literal!(Char, 0),
+                Bool => init_literal!(Bool, false),
+                Array(ty, len) => init_literal!(Array, *ty, *len),
+                Void => unreachable!("void type for `{}` variable initialization annotation", name),
+                Comp(_) => todo!(),
+            })
         }
     }
 }
@@ -81,7 +102,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         self.symbol_table.enter_scope();
         self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn));
 
-        let start_expr = self.lower_var_init(&start_name, start_expr.as_ref())?;
+        let start_expr = self.lower_var_init(&start_name, start_expr.as_ref(), &start_antn)?;
         let cond_expr = self.visit_node(cond_expr)?;
         let step_expr = self.visit_node(step_expr)?;
         let body = self.visit_node(body)?;
@@ -93,7 +114,7 @@ impl<'a> ast::Visitor for Lower<'a> {
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
         self.symbol_table.insert(Symbol::new_var(&name, &antn));
-        let init_node = self.lower_var_init(&name, init.as_ref())?;
+        let init_node = self.lower_var_init(&name, init.as_ref(), &antn)?;
         Ok(hir::Node::new_let(name, antn, Some(init_node)))
     }
 

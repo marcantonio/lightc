@@ -653,33 +653,6 @@ x[y]
 }
 
 #[test]
-fn test_init_literal() {
-    let tests = [[
-        "all",
-        r#"
-fn main() {
-    let x: int
-    let x: int8
-    let x: int16
-    let x: int32
-    let x: int64
-    let x: uint
-    let x: uint8
-    let x: uint16
-    let x: uint32
-    let x: uint64
-    let x: float
-    let x: double
-    let x: char
-    let x: bool
-    let x: [bool; 3]
-}
-"#,
-    ]];
-    run_insta!("init_literal", tests);
-}
-
-#[test]
 fn test_scope() {
     let tests = [
         [
@@ -798,7 +771,46 @@ struct Foo {
 }
 
 #[test]
-fn test_tyc_int_no_hint() {
+fn test_invalid_types() {
+    let tests = [
+        [
+            "let_good",
+            r#"
+struct Foo {}
+fn main() {
+    let x: int
+    let y: Foo
+    let z: Bar
+}
+struct Bar {}
+"#,
+        ],
+        [
+            "let_bad",
+            "let x: blah",
+        ],
+        [
+            "for_bad",
+            r#"
+fn main() {
+    for x: bad; x < 1; 1 { }
+}
+"#,
+        ],
+        [
+            "proto_ret_bad",
+            "fn main() -> Foo { }",
+        ],
+        [
+            "proto_arg_bad",
+            "fn main(a: int, b: inti) { }",
+        ],
+    ];
+    run_insta!("invalid", tests)
+}
+
+#[test]
+fn test_tych_int_no_hint() {
     use Literal::*;
 
     let literals = [
@@ -817,7 +829,7 @@ fn test_tyc_int_no_hint() {
 }
 
 #[test]
-fn test_tyc_int_with_hint() {
+fn test_tych_int_with_hint() {
     use Literal::*;
 
     let literals = [
@@ -902,7 +914,7 @@ macro_rules! test_lit_hint_binop_float {
 }
 
 #[test]
-fn test_tyc_binop_lit() {
+fn test_tych_binop_lit() {
     use Type::*;
 
     test_lit_hint_binop_int!(Int8);

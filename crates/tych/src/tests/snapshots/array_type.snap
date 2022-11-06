@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 653
+assertion_line: 652
 expression: "(test[1], res)"
 ---
 - "let x: [int; 3]"
@@ -13,15 +13,5 @@ expression: "(test[1], res)"
               Array:
                 - Int32
                 - 3
-            init:
-              kind:
-                Lit:
-                  value:
-                    Array:
-                      elements: []
-                      inner_ty: Int32
-                  ty:
-                    Array:
-                      - Int32
-                      - 3
+            init: ~
 

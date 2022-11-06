@@ -25,6 +25,16 @@ impl<'a> Symbolic for CodegenSymbol<'a> {
     fn name(&self) -> &str {
         self.inner.name()
     }
+
+    fn kind(&self) -> &str {
+        match self.inner.data {
+            AssocData::Fn(_) => "Fn",
+            AssocData::Var(_) => "Var",
+            AssocData::Struct(_) => "Struct",
+            AssocData::Type() => "Type",
+            AssocData::TypeAlias(_) => "TypeAlias",
+        }
+    }
 }
 
 impl<'a> From<(&str, &Type, PointerValue<'a>)> for CodegenSymbol<'a> {

@@ -97,4 +97,14 @@ impl Symbolic for Symbol {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn kind(&self) -> &str {
+        match self.data {
+            AssocData::Fn(_) => "Fn",
+            AssocData::Var(_) => "Var",
+            AssocData::Struct(_) => "Struct",
+            AssocData::Type() => "Type",
+            AssocData::TypeAlias(_) => "TypeAlias",
+        }
+    }
 }

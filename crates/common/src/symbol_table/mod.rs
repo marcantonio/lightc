@@ -81,6 +81,16 @@ impl<T: Symbolic> SymbolTable<T> {
         let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
         Ok(table.drain())
     }
+
+    pub fn types(&self) -> Vec<String> {
+        self.tables
+            .get(&0)
+            .unwrap_or_else(|| unreachable!("No global symbol table in `types()`"))
+            .values()
+            .filter(|sym| sym.kind() == "Type")
+            .map(|sym| sym.name().to_owned())
+            .collect()
+    }
 }
 
 impl<T: Symbolic> Default for SymbolTable<T> {
@@ -91,6 +101,7 @@ impl<T: Symbolic> Default for SymbolTable<T> {
 
 pub trait Symbolic {
     fn name(&self) -> &str;
+    fn kind(&self) -> &str;
 }
 
 #[cfg(test)]

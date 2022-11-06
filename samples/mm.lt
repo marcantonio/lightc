@@ -24,6 +24,11 @@ fn retBool() -> bool {
     false
 }
 
+struct Foo {
+    let a: int
+    let b: float
+}
+
 fn main() {
     let a: [int; 3] = [1, 2, 3]
     for x: int = 0; x < 3; 1 {
@@ -43,10 +48,5 @@ fn main() {
     printInt(y)
     printBang()
 
-    //let mm: Foo
-}
-
-struct Foo {
-    let a: int
-    let b: float
+    let mm: Foo
 }

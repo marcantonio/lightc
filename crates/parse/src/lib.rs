@@ -522,9 +522,9 @@ impl<'a> Parse<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(Box::new(Type::resolve_primitive(ty)), size.try_into().unwrap())
+                Type::Array(Box::new(Type::resolve_type(ty)), size.try_into().unwrap())
             },
-            Some(Token { tt: TokenType::Ident(ty), .. }) => Type::resolve_primitive(ty),
+            Some(Token { tt: TokenType::Ident(ty), .. }) => Type::resolve_type(ty),
             Some(next) => {
                 return Err(ParseError::from((
                     format!("Expecting {} type annotation. Got `{}`", caller, next),

@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 542
+assertion_line: 541
 expression: "(test[1], res)"
 ---
 - "\n        fn foo() {\n            let x: int\n        }\n        "
@@ -21,11 +21,6 @@ expression: "(test[1], res)"
                         Let:
                           name: x
                           antn: Int32
-                          init:
-                            kind:
-                              Lit:
-                                value:
-                                  Int32: 0
-                                ty: Int32
+                          init: ~
                   ty: Void
 
