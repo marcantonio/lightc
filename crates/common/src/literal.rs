@@ -18,6 +18,7 @@ pub enum Literal<T> {
     Bool(bool),
     Char(u8),
     Array { elements: Vec<T>, inner_ty: Option<Type> },
+    Comp(Vec<T>),
 }
 
 impl<T: Display> Display for Literal<T> {
@@ -46,6 +47,7 @@ impl<T: Display> Display for Literal<T> {
                 }
                 write!(f, "{}]", s)
             },
+            Comp(_) => todo!(),
         }
     }
 }

@@ -15,7 +15,7 @@ pub struct VarData {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StructData {
-    pub fields: Vec<(String, String)>,
+    pub fields: Option<Vec<(String, String)>>,
     pub methods: Option<Vec<String>>,
 }
 
@@ -50,6 +50,13 @@ impl Symbol {
         match alias {
             Some(a) => Symbol { name: name.to_owned(), data: AssocData::TypeAlias(a.to_owned()) },
             None => Symbol { name: name.to_owned(), data: AssocData::Type() },
+        }
+    }
+
+    pub fn new_struct(name: &str, fields: Option<&[(String, String)]>) -> Self {
+        Symbol {
+            name: name.to_owned(),
+            data: AssocData::Struct(StructData { fields: fields.map(|x| x.to_vec()), methods: None }),
         }
     }
 
@@ -89,6 +96,15 @@ impl Symbol {
         match &self.data {
             AssocData::Fn(s) => s.is_extern,
             _ => unreachable!("expected symbol to be a function"),
+        }
+    }
+
+    pub fn fields(&self) -> Option<Vec<(&str, &str)>> {
+        match &self.data {
+            AssocData::Struct(s) => {
+                Some(s.fields.as_deref()?.iter().map(|(n, a)| (n.as_str(), a.as_str())).collect())
+            },
+            _ => unreachable!("expected symbol to be a struct"),
         }
     }
 }

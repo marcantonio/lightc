@@ -176,7 +176,7 @@ impl<'ctx> Codegen<'ctx> {
             .iter()
             .map(|node| {
                 if let hir::node::Kind::Struct { name, field_tys } = &node.kind {
-                    (self.context.opaque_struct_type(&name), field_tys)
+                    (self.context.opaque_struct_type(name), field_tys)
                 } else {
                     unreachable!("invalid node in struct list")
                 }
@@ -588,6 +588,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
                     _ => todo!(),
                 }
             },
+            Comp(_) => todo!(),
         };
         Ok(Some(lit))
     }

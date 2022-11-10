@@ -15,8 +15,7 @@ mod tests;
 // - checks for type consistency in for step
 // - checks for type consistency in if branches
 // - checks main()'s annotation
-// - checks for unknown functions and variables
-// - initializes uninitialized variables
+// - checks for unknown functions, variables, and types
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -28,7 +27,7 @@ pub struct Tych<'a> {
 
 impl<'a> Tych<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        let mut types = Type::as_strings();
+        let mut types = Type::dump_types();
         types.append(&mut symbol_table.types());
         Tych { symbol_table, types, hint: None, in_struct: false }
     }
@@ -163,13 +162,13 @@ impl<'a> ast::Visitor for Tych<'a> {
             return Err(format!("Unknown type in let declaration: `{}`", antn));
         }
 
-        let init_node;
-        if !self.in_struct {
+        let init_node = if !self.in_struct {
             self.symbol_table.insert(Symbol::new_var(&name, &antn));
-            init_node = self.check_var_init(&name, init.as_ref(), &antn, "let statement")?;
+            self.check_var_init(&name, init.as_ref(), &antn, "let statement")?
         } else {
-            init_node = None;
-        }
+            None
+        };
+
         Ok(ast::Node::new_let(name, antn, init_node))
     }
 
@@ -181,7 +180,11 @@ impl<'a> ast::Visitor for Tych<'a> {
         };
 
         if !self.is_valid_type(proto.ret_ty()) {
-            return Err(format!("Unknown return type in prototype for `{}`: `{}`", proto.name(), proto.ret_ty()));
+            return Err(format!(
+                "Unknown return type in prototype for `{}`: `{}`",
+                proto.name(),
+                proto.ret_ty()
+            ));
         }
 
         // If body is None, this is an extern and no checking is needed
@@ -238,8 +241,14 @@ impl<'a> ast::Visitor for Tych<'a> {
     ) -> Self::Result {
         self.in_struct = true;
         let mut chkd_fields = vec![];
+        let mut sym_fields = vec![];
         for node in fields {
-            chkd_fields.push(self.check_node(node.clone(), None)?);
+            let chkd_node = self.check_node(node.clone(), None)?;
+            // Extract fields for symbol table
+            if let ast::Node { kind: ast::node::Kind::Let { name, antn, .. } } = node {
+                sym_fields.push((name, antn.to_string()));
+            }
+            chkd_fields.push(chkd_node);
         }
         self.in_struct = false;
 
@@ -247,6 +256,8 @@ impl<'a> ast::Visitor for Tych<'a> {
         for node in methods {
             chkd_methods.push(self.check_node(node.clone(), None)?);
         }
+
+        self.symbol_table.insert(Symbol::new_struct(&name, Some(sym_fields.as_slice())));
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
@@ -296,6 +307,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
                 Array { .. } => self.check_lit_array(lit, Some(hint.clone()))?,
+                Comp(_) => todo!(),
             },
             None => match lit {
                 Int32(v) => (Int32(v), Type::Int32), // Only used for main's return value

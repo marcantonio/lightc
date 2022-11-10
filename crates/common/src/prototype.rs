@@ -60,7 +60,7 @@ impl From<&Prototype> for Symbol {
             format!("_{}~{}{}", proto.name, args_string, proto.ret_ty)
         };
 
-        Symbol::new_fn(proto_name.as_str(), args, &proto.ret_ty, proto.is_extern)
+        Symbol::new_fn(&proto_name, args, &proto.ret_ty, proto.is_extern)
     }
 }
 

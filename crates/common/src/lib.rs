@@ -96,7 +96,28 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn resolve_type(ty: &str) -> Self {
+    pub fn dump_types() -> Vec<String> {
+        vec![
+            String::from("int8"),
+            String::from("int16"),
+            String::from("int32"),
+            String::from("int64"),
+            String::from("uint8"),
+            String::from("uint16"),
+            String::from("uint32"),
+            String::from("uint64"),
+            String::from("float"),
+            String::from("double"),
+            String::from("bool"),
+            String::from("char"),
+            String::from("void"),
+            String::from("array"), // TODO: remove this when arrays are gone
+        ]
+    }
+}
+
+impl From<&str> for Type {
+    fn from(ty: &str) -> Self {
         use Type::*;
 
         match ty {
@@ -118,25 +139,6 @@ impl Type {
             x => Comp(x.to_owned()),
         }
     }
-
-    pub fn as_strings() -> Vec<String> {
-        vec![
-            String::from("int8"),
-            String::from("int16"),
-            String::from("int32"),
-            String::from("int64"),
-            String::from("uint8"),
-            String::from("uint16"),
-            String::from("uint32"),
-            String::from("uint64"),
-            String::from("float"),
-            String::from("double"),
-            String::from("bool"),
-            String::from("char"),
-            String::from("void"),
-            String::from("array"), // TODO: remove this when arrays are gone
-        ]
-    }
 }
 
 impl Default for Type {
@@ -154,7 +156,7 @@ impl Default for &Type {
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Type::Comp(ty) => format!("{}", ty),
+            Type::Comp(ty) => ty.to_owned(),
             _ => format!("{:?}", self).to_ascii_lowercase(),
         };
         write!(f, "{}", s)
@@ -167,7 +169,7 @@ mod test {
 
     #[test]
     fn test_resolve_primitive() {
-        assert_eq!(Type::resolve_type("int32"), Type::Int32);
-        assert_eq!(Type::resolve_type("Int32"), Type::Comp(String::from("Int32")));
+        assert_eq!(Type::from("int32"), Type::Int32);
+        assert_eq!(Type::from("Int32"), Type::Comp(String::from("Int32")));
     }
 }

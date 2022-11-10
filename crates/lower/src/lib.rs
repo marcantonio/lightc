@@ -13,6 +13,7 @@ mod tests;
 // - desugars x += 1 to x = x + 1
 // - cooks function names in the AST and symbol table
 // - tracks scope (needed?)
+// - initializes uninitialized variables
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -60,29 +61,48 @@ impl<'a> Lower<'a> {
     fn lower_var_init(
         &mut self, name: &str, init: Option<&ast::Node>, antn: &Type,
     ) -> Result<hir::Node, String> {
-        use Type::*;
-
         if let Some(init) = init {
             self.visit_node(init.clone())
         } else {
-            Ok(match antn {
-                Int8 => init_literal!(Int8, 0),
-                Int16 => init_literal!(Int16, 0),
-                Int32 => init_literal!(Int32, 0),
-                Int64 => init_literal!(Int64, 0),
-                UInt8 => init_literal!(UInt8, 0),
-                UInt16 => init_literal!(UInt16, 0),
-                UInt32 => init_literal!(UInt32, 0),
-                UInt64 => init_literal!(UInt64, 0),
-                Float => init_literal!(Float, 0.0),
-                Double => init_literal!(Double, 0.0),
-                Char => init_literal!(Char, 0),
-                Bool => init_literal!(Bool, false),
-                Array(ty, len) => init_literal!(Array, *ty, *len),
-                Void => unreachable!("void type for `{}` variable initialization annotation", name),
-                Comp(_) => todo!(),
-            })
+            self.init_null(name, antn)
         }
+    }
+
+    fn init_null(&mut self, name: &str, antn: &Type) -> Result<hir::Node, String> {
+        use Type::*;
+
+        Ok(match antn {
+            Int8 => init_literal!(Int8, 0),
+            Int16 => init_literal!(Int16, 0),
+            Int32 => init_literal!(Int32, 0),
+            Int64 => init_literal!(Int64, 0),
+            UInt8 => init_literal!(UInt8, 0),
+            UInt16 => init_literal!(UInt16, 0),
+            UInt32 => init_literal!(UInt32, 0),
+            UInt64 => init_literal!(UInt64, 0),
+            Float => init_literal!(Float, 0.0),
+            Double => init_literal!(Double, 0.0),
+            Char => init_literal!(Char, 0),
+            Bool => init_literal!(Bool, false),
+            Array(ty, len) => init_literal!(Array, *ty, *len),
+            Void => unreachable!("void type for `{}` variable initialization annotation", name),
+            Comp(name) => {
+                let sym = self
+                    .symbol_table
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| unreachable!("missing symbol for `{}` in `init_null()`", name));
+                let initializers = if let Some(fields) = sym.fields() {
+                    fields
+                        .iter()
+                        .map(|(n, a)| self.init_null(n, &(*a).into()))
+                        .collect::<Result<Vec<_>, String>>()?
+                } else {
+                    vec![]
+                };
+                hir::Node::new_struct_init(initializers)
+            },
+        })
     }
 }
 
@@ -120,16 +140,18 @@ impl<'a> ast::Visitor for Lower<'a> {
 
     fn visit_fn(&mut self, proto: Prototype, body: Option<ast::Node>) -> Self::Result {
         let mut proto = proto;
-        // Insert a duplicate of the symbol. The new one will have the lowered
-        // name. Update the AST as well. Skip for externs.
+        // Insert a duplicate of the symbol. The new one will have the lowered name. Use
+        // updated name in the HIR. Skip for externs.
         let sym = self
             .symbol_table
             .get(proto.name())
             .cloned()
-            .unwrap_or_else(|| unreachable!("missing symbol in `lower_func()` for `{}`", proto.name()));
+            .unwrap_or_else(|| unreachable!("missing symbol in `visit_fn()` for `{}`", proto.name()));
 
         if !sym.is_extern() {
+            // For use in the HIR
             proto.set_name(sym.name().to_owned());
+            // Updates the map key name
             self.symbol_table.insert(sym);
         }
 
@@ -181,6 +203,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             Bool(l) => Bool(l),
             Char(l) => Char(l),
             Array { .. } => self.lower_lit_array(value)?,
+            Comp(_) => todo!(),
         };
         Ok(hir::Node::new_lit(lit, ty))
     }
