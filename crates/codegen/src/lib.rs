@@ -303,7 +303,12 @@ impl<'ctx> Codegen<'ctx> {
                     name,
                 )
             },
-            Type::Comp(_) => todo!(),
+            Type::Comp(struct_name) => {
+                let llvm_struct_type = self.module.get_struct_type(struct_name).unwrap_or_else(|| {
+                    unreachable!("missing struct definition in `create_entry_block_alloca()`")
+                });
+                self.builder.build_alloca(llvm_struct_type, name)
+            },
         }
     }
 
@@ -555,7 +560,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
-    fn visit_lit(&mut self, value: Literal<hir::Node>, _ty: Option<Type>) -> Self::Result {
+    fn visit_lit(&mut self, value: Literal<hir::Node>, ty: Option<Type>) -> Self::Result {
         use Literal::*;
 
         let lit = match value {
@@ -588,7 +593,21 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
                     _ => todo!(),
                 }
             },
-            Comp(_) => todo!(),
+            Comp(fields) => {
+                let llvm_struct_type = self
+                    .module
+                    .get_struct_type(
+                        &ty.unwrap_or_else(|| unreachable!("missing type for struct literal")).to_string(),
+                    )
+                    .unwrap_or_else(|| unreachable!("can't find struct definition"));
+
+                let values = fields
+                    .into_iter()
+                    .flat_map(|n| self.visit_node(n).transpose())
+                    .collect::<Result<Vec<_>, String>>()?;
+
+                llvm_struct_type.const_named_struct(&values).as_basic_value_enum()
+            },
         };
         Ok(Some(lit))
     }

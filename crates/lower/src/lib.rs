@@ -84,8 +84,11 @@ impl<'a> Lower<'a> {
             Double => init_literal!(Double, 0.0),
             Char => init_literal!(Char, 0),
             Bool => init_literal!(Bool, false),
-            Array(ty, len) => init_literal!(Array, *ty, *len),
-            Void => unreachable!("void type for `{}` variable initialization annotation", name),
+            Array(ty, len) => {
+                hir::Node::new_lit(
+                    Literal::Array { elements: Vec::with_capacity(*len), inner_ty: Some(*ty.clone()) },
+                    Some(Type::Array(Box::new(*ty.clone()), *len)))
+            },
             Comp(name) => {
                 let sym = self
                     .symbol_table
@@ -102,6 +105,7 @@ impl<'a> Lower<'a> {
                 };
                 hir::Node::new_lit(Literal::Comp(initializers), Some(Type::Comp(name.to_owned())))
             },
+            Void => unreachable!("void type for `{}` variable initialization annotation", name),
         })
     }
 }
