@@ -307,7 +307,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
                 Array { .. } => self.check_lit_array(lit, Some(hint.clone()))?,
-                Comp(_) => todo!(),
+                Comp(_) => unreachable!("Composite types don't exist in the tych"),
             },
             None => match lit {
                 Int32(v) => (Int32(v), Type::Int32), // Only used for main's return value

@@ -47,7 +47,14 @@ impl<T: Display> Display for Literal<T> {
                 }
                 write!(f, "{}]", s)
             },
-            Comp(_) => todo!(),
+            Comp(fields) => {
+                let mut s = "'(".to_string();
+                s += &fields.iter().fold(String::new(), |mut acc, n| {
+                    acc += &format!("{} ", n);
+                    acc
+                });
+                write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
+            }
         }
     }
 }

@@ -77,10 +77,6 @@ impl Node {
         Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
     }
 
-    pub fn new_struct_init(data: Vec<Node>) -> Self {
-        Self { kind: Kind::StructInit { fields: data }}
-    }
-
     pub fn ty(&self) -> Option<&Type> {
         use Kind::*;
 
@@ -183,9 +179,6 @@ pub enum Kind {
         idx: Box<Node>,
         ty: Option<Type>,
     },
-    StructInit {
-        fields: Vec<Node>,
-    },
 }
 
 impl VisitableNode for Node {
@@ -274,14 +267,6 @@ impl Display for Node {
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
-            StructInit { fields } => {
-                let mut s = "'(".to_string();
-                s += &fields.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!("{} ", n);
-                    acc
-                });
-                write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
-            }
         }
     }
 }

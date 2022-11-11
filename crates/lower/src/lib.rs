@@ -100,7 +100,7 @@ impl<'a> Lower<'a> {
                 } else {
                     vec![]
                 };
-                hir::Node::new_struct_init(initializers)
+                hir::Node::new_lit(Literal::Comp(initializers), Some(Type::Comp(name.to_owned())))
             },
         })
     }
