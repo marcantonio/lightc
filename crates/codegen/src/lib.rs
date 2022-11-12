@@ -303,11 +303,9 @@ impl<'ctx> Codegen<'ctx> {
                     name,
                 )
             },
-            Type::Comp(struct_name) => {
-                let llvm_struct_type = self.module.get_struct_type(struct_name).unwrap_or_else(|| {
-                    unreachable!("missing struct definition in `create_entry_block_alloca()`")
-                });
-                self.builder.build_alloca(llvm_struct_type, name)
+            Type::Comp(_) => {
+                let struct_ty = self.get_llvm_basic_type(ty);
+                self.builder.build_alloca(struct_ty, name)
             },
         }
     }
@@ -365,7 +363,11 @@ impl<'ctx> Codegen<'ctx> {
                     _ => todo!(),
                 }
             },
-            Type::Comp(_) => todo!(),
+            Type::Comp(name) => {
+                self.module.get_struct_type(name).unwrap_or_else(|| {
+                    unreachable!("missing struct definition in `create_entry_block_alloca()`")
+                }).as_basic_type_enum()
+            }
             Type::Void => unreachable!("void can't be coerced into LLVM basic type"),
         }
     }

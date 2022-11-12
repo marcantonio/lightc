@@ -236,9 +236,14 @@ impl<'a> ast::Visitor for Tych<'a> {
         Ok(ast::Node::new_fn(proto, Some(body_node)))
     }
 
+    // TODO: Check for circular struct definitions
     fn visit_struct(
         &mut self, name: String, fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
+        if self.symbol_table.scope_depth() != 0 {
+            return Err("structs can only be defined at the global level".to_string());
+        }
+
         self.in_struct = true;
         let mut chkd_fields = vec![];
         let mut sym_fields = vec![];

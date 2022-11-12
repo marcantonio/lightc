@@ -29,6 +29,10 @@ struct Foo {
     let b: float
 }
 
+struct Bar {
+    let foo: Foo
+}
+
 fn main() {
     let a: [int; 3] = [1, 2, 3]
     for x: int = 0; x < 3; 1 {
@@ -48,5 +52,5 @@ fn main() {
     printInt(y)
     printBang()
 
-    let mm: Foo
+    let mm: Bar
 }

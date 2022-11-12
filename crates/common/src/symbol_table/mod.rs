@@ -30,6 +30,10 @@ impl<T: Symbolic> SymbolTable<T> {
         SymbolTable { tables, scope_depth: 0 }
     }
 
+    pub fn scope_depth(&self) -> u32 {
+        self.scope_depth
+    }
+
     pub fn insert(&mut self, sym: T) -> Option<T> {
         self.tables
             .get_mut(&self.scope_depth)

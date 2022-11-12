@@ -132,9 +132,10 @@ fn main() {
 
 #[test]
 fn test_init_literal() {
-    let tests = [[
-        "all",
-        r#"
+    let tests = [
+        [
+            "basic",
+            r#"
 fn main() {
     let x: int
     let x: int8
@@ -153,6 +154,34 @@ fn main() {
     let x: [bool; 3]
 }
 "#,
-    ]];
+        ],
+        [
+            "struct",
+            r#"
+fn main() {
+    let x: Foo
+}
+struct Foo {
+    let a: int
+    let b: bool
+}
+"#,
+        ],
+        [
+            "nested_struct",
+            r#"
+fn main() {
+    let x: Foo
+}
+struct Foo {
+    let a: int
+    let b: bool
+}
+struct Bar {
+    let a: Foo
+}
+"#,
+        ],
+    ];
     run_insta!("init_literal", tests);
 }

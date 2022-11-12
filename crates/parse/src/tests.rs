@@ -336,7 +336,8 @@ struct Foo {
 struct Foo {}
 struct Foo {}
 "#,
-        ], //         [
+        ],
+        //         [
            //             "self",
            //             r#"
            // struct Foo {

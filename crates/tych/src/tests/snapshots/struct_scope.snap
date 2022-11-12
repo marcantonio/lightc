@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 778
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    struct Foo {}\n}\n"
+- Err: structs can only be defined at the global level
+

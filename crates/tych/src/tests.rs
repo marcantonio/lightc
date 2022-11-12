@@ -766,6 +766,14 @@ struct Foo {
 }
 "#,
         ],
+        [
+            "scope",
+            r#"
+fn main() {
+    struct Foo {}
+}
+"#,
+        ],
     ];
     run_insta!("struct", tests)
 }
@@ -785,10 +793,7 @@ fn main() {
 struct Bar {}
 "#,
         ],
-        [
-            "let_bad",
-            "let x: blah",
-        ],
+        ["let_bad", "let x: blah"],
         [
             "for_bad",
             r#"
@@ -797,14 +802,8 @@ fn main() {
 }
 "#,
         ],
-        [
-            "proto_ret_bad",
-            "fn main() -> Foo { }",
-        ],
-        [
-            "proto_arg_bad",
-            "fn main(a: int, b: inti) { }",
-        ],
+        ["proto_ret_bad", "fn main() -> Foo { }"],
+        ["proto_arg_bad", "fn main(a: int, b: inti) { }"],
     ];
     run_insta!("invalid", tests)
 }
