@@ -4,74 +4,78 @@ Formal grammar for Light. It's written as a modified form of EBNF. Deviations fr
 Note that while semicolons are part of the formal for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
 
 ```ebnf
-Program     ::= StmtList ;
-StmtList    ::= ( Stmt ';' )+ ;
-Stmt        ::= LetStmt
-              | ForStmt
-              | FnDecl
-              | ExternDecl
-              | StructDecl
-              | Expr ;
-Block       ::= '{' StmtList? '}' ;
-FnDecl      ::= Prototype Block ;
-ExternDecl  ::= 'extern' Prototype ;
-StructDecl  ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
-Prototype   ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
-ForStmt     ::= 'for' VarInit ';' Expr ';' number? Block ;
-LetStmt     ::= 'let' VarInit ;
-VarInit     ::= TypedDecl ( '=' Expr  )? ;
-TypedDecl   ::= ident ':' TypeAntn ;
-TypeAntn    ::= type | '[' type ']' ;
-Expr        ::= PrimaryExpr
-              | Expr mul_op Expr
-              | Expr add_op Expr
-              | Expr rel_op Expr
-              | Expr eq_op Expr
-              | Expr bit_op Expr
-              | Expr '&&' Expr
-              | Expr '||' Expr
-              | ( IdentExpr | SelfExpr ) assign_op Expr ;
-PrimaryExpr ::= CondExpr
-              | SelfExpr
-              | LitExpr
-              | IdentExpr
-              | CallExpr
-              | Block
-              | ParenExpr
-              | UnopExpr
-              | IndexExpr ;
-UnopExpr    ::= ( '-' | '!' ) Expr ;
-LitExpr     ::= number | bool | CharLit | ArrayLit ;
-CallExpr    ::= ident '(' ExprList? ')' ;
-ParenExpr   ::= '(' Expr ')' ;
-CondExpr    ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
-IdentExpr   ::= ident ;
-SelfExpr    ::= 'self' '.' IdentExpr
-              | 'self' '.' CallExpr ;
-IndexExpr   ::= PrimaryExpr '[' Expr ']' ;
-ArrayLit    ::= '[' ExprList? ']' ;
-CharLit     ::= char ;
-ExprList    ::= Expr ','? | Expr ( ',' Expr )* ;
+Program        ::= StmtList ;
+StmtList       ::= ( Stmt ';' )+ ;
+Stmt           ::= LetStmt
+                 | ForStmt
+                 | FnDecl
+                 | ExternDecl
+                 | StructDecl
+                 | Expr ;
+Block          ::= '{' StmtList? '}' ;
+FnDecl         ::= Prototype Block ;
+ExternDecl     ::= 'extern' Prototype ;
+StructDecl     ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
+Prototype      ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
+ForStmt        ::= 'for' VarInit ';' Expr ';' number? Block ;
+LetStmt        ::= 'let' VarInit ;
+VarInit        ::= TypedDecl ( '=' Expr  )? ;
+TypedDecl      ::= ident ':' TypeAntn ;
+TypeAntn       ::= type | '[' type ']' ;
+Expr           ::= PrimaryExpr
+                 | Expr mul_op Expr
+                 | Expr add_op Expr
+                 | Expr rel_op Expr
+                 | Expr eq_op Expr
+                 | Expr bit_op Expr
+                 | Expr '&&' Expr
+                 | Expr '||' Expr
+                 | AssignableExpr assign_op Expr ;
+PrimaryExpr    ::= CondExpr
+                 | SelfExpr
+                 | LitExpr
+                 | IdentExpr
+                 | CallExpr
+                 | Block
+                 | ParenExpr
+                 | UnopExpr
+                 | IndexExpr
+                 | SelectorExpr
+                 | MethodExpr ;
+UnopExpr       ::= ( '-' | '!' ) Expr ;
+LitExpr        ::= number | bool | CharLit | ArrayLit ;
+CallExpr       ::= ident '(' ExprList? ')' ;
+ParenExpr      ::= '(' Expr ')' ;
+CondExpr       ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
+IdentExpr      ::= ident ;
+AssignableExpr ::= ( IdentExpr | IndexExpr | SelfExpr | SelectorExpr ) ;
+SelfExpr       ::= 'self' '.' ( IdentExpr | CallExpr ) ;
+SelectorExpr   ::= PrimaryExpr '.' IdentExpr ;
+MethodExpr     ::= PrimaryExpr '.' CallExpr ;
+IndexExpr      ::= PrimaryExpr '[' Expr ']' ;
+ArrayLit       ::= '[' ExprList? ']' ;
+CharLit        ::= char ;
+ExprList       ::= Expr ','? | Expr ( ',' Expr )* ;
 
-type        ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
-              | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
-              | 'float' | 'double' | 'bool' | 'char' ;
-bool        ::= 'true' | 'false' ;
-ident       ::= letter ( letter | digit | '_' )* ;
-assign_op   ::= '=' | '+=' | '-=' ;
-bit_op      ::= '&' | '|' | '^' ;
-eq_op       ::= '==' | '!=' ;
-rel_op      ::= '>' | '>=' | '<' | '<=' ;
-add_op      ::= '+' | '-' ;
-mul_op      ::= '*' | '/' ;
-number      ::= integer | float ;
-integer     ::= digit+ ;
-float       ::= digit '.' digit ;
-digit       ::= [0-9] ;
-char        ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
-letter      ::= [a-zA-Z] ;
-whitespace  ::= [ \t\r\n] ;
-comment     ::= '//' [^\r\n]* [\r\n] ;
+type           ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
+                 | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
+                 | 'float' | 'double' | 'bool' | 'char' ;
+bool           ::= 'true' | 'false' ;
+ident          ::= letter ( letter | digit | '_' )* ;
+assign_op      ::= '=' | '+=' | '-=' ;
+bit_op         ::= '&' | '|' | '^' ;
+eq_op          ::= '==' | '!=' ;
+rel_op         ::= '>' | '>=' | '<' | '<=' ;
+add_op         ::= '+' | '-' ;
+mul_op         ::= '*' | '/' ;
+number         ::= integer | float ;
+integer        ::= digit+ ;
+float          ::= digit '.' digit ;
+digit          ::= [0-9] ;
+char           ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
+letter         ::= [a-zA-Z] ;
+whitespace     ::= [ \t\r\n] ;
+comment        ::= '//' [^\r\n]* [\r\n] ;
 ```
 
 ## Notes

@@ -27,7 +27,7 @@ expr            : primary_expr
                 | expr ('&' | '|' | '^') expr
                 | expr '&&' expr
                 | expr '||' expr
-                | (ident_expr | self_expr) ('=' | '+=' | '-=' ) expr;
+                | assignable_expr ('=' | '+=' | '-=') expr;
 primary_expr    : cond_expr
                 | self_expr
                 | lit_expr
@@ -36,11 +36,17 @@ primary_expr    : cond_expr
                 | block
                 | paren_expr
                 | unop_expr
-                | primary_expr '[' expr ']';
-// ANTLR doesn't do mutual left recursion, so index_expr is defined as directly recursive
-// above. The Light parser handles this properly.
-//              | index_expr;
-// index_expr      : primary_expr '[' expr ']';
+                | primary_expr '[' expr ']'
+                | primary_expr '.' (ident_expr | call_expr);
+// ANTLR doesn't do mutual left recursion, so some expressions are defined as directly
+// recursive above. The Light parser handles this properly.
+//              | index_expr
+//              | selector_expr;
+index_expr      : primary_expr '[' expr ']';
+selector_expr   : primary_expr '.' ident_expr;
+method_expr     : primary_expr '.' call_expr;
+self_expr       : 'self' '.' (ident_expr | call_expr);
+assignable_expr : ident_expr | index_expr | self_expr | selector_expr;
 unop_expr       : ('-' | '!') expr;
 lit_expr        : NUMBER
                 | BOOL
@@ -50,8 +56,6 @@ call_expr       : IDENT '(' expr_list? ')';
 paren_expr      : '(' expr ')';
 cond_expr       : 'if' expr block ('else' (cond_expr | block))?;
 ident_expr      : IDENT;
-self_expr       : 'self' '.' ident_expr
-                | 'self' '.' call_expr;
 array_lit       : '[' expr_list? ']';
 char_lit        : CHAR;
 expr_list       : expr ','? | expr (',' expr)*;

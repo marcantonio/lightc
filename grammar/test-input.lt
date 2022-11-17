@@ -48,6 +48,9 @@ fn main() {
     c = '\n';
 
     i += 1;
+
+    x.method();
+    x.field += 1;
 };
 
 struct Foo {
