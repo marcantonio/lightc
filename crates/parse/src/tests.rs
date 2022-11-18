@@ -337,6 +337,34 @@ struct Foo {}
 struct Foo {}
 "#,
         ],
+        [
+            "field_selector",
+            "x.y",
+        ],
+        [
+            "field_selector_bad",
+            "x.",
+        ],
+        [
+            "method_selector",
+            "x.y(); x.y(a); x.y(a, b)",
+        ],
+        [
+            "method_selector_bad1",
+            "x.y(",
+        ],
+        [
+            "field_selector_bad2",
+            "x.y(a",
+        ],
+        [
+            "field_selector_bad3",
+            "x.y(a,",
+        ],
+        [
+            "field_selector_bad4",
+            "x.y(a a",
+        ],
         //         [
            //             "self",
            //             r#"

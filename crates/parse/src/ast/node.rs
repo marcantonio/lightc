@@ -77,6 +77,14 @@ impl Node {
         Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
     }
 
+    pub fn new_field_selector(composite: Node, field: String, ty: Option<Type>) -> Self {
+        Self { kind: Kind::FieldSelector { composite: Box::new(composite), field, ty } }
+    }
+
+    pub fn new_method_selector(composite: Node, method: String, args: Vec<Node>, ty: Option<Type>) -> Self {
+        Self { kind: Kind::MethodSelector { composite: Box::new(composite), method, args, ty } }
+    }
+
     pub fn ty(&self) -> Option<&Type> {
         use Kind::*;
 
@@ -89,6 +97,8 @@ impl Node {
             Cond { ty, .. } => ty.as_ref(),
             Block { ty, .. } => ty.as_ref(),
             Index { ty, .. } => ty.as_ref(),
+            FieldSelector { ty, .. } => ty.as_ref(),
+            MethodSelector { ty, .. } => ty.as_ref(),
             _ => None,
         }
     }
@@ -180,6 +190,17 @@ pub enum Kind {
         idx: Box<Node>,
         ty: Option<Type>,
     },
+    FieldSelector {
+        composite: Box<Node>,
+        field: String,
+        ty: Option<Type>,
+    },
+    MethodSelector {
+        composite: Box<Node>,
+        method: String,
+        args: Vec<Node>,
+        ty: Option<Type>,
+    },
 }
 
 impl VisitableNode for Node {
@@ -203,6 +224,8 @@ impl VisitableNode for Node {
             },
             Block { list, ty } => v.visit_block(list, ty),
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
+            FieldSelector { composite, field, ty } => todo!(),
+            MethodSelector { composite, method, args, ty } => todo!(),
         }
     }
 }
@@ -280,6 +303,17 @@ impl Display for Node {
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
+            FieldSelector { composite, field, .. } => write!(f, "{}.{}", composite, field),
+            MethodSelector { composite, method, args, .. } => {
+                let mut s = format!("({}.{}", composite, method);
+                if !args.is_empty() {
+                    for arg in args {
+                        s += &format!(" {}", arg);
+                    }
+                }
+                write!(f, "{})", s)
+            },
+
         }
     }
 }

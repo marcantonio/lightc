@@ -52,5 +52,6 @@ fn main() {
     printInt(y)
     printBang()
 
-    let mm: Bar
+    let mm: Foo
+    mm.a
 }

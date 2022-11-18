@@ -1,0 +1,52 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 402
+expression: "(test[1], ast, ast_string)"
+---
+- "x.y(); x.y(a); x.y(a, b)"
+- Ok:
+    nodes:
+      - kind:
+          MethodSelector:
+            composite:
+              kind:
+                Ident:
+                  name: x
+                  ty: ~
+            method: y
+            args: []
+            ty: ~
+      - kind:
+          MethodSelector:
+            composite:
+              kind:
+                Ident:
+                  name: x
+                  ty: ~
+            method: y
+            args:
+              - kind:
+                  Ident:
+                    name: a
+                    ty: ~
+            ty: ~
+      - kind:
+          MethodSelector:
+            composite:
+              kind:
+                Ident:
+                  name: x
+                  ty: ~
+            method: y
+            args:
+              - kind:
+                  Ident:
+                    name: a
+                    ty: ~
+              - kind:
+                  Ident:
+                    name: b
+                    ty: ~
+            ty: ~
+- (x.y)(x.y a)(x.y a b)
+

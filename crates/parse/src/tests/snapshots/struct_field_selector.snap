@@ -1,0 +1,19 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 402
+expression: "(test[1], ast, ast_string)"
+---
+- x.y
+- Ok:
+    nodes:
+      - kind:
+          FieldSelector:
+            composite:
+              kind:
+                Ident:
+                  name: x
+                  ty: ~
+            field: y
+            ty: ~
+- x.y
+

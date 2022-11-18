@@ -172,7 +172,7 @@ impl<'a> Parse<'a> {
     //
     // Expr ::= PrimaryExpr | Expr mul_op Expr | Expr add_op Expr | Expr rel_op Expr
     //        | Expr eq_op Expr | Expr bit_op Expr | Expr '&&' Expr | Expr '||' Expr
-    //        | ( IdentExpr SelfExpr ) assign_op Expr ;
+    //        | AssignableExpr assign_op Expr ;
     fn parse_expr(&mut self, min_p: u8) -> ParseResult {
         let mut lhs = self.parse_primary()?;
 
@@ -224,9 +224,9 @@ impl<'a> Parse<'a> {
         Ok(ast::Node::new_unop(op, rhs, None))
     }
 
-    // PrimaryExpr ::= CondExpr | | SelfExpr |LitExpr | IdentExpr | CallExpr | Assignment
-    //               | Block | ParenExpr | IndexExpr ;
-    // LitExpr     ::= number | bool | CharLit | ArrayLit ;
+    // PrimaryExpr ::= CondExpr | LitExpr | IdentExpr | CallExpr | Block
+    //               | ParenExpr | IndexExpr | SelfExpr | FieldSelectorExpr
+    //               | MethodExpr ;
     fn parse_primary(&mut self) -> ParseResult {
         use TokenType::*;
 
@@ -234,7 +234,7 @@ impl<'a> Parse<'a> {
 
         let expr = match &token.tt {
             If => self.parse_cond()?,
-            Ident(id) => self.parse_ident_or_call(id)?,
+            Ident(id) => self.parse_ident(id)?,
             OpenBrace => self.parse_block()?,
             OpenParen => self.parse_paren()?,
             Op(sym) => self.parse_unop(*sym)?,
@@ -245,39 +245,62 @@ impl<'a> Parse<'a> {
             x => return Err(ParseError::from((format!("Expecting primary expression. Got `{}`", x), token))),
         };
 
-        // Array indices come after the primary
-        if matches!(self.tokens.peek(), Some(Token { tt: OpenBracket, .. })) {
-            self.parse_index(expr)
-        } else {
-            Ok(expr)
+        // Before we go around again, check the next token:
+        //   - if it's a '[', this primary is the target array
+        //   - if it's a '.', this primary is the target struct
+        match self.tokens.peek() {
+            Some(Token { tt: OpenBracket, .. }) => self.parse_index(expr),
+            Some(Token { tt: Dot, .. }) => self.parse_selector(expr),
+            _ => Ok(expr)
         }
     }
 
-    // Variable or function call
-    // TODO: break these up
+    // Entry point for variables and function calls
     //
     // IdentExpr ::= ident ;
-    // CallExpr  ::= ident '(' ExprList? ')' ;
-    // ident     ::= letter ( letter | digit | '_' )* ;
-    fn parse_ident_or_call(&mut self, id: &str) -> ParseResult {
+    // CallExpr ::= ident '(' ExprList? ')' ;
+    fn parse_ident(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 
-        // If next is not a '(', the current token is just a simple var
         match self.tokens.peek() {
-            Some(Token { tt: TokenType::OpenParen, .. }) => (),
-            _ => return Ok(ast::Node::new_ident(id.to_owned(), None)),
-        };
+            Some(Token { tt: TokenType::OpenParen, .. }) => {
+                // Eat open paren
+                self.tokens.next();
+                // Parse argument list
+                let args = self.parse_expr_list(TokenType::CloseParen, "function call argument list")?;
+                // Eat close paren
+                expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in function call");
+                Ok(ast::Node::new_call(id.to_owned(), args, None))
+            },
+            _ => Ok(ast::Node::new_ident(id.to_owned(), None)),
+        }
+    }
 
-        // Eat open paren
-        self.tokens.next();
+    // Entry point for field and method selectors
+    //
+    // FieldSelectorExpr ::= PrimaryExpr '.' IdentExpr ;
+    // MethodSelectorExpr ::= PrimaryExpr '.' CallExpr ;
+    fn parse_selector(&mut self, target: ast::Node) -> ParseResult {
+        self.tokens.next(); // Eat dot
 
-        // Parse argument list
-        let args = self.parse_expr_list(TokenType::CloseParen, "function call argument list")?;
+        let ident = expect_next_token!(
+            self.tokens,
+            TokenType::Ident(_),
+            "Expecting field or method name after struct selector"
+        );
 
-        // Eat close paren
-        expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in function call");
-
-        Ok(ast::Node::new_call(id.to_owned(), args, None))
+        match self.tokens.peek() {
+            Some(Token { tt: TokenType::OpenParen, .. }) => {
+                // Eat open paren
+                self.tokens.next();
+                // Parse argument list
+                let args = self.parse_expr_list(TokenType::CloseParen, "method call argument list")?;
+                // Eat close paren
+                expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in method call");
+                Ok(ast::Node::new_method_selector(target, ident.to_owned(), args, None))
+            }
+            _ => Ok(ast::Node::new_field_selector(target, ident.to_owned(), None)),
+        }
     }
 
     // ParenExpr ::= '(' Expr ')' ;
