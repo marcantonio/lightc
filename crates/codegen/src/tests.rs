@@ -387,3 +387,21 @@ fn foo() {}
     ];
     run_insta!("order", tests);
 }
+
+#[test]
+fn test_struct() {
+    let tests = [[
+        "basic",
+        r#"
+struct Foo {
+    let a: int
+    let b: bool
+}
+fn main() {
+    let x: Foo
+    x.a
+}
+"#,
+    ]];
+    run_insta!("struct", tests);
+}

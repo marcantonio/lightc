@@ -288,7 +288,7 @@ fn test_array() {
         ["index_bad_1", "x["],
         ["index_bad_2", "x[]"],
         ["index_bad_3", "x[0"],
-        ["index_chain", "x[0][1]"]
+        ["index_chain", "x[0][1]"],
     ];
 
     run_insta!("array", tests)
@@ -338,34 +338,13 @@ struct Foo {}
 struct Foo {}
 "#,
         ],
-        [
-            "field_selector",
-            "x.y",
-        ],
-        [
-            "field_selector_bad",
-            "x.",
-        ],
-        [
-            "method_selector",
-            "x.y(); x.y(a); x.y(a, b)",
-        ],
-        [
-            "method_selector_bad1",
-            "x.y(",
-        ],
-        [
-            "field_selector_bad2",
-            "x.y(a",
-        ],
-        [
-            "field_selector_bad3",
-            "x.y(a,",
-        ],
-        [
-            "field_selector_bad4",
-            "x.y(a a",
-        ],
+        ["field_selector", "x.y"],
+        ["field_selector_bad", "x."],
+        ["method_selector", "x.y(); x.y(a); x.y(a, b)"],
+        ["method_selector_bad1", "x.y("],
+        ["field_selector_bad2", "x.y(a"],
+        ["field_selector_bad3", "x.y(a,"],
+        ["field_selector_bad4", "x.y(a a"],
         [
             "selector_chaining",
             r#"
@@ -376,37 +355,37 @@ x.y().z
 "#,
         ],
         //         [
-           //             "self",
-           //             r#"
-           // struct Foo {
-           //     let a: int
+        //             "self",
+        //             r#"
+        // struct Foo {
+        //     let a: int
 
-           //     fn c() -> int {
-           //         self.a + 1
-           //     }
-           // }
-           // "#,
-           //         ],
-           //         [
-           //             "self_bad1",
-           //             r#"
-           // struct Foo {
-           //     fn c() -> int {
-           //         self + 1
-           //     }
-           // }
-           // "#,
-           //         ],
-           //         [
-           //             "self_bad2",
-           //             r#"
-           // struct Foo {
-           //     fn c() -> int {
-           //         self. + 1
-           //     }
-           // }
-           // "#,
-           //         ],
+        //     fn c() -> int {
+        //         self.a + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad1",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self + 1
+        //     }
+        // }
+        // "#,
+        //         ],
+        //         [
+        //             "self_bad2",
+        //             r#"
+        // struct Foo {
+        //     fn c() -> int {
+        //         self. + 1
+        //     }
+        // }
+        // "#,
+        //         ],
     ];
 
     run_insta!("struct", tests)

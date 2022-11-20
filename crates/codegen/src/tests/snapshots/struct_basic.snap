@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 408
+expression: "(test[1], res, res_opt)"
+---
+- "\nstruct Foo {\n    let a: int\n    let b: bool\n}\nfn main() {\n    let x: Foo\n    x.a\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\n%Foo = type { i32, i1 }\n\ndefine void @main() {\nentry:\n  %x = alloca %Foo, align 8\n  store %Foo zeroinitializer, %Foo* %x, align 4\n  %x1 = load %Foo, %Foo* %x, align 4\n  %struct.field.gep = getelementptr inbounds %Foo, %Foo* %x, i32 0, i32 0\n  %struct.0 = load i32, i32* %struct.field.gep, align 4\n  ret void\n}\n"
+- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+

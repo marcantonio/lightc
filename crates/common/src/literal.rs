@@ -54,7 +54,7 @@ impl<T: Display> Display for Literal<T> {
                     acc
                 });
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
-            }
+            },
         }
     }
 }

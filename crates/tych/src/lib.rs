@@ -249,7 +249,8 @@ impl<'a> ast::Visitor for Tych<'a> {
             fields.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
         self.in_struct = false;
 
-        let chkd_methods = methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
+        let chkd_methods =
+            methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
@@ -551,7 +552,7 @@ impl<'a> ast::Visitor for Tych<'a> {
         let comp_name = match chkd_comp.ty() {
             Some(Type::Comp(name)) => name,
             Some(ty) => return Err(format!("Attempt in use field selector on non-composite type: {}", ty)),
-            None => unreachable!("no type for for field selector target"),
+            None => unreachable!("no type for for field selector target in tych"),
         };
         let comp_sym =
             self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;

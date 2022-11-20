@@ -89,10 +89,7 @@ impl<'a> Parse<'a> {
                     }
 
                     if self.symbol_table.insert(Symbol::new_struct(name, Some(&sym_fields))).is_some() {
-                        return Err(ParseError::from((
-                            format!("struct `{}` already defined", name),
-                            token,
-                        )));
+                        return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
                     }
 
                     return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
@@ -263,7 +260,7 @@ impl<'a> Parse<'a> {
             last_expr = match token {
                 Token { tt: OpenBracket, .. } => self.parse_index(last_expr)?,
                 Token { tt: Dot, .. } => self.parse_selector(last_expr)?,
-                _ => return Ok(last_expr)
+                _ => return Ok(last_expr),
             };
         }
         Ok(last_expr)
@@ -312,7 +309,7 @@ impl<'a> Parse<'a> {
                 // Eat close paren
                 expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in method call");
                 Ok(ast::Node::new_mselector(target, ident.to_owned(), args, None))
-            }
+            },
             _ => Ok(ast::Node::new_fselector(target, ident.to_owned(), None)),
         }
     }

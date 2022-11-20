@@ -343,6 +343,7 @@ impl<'ctx> Codegen<'ctx> {
             .into_int_value();
 
         let zero = self.context.i32_type().const_zero();
+
         unsafe {
             Ok((
                 name.to_owned(),
@@ -806,8 +807,19 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str()))))
     }
 
-    fn visit_fselector(&mut self, _comp: hir::Node, _idx: u32, _ty: Option<Type>) -> Self::Result {
-        todo!()
+    fn visit_fselector(&mut self, comp: hir::Node, idx: u32, _ty: Option<Type>) -> Self::Result {
+        let struct_value =
+            self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+        // Get the load instruction for the struct
+        let inst = struct_value.as_instruction_value().unwrap();
+        // The only operand to the load instruction is the pointer to the struct
+        let struct_ptr = inst.get_operand(0).unwrap().left().unwrap().into_pointer_value();
+        let field_ptr = self
+            .builder
+            .build_struct_gep(struct_ptr, idx, "struct.field.gep")
+            .map_err(|_| "failed to build struct GEP")?;
+        dbg!(&field_ptr);
+        Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
     }
 }
 

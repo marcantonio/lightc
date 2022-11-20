@@ -312,7 +312,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             .symbol_table
             .get(comp_name)
             .unwrap_or_else(|| unreachable!("missing symbol table entry for composite: `{}`", comp_name));
-        let idx: u32 = comp_sym
+        let idx = comp_sym
             .fields()
             .unwrap_or_default()
             .into_iter()

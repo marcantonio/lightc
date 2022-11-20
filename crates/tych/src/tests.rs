@@ -790,7 +790,7 @@ fn main() {
 }
 "#,
         ],
-       [
+        [
             "field_selector_chained",
             r#"
 struct Foo {
