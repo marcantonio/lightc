@@ -26,8 +26,7 @@ mod ops;
 #[cfg(test)]
 mod tests;
 
-// Generate IR for the AST. If types mismatch at this stage, it's a compiler
-// bug, not user error.
+// Generate IR for the HIR
 
 pub struct Codegen<'ctx> {
     context: &'ctx Context,
@@ -184,7 +183,10 @@ impl<'ctx> Codegen<'ctx> {
             .collect::<Vec<_>>();
 
         for (opaque_struct, field_tys) in struct_parts {
-            let fields = field_tys.iter().map(|ty| self.get_llvm_basic_type(ty)).collect::<Vec<_>>();
+            let fields = field_tys
+                .iter()
+                .map(|ty| self.get_llvm_basic_type(ty))
+                .collect::<Result<Vec<_>, String>>()?;
             opaque_struct.set_body(&fields, false);
         }
 
@@ -194,29 +196,27 @@ impl<'ctx> Codegen<'ctx> {
     // Codegen all prototypes to ensure that call order doesn't matter
     fn codegen_all_prototypes(&self, prototypes: Vec<Prototype>) -> Result<(), String> {
         for proto in prototypes {
-            let args_type = proto
-                .args()
-                .iter()
-                .map(|x| {
-                    let (_, ty) = x;
-                    match self.get_llvm_any_type(ty) {
-                        AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
-                        AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
-                        AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
-                        ty => unreachable!(
-                            "unsupported argument type `{}` in prototype `{}()`",
-                            ty.print_to_string(),
-                            proto.name(),
-                        ),
-                    }
-                })
-                .collect::<Vec<BasicMetadataTypeEnum>>();
+            // Get LLVM types for function args
+            let mut args_types = vec![];
+            for (_, arg_ty) in proto.args() {
+                let llvm_ty = match self.get_llvm_any_type(arg_ty)? {
+                    AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
+                    AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
+                    AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
+                    ty => unreachable!(
+                        "unsupported argument type `{}` in prototype `{}()`",
+                        ty.print_to_string(),
+                        proto.name(),
+                    ),
+                };
+                args_types.push(llvm_ty);
+            }
 
             // Generate function based on return type
-            let func_type = match self.get_llvm_any_type(proto.ret_ty()) {
-                AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_type, false),
-                AnyTypeEnum::IntType(ty) => ty.fn_type(&args_type, false),
-                AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_type, false),
+            let func_type = match self.get_llvm_any_type(proto.ret_ty())? {
+                AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_types, false),
+                AnyTypeEnum::IntType(ty) => ty.fn_type(&args_types, false),
+                AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_types, false),
                 ty => unreachable!(
                     "unsupported return type `{}` in prototype `{}()`",
                     ty.print_to_string(),
@@ -266,7 +266,9 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // Helper to create an alloca in the entry block for local variables
-    fn create_entry_block_alloca(&self, name: &str, ty: &Type, func: &FunctionValue) -> PointerValue<'ctx> {
+    fn create_entry_block_alloca(
+        &self, name: &str, ty: &Type, func: &FunctionValue,
+    ) -> Result<PointerValue<'ctx>, String> {
         // Create a temporary builder
         let builder = self.context.create_builder();
 
@@ -281,7 +283,7 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         // Create alloca and return it
-        match ty {
+        Ok(match ty {
             int8_types!() | Type::Char => builder.build_alloca(self.context.i8_type(), name),
             int16_types!() => builder.build_alloca(self.context.i16_type(), name),
             int32_types!() => builder.build_alloca(self.context.i32_type(), name),
@@ -293,21 +295,25 @@ impl<'ctx> Codegen<'ctx> {
             },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
             Type::Array(ty, sz) => {
-                let array_ty = match self.get_llvm_any_type(&ty.as_ref().clone()) {
+                let array_ty = match self.get_llvm_any_type(&ty.as_ref().clone())? {
                     AnyTypeEnum::FloatType(ty) => (ty.as_basic_type_enum(), sz),
                     AnyTypeEnum::IntType(ty) => (ty.as_basic_type_enum(), sz),
                     _ => todo!(),
                 };
                 builder.build_alloca(
-                    array_ty.0.array_type((*array_ty.1).try_into().expect("this is embarrassing")),
+                    array_ty.0.array_type(
+                        (*array_ty.1)
+                            .try_into()
+                            .map_err(|err| format!("failed to convert array index: `{}`", err))?,
+                    ),
                     name,
                 )
             },
             Type::Comp(_) => {
-                let struct_ty = self.get_llvm_basic_type(ty);
+                let struct_ty = self.get_llvm_basic_type(ty)?;
                 self.builder.build_alloca(struct_ty, name)
             },
-        }
+        })
     }
 
     // Helper to fetch a pointer to an array element
@@ -345,8 +351,8 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
-    fn get_llvm_basic_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
-        match ty {
+    fn get_llvm_basic_type(&self, ty: &Type) -> Result<BasicTypeEnum<'ctx>, String> {
+        Ok(match ty {
             int8_types!() | Type::Char => self.context.i8_type().as_basic_type_enum(),
             int16_types!() => self.context.i16_type().as_basic_type_enum(),
             int32_types!() => self.context.i32_type().as_basic_type_enum(),
@@ -355,28 +361,29 @@ impl<'ctx> Codegen<'ctx> {
             Type::Double => self.context.f64_type().as_basic_type_enum(),
             Type::Bool => self.context.bool_type().as_basic_type_enum(),
             Type::Array(ty, size) => {
-                let size = (*size).try_into().expect("this is embarrassing");
-                match self.get_llvm_any_type(ty) {
+                let size =
+                    (*size).try_into().map_err(|err| format!("failed to convert array size: `{}`", err))?;
+                match self.get_llvm_any_type(ty)? {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_basic_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_basic_type_enum(),
                     AnyTypeEnum::IntType(ty) => ty.array_type(size).as_basic_type_enum(),
                     _ => todo!(),
                 }
             },
-            Type::Comp(name) => {
-                self.module.get_struct_type(name).unwrap_or_else(|| {
-                    unreachable!("missing struct definition in `create_entry_block_alloca()`")
-                }).as_basic_type_enum()
-            }
+            Type::Comp(name) => self
+                .module
+                .get_struct_type(name)
+                .unwrap_or_else(|| unreachable!("missing struct definition in `get_llvm_basic_type()`"))
+                .as_basic_type_enum(),
             Type::Void => unreachable!("void can't be coerced into LLVM basic type"),
-        }
+        })
     }
 
-    fn get_llvm_any_type(&self, ty: &Type) -> AnyTypeEnum<'ctx> {
-        match ty {
+    fn get_llvm_any_type(&self, ty: &Type) -> Result<AnyTypeEnum<'ctx>, String> {
+        Ok(match ty {
             Type::Void => self.context.void_type().as_any_type_enum(),
-            _ => self.get_llvm_basic_type(ty).as_any_type_enum(),
-        }
+            _ => self.get_llvm_basic_type(ty)?.as_any_type_enum(),
+        })
     }
 }
 
@@ -400,7 +407,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             .ok_or_else(|| "Parent function not found when building loop".to_string())?;
 
         // Create entry alloca, codegen start expr, and store result
-        let start_alloca = self.create_entry_block_alloca(&start_name, &start_antn, &parent);
+        let start_alloca = self.create_entry_block_alloca(&start_name, &start_antn, &parent)?;
         let start_code = self.codegen_var_init(&start_antn, start_expr)?;
         self.builder.build_store(start_alloca, start_code);
 
@@ -475,7 +482,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
         let init_code = self.codegen_var_init(&antn, init)?;
 
-        let init_alloca = self.create_entry_block_alloca(&name, &antn, &parent);
+        let init_alloca = self.create_entry_block_alloca(&name, &antn, &parent)?;
         self.builder.build_store(init_alloca, init_code);
 
         let sym = CodegenSymbol::from((name.as_str(), &antn, init_alloca));
@@ -518,7 +525,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
             let (name, ty) = &proto.args()[i];
-            let alloca = self.create_entry_block_alloca(name, ty, &function);
+            let alloca = self.create_entry_block_alloca(name, ty, &function)?;
             self.builder.build_store(alloca, arg);
             self.symbol_table.insert(CodegenSymbol::from((name.as_str(), ty, alloca)));
         }
@@ -583,7 +590,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
                 for el in elements {
                     vals.push(self.visit_node(el)?.unwrap());
                 }
-                match self.get_llvm_any_type(&inner_ty.as_ref().cloned().unwrap()) {
+                match self.get_llvm_any_type(&inner_ty.as_ref().cloned().unwrap_or_default())? {
                     AnyTypeEnum::FloatType(ty) => {
                         let vals = vals.iter().map(|v| v.into_float_value()).collect::<Vec<_>>();
                         ty.const_array(&vals).as_basic_value_enum()
