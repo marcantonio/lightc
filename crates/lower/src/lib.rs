@@ -84,11 +84,10 @@ impl<'a> Lower<'a> {
             Double => init_literal!(Double, 0.0),
             Char => init_literal!(Char, 0),
             Bool => init_literal!(Bool, false),
-            Array(ty, len) => {
-                hir::Node::new_lit(
-                    Literal::Array { elements: Vec::with_capacity(*len), inner_ty: Some(*ty.clone()) },
-                    Some(Type::Array(Box::new(*ty.clone()), *len)))
-            },
+            Array(ty, len) => hir::Node::new_lit(
+                Literal::Array { elements: Vec::with_capacity(*len), inner_ty: Some(*ty.clone()) },
+                Some(Type::Array(Box::new(*ty.clone()), *len)),
+            ),
             Comp(name) => {
                 let sym = self
                     .symbol_table
@@ -191,8 +190,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {
         use Literal::*;
 
-        // Rewrapping primitives is annoying. Remove for pimitives if we dump ast::Node ->
-        // hir::Node
+        // Rewrapping primitives is annoying. Remove if we dump ast::Node -> hir::Node
         let lit = match value {
             Int8(l) => Int8(l),
             Int16(l) => Int16(l),
@@ -305,6 +303,26 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
-        todo!()
+        let lowered_comp = self.visit_node(comp)?;
+        let comp_name = match lowered_comp.ty() {
+            Some(Type::Comp(name)) => name,
+            _ => unreachable!("unexpected type for for field selector target"),
+        };
+        let comp_sym = self
+            .symbol_table
+            .get(comp_name)
+            .unwrap_or_else(|| unreachable!("missing symbol table entry for composite: `{}`", comp_name));
+        let idx: u32 = comp_sym
+            .fields()
+            .unwrap_or_default()
+            .into_iter()
+            .enumerate()
+            .find(|(_, f)| f.0 == field)
+            .map(|(i, _)| i)
+            .unwrap_or_else(|| unreachable!("composite `{}` has no field: `{}`", comp_name, field))
+            .try_into()
+            .map_err(|err| format!("failed to convert composite index: `{}`", err))?;
+
+        Ok(hir::Node::new_fselector(lowered_comp, idx, ty))
     }
 }

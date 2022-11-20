@@ -805,6 +805,10 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         let (binding_name, element_ptr) = self.get_array_element(binding, idx)?;
         Ok(Some(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str()))))
     }
+
+    fn visit_fselector(&mut self, _comp: hir::Node, _idx: u32, _ty: Option<Type>) -> Self::Result {
+        todo!()
+    }
 }
 
 // This is a little wonky. Allows us to return a file path for main or a string for the

@@ -314,7 +314,6 @@ impl Display for Node {
                 }
                 write!(f, "{})", s)
             },
-
         }
     }
 }

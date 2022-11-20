@@ -131,6 +131,24 @@ fn main() {
 }
 
 #[test]
+fn test_struct() {
+    let tests = [[
+        "selector",
+        r#"
+struct Foo {
+    let a: int
+    let b: float
+}
+fn main() {
+    let x: Foo
+    x.b
+}
+"#,
+    ]];
+    run_insta!("struct", tests);
+}
+
+#[test]
 fn test_init_literal() {
     let tests = [
         [

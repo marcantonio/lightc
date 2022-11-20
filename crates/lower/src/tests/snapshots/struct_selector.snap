@@ -1,0 +1,65 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 148
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    let a: int\n    let b: float\n}\nfn main() {\n    let x: Foo\n    x.b\n}\n"
+- Ok:
+    functions:
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn:
+                            Comp: Foo
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Comp:
+                                    - kind:
+                                        Lit:
+                                          value:
+                                            Int32: 0
+                                          ty: Int32
+                                    - kind:
+                                        Lit:
+                                          value:
+                                            Float: 0.0
+                                          ty: Float
+                                ty:
+                                  Comp: Foo
+                    - kind:
+                        FSelector:
+                          comp:
+                            kind:
+                              Ident:
+                                name: x
+                                ty:
+                                  Comp: Foo
+                          idx: 1
+                          ty: Float
+                  ty: Float
+    structs:
+      - kind:
+          Struct:
+            name: Foo
+            field_tys:
+              - Int32
+              - Float
+    prototypes:
+      - name: main
+        args: []
+        ret_ty: Void
+        is_extern: false
+

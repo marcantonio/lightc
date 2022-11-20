@@ -77,6 +77,10 @@ impl Node {
         Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
     }
 
+    pub fn new_fselector(comp: Node, idx: u32, ty: Option<Type>) -> Self {
+        Self { kind: Kind::FSelector { comp: Box::new(comp), idx, ty } }
+    }
+
     pub fn ty(&self) -> Option<&Type> {
         use Kind::*;
 
@@ -89,6 +93,7 @@ impl Node {
             Cond { ty, .. } => ty.as_ref(),
             Block { ty, .. } => ty.as_ref(),
             Index { ty, .. } => ty.as_ref(),
+            FSelector { ty, .. } => ty.as_ref(),
             _ => None,
         }
     }
@@ -139,6 +144,7 @@ pub enum Kind {
         name: String,
         field_tys: Vec<Type>,
     },
+
     // Expressions
     Lit {
         value: Literal<Node>,
@@ -179,6 +185,11 @@ pub enum Kind {
         idx: Box<Node>,
         ty: Option<Type>,
     },
+    FSelector {
+        comp: Box<Node>,
+        idx: u32,
+        ty: Option<Type>,
+    },
 }
 
 impl VisitableNode for Node {
@@ -201,6 +212,7 @@ impl VisitableNode for Node {
             },
             Block { list, ty } => v.visit_block(list, ty),
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
+            FSelector { comp, idx, ty } => v.visit_fselector(*comp, idx, ty),
             _ => unreachable!("invalid node kind visited"),
         }
     }
@@ -267,6 +279,7 @@ impl Display for Node {
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
+            FSelector { comp, idx, .. } => write!(f, "{}.{}", comp, idx),
         }
     }
 }

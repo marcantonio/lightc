@@ -564,10 +564,6 @@ impl<'a> ast::Visitor for Tych<'a> {
             .1
             .into();
 
-        if !self.is_valid_type(&field_ty) {
-            panic!()
-        }
-
         Ok(ast::Node::new_fselector(chkd_comp, field, Some(field_ty)))
     }
 }
