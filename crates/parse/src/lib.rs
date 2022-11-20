@@ -253,14 +253,20 @@ impl<'a> Parse<'a> {
             x => return Err(ParseError::from((format!("Expecting primary expression. Got `{}`", x), token))),
         };
 
-        // Before we go around again, check the next token:
+        // To support chaining selectors and indexing, repeatedly check the next token:
         //   - if it's a '[', this primary is the target array
         //   - if it's a '.', this primary is the target struct
-        match self.tokens.peek() {
-            Some(Token { tt: OpenBracket, .. }) => self.parse_index(expr),
-            Some(Token { tt: Dot, .. }) => self.parse_selector(expr),
-            _ => Ok(expr)
+        //
+        // NB: This works with `peek()` because `parse_*` will advance the tokens.
+        let mut last_expr = expr;
+        while let Some(token) = self.tokens.peek() {
+            last_expr = match token {
+                Token { tt: OpenBracket, .. } => self.parse_index(last_expr)?,
+                Token { tt: Dot, .. } => self.parse_selector(last_expr)?,
+                _ => return Ok(last_expr)
+            };
         }
+        Ok(last_expr)
     }
 
     // Entry point for variables and function calls
