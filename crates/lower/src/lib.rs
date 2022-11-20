@@ -306,7 +306,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         let lowered_comp = self.visit_node(comp)?;
         let comp_name = match lowered_comp.ty() {
             Some(Type::Comp(name)) => name,
-            _ => unreachable!("unexpected type for for field selector target"),
+            _ => unreachable!("unexpected type for for field selector target in lower"),
         };
         let comp_sym = self
             .symbol_table

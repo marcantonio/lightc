@@ -352,6 +352,20 @@ impl<'ctx> Codegen<'ctx> {
         }
     }
 
+    fn get_struct_element(&mut self, comp: hir::Node, idx: u32) -> Result<PointerValue<'ctx>, String> {
+        let struct_value =
+            self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+        // Get the load instruction for the struct
+        let inst = struct_value.as_instruction_value().unwrap();
+        // The only operand to the load instruction is the pointer to the struct
+        let struct_ptr = inst.get_operand(0).unwrap().left().unwrap().into_pointer_value();
+
+        Ok(self
+            .builder
+            .build_struct_gep(struct_ptr, idx, "struct.field.gep")
+            .map_err(|_| "failed to build struct GEP")?)
+    }
+
     fn get_llvm_basic_type(&self, ty: &Type) -> Result<BasicTypeEnum<'ctx>, String> {
         Ok(match ty {
             int8_types!() | Type::Char => self.context.i8_type().as_basic_type_enum(),
@@ -808,17 +822,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
     }
 
     fn visit_fselector(&mut self, comp: hir::Node, idx: u32, _ty: Option<Type>) -> Self::Result {
-        let struct_value =
-            self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
-        // Get the load instruction for the struct
-        let inst = struct_value.as_instruction_value().unwrap();
-        // The only operand to the load instruction is the pointer to the struct
-        let struct_ptr = inst.get_operand(0).unwrap().left().unwrap().into_pointer_value();
-        let field_ptr = self
-            .builder
-            .build_struct_gep(struct_ptr, idx, "struct.field.gep")
-            .map_err(|_| "failed to build struct GEP")?;
-        dbg!(&field_ptr);
+        let field_ptr = self.get_struct_element(comp, idx)?;
         Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
     }
 }

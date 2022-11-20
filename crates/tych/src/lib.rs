@@ -337,6 +337,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                 lhs,
                 ast::Node { kind: ast::node::Kind::Ident { .. } }
                     | ast::Node { kind: ast::node::Kind::Index { .. } }
+                    | ast::Node { kind: ast::node::Kind::FSelector { .. } }
             )
         {
             return Err("Expected LHS to be a variable for assignment".to_string());
