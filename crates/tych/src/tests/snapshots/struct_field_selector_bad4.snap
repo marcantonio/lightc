@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 852
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    let x: int\n    x.a\n}\n"
+- Err: "Attempt in use field selector on non-composite type: int32"
+

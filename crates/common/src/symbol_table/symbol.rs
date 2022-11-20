@@ -24,8 +24,6 @@ pub enum AssocData {
     Fn(FnData),
     Var(VarData),
     Struct(StructData),
-    Type(),
-    TypeAlias(String),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -44,13 +42,6 @@ impl Symbol {
 
     pub fn new_var(name: &str, ty: &Type) -> Self {
         Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
-    }
-
-    pub fn new_ty(name: &str, alias: Option<&str>) -> Self {
-        match alias {
-            Some(a) => Symbol { name: name.to_owned(), data: AssocData::TypeAlias(a.to_owned()) },
-            None => Symbol { name: name.to_owned(), data: AssocData::Type() },
-        }
     }
 
     pub fn new_struct(name: &str, fields: Option<&[(String, String)]>) -> Self {
@@ -119,8 +110,6 @@ impl Symbolic for Symbol {
             AssocData::Fn(_) => "Fn",
             AssocData::Var(_) => "Var",
             AssocData::Struct(_) => "Struct",
-            AssocData::Type() => "Type",
-            AssocData::TypeAlias(_) => "TypeAlias",
         }
     }
 }

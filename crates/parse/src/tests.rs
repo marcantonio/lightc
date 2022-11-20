@@ -288,6 +288,7 @@ fn test_array() {
         ["index_bad_1", "x["],
         ["index_bad_2", "x[]"],
         ["index_bad_3", "x[0"],
+        ["index_chain", "x[0][1]"]
     ];
 
     run_insta!("array", tests)
@@ -364,6 +365,15 @@ struct Foo {}
         [
             "field_selector_bad4",
             "x.y(a a",
+        ],
+        [
+            "selector_chaining",
+            r#"
+x.x.x
+x().y()
+x.y.z()
+x.y().z
+"#,
         ],
         //         [
            //             "self",

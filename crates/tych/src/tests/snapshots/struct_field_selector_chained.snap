@@ -1,0 +1,64 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 852
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    let a: int,\n}\nstruct Bar {\n    let b: Foo\n}\nfn main() {\n    let x: Bar\n    x.b.a\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Struct:
+            name: Foo
+            fields:
+              - kind:
+                  Let:
+                    name: a
+                    antn: Int32
+                    init: ~
+            methods: []
+      - kind:
+          Struct:
+            name: Bar
+            fields:
+              - kind:
+                  Let:
+                    name: b
+                    antn:
+                      Comp: Foo
+                    init: ~
+            methods: []
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn:
+                            Comp: Bar
+                          init: ~
+                    - kind:
+                        FSelector:
+                          comp:
+                            kind:
+                              FSelector:
+                                comp:
+                                  kind:
+                                    Ident:
+                                      name: x
+                                      ty:
+                                        Comp: Bar
+                                field: b
+                                ty:
+                                  Comp: Foo
+                          field: a
+                          ty: Int32
+                  ty: Int32
+

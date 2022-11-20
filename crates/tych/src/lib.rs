@@ -245,24 +245,11 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
 
         self.in_struct = true;
-        let mut chkd_fields = vec![];
-        let mut sym_fields = vec![];
-        for node in fields {
-            let chkd_node = self.check_node(node.clone(), None)?;
-            // Extract fields for symbol table
-            if let ast::Node { kind: ast::node::Kind::Let { name, antn, .. } } = node {
-                sym_fields.push((name, antn.to_string()));
-            }
-            chkd_fields.push(chkd_node);
-        }
+        let chkd_fields =
+            fields.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
         self.in_struct = false;
 
-        let mut chkd_methods = vec![];
-        for node in methods {
-            chkd_methods.push(self.check_node(node.clone(), None)?);
-        }
-
-        self.symbol_table.insert(Symbol::new_struct(&name, Some(sym_fields.as_slice())));
+        let chkd_methods = methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
@@ -547,7 +534,6 @@ impl<'a> ast::Visitor for Tych<'a> {
             Type::Array(t, _) => *t.clone(),
             t => return Err(format!("Can't index `{}`", t)),
         };
-
         // TODO: Coerce into int32
         let chkd_idx = self.check_node(idx, Some(&Type::Int32))?;
         let idx_ty = chkd_idx.ty().unwrap_or_default();
@@ -558,5 +544,30 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
 
         Ok(ast::Node::new_index(chkd_binding, chkd_idx, Some(binding_ty)))
+    }
+
+    fn visit_fselector(&mut self, comp: ast::Node, field: String, _ty: Option<Type>) -> Self::Result {
+        let chkd_comp = self.check_node(comp, None)?;
+        let comp_name = match chkd_comp.ty() {
+            Some(Type::Comp(name)) => name,
+            Some(ty) => return Err(format!("Attempt in use field selector on non-composite type: {}", ty)),
+            None => unreachable!("no type for for field selector target"),
+        };
+        let comp_sym =
+            self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;
+        let field_ty: Type = comp_sym
+            .fields()
+            .unwrap_or_default()
+            .into_iter()
+            .find(|f| f.0 == field)
+            .ok_or(format!("composite `{}` has no field: `{}`", comp_name, field))?
+            .1
+            .into();
+
+        if !self.is_valid_type(&field_ty) {
+            panic!()
+        }
+
+        Ok(ast::Node::new_fselector(chkd_comp, field, Some(field_ty)))
     }
 }

@@ -1,0 +1,65 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 411
+expression: "(test[1], ast, ast_string)"
+---
+- "\nx.x.x\nx().y()\nx.y.z()\nx.y().z\n"
+- Ok:
+    nodes:
+      - kind:
+          FSelector:
+            comp:
+              kind:
+                FSelector:
+                  comp:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  field: x
+                  ty: ~
+            field: x
+            ty: ~
+      - kind:
+          MSelector:
+            comp:
+              kind:
+                Call:
+                  name: x
+                  args: []
+                  ty: ~
+            method: y
+            args: []
+            ty: ~
+      - kind:
+          MSelector:
+            comp:
+              kind:
+                FSelector:
+                  comp:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  field: y
+                  ty: ~
+            method: z
+            args: []
+            ty: ~
+      - kind:
+          FSelector:
+            comp:
+              kind:
+                MSelector:
+                  comp:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  method: y
+                  args: []
+                  ty: ~
+            field: z
+            ty: ~
+- x.x.x((x).y)(x.y.z)(x.y).z
+

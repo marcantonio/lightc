@@ -91,7 +91,7 @@ impl<T: Symbolic> SymbolTable<T> {
             .get(&0)
             .unwrap_or_else(|| unreachable!("No global symbol table in `types()`"))
             .values()
-            .filter(|sym| sym.kind() == "Type")
+            .filter(|sym| sym.kind() == "Struct")
             .map(|sym| sym.name().to_owned())
             .collect()
     }

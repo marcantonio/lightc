@@ -7,8 +7,8 @@ expression: "(test[1], ast, ast_string)"
 - Ok:
     nodes:
       - kind:
-          FieldSelector:
-            composite:
+          FSelector:
+            comp:
               kind:
                 Ident:
                   name: x

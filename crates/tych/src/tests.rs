@@ -761,7 +761,6 @@ struct Foo {
 struct Foo {
     let a: int
     let b: float
-
     fn c() -> int { 1 }
 }
 "#,
@@ -771,6 +770,81 @@ struct Foo {
             r#"
 fn main() {
     struct Foo {}
+}
+"#,
+        ],
+        [
+            "field_selector",
+            r#"
+struct Foo {
+    let a: int,
+}
+struct Bar {
+    let b: Foo
+}
+fn main() {
+    let x: Foo
+    let y: Bar
+    x.a
+    y.b
+}
+"#,
+        ],
+       [
+            "field_selector_chained",
+            r#"
+struct Foo {
+    let a: int,
+}
+struct Bar {
+    let b: Foo
+}
+fn main() {
+    let x: Bar
+    x.b.a
+}
+"#,
+        ],
+        [
+            "field_selector_bad1",
+            r#"
+struct Foo {}
+fn main() {
+    let x: Foo
+    x.a
+}
+"#,
+        ],
+        [
+            "field_selector_bad2",
+            r#"
+struct Foo {
+    let b: int,
+}
+fn main() {
+    let x: Foo
+    x.a
+}
+"#,
+        ],
+        [
+            "field_selector_bad3",
+            r#"
+struct Foo {
+    let a: Bar,
+}
+fn main() {
+    let x: Foo
+    x.a
+}
+"#,
+        ],
+        [
+            "field_selector_bad4",
+            r#"
+fn main() {
+    let x: int
+    x.a
 }
 "#,
         ],

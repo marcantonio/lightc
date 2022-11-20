@@ -303,4 +303,8 @@ impl<'a> ast::Visitor for Lower<'a> {
     fn visit_index(&mut self, binding: ast::Node, idx: ast::Node, ty: Option<Type>) -> Self::Result {
         Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty))
     }
+
+    fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
+        todo!()
+    }
 }

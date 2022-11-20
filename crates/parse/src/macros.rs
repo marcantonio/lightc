@@ -41,12 +41,12 @@ macro_rules! expect_next_token {
         }
     };
 
-    // Matches patterns like TokenType::Ident(_) and used for return value
+    // Matches patterns like TokenType::Ident(_). Returns inner value and associated token
     ($ts:expr, TokenType::$v:tt($_:tt), $err:expr) => {
         {
             let t = $ts.next();
             match t {
-                Some(Token { tt: TokenType::$v(inner), .. }) => inner,
+                Some(Token { tt: TokenType::$v(inner), .. }) => (inner, t.unwrap()),
                 _ => {
                     // Default to EOF. Make sure that we ignore inserted
                     // semicolons.

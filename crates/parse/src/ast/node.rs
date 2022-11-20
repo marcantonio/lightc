@@ -77,12 +77,12 @@ impl Node {
         Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
     }
 
-    pub fn new_field_selector(composite: Node, field: String, ty: Option<Type>) -> Self {
-        Self { kind: Kind::FieldSelector { composite: Box::new(composite), field, ty } }
+    pub fn new_fselector(comp: Node, field: String, ty: Option<Type>) -> Self {
+        Self { kind: Kind::FSelector { comp: Box::new(comp), field, ty } }
     }
 
-    pub fn new_method_selector(composite: Node, method: String, args: Vec<Node>, ty: Option<Type>) -> Self {
-        Self { kind: Kind::MethodSelector { composite: Box::new(composite), method, args, ty } }
+    pub fn new_mselector(comp: Node, method: String, args: Vec<Node>, ty: Option<Type>) -> Self {
+        Self { kind: Kind::MSelector { comp: Box::new(comp), method, args, ty } }
     }
 
     pub fn ty(&self) -> Option<&Type> {
@@ -97,8 +97,8 @@ impl Node {
             Cond { ty, .. } => ty.as_ref(),
             Block { ty, .. } => ty.as_ref(),
             Index { ty, .. } => ty.as_ref(),
-            FieldSelector { ty, .. } => ty.as_ref(),
-            MethodSelector { ty, .. } => ty.as_ref(),
+            FSelector { ty, .. } => ty.as_ref(),
+            MSelector { ty, .. } => ty.as_ref(),
             _ => None,
         }
     }
@@ -150,6 +150,7 @@ pub enum Kind {
         fields: Vec<Node>,
         methods: Vec<Node>,
     },
+
     // Expressions
     Lit {
         value: Literal<Node>,
@@ -190,13 +191,13 @@ pub enum Kind {
         idx: Box<Node>,
         ty: Option<Type>,
     },
-    FieldSelector {
-        composite: Box<Node>,
+    FSelector {
+        comp: Box<Node>,
         field: String,
         ty: Option<Type>,
     },
-    MethodSelector {
-        composite: Box<Node>,
+    MSelector {
+        comp: Box<Node>,
         method: String,
         args: Vec<Node>,
         ty: Option<Type>,
@@ -224,8 +225,8 @@ impl VisitableNode for Node {
             },
             Block { list, ty } => v.visit_block(list, ty),
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
-            FieldSelector { composite, field, ty } => todo!(),
-            MethodSelector { composite, method, args, ty } => todo!(),
+            FSelector { comp, field, ty } => v.visit_fselector(*comp, field, ty),
+            MSelector { comp: _, method: _, args: _, ty: _ } => todo!(),
         }
     }
 }
@@ -303,9 +304,9 @@ impl Display for Node {
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
-            FieldSelector { composite, field, .. } => write!(f, "{}.{}", composite, field),
-            MethodSelector { composite, method, args, .. } => {
-                let mut s = format!("({}.{}", composite, method);
+            FSelector { comp, field, .. } => write!(f, "{}.{}", comp, field),
+            MSelector { comp, method, args, .. } => {
+                let mut s = format!("({}.{}", comp, method);
                 if !args.is_empty() {
                     for arg in args {
                         s += &format!(" {}", arg);

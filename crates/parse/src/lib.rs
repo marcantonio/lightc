@@ -66,18 +66,10 @@ impl<'a> Parse<'a> {
 
     // StructDecl ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
     fn parse_struct(&mut self) -> ParseResult {
-        let token = self.tokens.next(); // Eat struct
+        self.tokens.next(); // Eat struct
 
-        let name =
+        let (name, token) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
-
-        if self.symbol_table.insert_with_name(name, Symbol::new_ty(name, None)).is_some() {
-            return Err(ParseError::from((
-                format!("struct `{}` already defined", name),
-                // TODO: this is the wrong token
-                token.unwrap(),
-            )));
-        }
 
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start struct block");
 
@@ -86,7 +78,23 @@ impl<'a> Parse<'a> {
         while let Some(t) = self.tokens.peek() {
             match &t.tt {
                 TokenType::CloseBrace => {
-                    self.tokens.next();
+                    self.tokens.next(); // Eat brace
+
+                    let mut sym_fields = vec![];
+                    for node in &fields {
+                        // Extract fields for symbol table
+                        if let ast::Node { kind: ast::node::Kind::Let { name, antn, .. } } = node {
+                            sym_fields.push((name.to_owned(), antn.to_string()));
+                        }
+                    }
+
+                    if self.symbol_table.insert(Symbol::new_struct(name, Some(&sym_fields))).is_some() {
+                        return Err(ParseError::from((
+                            format!("struct `{}` already defined", name),
+                            token,
+                        )));
+                    }
+
                     return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
                 },
                 TokenType::Let => {
@@ -258,7 +266,7 @@ impl<'a> Parse<'a> {
     // Entry point for variables and function calls
     //
     // IdentExpr ::= ident ;
-    // CallExpr ::= ident '(' ExprList? ')' ;
+    // CallExpr  ::= ident '(' ExprList? ')' ;
     fn parse_ident(&mut self, id: &str) -> ParseResult {
         self.tokens.next(); // Eat ident
 
@@ -278,12 +286,12 @@ impl<'a> Parse<'a> {
 
     // Entry point for field and method selectors
     //
-    // FieldSelectorExpr ::= PrimaryExpr '.' IdentExpr ;
+    // FieldSelectorExpr  ::= PrimaryExpr '.' IdentExpr ;
     // MethodSelectorExpr ::= PrimaryExpr '.' CallExpr ;
     fn parse_selector(&mut self, target: ast::Node) -> ParseResult {
         self.tokens.next(); // Eat dot
 
-        let ident = expect_next_token!(
+        let (ident, _) = expect_next_token!(
             self.tokens,
             TokenType::Ident(_),
             "Expecting field or method name after struct selector"
@@ -297,9 +305,9 @@ impl<'a> Parse<'a> {
                 let args = self.parse_expr_list(TokenType::CloseParen, "method call argument list")?;
                 // Eat close paren
                 expect_next_token!(self.tokens, TokenType::CloseParen, "Expecting `)` in method call");
-                Ok(ast::Node::new_method_selector(target, ident.to_owned(), args, None))
+                Ok(ast::Node::new_mselector(target, ident.to_owned(), args, None))
             }
-            _ => Ok(ast::Node::new_field_selector(target, ident.to_owned(), None)),
+            _ => Ok(ast::Node::new_fselector(target, ident.to_owned(), None)),
         }
     }
 
@@ -434,7 +442,7 @@ impl<'a> Parse<'a> {
 
     // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
     fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
-        let fn_name =
+        let (fn_name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting function name in prototype");
 
         expect_next_token!(self.tokens, TokenType::OpenParen, "Expecting `(` in prototype");
@@ -520,7 +528,7 @@ impl<'a> Parse<'a> {
         let token = self.tokens.next();
         let ty = match token {
             Some(Token { tt: TokenType::OpenBracket, .. }) => {
-                let ty = expect_next_token!(
+                let (ty, _) = expect_next_token!(
                     self.tokens,
                     TokenType::Ident(_),
                     format!("Expecting identifier after `[` in `{}` type annotation", caller)
@@ -571,7 +579,7 @@ impl<'a> Parse<'a> {
             _ => format!("Expecting identifier in `{}` typed declaration", caller),
         };
 
-        let name = expect_next_token!(self.tokens, TokenType::Ident(_), err);
+        let (name, _) = expect_next_token!(self.tokens, TokenType::Ident(_), err);
 
         expect_next_token!(
             self.tokens,

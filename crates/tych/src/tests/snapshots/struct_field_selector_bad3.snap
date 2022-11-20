@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 843
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    let a: Bar,\n}\nfn main() {\n    let x: Foo\n    x.a\n}\n"
+- Err: "Unknown type in let declaration: `Bar`"
+

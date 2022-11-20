@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 831
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {}\nfn main() {\n    let x: Foo\n    x.a\n}\n"
+- Err: "composite `Foo` has no field: `a`"
+

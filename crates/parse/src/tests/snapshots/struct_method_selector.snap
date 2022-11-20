@@ -7,8 +7,8 @@ expression: "(test[1], ast, ast_string)"
 - Ok:
     nodes:
       - kind:
-          MethodSelector:
-            composite:
+          MSelector:
+            comp:
               kind:
                 Ident:
                   name: x
@@ -17,8 +17,8 @@ expression: "(test[1], ast, ast_string)"
             args: []
             ty: ~
       - kind:
-          MethodSelector:
-            composite:
+          MSelector:
+            comp:
               kind:
                 Ident:
                   name: x
@@ -31,8 +31,8 @@ expression: "(test[1], ast, ast_string)"
                     ty: ~
             ty: ~
       - kind:
-          MethodSelector:
-            composite:
+          MSelector:
+            comp:
               kind:
                 Ident:
                   name: x
