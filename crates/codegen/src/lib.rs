@@ -217,6 +217,7 @@ impl<'ctx> Codegen<'ctx> {
                 AnyTypeEnum::FloatType(ty) => ty.fn_type(&args_types, false),
                 AnyTypeEnum::IntType(ty) => ty.fn_type(&args_types, false),
                 AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_types, false),
+                AnyTypeEnum::StructType(ty) => ty.fn_type(&args_types, false),
                 ty => unreachable!(
                     "unsupported return type `{}` in prototype `{}()`",
                     ty.print_to_string(),
@@ -353,12 +354,18 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn get_struct_element(&mut self, comp: hir::Node, idx: u32) -> Result<PointerValue<'ctx>, String> {
-        let struct_value =
-            self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
-        // Get the load instruction for the struct
-        let inst = struct_value.as_instruction_value().unwrap();
-        // The only operand to the load instruction is the pointer to the struct
-        let struct_ptr = inst.get_operand(0).unwrap().left().unwrap().into_pointer_value();
+        let comp_node = self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+
+        // If the composite is already a pointer, as in the case of chained fields, don't
+        // try to coerce into a pointer
+        let struct_ptr = if comp_node.is_pointer_value() {
+            comp_node.into_pointer_value()
+        } else {
+            // Get the load instruction for the struct
+            let inst = comp_node.as_instruction_value().unwrap();
+            // The only operand to the load instruction is the pointer to the struct
+            inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
+        };
 
         Ok(self
             .builder
@@ -549,7 +556,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
         // Build the return function based on the prototype's return value and the last statement
         match (proto.ret_ty(), body_val) {
-            (numeric_types!() | &Type::Bool, Some(v)) => self.builder.build_return(Some(&v)),
+            (rt, Some(v)) if rt != &Type::Void => self.builder.build_return(Some(&v)),
             (rt, None) if rt != &Type::Void => {
                 return Err(format!("Function should return `{}` but last statement is void", rt))
             },
@@ -823,7 +830,14 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
     fn visit_fselector(&mut self, comp: hir::Node, idx: u32, _ty: Option<Type>) -> Self::Result {
         let field_ptr = self.get_struct_element(comp, idx)?;
-        Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
+
+        // If the pointer is pointing to a struct, just return it and skip the load
+        // instruction
+        if field_ptr.get_type().get_element_type().is_struct_type() {
+            Ok(Some(field_ptr.as_basic_value_enum()))
+        } else {
+            Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
+        }
     }
 }
 
