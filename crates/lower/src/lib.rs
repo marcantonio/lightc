@@ -14,6 +14,8 @@ mod tests;
 // - cooks function names in the AST and symbol table
 // - tracks scope (needed?)
 // - initializes uninitialized variables
+// - drops field information from structs
+// - inserts let statements to support field/method chaining
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -302,15 +304,25 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty))
     }
 
+    // XXX: add test
     fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
-        let lowered_comp = self.visit_node(comp)?;
+        let mut lowered_comp = self.visit_node(comp)?;
+
         let comp_name = match lowered_comp.ty() {
-            Some(Type::Comp(name)) => name,
+            Some(Type::Comp(name)) => name.to_owned(),
             _ => unreachable!("unexpected type for for field selector target in lower"),
         };
+
+        // If the composite isn't an ident or a let, wrap it in a new let stmt
+        // XXX: use a real variable name
+        if let hir::node::Kind::Call { ty, .. } = lowered_comp.clone().kind {
+            lowered_comp = hir::Node::new_let(String::from("x1"), ty.unwrap(), Some(lowered_comp))
+        }
+
+        // Find the symbol and extract the index that corresponds to `field`
         let comp_sym = self
             .symbol_table
-            .get(comp_name)
+            .get(&comp_name)
             .unwrap_or_else(|| unreachable!("missing symbol table entry for composite: `{}`", comp_name));
         let idx = comp_sym
             .fields()

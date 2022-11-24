@@ -354,7 +354,16 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     fn get_struct_element(&mut self, comp: hir::Node, idx: u32) -> Result<PointerValue<'ctx>, String> {
-        let comp_node = self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+        let comp_node = match comp.clone().kind {
+            hir::node::Kind::Let { ref name, .. } => {
+                self.visit_node(comp)?;
+                self.symbol_table.get(name).unwrap().pointer().unwrap().as_basic_value_enum()
+            },
+            hir::node::Kind::Ident { .. } => {
+                self.visit_node(comp)?.unwrap_or_else(|| unreachable!("can't find struct pointer"))
+            },
+            _ => todo!(),
+        };
 
         // If the composite is already a pointer, as in the case of chained fields, don't
         // try to coerce into a pointer
