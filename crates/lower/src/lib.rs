@@ -314,9 +314,9 @@ impl<'a> ast::Visitor for Lower<'a> {
         };
 
         // If the composite isn't an ident or a let, wrap it in a new let stmt
-        // XXX: use a real variable name
         if let hir::node::Kind::Call { ty, .. } = lowered_comp.clone().kind {
-            lowered_comp = hir::Node::new_let(String::from("x1"), ty.unwrap(), Some(lowered_comp))
+            lowered_comp =
+                hir::Node::new_let(self.symbol_table.uniq_ident(None), ty.unwrap(), Some(lowered_comp))
         }
 
         // Find the symbol and extract the index that corresponds to `field`

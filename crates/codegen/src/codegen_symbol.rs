@@ -2,7 +2,7 @@ use inkwell::values::PointerValue;
 use std::collections::HashMap;
 
 use crate::Codegen;
-use common::symbol_table::{AssocData, Symbolic, VarData};
+use common::symbol_table::{AssocData, Symbolic};
 use common::{Symbol, SymbolTable, Type};
 
 #[derive(PartialEq, Debug)]
@@ -19,6 +19,10 @@ impl<'a> CodegenSymbol<'a> {
     pub fn pointer(&self) -> Option<PointerValue<'a>> {
         self.pointer
     }
+
+    pub fn new_var(name: &str, ty: &Type, ptr: PointerValue<'a>) -> Self {
+        Self { inner: Symbol::new_var(name, ty), pointer: Some(ptr) }
+    }
 }
 
 impl<'a> Symbolic for CodegenSymbol<'a> {
@@ -31,15 +35,6 @@ impl<'a> Symbolic for CodegenSymbol<'a> {
             AssocData::Fn(_) => "Fn",
             AssocData::Var(_) => "Var",
             AssocData::Struct(_) => "Struct",
-        }
-    }
-}
-
-impl<'a> From<(&str, &Type, PointerValue<'a>)> for CodegenSymbol<'a> {
-    fn from((name, ty, ptr): (&str, &Type, PointerValue<'a>)) -> Self {
-        CodegenSymbol {
-            inner: Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) },
-            pointer: Some(ptr),
         }
     }
 }

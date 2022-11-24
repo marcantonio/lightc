@@ -446,7 +446,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         self.symbol_table.enter_scope();
 
         // Save new symbol with alloca
-        let start_sym = CodegenSymbol::from((start_name.as_str(), &start_antn, start_alloca));
+        let start_sym = CodegenSymbol::new_var(start_name.as_str(), &start_antn, start_alloca);
         self.symbol_table.insert(start_sym);
 
         // Create all the blocks
@@ -516,7 +516,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         let init_alloca = self.create_entry_block_alloca(&name, &antn, &parent)?;
         self.builder.build_store(init_alloca, init_code);
 
-        let sym = CodegenSymbol::from((name.as_str(), &antn, init_alloca));
+        let sym = CodegenSymbol::new_var(name.as_str(), &antn, init_alloca);
         self.symbol_table.insert(sym);
 
         Ok(None)
@@ -558,7 +558,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             let (name, ty) = &proto.args()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function)?;
             self.builder.build_store(alloca, arg);
-            self.symbol_table.insert(CodegenSymbol::from((name.as_str(), ty, alloca)));
+            self.symbol_table.insert(CodegenSymbol::new_var(name.as_str(), ty, alloca));
         }
 
         let body_val = self.visit_node(body)?;
@@ -837,6 +837,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str()))))
     }
 
+    // XXX: remove options and type
     fn visit_fselector(&mut self, comp: hir::Node, idx: u32, _ty: Option<Type>) -> Self::Result {
         let field_ptr = self.get_struct_element(comp, idx)?;
 

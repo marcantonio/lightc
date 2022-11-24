@@ -17,6 +17,7 @@ pub mod symbol;
 pub struct SymbolTable<T: Symbolic> {
     tables: HashMap<u32, HashMap<String, T>>,
     scope_depth: u32,
+    auto_idents: HashMap<String, u32>,
 }
 
 impl<T: Symbolic> SymbolTable<T> {
@@ -27,7 +28,7 @@ impl<T: Symbolic> SymbolTable<T> {
     pub fn with_table(table: HashMap<String, T>) -> Self {
         let mut tables = HashMap::new();
         tables.insert(0, table);
-        SymbolTable { tables, scope_depth: 0 }
+        SymbolTable { tables, scope_depth: 0, auto_idents: HashMap::new() }
     }
 
     pub fn scope_depth(&self) -> u32 {
@@ -95,6 +96,18 @@ impl<T: Symbolic> SymbolTable<T> {
             .map(|sym| sym.name().to_owned())
             .collect()
     }
+
+    // Pick a new unique identifier
+    pub fn uniq_ident(&mut self, name: Option<&str>) -> String {
+        let name = match name {
+            Some(n) => format!("_{}", n),
+            None => String::from("_light_intern")
+        };
+
+        let ver = self.auto_idents.entry(name.to_owned()).or_insert(0);
+        *ver += 1;
+        format!("{}@{}", name, ver)
+    }
 }
 
 impl<T: Symbolic> Default for SymbolTable<T> {
@@ -156,5 +169,14 @@ mod test {
         // Pop scope. Original dup is gone
         assert_eq!(st.leave_scope(), 0);
         assert_eq!(st.get("foo"), Some(&sym1));
+    }
+
+    #[test]
+    fn test_uniq_ident() {
+        let mut st = SymbolTable::<Symbol>::new();
+        assert_eq!(st.uniq_ident(Some("foo")), String::from("_foo@1"));
+        assert_eq!(st.uniq_ident(Some("foo")), String::from("_foo@2"));
+        assert_eq!(st.uniq_ident(None), String::from("_light_intern@1"));
+        assert_eq!(st.uniq_ident(None), String::from("_light_intern@2"));
     }
 }
