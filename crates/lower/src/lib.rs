@@ -88,7 +88,7 @@ impl<'a> Lower<'a> {
             Bool => init_literal!(Bool, false),
             Array(ty, len) => hir::Node::new_lit(
                 Literal::Array { elements: Vec::with_capacity(*len), inner_ty: Some(*ty.clone()) },
-                Some(Type::Array(Box::new(*ty.clone()), *len)),
+                Type::Array(Box::new(*ty.clone()), *len),
             ),
             Comp(name) => {
                 let sym = self
@@ -104,7 +104,7 @@ impl<'a> Lower<'a> {
                 } else {
                     vec![]
                 };
-                hir::Node::new_lit(Literal::Comp(initializers), Some(Type::Comp(name.to_owned())))
+                hir::Node::new_lit(Literal::Comp(initializers), Type::Comp(name.to_owned()))
             },
             Void => unreachable!("void type for `{}` variable initialization annotation", name),
         })
@@ -209,11 +209,11 @@ impl<'a> ast::Visitor for Lower<'a> {
             Array { .. } => self.lower_lit_array(value)?,
             Comp(_) => todo!(),
         };
-        Ok(hir::Node::new_lit(lit, ty))
+        Ok(hir::Node::new_lit(lit, ty.unwrap_or_default()))
     }
 
     fn visit_ident(&mut self, name: String, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_ident(name, ty))
+        Ok(hir::Node::new_ident(name, ty.unwrap_or_default()))
     }
 
     // Lower `x += 1` to `x = x + 1`
@@ -223,6 +223,8 @@ impl<'a> ast::Visitor for Lower<'a> {
         use Operator::*;
 
         let lowered_lhs = self.visit_node(lhs)?;
+
+        let ty = ty.unwrap_or_default();
 
         let top_op;
         let rhs = match op {
@@ -252,7 +254,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_unop(&mut self, op: Operator, rhs: ast::Node, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_unop(op, self.visit_node(rhs)?, ty))
+        Ok(hir::Node::new_unop(op, self.visit_node(rhs)?, ty.unwrap_or_default()))
     }
 
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -272,7 +274,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         for node in args {
             lowered_args.push(self.visit_node(node)?);
         }
-        Ok(hir::Node::new_call(lowered_name, lowered_args, ty))
+        Ok(hir::Node::new_call(lowered_name, lowered_args, ty.unwrap_or_default()))
     }
 
     fn visit_cond(
@@ -283,7 +285,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             self.visit_node(cond_expr)?,
             self.visit_node(then_block)?,
             else_block.map(|e| self.visit_node(e)).transpose()?,
-            ty,
+            ty.unwrap_or_default(),
         ))
     }
 
@@ -297,25 +299,24 @@ impl<'a> ast::Visitor for Lower<'a> {
 
         self.symbol_table.leave_scope();
 
-        Ok(hir::Node::new_block(lowered_list, ty))
+        Ok(hir::Node::new_block(lowered_list, ty.unwrap_or_default()))
     }
 
     fn visit_index(&mut self, binding: ast::Node, idx: ast::Node, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty))
+        Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty.unwrap_or_default()))
     }
 
     fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
         let mut lowered_comp = self.visit_node(comp)?;
 
         let comp_name = match lowered_comp.ty() {
-            Some(Type::Comp(name)) => name.to_owned(),
+            Type::Comp(name) => name.to_owned(),
             _ => unreachable!("unexpected type for for field selector target in lower"),
         };
 
         // If the composite isn't an ident or a let, wrap it in a new let stmt
         if let hir::node::Kind::Call { ty, .. } = lowered_comp.clone().kind {
-            lowered_comp =
-                hir::Node::new_let(self.symbol_table.uniq_ident(None), ty.unwrap(), Some(lowered_comp))
+            lowered_comp = hir::Node::new_let(self.symbol_table.uniq_ident(None), ty, Some(lowered_comp))
         }
 
         // Find the symbol and extract the index that corresponds to `field`
@@ -334,6 +335,6 @@ impl<'a> ast::Visitor for Lower<'a> {
             .try_into()
             .map_err(|err| format!("failed to convert composite index: `{}`", err))?;
 
-        Ok(hir::Node::new_fselector(lowered_comp, idx, ty))
+        Ok(hir::Node::new_fselector(lowered_comp, idx, ty.unwrap()))
     }
 }

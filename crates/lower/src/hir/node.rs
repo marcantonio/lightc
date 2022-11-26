@@ -38,27 +38,27 @@ impl Node {
         Self { kind: Kind::Struct { name, field_tys } }
     }
 
-    pub fn new_lit(value: Literal<Node>, ty: Option<Type>) -> Self {
+    pub fn new_lit(value: Literal<Node>, ty: Type) -> Self {
         Self { kind: Kind::Lit { value, ty } }
     }
 
-    pub fn new_ident(name: String, ty: Option<Type>) -> Self {
+    pub fn new_ident(name: String, ty: Type) -> Self {
         Self { kind: Kind::Ident { name, ty } }
     }
 
-    pub fn new_binop(op: Operator, lhs: Node, rhs: Node, ty: Option<Type>) -> Self {
+    pub fn new_binop(op: Operator, lhs: Node, rhs: Node, ty: Type) -> Self {
         Self { kind: Kind::BinOp { op, lhs: Box::new(lhs), rhs: Box::new(rhs), ty } }
     }
 
-    pub fn new_unop(op: Operator, rhs: Node, ty: Option<Type>) -> Self {
+    pub fn new_unop(op: Operator, rhs: Node, ty: Type) -> Self {
         Self { kind: Kind::UnOp { op, rhs: Box::new(rhs), ty } }
     }
 
-    pub fn new_call(name: String, args: Vec<Node>, ty: Option<Type>) -> Self {
+    pub fn new_call(name: String, args: Vec<Node>, ty: Type) -> Self {
         Self { kind: Kind::Call { name, args, ty } }
     }
 
-    pub fn new_cond(cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Option<Type>) -> Self {
+    pub fn new_cond(cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Type) -> Self {
         Self {
             kind: Kind::Cond {
                 cond_expr: Box::new(cond_expr),
@@ -69,32 +69,32 @@ impl Node {
         }
     }
 
-    pub fn new_block(list: Vec<Node>, ty: Option<Type>) -> Self {
+    pub fn new_block(list: Vec<Node>, ty: Type) -> Self {
         Self { kind: Kind::Block { list, ty } }
     }
 
-    pub fn new_index(binding: Node, idx: Node, ty: Option<Type>) -> Self {
+    pub fn new_index(binding: Node, idx: Node, ty: Type) -> Self {
         Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
     }
 
-    pub fn new_fselector(comp: Node, idx: u32, ty: Option<Type>) -> Self {
+    pub fn new_fselector(comp: Node, idx: u32, ty: Type) -> Self {
         Self { kind: Kind::FSelector { comp: Box::new(comp), idx, ty } }
     }
 
-    pub fn ty(&self) -> Option<&Type> {
+    pub fn ty(&self) -> &Type {
         use Kind::*;
 
         match &self.kind {
-            Lit { ty, .. } => ty.as_ref(),
-            Ident { ty, .. } => ty.as_ref(),
-            BinOp { ty, .. } => ty.as_ref(),
-            UnOp { ty, .. } => ty.as_ref(),
-            Call { ty, .. } => ty.as_ref(),
-            Cond { ty, .. } => ty.as_ref(),
-            Block { ty, .. } => ty.as_ref(),
-            Index { ty, .. } => ty.as_ref(),
-            FSelector { ty, .. } => ty.as_ref(),
-            _ => None,
+            Lit { ty, .. } => ty,
+            Ident { ty, .. } => ty,
+            BinOp { ty, .. } => ty,
+            UnOp { ty, .. } => ty,
+            Call { ty, .. } => ty,
+            Cond { ty, .. } => ty,
+            Block { ty, .. } => ty,
+            Index { ty, .. } => ty,
+            FSelector { ty, .. } => ty,
+            _ => unreachable!("statement found where expression expected"),
         }
     }
 
@@ -148,47 +148,47 @@ pub enum Kind {
     // Expressions
     Lit {
         value: Literal<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     Ident {
         name: String,
-        ty: Option<Type>,
+        ty: Type,
     },
     BinOp {
         op: Operator,
         lhs: Box<Node>,
         rhs: Box<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     UnOp {
         op: Operator,
         rhs: Box<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     Call {
         name: String,
         args: Vec<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     Cond {
         cond_expr: Box<Node>,
         then_block: Box<Node>,
         else_block: Option<Box<Node>>,
-        ty: Option<Type>,
+        ty: Type,
     },
     Block {
         list: Vec<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     Index {
         binding: Box<Node>,
         idx: Box<Node>,
-        ty: Option<Type>,
+        ty: Type,
     },
     FSelector {
         comp: Box<Node>,
         idx: u32,
-        ty: Option<Type>,
+        ty: Type,
     },
 }
 
@@ -203,16 +203,16 @@ impl VisitableNode for Node {
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Lit { value, ty } => v.visit_lit(value, ty),
-            Ident { name, ty } => v.visit_ident(name, ty),
-            BinOp { op, lhs, rhs, ty } => v.visit_binop(op, *lhs, *rhs, ty),
-            UnOp { op, rhs, ty } => v.visit_unop(op, *rhs, ty),
-            Call { name, args, ty } => v.visit_call(name, args, ty),
+            Ident { name, .. } => v.visit_ident(name),
+            BinOp { op, lhs, rhs, .. } => v.visit_binop(op, *lhs, *rhs),
+            UnOp { op, rhs, .. } => v.visit_unop(op, *rhs),
+            Call { name, args, .. } => v.visit_call(name, args),
             Cond { cond_expr, then_block, else_block, ty } => {
                 v.visit_cond(*cond_expr, *then_block, else_block.map(|x| *x), ty)
             },
-            Block { list, ty } => v.visit_block(list, ty),
-            Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
-            FSelector { comp, idx, ty } => v.visit_fselector(*comp, idx, ty),
+            Block { list, .. } => v.visit_block(list),
+            Index { binding, idx, .. } => v.visit_index(*binding, *idx),
+            FSelector { comp, idx, .. } => v.visit_fselector(*comp, idx),
             _ => unreachable!("invalid node kind visited"),
         }
     }

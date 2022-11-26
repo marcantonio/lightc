@@ -61,17 +61,17 @@ pub trait Visitor {
     ) -> Self::Result;
     fn visit_let(&mut self, name: String, antn: Type, init: Option<Node>) -> Self::Result;
     fn visit_fn(&mut self, proto: Prototype, body: Option<Node>) -> Self::Result;
-    fn visit_lit(&mut self, value: Literal<Node>, ty: Option<Type>) -> Self::Result;
-    fn visit_ident(&mut self, name: String, ty: Option<Type>) -> Self::Result;
-    fn visit_binop(&mut self, op: Operator, lhs: Node, rhs: Node, ty: Option<Type>) -> Self::Result;
-    fn visit_unop(&mut self, op: Operator, rhs: Node, ty: Option<Type>) -> Self::Result;
-    fn visit_call(&mut self, name: String, args: Vec<Node>, ty: Option<Type>) -> Self::Result;
+    fn visit_lit(&mut self, value: Literal<Node>, ty: Type) -> Self::Result;
+    fn visit_ident(&mut self, name: String) -> Self::Result;
+    fn visit_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> Self::Result;
+    fn visit_unop(&mut self, op: Operator, rhs: Node) -> Self::Result;
+    fn visit_call(&mut self, name: String, args: Vec<Node>) -> Self::Result;
     fn visit_cond(
-        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Option<Type>,
+        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Type,
     ) -> Self::Result;
-    fn visit_block(&mut self, list: Vec<Node>, ty: Option<Type>) -> Self::Result;
-    fn visit_index(&mut self, binding: Node, idx: Node, ty: Option<Type>) -> Self::Result;
-    fn visit_fselector(&mut self, comp: Node, idx: u32, ty: Option<Type>) -> Self::Result;
+    fn visit_block(&mut self, list: Vec<Node>) -> Self::Result;
+    fn visit_index(&mut self, binding: Node, idx: Node) -> Self::Result;
+    fn visit_fselector(&mut self, comp: Node, idx: u32) -> Self::Result;
 }
 
 pub trait VisitableNode {

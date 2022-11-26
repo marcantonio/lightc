@@ -244,7 +244,7 @@ impl<'ctx> Codegen<'ctx> {
     ) -> Result<BasicValueEnum<'ctx>, String> {
         let init_code = match (ty, init) {
             (_, Some(init)) => {
-                if init.ty().as_ref() == Some(&ty) {
+                if init.ty() == ty {
                     self.visit_node(init)?
                 } else {
                     unreachable!("void type for init expr in `codegen_var_init()`");
@@ -602,7 +602,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
-    fn visit_lit(&mut self, value: Literal<hir::Node>, ty: Option<Type>) -> Self::Result {
+    fn visit_lit(&mut self, value: Literal<hir::Node>, ty: Type) -> Self::Result {
         use Literal::*;
 
         let lit = match value {
@@ -638,9 +638,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             Comp(fields) => {
                 let llvm_struct_type = self
                     .module
-                    .get_struct_type(
-                        &ty.unwrap_or_else(|| unreachable!("missing type for struct literal")).to_string(),
-                    )
+                    .get_struct_type(&ty.to_string())
                     .unwrap_or_else(|| unreachable!("can't find struct definition"));
 
                 let values = fields
@@ -654,7 +652,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(lit))
     }
 
-    fn visit_ident(&mut self, name: String, _ty: Option<Type>) -> Self::Result {
+    fn visit_ident(&mut self, name: String) -> Self::Result {
         // Get the variable pointer and load from the stack
         let ptr = self
             .symbol_table
@@ -665,16 +663,12 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(self.builder.build_load(ptr, &name)))
     }
 
-    fn visit_binop(
-        &mut self, op: Operator, lhs: hir::Node, rhs: hir::Node, _ty: Option<Type>,
-    ) -> Self::Result {
+    fn visit_binop(&mut self, op: Operator, lhs: hir::Node, rhs: hir::Node) -> Self::Result {
         use Operator::*;
 
-        let lhs_ty =
-            lhs.ty().unwrap_or_else(|| unreachable!("missing type for lhs expr in `codegen_binop()`"));
+        let lhs_ty = lhs.ty();
         let lhs_val = self.visit_node(lhs.clone())?.expr_value()?;
-        let rhs_ty =
-            rhs.ty().unwrap_or_else(|| unreachable!("missing type for rhs expr in `codegen_binop()`"));
+        let rhs_ty = rhs.ty();
         let rhs_val = self.visit_node(rhs.clone())?.expr_value()?;
 
         // Generate the proper instruction for each op
@@ -693,13 +687,10 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         .map(Some)
     }
 
-    fn visit_unop(&mut self, op: Operator, rhs: hir::Node, _ty: Option<Type>) -> Self::Result {
+    fn visit_unop(&mut self, op: Operator, rhs: hir::Node) -> Self::Result {
         use Operator::*;
 
-        let rhs_ty = rhs
-            .ty()
-            .cloned()
-            .unwrap_or_else(|| unreachable!("missing type for expresion in `codegen_unop()`"));
+        let rhs_ty = rhs.ty().clone();
         let rhs_val = self.visit_node(rhs)?.expr_value()?;
         match op {
             Sub => self.neg((rhs_val, &rhs_ty)).map(Some),
@@ -707,7 +698,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         }
     }
 
-    fn visit_call(&mut self, name: String, args: Vec<hir::Node>, _ty: Option<Type>) -> Self::Result {
+    fn visit_call(&mut self, name: String, args: Vec<hir::Node>) -> Self::Result {
         // Look up the function. Error if it's not been defined.
         let func = self.module.get_function(&name).ok_or(format!("Unknown function call: {}", name))?;
 
@@ -731,12 +722,10 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
     // if then optional else
     fn visit_cond(
-        &mut self, cond_expr: hir::Node, then_block: hir::Node, else_block: Option<hir::Node>,
-        ty: Option<Type>,
+        &mut self, cond_expr: hir::Node, then_block: hir::Node, else_block: Option<hir::Node>, ty: Type,
     ) -> Self::Result {
         // Should never be used. Useful for an unused phi branch. Note: undef
         // value must be in sync with phi type.
-        let ty = ty.unwrap_or_else(|| unreachable!("missing type in `codegen_cond()`"));
         let undef_val = make_undef_value!(self.context, ty);
 
         // Get the current function for insertion
@@ -821,7 +810,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(val))
     }
 
-    fn visit_block(&mut self, list: Vec<hir::Node>, _ty: Option<Type>) -> Self::Result {
+    fn visit_block(&mut self, list: Vec<hir::Node>) -> Self::Result {
         self.symbol_table.enter_scope();
 
         let mut node_val = None;
@@ -834,13 +823,12 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(node_val)
     }
 
-    fn visit_index(&mut self, binding: hir::Node, idx: hir::Node, _ty: Option<Type>) -> Self::Result {
+    fn visit_index(&mut self, binding: hir::Node, idx: hir::Node) -> Self::Result {
         let (binding_name, element_ptr) = self.get_array_element(binding, idx)?;
         Ok(Some(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str()))))
     }
 
-    // XXX: remove options and type
-    fn visit_fselector(&mut self, comp: hir::Node, idx: u32, _ty: Option<Type>) -> Self::Result {
+    fn visit_fselector(&mut self, comp: hir::Node, idx: u32) -> Self::Result {
         let field_ptr = self.get_struct_element(comp, idx)?;
 
         // If the pointer is pointing to a struct, just return it and skip the load

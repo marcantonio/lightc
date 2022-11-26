@@ -101,7 +101,7 @@ impl<T: Symbolic> SymbolTable<T> {
     pub fn uniq_ident(&mut self, name: Option<&str>) -> String {
         let name = match name {
             Some(n) => format!("_{}", n),
-            None => String::from("_light_intern")
+            None => String::from("_light_intern"),
         };
 
         let ver = self.auto_idents.entry(name.to_owned()).or_insert(0);

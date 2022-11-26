@@ -426,7 +426,7 @@ struct Bar {
     let foo: Foo
 }
 "#,
-        ]
+        ],
     ];
     run_insta!("struct", tests);
 }
