@@ -304,7 +304,6 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty))
     }
 
-    // XXX: add test
     fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
         let mut lowered_comp = self.visit_node(comp)?;
 

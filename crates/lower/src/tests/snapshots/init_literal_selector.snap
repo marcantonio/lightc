@@ -1,0 +1,161 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 226
+expression: "(test[1], res)"
+---
+- "\nfn returnStruct() -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let x: Foo\n    x.a\n    returnStruct().a\n    let b: Bar\n    b.foo.a\n}\nstruct Foo {\n    let a: int\n}\nstruct Bar {\n    let foo: Foo\n}\n"
+- Ok:
+    functions:
+      - kind:
+          Fn:
+            proto:
+              name: _returnStruct~Foo
+              args: []
+              ret_ty:
+                Comp: Foo
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: a
+                          antn:
+                            Comp: Foo
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Comp:
+                                    - kind:
+                                        Lit:
+                                          value:
+                                            Int32: 0
+                                          ty: Int32
+                                ty:
+                                  Comp: Foo
+                    - kind:
+                        Ident:
+                          name: a
+                          ty:
+                            Comp: Foo
+                  ty:
+                    Comp: Foo
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: x
+                          antn:
+                            Comp: Foo
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Comp:
+                                    - kind:
+                                        Lit:
+                                          value:
+                                            Int32: 0
+                                          ty: Int32
+                                ty:
+                                  Comp: Foo
+                    - kind:
+                        FSelector:
+                          comp:
+                            kind:
+                              Ident:
+                                name: x
+                                ty:
+                                  Comp: Foo
+                          idx: 0
+                          ty: Int32
+                    - kind:
+                        FSelector:
+                          comp:
+                            kind:
+                              Let:
+                                name: _light_intern@1
+                                antn:
+                                  Comp: Foo
+                                init:
+                                  kind:
+                                    Call:
+                                      name: _returnStruct~Foo
+                                      args: []
+                                      ty:
+                                        Comp: Foo
+                          idx: 0
+                          ty: Int32
+                    - kind:
+                        Let:
+                          name: b
+                          antn:
+                            Comp: Bar
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Comp:
+                                    - kind:
+                                        Lit:
+                                          value:
+                                            Comp:
+                                              - kind:
+                                                  Lit:
+                                                    value:
+                                                      Int32: 0
+                                                    ty: Int32
+                                          ty:
+                                            Comp: Foo
+                                ty:
+                                  Comp: Bar
+                    - kind:
+                        FSelector:
+                          comp:
+                            kind:
+                              FSelector:
+                                comp:
+                                  kind:
+                                    Ident:
+                                      name: b
+                                      ty:
+                                        Comp: Bar
+                                idx: 0
+                                ty:
+                                  Comp: Foo
+                          idx: 0
+                          ty: Int32
+                  ty: Int32
+    structs:
+      - kind:
+          Struct:
+            name: Foo
+            field_tys:
+              - Int32
+      - kind:
+          Struct:
+            name: Bar
+            field_tys:
+              - Comp: Foo
+    prototypes:
+      - name: _returnStruct~Foo
+        args: []
+        ret_ty:
+          Comp: Foo
+        is_extern: false
+      - name: main
+        args: []
+        ret_ty: Void
+        is_extern: false
+

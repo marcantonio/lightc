@@ -200,6 +200,28 @@ struct Bar {
 }
 "#,
         ],
+        [
+            "selector",
+            r#"
+fn returnStruct() -> Foo {
+    let a: Foo
+    a
+}
+fn main() {
+    let x: Foo
+    x.a
+    returnStruct().a
+    let b: Bar
+    b.foo.a
+}
+struct Foo {
+    let a: int
+}
+struct Bar {
+    let foo: Foo
+}
+"#,
+        ]
     ];
     run_insta!("init_literal", tests);
 }

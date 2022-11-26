@@ -390,9 +390,10 @@ fn foo() {}
 
 #[test]
 fn test_struct() {
-    let tests = [[
-        "basic",
-        r#"
+    let tests = [
+        [
+            "basic",
+            r#"
 struct Foo {
     let a: int
     let b: bool
@@ -402,6 +403,30 @@ fn main() {
     x.a
 }
 "#,
-    ]];
+        ],
+        [
+            "selector",
+            r#"
+fn returnStruct() -> Foo {
+    let a: Foo
+    a.a = 1
+    a
+}
+fn main() {
+    let x: Foo
+    x.a
+    let b: Bar
+    b.foo.a = returnStruct().a
+    b.foo.a
+}
+struct Foo {
+    let a: int
+}
+struct Bar {
+    let foo: Foo
+}
+"#,
+        ]
+    ];
     run_insta!("struct", tests);
 }
