@@ -21,7 +21,6 @@ pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     types: Vec<String>,
     hint: Option<Type>,
-    // Remove this if struct fields get a dedicated visitor
     in_struct: bool,
 }
 
@@ -107,6 +106,18 @@ impl<'a> Tych<'a> {
     fn is_valid_type(&self, ty: &Type) -> bool {
         self.types.contains(&ty.to_string()) || ty.to_string().starts_with("array")
     }
+
+    // Helper to get composite name and symbol for selector checking
+    fn get_composite_symbol(&'a self, ty: Option<&'a Type>) -> Result<&'a Symbol, String> {
+        let comp_name = match ty {
+            Some(Type::Comp(name)) => name,
+            Some(ty) => return Err(format!("Attempt to use selector on non-composite type: {}", ty)),
+            None => unreachable!("no type for for selector target in tych"),
+        };
+        let comp_sym =
+            self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;
+        Ok(comp_sym)
+    }
 }
 
 impl<'a> ast::Visitor for Tych<'a> {
@@ -162,9 +173,13 @@ impl<'a> ast::Visitor for Tych<'a> {
             return Err(format!("Unknown type in let declaration: `{}`", antn));
         }
 
+        // Don't process initization values for struct fields
         let init_node = if !self.in_struct {
             self.symbol_table.insert(Symbol::new_var(&name, &antn));
             self.check_var_init(&name, init.as_ref(), &antn, "let statement")?
+        } else if self.in_struct && init.is_some() {
+            // xxx: test
+            return Err(format!("initializers aren't supported for struct fields at `{}`", name));
         } else {
             None
         };
@@ -174,6 +189,7 @@ impl<'a> ast::Visitor for Tych<'a> {
 
     fn visit_fn(&mut self, proto: Prototype, body: Option<ast::Node>) -> Self::Result {
         let mut proto = proto;
+
         let fn_entry = match self.symbol_table.get(proto.name()).cloned() {
             Some(sym) => sym,
             None => unreachable!("missing symbol table entry for function: `{}`", proto.name()),
@@ -247,10 +263,9 @@ impl<'a> ast::Visitor for Tych<'a> {
         self.in_struct = true;
         let chkd_fields =
             fields.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
-        self.in_struct = false;
-
         let chkd_methods =
             methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
+        self.in_struct = false;
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
@@ -550,22 +565,32 @@ impl<'a> ast::Visitor for Tych<'a> {
 
     fn visit_fselector(&mut self, comp: ast::Node, field: String, _ty: Option<Type>) -> Self::Result {
         let chkd_comp = self.check_node(comp, None)?;
-        let comp_name = match chkd_comp.ty() {
-            Some(Type::Comp(name)) => name,
-            Some(ty) => return Err(format!("Attempt in use field selector on non-composite type: {}", ty)),
-            None => unreachable!("no type for for field selector target in tych"),
-        };
-        let comp_sym =
-            self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;
+        let comp_sym = self.get_composite_symbol(chkd_comp.ty())?;
         let field_ty: Type = comp_sym
             .fields()
             .unwrap_or_default()
             .into_iter()
             .find(|f| f.0 == field)
-            .ok_or(format!("composite `{}` has no field: `{}`", comp_name, field))?
+            .ok_or(format!("composite `{}` has no field: `{}`", comp_sym.name, field))?
             .1
             .into();
 
         Ok(ast::Node::new_fselector(chkd_comp, field, Some(field_ty)))
+    }
+
+    fn visit_mselector(
+        &mut self, comp: ast::Node, method_name: String, args: Vec<ast::Node>, ty: Option<Type>,
+    ) -> Self::Result {
+        let chkd_comp = self.check_node(comp, None)?;
+        let comp_sym = self.get_composite_symbol(chkd_comp.ty())?;
+        let method_name = format!("_{}_{}", comp_sym.name, method_name);
+
+        let chkd_call = self.visit_call(method_name, args, ty)?;
+        match chkd_call.kind {
+            ast::node::Kind::Call { name, args, ty } => {
+                Ok(ast::Node::new_mselector(chkd_comp, name, args, ty))
+            },
+            _ => unreachable!("unknown node kind in `visit_mselector()`"),
+        }
     }
 }

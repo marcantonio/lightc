@@ -261,7 +261,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         let sym = self
             .symbol_table
             .get(&name)
-            .unwrap_or_else(|| unreachable!("missing symbol in `lower_call()` for `{}`", name));
+            .unwrap_or_else(|| unreachable!("missing symbol in `visit_call()` for `{}`", name));
 
         // Update the AST with the lowered name if it hasn't been done already and it's
         // not an extern call
@@ -336,5 +336,12 @@ impl<'a> ast::Visitor for Lower<'a> {
             .map_err(|err| format!("failed to convert composite index: `{}`", err))?;
 
         Ok(hir::Node::new_fselector(lowered_comp, idx, ty.unwrap()))
+    }
+
+    fn visit_mselector(
+        &mut self, _comp: ast::Node, _name: String, _args: Vec<ast::Node>, _ty: Option<Type>,
+    ) -> Self::Result {
+        dbg!(&self.symbol_table);
+        todo!()
     }
 }

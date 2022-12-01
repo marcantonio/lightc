@@ -15,43 +15,19 @@ fn printBang() {
     putchar(10)
 }
 
-fn printEq() {
-    putchar(61)
-    putchar(10)
-}
-
-fn retBool() -> bool {
-    false
-}
-
 struct Foo {
     let a: int
     let b: float
-}
 
-struct Bar {
-    let foo: Foo
+    fn bang(o: int) {
+        printBang()
+    }
 }
 
 fn main() {
-    let a: [int; 3] = [1, 2, 3]
-    for x: int = 0; x < 3; 1 {
-        printInt(a[x])
-    }
-
-    for a: int; a <= 2; 1 {
-        printInt(a)
-    }
-
-    if true && true {
-        printBang()
-    }
-
-    let y: int
-    y += 1
-    printInt(y)
-    printBang()
-
     let mm: Foo
-    printInt(mm.a)
+
+    mm.bang(1)
+
+    printDot()
 }

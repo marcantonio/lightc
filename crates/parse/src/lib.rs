@@ -50,7 +50,7 @@ impl<'a> Parse<'a> {
         let stmt = match &token.tt {
             TokenType::For => self.parse_for()?,
             TokenType::Let => self.parse_let()?,
-            TokenType::Fn => self.parse_func()?,
+            TokenType::Fn => self.parse_fn(false)?,
             TokenType::Extern => self.parse_extern()?,
             TokenType::Struct => self.parse_struct()?,
             _ => self.parse_expr(0)?,
@@ -80,14 +80,36 @@ impl<'a> Parse<'a> {
                 TokenType::CloseBrace => {
                     self.tokens.next(); // Eat brace
 
+                    // Collect all fields for struct symbol table entry
                     let mut sym_fields = vec![];
                     for node in &fields {
-                        // Extract fields for symbol table
                         if let ast::Node { kind: ast::node::Kind::Let { name, antn, .. } } = node {
                             sym_fields.push((name.to_owned(), antn.to_string()));
                         }
                     }
 
+                    // Make an entry for each method using a "semi" lowered name. We do
+                    // this here to allow for proper name collision detection in the tych.
+                    for node in methods.iter_mut() {
+                        if let ast::Node { kind: ast::node::Kind::Fn { proto, .. } } = node {
+                            let orig_name = proto.name().to_owned();
+                            let method_name = format!("_{}_{}", name, proto.name());
+                            proto.set_name(method_name);
+
+                            if self
+                                .symbol_table
+                                .insert_with_name(proto.name(), Symbol::from(&*proto))
+                                .is_some()
+                            {
+                                return Err(ParseError::from((
+                                    format!("method `{}` can't be redefined on `{}`", orig_name, name),
+                                    token,
+                                )));
+                            }
+                        }
+                    }
+
+                    // Insert struct into symbol table
                     if self.symbol_table.insert(Symbol::new_struct(name, Some(&sym_fields))).is_some() {
                         return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
                     }
@@ -99,7 +121,7 @@ impl<'a> Parse<'a> {
                     self.tokens.next(); // Eat semicolon
                 },
                 TokenType::Fn => {
-                    methods.push(self.parse_func()?);
+                    methods.push(self.parse_fn(true)?);
                     self.tokens.next(); // Eat semicolon
                 },
                 tt => {
@@ -140,14 +162,15 @@ impl<'a> Parse<'a> {
     }
 
     // FnDecl ::= Prototype Block ;
-    fn parse_func(&mut self) -> ParseResult {
+    fn parse_fn(&mut self, in_struct: bool) -> ParseResult {
         // Eat 'fn'
         let token = self.tokens.next().unwrap();
 
         let proto = self.parse_proto()?;
 
-        // Create symbol table entry. Use the old name as the key until later lowering.
-        if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
+        // Create symbol table entry. Use the old name as the key until later
+        // lowering. Skip for struct methods. They are handled elsewhere.
+        if !in_struct && self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
             return Err(ParseError::from((format!("Function `{}` can't be redefined", proto.name()), token)));
         }
 
@@ -167,7 +190,7 @@ impl<'a> Parse<'a> {
             return Err(ParseError::from((String::from("Expecting `fn` after `extern`"), *next.unwrap())));
         }
 
-        self.parse_func()
+        self.parse_fn(false)
     }
 
     /// Expression productions

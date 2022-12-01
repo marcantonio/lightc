@@ -81,8 +81,8 @@ impl Node {
         Self { kind: Kind::FSelector { comp: Box::new(comp), field, ty } }
     }
 
-    pub fn new_mselector(comp: Node, method: String, args: Vec<Node>, ty: Option<Type>) -> Self {
-        Self { kind: Kind::MSelector { comp: Box::new(comp), method, args, ty } }
+    pub fn new_mselector(comp: Node, name: String, args: Vec<Node>, ty: Option<Type>) -> Self {
+        Self { kind: Kind::MSelector { comp: Box::new(comp), name, args, ty } }
     }
 
     pub fn ty(&self) -> Option<&Type> {
@@ -198,7 +198,7 @@ pub enum Kind {
     },
     MSelector {
         comp: Box<Node>,
-        method: String,
+        name: String,
         args: Vec<Node>,
         ty: Option<Type>,
     },
@@ -226,7 +226,7 @@ impl VisitableNode for Node {
             Block { list, ty } => v.visit_block(list, ty),
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
             FSelector { comp, field, ty } => v.visit_fselector(*comp, field, ty),
-            MSelector { comp: _, method: _, args: _, ty: _ } => todo!(),
+            MSelector { comp, name, args, ty } => v.visit_mselector(*comp, name, args, ty),
         }
     }
 }
@@ -305,8 +305,8 @@ impl Display for Node {
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
             FSelector { comp, field, .. } => write!(f, "{}.{}", comp, field),
-            MSelector { comp, method, args, .. } => {
-                let mut s = format!("({}.{}", comp, method);
+            MSelector { comp, name, args, .. } => {
+                let mut s = format!("({}.{}", comp, name);
                 if !args.is_empty() {
                     for arg in args {
                         s += &format!(" {}", arg);
