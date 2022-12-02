@@ -59,7 +59,9 @@ pub trait Visitor {
     fn visit_block(&mut self, list: Vec<Node>, ty: Option<Type>) -> Self::Result;
     fn visit_index(&mut self, binding: Node, idx: Node, ty: Option<Type>) -> Self::Result;
     fn visit_fselector(&mut self, comp: Node, field: String, ty: Option<Type>) -> Self::Result;
-    fn visit_mselector(&mut self, comp: Node, name: String, args: Vec<Node>, ty: Option<Type>) -> Self::Result;
+    fn visit_mselector(
+        &mut self, comp: Node, name: String, args: Vec<Node>, ty: Option<Type>,
+    ) -> Self::Result;
 }
 
 pub trait VisitableNode {

@@ -19,26 +19,33 @@ mod tests;
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
+    struct_methods: Vec<hir::Node>,
 }
 
 impl<'a> Lower<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table }
+        Lower { symbol_table, struct_methods: vec![] }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
         let mut hir = Hir::new();
-        for node in ast.into_nodes() {
-            let lowered_node = node.accept(&mut self)?;
-            match lowered_node.kind {
-                hir::node::Kind::Struct { .. } => hir.add_struct(lowered_node),
-                hir::node::Kind::Fn { ref proto, .. } => {
-                    hir.add_prototype(proto.clone());
-                    hir.add_function(lowered_node);
-                },
-                _ => unreachable!("invalid node kind at global level"),
-            }
-        }
+        let nodes = ast
+            .into_nodes()
+            .into_iter()
+            .map(|node| node.accept(&mut self))
+            .collect::<Result<Vec<_>, String>>()?;
+
+        // Add globals nodes to the right place in the HIR. Make sure struct methods live
+        // at the top of the tree after lowering
+        nodes.into_iter().chain(self.struct_methods).for_each(|node| match node.kind {
+            hir::node::Kind::Struct { .. } => hir.add_struct(node),
+            hir::node::Kind::Fn { ref proto, .. } => {
+                hir.add_prototype(proto.clone());
+                hir.add_function(node);
+            },
+            _ => unreachable!("invalid node kind at global level"),
+        });
+
         Ok(hir)
     }
 
@@ -177,7 +184,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_struct(
-        &mut self, name: String, fields: Vec<ast::Node>, _methods: Vec<ast::Node>,
+        &mut self, name: String, fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
         let field_tys = fields
             .into_iter()
@@ -186,6 +193,12 @@ impl<'a> ast::Visitor for Lower<'a> {
                 _ => unreachable!("invalid node type in struct fields"),
             })
             .collect();
+
+        // Hack to pop these methods up to the top of the HIR later
+        let mut lowered_methods =
+            methods.into_iter().map(|n| self.visit_node(n)).collect::<Result<Vec<_>, String>>()?;
+        self.struct_methods.append(&mut lowered_methods);
+
         Ok(hir::Node::new_struct(name, field_tys))
     }
 
@@ -339,9 +352,17 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_mselector(
-        &mut self, _comp: ast::Node, _name: String, _args: Vec<ast::Node>, _ty: Option<Type>,
+        &mut self, comp: ast::Node, name: String, args: Vec<ast::Node>, ty: Option<Type>,
     ) -> Self::Result {
-        dbg!(&self.symbol_table);
-        todo!()
+        let _lowered_comp = self.visit_node(comp)?;
+        let lowered_call = self.visit_call(name, args, ty)?;
+        match lowered_call.kind {
+            hir::node::Kind::Call { name, args, ty } => {
+                // xxx: add lowered_comp as self here
+                //args.push(lowered_comp);
+                Ok(hir::Node::new_call(name, args, ty))
+            },
+            _ => unreachable!("unknown node kind in `visit_mselector()`"),
+        }
     }
 }

@@ -57,7 +57,14 @@ impl From<&Prototype> for Symbol {
                 acc += format!("{}~", ty).as_str();
                 acc
             });
-            format!("_{}~{}{}", proto.name, args_string, proto.ret_ty)
+            let new_name = format!("{}~{}{}", proto.name, args_string, proto.ret_ty);
+
+            // One underscore is enough
+            if new_name.starts_with('_') {
+                new_name
+            } else {
+                format!("_{}", new_name)
+            }
         };
 
         Symbol::new_fn(&proto_name, args, &proto.ret_ty, proto.is_extern)
