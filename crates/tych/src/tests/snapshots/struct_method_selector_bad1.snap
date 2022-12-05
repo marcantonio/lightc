@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 864
+assertion_line: 874
 expression: "(test[1], res)"
 ---
-- "\nfn main() {\n    let x: int\n    x.a\n}\n"
+- "\nfn main() {\n    let f: int\n    f.bar()\n}\n"
 - Err: "Attempt to use selector on non-composite type: int32"
 

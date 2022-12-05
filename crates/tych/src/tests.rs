@@ -806,6 +806,19 @@ fn main() {
 "#,
         ],
         [
+        "struct_field_init",
+            r#"
+struct Foo {
+    let a: int = 1
+    fn bar() {}
+}
+fn main() {
+    let f: Foo
+    f.bar(1)
+}
+"#,
+        ],
+        [
             "field_selector_bad1",
             r#"
 struct Foo {}
@@ -845,6 +858,51 @@ fn main() {
 fn main() {
     let x: int
     x.a
+}
+"#,
+        ],
+        [
+            "method_selector",
+            r#"
+struct Foo {
+    fn bar() {}
+}
+fn main() {
+    let f: Foo
+    f.bar()
+}
+"#,
+        ],
+        [
+        "method_selector_bad1",
+            r#"
+fn main() {
+    let f: int
+    f.bar()
+}
+"#,
+        ],
+        [
+        "method_selector_bad2",
+            r#"
+struct Foo {
+    fn bar() {}
+}
+fn main() {
+    let f: Foo
+    f.baz()
+}
+"#,
+        ],
+        [
+        "method_selector_bad3",
+            r#"
+struct Foo {
+    fn bar() {}
+}
+fn main() {
+    let f: Foo
+    f.bar(1)
 }
 "#,
         ],

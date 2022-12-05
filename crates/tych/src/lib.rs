@@ -178,7 +178,6 @@ impl<'a> ast::Visitor for Tych<'a> {
             self.symbol_table.insert(Symbol::new_var(&name, &antn));
             self.check_var_init(&name, init.as_ref(), &antn, "let statement")?
         } else if self.in_struct && init.is_some() {
-            // xxx: test
             return Err(format!("initializers aren't supported for struct fields at `{}`", name));
         } else {
             None
@@ -450,6 +449,8 @@ impl<'a> ast::Visitor for Tych<'a> {
         Ok(ast::Node::new_unop(op, chkd_rhs, Some(rhs_ty)))
     }
 
+    // TODO: errors in struct methods will display the partially lowered name. Pass in a
+    // display name too.
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, _ty: Option<Type>) -> Self::Result {
         // Pull the function for the call from the table
         let fn_entry =
@@ -582,10 +583,19 @@ impl<'a> ast::Visitor for Tych<'a> {
         &mut self, comp: ast::Node, method_name: String, args: Vec<ast::Node>, ty: Option<Type>,
     ) -> Self::Result {
         let chkd_comp = self.check_node(comp, None)?;
-        let comp_sym = self.get_composite_symbol(chkd_comp.ty())?;
-        let method_name = format!("_{}_{}", comp_sym.name, method_name);
+        let comp_sym = self.get_composite_symbol(chkd_comp.ty())?.clone();
 
-        let chkd_call = self.visit_call(method_name, args, ty)?;
+        // Make sure the method exists
+        if !comp_sym.methods().unwrap_or_default().contains(&method_name.as_str()) {
+            return Err(format!("composite `{}` has no method: `{}`", comp_sym.name, method_name));
+        }
+        let cooked_method_name = format!("_{}_{}", comp_sym.name, method_name);
+
+        let chkd_call = self.visit_call(cooked_method_name.clone(), args, ty).map_err(|e| {
+            // Don't use the cooked name for errors
+            e.replace(&cooked_method_name, &format!("{}.{}", comp_sym.name, method_name))
+        })?;
+
         match chkd_call.kind {
             ast::node::Kind::Call { name, args, ty } => {
                 Ok(ast::Node::new_mselector(chkd_comp, name, args, ty))

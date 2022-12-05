@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 897
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    fn bar() {}\n}\nfn main() {\n    let f: Foo\n    f.bar(1)\n}\n"
+- Err: "Call to `Foo.bar()` takes 0 args and 1 were given"
+

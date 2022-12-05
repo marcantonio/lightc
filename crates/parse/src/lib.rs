@@ -90,9 +90,11 @@ impl<'a> Parse<'a> {
 
                     // Make an entry for each method using a "semi" lowered name. We do
                     // this here to allow for proper name collision detection in the tych.
+                    let mut sym_methods = vec![];
                     for node in methods.iter_mut() {
                         if let ast::Node { kind: ast::node::Kind::Fn { proto, .. } } = node {
                             let orig_name = proto.name().to_owned();
+                            sym_methods.push(proto.name().to_owned());
                             let method_name = format!("_{}_{}", name, proto.name());
                             proto.set_name(method_name);
 
@@ -110,7 +112,11 @@ impl<'a> Parse<'a> {
                     }
 
                     // Insert struct into symbol table
-                    if self.symbol_table.insert(Symbol::new_struct(name, Some(&sym_fields))).is_some() {
+                    if self
+                        .symbol_table
+                        .insert(Symbol::new_struct(name, Some(&sym_fields), Some(&sym_methods)))
+                        .is_some()
+                    {
                         return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
                     }
 

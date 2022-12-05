@@ -44,10 +44,13 @@ impl Symbol {
         Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
     }
 
-    pub fn new_struct(name: &str, fields: Option<&[(String, String)]>) -> Self {
+    pub fn new_struct(name: &str, fields: Option<&[(String, String)]>, methods: Option<&[String]>) -> Self {
         Symbol {
             name: name.to_owned(),
-            data: AssocData::Struct(StructData { fields: fields.map(|x| x.to_vec()), methods: None }),
+            data: AssocData::Struct(StructData {
+                fields: fields.map(|x| x.to_vec()),
+                methods: methods.map(|x| x.to_vec()),
+            }),
         }
     }
 
@@ -95,6 +98,13 @@ impl Symbol {
             AssocData::Struct(s) => {
                 Some(s.fields.as_deref()?.iter().map(|(n, a)| (n.as_str(), a.as_str())).collect())
             },
+            _ => unreachable!("expected symbol to be a struct"),
+        }
+    }
+
+    pub fn methods(&self) -> Option<Vec<&str>> {
+        match &self.data {
+            AssocData::Struct(s) => Some(s.methods.as_deref()?.iter().map(|m| m.as_str()).collect()),
             _ => unreachable!("expected symbol to be a struct"),
         }
     }

@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 402
+assertion_line: 391
 expression: "(test[1], ast, ast_string)"
 ---
 - "x.y(); x.y(a); x.y(a, b)"
@@ -13,7 +13,7 @@ expression: "(test[1], ast, ast_string)"
                 Ident:
                   name: x
                   ty: ~
-            method: y
+            name: y
             args: []
             ty: ~
       - kind:
@@ -23,7 +23,7 @@ expression: "(test[1], ast, ast_string)"
                 Ident:
                   name: x
                   ty: ~
-            method: y
+            name: y
             args:
               - kind:
                   Ident:
@@ -37,7 +37,7 @@ expression: "(test[1], ast, ast_string)"
                 Ident:
                   name: x
                   ty: ~
-            method: y
+            name: y
             args:
               - kind:
                   Ident:

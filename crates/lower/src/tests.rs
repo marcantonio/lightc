@@ -144,10 +144,12 @@ fn main() {
     x.a
     returnStruct().a
     let b: Bar
+    b.foo.b()
     b.foo.a
 }
 struct Foo {
     let a: int
+    fn b() {}
 }
 struct Bar {
     let foo: Foo

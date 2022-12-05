@@ -150,7 +150,7 @@ impl<'ctx> Codegen<'ctx> {
     pub fn walk(&mut self, hir: Hir<hir::Node>) -> Result<(), String> {
         let (structs, functions, prototypes) = hir.into_components();
 
-        // Do structs first to all types are complete
+        // Do structs first so all types are complete
         self.codegen_all_structs(structs)?;
 
         // Do prototypes next so declaration order doesn't matter

@@ -417,10 +417,12 @@ fn main() {
     x.a
     let b: Bar
     b.foo.a = returnStruct().a
+    b.foo.b()
     b.foo.a
 }
 struct Foo {
     let a: int
+    fn b() {}
 }
 struct Bar {
     let foo: Foo

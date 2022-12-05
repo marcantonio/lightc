@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use crate::{Symbol, Type};
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct Prototype {
     name: String,
     args: Vec<(String, Type)>,

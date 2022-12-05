@@ -1,9 +1,9 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 157
+assertion_line: 159
 expression: "(test[1], res)"
 ---
-- "\nfn returnStruct() -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let x: Foo\n    x.a\n    returnStruct().a\n    let b: Bar\n    b.foo.a\n}\nstruct Foo {\n    let a: int\n}\nstruct Bar {\n    let foo: Foo\n}\n"
+- "\nfn returnStruct() -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let x: Foo\n    x.a\n    returnStruct().a\n    let b: Bar\n    b.foo.b()\n    b.foo.a\n}\nstruct Foo {\n    let a: int\n    fn b() {}\n}\nstruct Bar {\n    let foo: Foo\n}\n"
 - Ok:
     functions:
       - kind:
@@ -121,6 +121,11 @@ expression: "(test[1], res)"
                                 ty:
                                   Comp: Bar
                     - kind:
+                        Call:
+                          name: _Foo_b~void
+                          args: []
+                          ty: Void
+                    - kind:
                         FSelector:
                           comp:
                             kind:
@@ -137,6 +142,18 @@ expression: "(test[1], res)"
                           idx: 0
                           ty: Int32
                   ty: Int32
+      - kind:
+          Fn:
+            proto:
+              name: _Foo_b~void
+              args: []
+              ret_ty: Void
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list: []
+                  ty: Void
     structs:
       - kind:
           Struct:
@@ -155,6 +172,10 @@ expression: "(test[1], res)"
           Comp: Foo
         is_extern: false
       - name: main
+        args: []
+        ret_ty: Void
+        is_extern: false
+      - name: _Foo_b~void
         args: []
         ret_ty: Void
         is_extern: false
