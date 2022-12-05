@@ -1,9 +1,9 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 852
+assertion_line: 910
 expression: "(test[1], res)"
 ---
-- "\nstruct Foo {\n    let a: int,\n}\nstruct Bar {\n    let b: Foo\n}\nfn main() {\n    let x: Bar\n    x.b.a\n}\n"
+- "\nstruct Foo {\n    let a: int\n}\nstruct Bar {\n    let b: Foo\n}\nfn main() {\n    let x: Bar\n    x.b.a\n}\n"
 - Ok:
     nodes:
       - kind:

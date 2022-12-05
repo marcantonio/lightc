@@ -124,11 +124,15 @@ impl<'a> Parse<'a> {
                 },
                 TokenType::Let => {
                     fields.push(self.parse_let()?);
-                    self.tokens.next(); // Eat semicolon
+                    token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
+                        self.tokens.next(); // Eat semicolon
+                    });
                 },
                 TokenType::Fn => {
                     methods.push(self.parse_fn(true)?);
-                    self.tokens.next(); // Eat semicolon
+                    token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
+                        self.tokens.next(); // Eat semicolon
+                    });
                 },
                 tt => {
                     return Err(ParseError::from((

@@ -1,0 +1,15 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 394
+expression: "(test[1], ast, ast_string)"
+---
+- "struct Foo {}"
+- Ok:
+    nodes:
+      - kind:
+          Struct:
+            name: Foo
+            fields: []
+            methods: []
+- "(struct Foo '() '())"
+

@@ -777,7 +777,7 @@ fn main() {
             "field_selector",
             r#"
 struct Foo {
-    let a: int,
+    let a: int
 }
 struct Bar {
     let b: Foo
@@ -794,7 +794,7 @@ fn main() {
             "field_selector_chained",
             r#"
 struct Foo {
-    let a: int,
+    let a: int
 }
 struct Bar {
     let b: Foo
@@ -832,7 +832,7 @@ fn main() {
             "field_selector_bad2",
             r#"
 struct Foo {
-    let b: int,
+    let b: int
 }
 fn main() {
     let x: Foo
@@ -844,7 +844,7 @@ fn main() {
             "field_selector_bad3",
             r#"
 struct Foo {
-    let a: Bar,
+    let a: Bar
 }
 fn main() {
     let x: Foo

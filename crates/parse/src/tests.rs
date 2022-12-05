@@ -354,6 +354,9 @@ x.y.z()
 x.y().z
 "#,
         ],
+        ["empty", "struct Foo {}"],
+        ["single_line_struct_with_field", "struct Foo { let x: int }"],
+        ["single_line_struct_with_method", "struct Foo { fn foo() {} }"],
         //         [
         //             "self",
         //             r#"
