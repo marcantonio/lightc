@@ -203,6 +203,7 @@ impl<'ctx> Codegen<'ctx> {
                     AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
                     AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
                     AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
+                    AnyTypeEnum::StructType(ty) => BasicMetadataTypeEnum::StructType(ty),
                     ty => unreachable!(
                         "unsupported argument type `{}` in prototype `{}()`",
                         ty.print_to_string(),

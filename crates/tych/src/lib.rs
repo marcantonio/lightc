@@ -21,14 +21,14 @@ pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     types: Vec<String>,
     hint: Option<Type>,
-    in_struct: bool,
+    cur_struct: Option<String>,
 }
 
 impl<'a> Tych<'a> {
     pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
         let mut types = Type::dump_types();
         types.append(&mut symbol_table.types());
-        Tych { symbol_table, types, hint: None, in_struct: false }
+        Tych { symbol_table, types, hint: None, cur_struct: None }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Ast<ast::Node>, String> {
@@ -174,10 +174,10 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
 
         // Don't process initization values for struct fields
-        let init_node = if !self.in_struct {
+        let init_node = if self.cur_struct.is_none() {
             self.symbol_table.insert(Symbol::new_var(&name, &antn));
             self.check_var_init(&name, init.as_ref(), &antn, "let statement")?
-        } else if self.in_struct && init.is_some() {
+        } else if self.cur_struct.is_some() && init.is_some() {
             return Err(format!("initializers aren't supported for struct fields at `{}`", name));
         } else {
             None
@@ -210,6 +210,12 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Creates interstitial scope for the arguments in the function definition
         self.symbol_table.enter_scope();
+
+
+        // Insert symbol for self if this is a method
+        if let Some(name) = &self.cur_struct {
+            self.symbol_table.insert(Symbol::new_var("self", &Type::Comp(name.to_owned())));
+        }
 
         // Insert args into the local scope table
         for arg in proto.args() {
@@ -259,12 +265,12 @@ impl<'a> ast::Visitor for Tych<'a> {
             return Err("structs can only be defined at the global level".to_string());
         }
 
-        self.in_struct = true;
+        self.cur_struct = Some(name.clone());
         let chkd_fields =
             fields.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
         let chkd_methods =
             methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
-        self.in_struct = false;
+        self.cur_struct = None;
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }

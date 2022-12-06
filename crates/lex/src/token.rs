@@ -78,7 +78,6 @@ pub enum TokenType {
     OpenBracket,
     OpenParen,
     Semicolon(bool), // implicit
-    SelfTt,
     Struct,
 }
 
@@ -91,7 +90,6 @@ impl std::fmt::Display for TokenType {
             Op(s) => write!(f, "{}", s),
             Ident(i) => write!(f, "{}", i),
             Num(n) => write!(f, "{}", n),
-            SelfTt => write!(f, "self"),
             Dot => write!(f, "."),
             tt => write!(f, "{:?}", tt),
         }

@@ -103,7 +103,6 @@ impl Lex {
                 "true" => Bool(true),
                 "false" => Bool(false),
                 "struct" => Struct,
-                "self" => SelfTt,
                 _ => Ident(identifier),
             };
 
