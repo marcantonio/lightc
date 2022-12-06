@@ -832,13 +832,16 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
     fn visit_fselector(&mut self, comp: hir::Node, idx: u32) -> Self::Result {
         let field_ptr = self.get_struct_element(comp, idx)?;
 
+        // TODO: I did this to eliminate an extraneous load instructions in some cases
+        // when compared to clang. It was dumb.
         // If the pointer is pointing to a struct, just return it and skip the load
         // instruction
-        if field_ptr.get_type().get_element_type().is_struct_type() {
-            Ok(Some(field_ptr.as_basic_value_enum()))
-        } else {
-            Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
-        }
+        // if field_ptr.get_type().get_element_type().is_struct_type() {
+        //     Ok(Some(field_ptr.as_basic_value_enum()))
+        // } else {
+        //     Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
+        // }
+        Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
     }
 }
 
