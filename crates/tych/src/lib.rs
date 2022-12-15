@@ -211,7 +211,6 @@ impl<'a> ast::Visitor for Tych<'a> {
         // Creates interstitial scope for the arguments in the function definition
         self.symbol_table.enter_scope();
 
-
         // Insert symbol for self if this is a method
         if let Some(name) = &self.cur_struct {
             self.symbol_table.insert(Symbol::new_var("self", &Type::Comp(name.to_owned())));

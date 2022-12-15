@@ -290,7 +290,6 @@ fn test_array() {
         ["index_bad_3", "x[0"],
         ["index_chain", "x[0][1]"],
     ];
-
     run_insta!("array", tests)
 }
 
@@ -357,39 +356,6 @@ x.y().z
         ["empty", "struct Foo {}"],
         ["single_line_struct_with_field", "struct Foo { let x: int }"],
         ["single_line_struct_with_method", "struct Foo { fn foo() {} }"],
-        //         [
-        //             "self",
-        //             r#"
-        // struct Foo {
-        //     let a: int
-
-        //     fn c() -> int {
-        //         self.a + 1
-        //     }
-        // }
-        // "#,
-        //         ],
-        //         [
-        //             "self_bad1",
-        //             r#"
-        // struct Foo {
-        //     fn c() -> int {
-        //         self + 1
-        //     }
-        // }
-        // "#,
-        //         ],
-        //         [
-        //             "self_bad2",
-        //             r#"
-        // struct Foo {
-        //     fn c() -> int {
-        //         self. + 1
-        //     }
-        // }
-        // "#,
-        //         ],
     ];
-
     run_insta!("struct", tests)
 }

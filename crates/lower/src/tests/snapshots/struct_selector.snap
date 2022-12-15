@@ -123,7 +123,18 @@ expression: "(test[1], res)"
                     - kind:
                         Call:
                           name: _Foo_b~void
-                          args: []
+                          args:
+                            - kind:
+                                FSelector:
+                                  comp:
+                                    kind:
+                                      Ident:
+                                        name: b
+                                        ty:
+                                          Comp: Bar
+                                  idx: 0
+                                  ty:
+                                    Comp: Foo
                           ty: Void
                     - kind:
                         FSelector:
@@ -146,7 +157,9 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: _Foo_b~void
-              args: []
+              args:
+                - - self
+                  - Comp: Foo
               ret_ty: Void
               is_extern: false
             body:
@@ -176,7 +189,9 @@ expression: "(test[1], res)"
         ret_ty: Void
         is_extern: false
       - name: _Foo_b~void
-        args: []
+        args:
+          - - self
+            - Comp: Foo
         ret_ty: Void
         is_extern: false
 

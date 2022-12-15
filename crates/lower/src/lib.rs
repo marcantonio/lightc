@@ -195,8 +195,9 @@ impl<'a> ast::Visitor for Lower<'a> {
             .collect();
 
         // Save the methods separately to pop them up to the top of the HIR later
-        let mut lowered_methods =
-            methods.into_iter().map(|n| {
+        let mut lowered_methods = methods
+            .into_iter()
+            .map(|n| {
                 let mut node = self.visit_node(n)?;
 
                 // Insert `self` into the method's args list.
@@ -206,10 +207,11 @@ impl<'a> ast::Visitor for Lower<'a> {
                         args.append(&mut proto.args().to_vec());
                         proto.set_args(args);
                     },
-                    _ => unreachable!("non-function node in struct methods")
+                    _ => unreachable!("non-function node in struct methods"),
                 }
                 Ok(node)
-            }).collect::<Result<Vec<_>, String>>()?;
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
         Ok(hir::Node::new_struct(name, field_tys))

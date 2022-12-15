@@ -1,0 +1,8 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 921
+expression: "(test[1], res)"
+---
+- "struct Foo { let a: int = 1 }"
+- Err: "initializers aren't supported for struct fields at `a`"
+

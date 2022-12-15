@@ -1,0 +1,32 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 919
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    fn bar() { self }\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Struct:
+            name: Foo
+            fields: []
+            methods:
+              - kind:
+                  Fn:
+                    proto:
+                      name: _Foo_bar
+                      args: []
+                      ret_ty: Void
+                      is_extern: false
+                    body:
+                      kind:
+                        Block:
+                          list:
+                            - kind:
+                                Ident:
+                                  name: self
+                                  ty:
+                                    Comp: Foo
+                          ty:
+                            Comp: Foo
+

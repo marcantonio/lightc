@@ -397,10 +397,12 @@ fn test_struct() {
 struct Foo {
     let a: int
     let b: bool
+    fn c(d: int) -> int { self.a + d }
 }
 fn main() {
     let x: Foo
     x.a
+    x.c(2)
 }
 "#,
         ],

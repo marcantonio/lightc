@@ -648,7 +648,6 @@ x[y]
 "#,
         ],
     ];
-
     run_insta!("array", tests)
 }
 
@@ -806,7 +805,7 @@ fn main() {
 "#,
         ],
         [
-        "struct_field_init",
+            "struct_field_init",
             r#"
 struct Foo {
     let a: int = 1
@@ -874,7 +873,7 @@ fn main() {
 "#,
         ],
         [
-        "method_selector_bad1",
+            "method_selector_bad1",
             r#"
 fn main() {
     let f: int
@@ -883,7 +882,7 @@ fn main() {
 "#,
         ],
         [
-        "method_selector_bad2",
+            "method_selector_bad2",
             r#"
 struct Foo {
     fn bar() {}
@@ -895,7 +894,7 @@ fn main() {
 "#,
         ],
         [
-        "method_selector_bad3",
+            "method_selector_bad3",
             r#"
 struct Foo {
     fn bar() {}
@@ -903,6 +902,15 @@ struct Foo {
 fn main() {
     let f: Foo
     f.bar(1)
+}
+"#,
+        ],
+        ["field_init", "struct Foo { let a: int = 1 }"],
+        [
+            "self_type",
+            r#"
+struct Foo {
+    fn bar() { self }
 }
 "#,
         ],

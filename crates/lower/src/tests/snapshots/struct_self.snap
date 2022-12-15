@@ -1,0 +1,57 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 170
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    let a: int\n    fn b() -> int { self.a + 1 }\n}\n"
+- Ok:
+    functions:
+      - kind:
+          Fn:
+            proto:
+              name: _Foo_b~int32
+              args:
+                - - self
+                  - Comp: Foo
+              ret_ty: Int32
+              is_extern: false
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        BinOp:
+                          op: Add
+                          lhs:
+                            kind:
+                              FSelector:
+                                comp:
+                                  kind:
+                                    Ident:
+                                      name: self
+                                      ty:
+                                        Comp: Foo
+                                idx: 0
+                                ty: Int32
+                          rhs:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 1
+                                ty: Int32
+                          ty: Int32
+                  ty: Int32
+    structs:
+      - kind:
+          Struct:
+            name: Foo
+            field_tys:
+              - Int32
+    prototypes:
+      - name: _Foo_b~int32
+        args:
+          - - self
+            - Comp: Foo
+        ret_ty: Int32
+        is_extern: false
+
