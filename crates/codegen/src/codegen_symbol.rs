@@ -5,7 +5,7 @@ use crate::Codegen;
 use common::symbol_table::{AssocData, Symbolic};
 use common::{Symbol, SymbolTable, Type};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct CodegenSymbol<'a> {
     inner: Symbol,
     pointer: Option<PointerValue<'a>>,

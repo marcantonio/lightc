@@ -1,14 +1,14 @@
 use super::Symbolic;
 use crate::Type;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct FnData {
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct VarData {
     pub ty: Type,
 }
@@ -19,14 +19,14 @@ pub struct StructData {
     pub methods: Option<Vec<String>>,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AssocData {
     Fn(FnData),
     Var(VarData),
     Struct(StructData),
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Symbol {
     pub name: String,
     pub data: AssocData,

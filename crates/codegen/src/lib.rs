@@ -95,7 +95,7 @@ impl<'ctx> Codegen<'ctx> {
 
         // File name for module binary
         let mut module_file = build_dir;
-        module_file.push(&module_name);
+        module_file.push(module_name);
         let module_file = module_file.as_path().with_extension("o");
 
         // Write the object file to the build directory
@@ -619,19 +619,28 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             Double(v) => self.context.f64_type().const_float(v).as_basic_value_enum(),
             Bool(v) => self.context.bool_type().const_int(v as u64, true).as_basic_value_enum(),
             Array { elements, inner_ty } => {
-                let len = elements.len();
-                let mut vals = Vec::with_capacity(len);
+                // Get inner LLVM type and codegen all element values
+                let inner_llvm_ty =
+                    self.get_llvm_basic_type(&inner_ty.as_ref().cloned().unwrap_or_default())?;
+                let mut vals = Vec::with_capacity(elements.len());
                 for el in elements {
                     vals.push(self.visit_node(el)?.unwrap());
                 }
-                match self.get_llvm_any_type(&inner_ty.as_ref().cloned().unwrap_or_default())? {
-                    AnyTypeEnum::FloatType(ty) => {
+
+                // If emtpy, initialize to zero and return
+                if vals.is_empty() {
+                    return Ok(Some(self.get_llvm_basic_type(&ty)?.const_zero()));
+                }
+
+                // Otherwise, create typed array of vals
+                match inner_llvm_ty {
+                    BasicTypeEnum::FloatType(wrapped_ty) => {
                         let vals = vals.iter().map(|v| v.into_float_value()).collect::<Vec<_>>();
-                        ty.const_array(&vals).as_basic_value_enum()
+                        wrapped_ty.const_array(&vals).as_basic_value_enum()
                     },
-                    AnyTypeEnum::IntType(ty) => {
+                    BasicTypeEnum::IntType(wrapped_ty) => {
                         let vals = vals.iter().map(|v| v.into_int_value()).collect::<Vec<_>>();
-                        ty.const_array(&vals).as_basic_value_enum()
+                        wrapped_ty.const_array(&vals).as_basic_value_enum()
                     },
                     _ => todo!(),
                 }
