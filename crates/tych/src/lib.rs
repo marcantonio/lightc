@@ -59,13 +59,13 @@ impl<'a> Tych<'a> {
         // Clone the inner type hint
         // TODO: Could ty_hint be None?
         let (ty, size) = match ty_hint.unwrap() {
-            Type::Array(ty, sz) => (ty, sz),
+            Type::SArray(ty, sz) => (ty, sz),
             err => unreachable!("array literal has invalid type hint `{}`", err),
         };
 
         // Make sure array is big enough
         if elements.len() as u32 as usize > size {
-            return Err(format!("Array literal too big in assignment: `{}` > `{}`", elements.len(), size));
+            return Err(format!("SArray literal too big in assignment: `{}` > `{}`", elements.len(), size));
         }
 
         // Check every element and make sure they are uniform
@@ -80,7 +80,7 @@ impl<'a> Tych<'a> {
         }
 
         // Rebuild the literal and return the type
-        Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::Array(ty, size)))
+        Ok((Literal::Array { elements: chkd_elements, inner_ty: Some(*ty.clone()) }, Type::SArray(ty, size)))
     }
 
     // Helper for variable initializations
@@ -104,7 +104,7 @@ impl<'a> Tych<'a> {
     }
 
     fn is_valid_type(&self, ty: &Type) -> bool {
-        self.types.contains(&ty.to_string()) || ty.to_string().starts_with("array")
+        self.types.contains(&ty.to_string()) || ty.to_string().starts_with("sarray")
     }
 
     // Helper to get composite name and symbol for selector checking
@@ -302,7 +302,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                     float_types!() => return Err("Literal is an integer in a float context".to_string()),
                     Type::Bool => return Err("Literal is an integer in a bool context".to_string()),
                     Type::Char => return Err("Literal is an integer in a char context".to_string()),
-                    Type::Array(..) => return Err("Literal is an integer in an array context".to_string()),
+                    Type::SArray(..) => return Err("Literal is an integer in an sarray context".to_string()),
                     Type::Void => return Err("Literal is an integer in a void context".to_string()),
                     Type::Comp(_) => return Err("Literal is an integer in a compound context".to_string()),
                 },
@@ -312,7 +312,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                     int_types!() => return Err("Literal is a float in an integer context".to_string()),
                     Type::Bool => return Err("Literal is a float in a bool context".to_string()),
                     Type::Char => return Err("Literal is a float in a char context".to_string()),
-                    Type::Array(..) => return Err("Literal is a float in an array context".to_string()),
+                    Type::SArray(..) => return Err("Literal is a float in an sarray context".to_string()),
                     _ => unreachable!("float conversion error"),
                 },
                 Double(v) => (Double(v), Type::Double),
@@ -554,7 +554,7 @@ impl<'a> ast::Visitor for Tych<'a> {
     fn visit_index(&mut self, binding: ast::Node, idx: ast::Node, _ty: Option<Type>) -> Self::Result {
         let chkd_binding = self.check_node(binding, None)?;
         let binding_ty = match chkd_binding.ty().unwrap_or_default() {
-            Type::Array(t, _) => *t.clone(),
+            Type::SArray(t, _) => *t.clone(),
             t => return Err(format!("Can't index `{}`", t)),
         };
         // TODO: Coerce into int32

@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 653
+assertion_line: 651
 expression: "(test[1], res)"
 ---
 - "let x: [int; 3] = []"
@@ -10,7 +10,7 @@ expression: "(test[1], res)"
           Let:
             name: x
             antn:
-              Array:
+              SArray:
                 - Int32
                 - 3
             init:
@@ -21,7 +21,7 @@ expression: "(test[1], res)"
                       elements: []
                       inner_ty: Int32
                   ty:
-                    Array:
+                    SArray:
                       - Int32
                       - 3
 

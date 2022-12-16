@@ -172,7 +172,7 @@ fn test_semi() {
 }
 
 #[test]
-fn test_array() {
+fn test_sarray() {
     let tests = [["type", "[int; 3]"], ["lit", "[1, 2, 3]"], ["index", "foo[0]"]];
     run_insta!("array", tests);
 }

@@ -77,7 +77,7 @@ pub enum TokenType {
     OpenBrace,
     OpenBracket,
     OpenParen,
-    Semicolon(bool), // implicit
+    Semicolon(bool), // (is implicit?)
     Struct,
 }
 

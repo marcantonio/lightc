@@ -411,11 +411,7 @@ impl<'a> Parse<'a> {
 
         let idx = self.parse_expr(0)?;
 
-        expect_next_token!(
-            self.tokens,
-            TokenType::CloseBracket,
-            "Expecting `]` after expression in array index"
-        );
+        expect_next_token!(self.tokens, TokenType::CloseBracket, "Expecting `]` after expression in index");
 
         Ok(ast::Node::new_index(binding, idx, None))
     }
@@ -579,7 +575,7 @@ impl<'a> Parse<'a> {
                     ast::Node { kind: node::Kind::Lit { value: Literal::UInt64(s), .. } } => s,
                     _ => {
                         return Err(ParseError::from((
-                            "Expecting a literal int for size in array type".to_string(),
+                            "Expecting a literal int for size in sarray type".to_string(),
                             token.unwrap(),
                         )))
                     },
@@ -589,7 +585,7 @@ impl<'a> Parse<'a> {
                     TokenType::CloseBracket,
                     format!("Missing `]` in `{}` type annotation", caller)
                 );
-                Type::Array(Box::new(ty.as_str().into()), size.try_into().unwrap())
+                Type::SArray(Box::new(ty.as_str().into()), size.try_into().unwrap())
             },
             Some(Token { tt: TokenType::Ident(ty), .. }) => ty.as_str().into(),
             Some(next) => {

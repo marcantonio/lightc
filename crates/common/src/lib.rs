@@ -91,7 +91,7 @@ pub enum Type {
     Bool,
     Char,
     Void,
-    Array(Box<Type>, usize),
+    SArray(Box<Type>, usize),
     Comp(String),
 }
 
@@ -111,7 +111,7 @@ impl Type {
             String::from("bool"),
             String::from("char"),
             String::from("void"),
-            String::from("array"), // TODO: remove this when arrays are gone
+            String::from("sarray"), // TODO: remove this when arrays are gone; XXX: used?
         ]
     }
 }

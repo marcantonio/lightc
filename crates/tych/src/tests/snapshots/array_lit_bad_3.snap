@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 723
+assertion_line: 651
 expression: "(test[1], res)"
 ---
 - "let x: [int; 2] = [1, 2, 3]"
-- Err: "Array literal too big in assignment: `3` > `2`"
+- Err: "SArray literal too big in assignment: `3` > `2`"
 

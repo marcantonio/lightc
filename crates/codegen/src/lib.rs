@@ -260,7 +260,7 @@ impl<'ctx> Codegen<'ctx> {
             (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
             (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::Array(..) | Type::Comp(_), None) => {
+            (Type::Void | Type::SArray(..) | Type::Comp(_), None) => {
                 unreachable!("void/invalid type for init annotation in `codegen_var_init()`")
             },
         };
@@ -296,15 +296,15 @@ impl<'ctx> Codegen<'ctx> {
                 unreachable!("void type for stack variable in `create_entry_block_alloca()`")
             },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
-            Type::Array(ty, sz) => {
-                let array_ty = match self.get_llvm_any_type(&ty.as_ref().clone())? {
+            Type::SArray(ty, sz) => {
+                let sarray_ty = match self.get_llvm_any_type(&ty.as_ref().clone())? {
                     AnyTypeEnum::FloatType(ty) => (ty.as_basic_type_enum(), sz),
                     AnyTypeEnum::IntType(ty) => (ty.as_basic_type_enum(), sz),
                     _ => todo!(),
                 };
                 builder.build_alloca(
-                    array_ty.0.array_type(
-                        (*array_ty.1)
+                    sarray_ty.0.array_type(
+                        (*sarray_ty.1)
                             .try_into()
                             .map_err(|err| format!("failed to convert array index: `{}`", err))?,
                     ),
@@ -394,9 +394,9 @@ impl<'ctx> Codegen<'ctx> {
             Type::Float => self.context.f32_type().as_basic_type_enum(),
             Type::Double => self.context.f64_type().as_basic_type_enum(),
             Type::Bool => self.context.bool_type().as_basic_type_enum(),
-            Type::Array(ty, size) => {
+            Type::SArray(ty, size) => {
                 let size =
-                    (*size).try_into().map_err(|err| format!("failed to convert array size: `{}`", err))?;
+                    (*size).try_into().map_err(|err| format!("failed to convert sarray size: `{}`", err))?;
                 match self.get_llvm_any_type(ty)? {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_basic_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_basic_type_enum(),

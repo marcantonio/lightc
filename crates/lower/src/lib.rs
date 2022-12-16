@@ -93,9 +93,9 @@ impl<'a> Lower<'a> {
             Double => init_literal!(Double, 0.0),
             Char => init_literal!(Char, 0),
             Bool => init_literal!(Bool, false),
-            Array(ty, len) => hir::Node::new_lit(
+            SArray(ty, len) => hir::Node::new_lit(
                 Literal::Array { elements: Vec::with_capacity(*len), inner_ty: Some(*ty.clone()) },
-                Type::Array(Box::new(*ty.clone()), *len),
+                Type::SArray(Box::new(*ty.clone()), *len),
             ),
             Comp(name) => {
                 let sym = self
