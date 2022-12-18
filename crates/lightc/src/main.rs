@@ -82,20 +82,22 @@ fn main() {
         .unwrap_or_else(|e| panic!("Error compiling `{}`: {}", args.file.display(), e))
         .as_file_path();
 
+    // Derive the output file name
+    let outfile = match (args.output, args.compile_only) {
+        (Some(name), _) => PathBuf::from(name),
+        (None, true) => {
+            let mut obj_file = root_dir;
+            obj_file.push(&module_name);
+            obj_file.as_path().with_extension("o")
+        }
+        (None, false) => PathBuf::from("a.out"),
+    };
+
     // If we just want the object file, copy it up to the root and exit
     if args.compile_only {
-        let mut obj_file = root_dir;
-        obj_file.push(&module_name);
-        let obj_file = obj_file.as_path().with_extension("o");
-
-        fs::copy(module_file, obj_file).expect("Error copying object file");
+        fs::copy(module_file, outfile).expect("Error copying object file");
         process::exit(0);
     }
-
-    let outfile = match args.output {
-        Some(file) => file,
-        None => String::from("a.out"),
-    };
 
     Command::new("clang")
         .arg("-o")
