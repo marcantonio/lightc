@@ -31,8 +31,11 @@ fn main() {
 
     // Parser
     let parser = Parse::new(&tokens, &mut symbol_table);
-    let ast = parser.parse().unwrap_or_else(|e| {
-        eprintln!("Parsing error: {}", e);
+    let ast = parser.parse().unwrap_or_else(|errs| {
+        eprintln!("Parsing Error(s):");
+        for e in errs.iter() {
+            eprintln!("\t{}", e);
+        }
         process::exit(1);
     });
 
@@ -103,7 +106,7 @@ fn main() {
         .arg("-o")
         .arg(outfile)
         .arg(module_file)
-        .arg("stdlib/stdlib.o")
+        // .arg("stdlib/stdlib.o")
         .arg("-lm")
         .spawn()
         .expect("Error compiling")

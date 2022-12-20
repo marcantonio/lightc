@@ -32,13 +32,20 @@ impl<'a> Parse<'a> {
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<ast::Node>, ParseError> {
+    pub fn parse(mut self) -> Result<Ast<ast::Node>, Vec<ParseError>> {
         let mut ast = Ast::new();
+        let mut errs: Vec<ParseError> = Vec::new();
         while self.tokens.peek().is_some() {
-            let node = self.parse_stmt()?;
-            ast.add(node);
+            match self.parse_stmt() {
+                Ok(n) => if errs.is_empty() { ast.add(n) },
+                Err(e) => {
+                    errs.push(e);
+                    self.recover();
+                },
+            };
         }
-        Ok(ast)
+        if !errs.is_empty() { Err(errs) }
+        else { Ok(ast) }
     }
 
     /// Statement productions
@@ -644,5 +651,26 @@ impl<'a> Parse<'a> {
             };
         }
         Ok(args)
+    }
+
+    //Move token iter past next panic_stop_token
+    fn recover(&mut self) {
+        while self.tokens.peek().is_some() {
+            if self.at_panic_stop_token() {
+                self.tokens.next(); //eat panic_stop_token
+                break;
+            } else { self.tokens.next(); }
+        }
+    }
+
+    //True if iterator is at a panic_stop_token
+    fn at_panic_stop_token(&mut self) -> bool {
+        if let Some(t) = self.tokens.peek() {
+            //may eventually want to add more panic_stop_tokens
+            matches!(
+                t.tt,
+                TokenType::Semicolon(true) //only implicit semis in case error is within a for-loop
+            )
+        } else { false }
     }
 }

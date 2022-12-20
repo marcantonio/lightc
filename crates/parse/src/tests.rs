@@ -1,10 +1,13 @@
 use super::*;
 use lex::Lex;
 
-fn ast_to_string(ast: Result<&Ast<ast::Node>, &ParseError>) -> String {
+fn ast_to_string(ast: Result<&Ast<ast::Node>, &Vec<ParseError>>) -> String {
     match ast {
         Ok(ast) => ast.nodes().iter().map(|x| x.to_string()).collect(),
-        Err(err) => err.to_string(),
+        Err(errs) => errs.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join(" | "),
     }
 }
 
