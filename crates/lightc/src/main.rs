@@ -32,7 +32,7 @@ fn main() {
     // Parser
     let parser = Parse::new(&tokens, &mut symbol_table);
     let ast = parser.parse().unwrap_or_else(|errs| {
-        eprintln!("Parsing Error(s):");
+        eprintln!("Encountered the following parsing error(s):");
         for e in errs.iter() {
             eprintln!("\t{}", e);
         }
