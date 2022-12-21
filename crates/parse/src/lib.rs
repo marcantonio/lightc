@@ -22,11 +22,12 @@ type ParseResult = Result<ast::Node, ParseError>;
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
+    errs: Vec<ParseError>,
 }
 
 impl<'a> Parse<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table }
+        Parse { tokens: tokens.iter().peekable(), symbol_table, errs: Vec::new() }
     }
 
     // Parse each token using recursive descent
@@ -34,17 +35,13 @@ impl<'a> Parse<'a> {
     // StmtList ::= ( Stmt ';' )+ ;
     pub fn parse(mut self) -> Result<Ast<ast::Node>, Vec<ParseError>> {
         let mut ast = Ast::new();
-        let mut errs: Vec<ParseError> = Vec::new();
         while self.tokens.peek().is_some() {
             match self.parse_stmt() {
-                Ok(n) => if errs.is_empty() { ast.add(n) },
-                Err(e) => {
-                    errs.push(e);
-                    self.recover();
-                },
+                Ok(n) => if self.errs.is_empty() { ast.add(n) },
+                Err(e) => { self.add_err(e) },
             };
         }
-        if !errs.is_empty() { Err(errs) }
+        if !self.errs.is_empty() { Err(self.errs) }
         else { Ok(ast) }
     }
 
@@ -172,7 +169,6 @@ impl<'a> Parse<'a> {
     // LetStmt ::= 'let' VarInit ;
     fn parse_let(&mut self) -> ParseResult {
         self.tokens.next(); // Eat let
-
         let (name, antn, init) = self.parse_var_init("let")?;
 
         Ok(ast::Node::new_let(name, antn, init))
@@ -405,7 +401,14 @@ impl<'a> Parse<'a> {
                     self.tokens.next();
                     return Ok(ast::Node::new_block(block, None));
                 },
-                _ => block.push(self.parse_stmt()?),
+                _ => {
+                    //Do not propogate a parse_stmt error within a
+                    //block or the block will not fully be parsed
+                    match self.parse_stmt() {
+                        Ok(b) => { block.push(b); },
+                        Err(e) => { self.add_err(e) },
+                    }
+                }
             }
         }
 
@@ -651,6 +654,11 @@ impl<'a> Parse<'a> {
             };
         }
         Ok(args)
+    }
+
+    fn add_err(&mut self, e: ParseError) {
+        self.errs.push(e);
+        self.recover();
     }
 
     //Move token iter past next panic_stop_token
