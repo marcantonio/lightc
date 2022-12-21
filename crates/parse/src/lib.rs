@@ -22,23 +22,31 @@ type ParseResult = Result<ast::Node, ParseError>;
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
+    errors: Vec<ParseError>,
 }
 
 impl<'a> Parse<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table }
+        Parse { tokens: tokens.iter().peekable(), symbol_table, errors: Vec::new() }
     }
 
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<ast::Node>, ParseError> {
+    pub fn parse(mut self) -> Result<Ast<ast::Node>, Vec<ParseError>> {
         let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
-            let node = self.parse_stmt()?;
-            ast.add(node);
+            match self.parse_stmt() {
+                Ok(n) if self.errors.is_empty() => ast.add(n),
+                Err(e) => self.push_err(e),
+                _ => continue
+            };
         }
-        Ok(ast)
+        if !self.errors.is_empty() {
+            Err(self.errors)
+        } else {
+            Ok(ast)
+        }
     }
 
     /// Statement productions
@@ -123,22 +131,41 @@ impl<'a> Parse<'a> {
                     return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
                 },
                 TokenType::Let => {
-                    fields.push(self.parse_let()?);
+                    match self.parse_let() {
+                        Ok(l) => fields.push(l),
+                        Err(e) => self.push_err(e),
+                    }
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
                 },
                 TokenType::Fn => {
-                    methods.push(self.parse_fn(true)?);
+                    match self.parse_fn(true) {
+                        Ok(f) => methods.push(f),
+                        Err(e) => self.push_err(e),
+                    }
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
                 },
                 tt => {
-                    return Err(ParseError::from((
+                    /*Do not propagate a ParseError within a struct or
+                    the struct will not be parsed, causing incorrect errors*/
+                    let e = ParseError::from((
                         format!("Expecting `let` or `fn` in struct definition. Got `{}`", tt),
                         *t,
-                    )))
+                    ));
+                    if let Some(t) = self.tokens.peek() {
+                        if t.tt == TokenType::OpenBrace {
+                            /*If token is an open brace, parse it as a stmt
+                            allows it to parse generic blocks within a struct*/
+                            self.parse_stmt()?;
+                        } else {
+                            self.push_err(e);
+                        }
+                    } else {
+                        self.push_err(e);
+                    }
                 },
             }
         }
@@ -165,7 +192,6 @@ impl<'a> Parse<'a> {
     // LetStmt ::= 'let' VarInit ;
     fn parse_let(&mut self) -> ParseResult {
         self.tokens.next(); // Eat let
-
         let (name, antn, init) = self.parse_var_init("let")?;
 
         Ok(ast::Node::new_let(name, antn, init))
@@ -398,7 +424,14 @@ impl<'a> Parse<'a> {
                     self.tokens.next();
                     return Ok(ast::Node::new_block(block, None));
                 },
-                _ => block.push(self.parse_stmt()?),
+                _ => {
+                    /*Do not propagate a ParseError within a block or
+                    the block will not be parsed, causing incorrect errors*/
+                    match self.parse_stmt() {
+                        Ok(b) => block.push(b),
+                        Err(e) => self.push_err(e),
+                    }
+                },
             }
         }
 
@@ -644,5 +677,44 @@ impl<'a> Parse<'a> {
             };
         }
         Ok(args)
+    }
+
+    // Add error to parse errors and try to recover
+    fn push_err(&mut self, e: ParseError) {
+        self.errors.push(e);
+        self.recover();
+    }
+
+    // Move iterator to recoverable position
+    fn recover(&mut self) {
+        while self.tokens.peek().is_some() {
+            if self.at_panic_stop_token() {
+                break;
+            } else {
+                self.tokens.next();
+            }
+        }
+    }
+
+    /* True if iterator is at a panic_stop_token.
+    Moves iterator to proper location depending on
+    the stop token that is detected for optimal
+    error recovery. */
+    fn at_panic_stop_token(&mut self) -> bool {
+        use TokenType::*;
+        if let Some(t) = self.tokens.peek() {
+            if matches!(t.tt, Semicolon(true)) {
+                // only implicit semis in case error is within a for-loop
+                self.tokens.next();
+                true
+            } else if matches!(t.tt, OpenBrace) {
+                // do not move past OpenBrace so block can be parsed
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 }

@@ -1,0 +1,11 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\ntruct Foo {\n    let a: int\n    let b: flat\n}\n"
+- Err:
+    - message: "Missing semicolon to end statement. Got `Foo`"
+      line: 2
+      column: 7
+- "Missing semicolon to end statement. Got `Foo` at 2:7"
+

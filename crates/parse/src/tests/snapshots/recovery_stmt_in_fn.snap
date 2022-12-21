@@ -1,0 +1,11 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\nfn bang(o: int) {\n    printBang)\n}\n"
+- Err:
+    - message: "Missing semicolon to end statement. Got `CloseParen`"
+      line: 3
+      column: 14
+- "Missing semicolon to end statement. Got `CloseParen` at 3:14"
+

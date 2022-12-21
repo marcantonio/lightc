@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 402
 expression: "(test[1], ast, ast_string)"
 ---
 - x.y(
 - Err:
-    message: "Expecting `)` in method call. Got `EOF`"
-    line: 0
-    column: 0
+    - message: "Expecting `)` in method call. Got `EOF`"
+      line: 0
+      column: 0
 - "Expecting `)` in method call. Got `EOF`"
 

@@ -1,0 +1,17 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\nfor i: int = 0; i <= ; 1 {\n    for j: int  0; j <= 1; 1 {\n        let x: int = i  j\n    }\n}\n"
+- Err:
+    - message: "Expecting primary expression. Got `Semicolon(false)`"
+      line: 2
+      column: 22
+    - message: "Expecting `;` after starting expression. Got `0`"
+      line: 3
+      column: 17
+    - message: "Missing semicolon to end statement. Got `j`"
+      line: 4
+      column: 25
+- "Expecting primary expression. Got `Semicolon(false)` at 2:22 | Expecting `;` after starting expression. Got `0` at 3:17 | Missing semicolon to end statement. Got `j` at 4:25"
+
