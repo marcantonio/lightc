@@ -681,7 +681,7 @@ impl<'a> Parse<'a> {
         self.recover();
     }
 
-    // Move token iter to or past next panic_stop_token
+    // Move iterator to recoverable position
     fn recover(&mut self) {
         while self.tokens.peek().is_some() {
             if self.at_panic_stop_token() {
@@ -692,7 +692,10 @@ impl<'a> Parse<'a> {
         }
     }
 
-    // True if iterator is at a panic_stop_token
+    /* True if iterator is at a panic_stop_token.
+    Moves iterator to proper location depending on
+    the stop token that is detected for optimal
+    error recovery. */
     fn at_panic_stop_token(&mut self) -> bool {
         use TokenType::*;
         if let Some(t) = self.tokens.peek() {
