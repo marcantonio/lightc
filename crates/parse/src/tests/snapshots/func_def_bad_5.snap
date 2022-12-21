@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a( {}"
 - Err:
-    message: "Expecting identifier or `)` in `prototype` typed declaration. Got `OpenBrace`"
-    line: 1
-    column: 7
+    - message: "Expecting identifier or `)` in `prototype` typed declaration. Got `OpenBrace`"
+      line: 1
+      column: 7
 - "Expecting identifier or `)` in `prototype` typed declaration. Got `OpenBrace` at 1:7"
 

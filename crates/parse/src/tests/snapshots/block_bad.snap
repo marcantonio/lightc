@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 60
 expression: "(test[1], ast, ast_string)"
 ---
 - "if foo {"
 - Err:
-    message: "Expecting `}` to terminate block"
-    line: 0
-    column: 0
+    - message: "Expecting `}` to terminate block"
+      line: 0
+      column: 0
 - "Expecting `}` to terminate block"
 

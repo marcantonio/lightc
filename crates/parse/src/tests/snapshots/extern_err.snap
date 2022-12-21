@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 87
 expression: "(test[1], ast, ast_string)"
 ---
 - "extern cos(x: float)"
 - Err:
-    message: "Expecting `fn` after `extern`"
-    line: 1
-    column: 8
+    - message: "Expecting `fn` after `extern`"
+      line: 1
+      column: 8
 - "Expecting `fn` after `extern` at 1:8"
 
