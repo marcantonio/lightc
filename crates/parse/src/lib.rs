@@ -22,12 +22,12 @@ type ParseResult = Result<ast::Node, ParseError>;
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
-    errs: Vec<ParseError>,
+    errors: Vec<ParseError>,
 }
 
 impl<'a> Parse<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table, errs: Vec::new() }
+        Parse { tokens: tokens.iter().peekable(), symbol_table, errors: Vec::new() }
     }
 
     // Parse each token using recursive descent
@@ -37,13 +37,13 @@ impl<'a> Parse<'a> {
         let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
             match self.parse_stmt() {
-                Ok(n) if self.errs.is_empty() => ast.add(n),
+                Ok(n) if self.errors.is_empty() => ast.add(n),
                 Err(e) => self.push_err(e),
                 _ => continue
             };
         }
-        if !self.errs.is_empty() {
-            Err(self.errs)
+        if !self.errors.is_empty() {
+            Err(self.errors)
         } else {
             Ok(ast)
         }
@@ -679,9 +679,9 @@ impl<'a> Parse<'a> {
         Ok(args)
     }
 
-    // Add error to parse errs and try to recover
+    // Add error to parse errors and try to recover
     fn push_err(&mut self, e: ParseError) {
-        self.errs.push(e);
+        self.errors.push(e);
         self.recover();
     }
 
