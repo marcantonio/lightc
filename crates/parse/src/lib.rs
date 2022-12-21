@@ -131,13 +131,19 @@ impl<'a> Parse<'a> {
                     return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
                 },
                 TokenType::Let => {
-                    fields.push(self.parse_let()?);
+                    match self.parse_let() {
+                        Ok(l) => fields.push(l),
+                        Err(e) => self.push_err(e),
+                    }
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
                 },
                 TokenType::Fn => {
-                    methods.push(self.parse_fn(true)?);
+                    match self.parse_fn(true) {
+                        Ok(f) => methods.push(f),
+                        Err(e) => self.push_err(e),
+                    }
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
@@ -422,9 +428,7 @@ impl<'a> Parse<'a> {
                     /*Do not propagate a ParseError within a block or
                     the block will not be parsed, causing incorrect errors*/
                     match self.parse_stmt() {
-                        Ok(b) => {
-                            block.push(b);
-                        },
+                        Ok(b) => block.push(b),
                         Err(e) => self.push_err(e),
                     }
                 },
