@@ -1,0 +1,14 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\nfn main() {\n    le x: int = 1\n    let y: int  2\n}\n"
+- Err:
+    - message: "Missing semicolon to end statement. Got `x`"
+      line: 3
+      column: 8
+    - message: "Missing semicolon to end statement. Got `2`"
+      line: 4
+      column: 17
+- "Missing semicolon to end statement. Got `x` at 3:8 | Missing semicolon to end statement. Got `2` at 4:17"
+

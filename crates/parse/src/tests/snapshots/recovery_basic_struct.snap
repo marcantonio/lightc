@@ -1,0 +1,14 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\nstruct Foo {\n    le a: int = 1\n    let b: int 2\n}\n"
+- Err:
+    - message: "Expecting `let` or `fn` in struct definition. Got `le`"
+      line: 3
+      column: 5
+    - message: "Expecting `let` or `fn` in struct definition. Got `2`"
+      line: 4
+      column: 16
+- "Expecting `let` or `fn` in struct definition. Got `le` at 3:5 | Expecting `let` or `fn` in struct definition. Got `2` at 4:16"
+

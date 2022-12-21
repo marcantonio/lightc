@@ -1,0 +1,14 @@
+---
+source: crates/parse/src/tests.rs
+expression: "(test[1], ast, ast_string)"
+---
+- "\nstruct Foo {\n    let a: int\n    let b float\n\n    fn bang o: int) {\n        printBang()\n    }\n}\n"
+- Err:
+    - message: "Expecting `:` after identifier in `let` typed declaration. Got `float`"
+      line: 4
+      column: 11
+    - message: "Expecting `(` in prototype. Got `o`"
+      line: 6
+      column: 13
+- "Expecting `:` after identifier in `let` typed declaration. Got `float` at 4:11 | Expecting `(` in prototype. Got `o` at 6:13"
+

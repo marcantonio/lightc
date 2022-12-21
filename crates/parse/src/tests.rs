@@ -362,3 +362,71 @@ x.y().z
     ];
     run_insta!("struct", tests)
 }
+
+#[test]
+fn test_error_recovery() {
+    let tests = [
+        [
+            "basic",
+            r#"
+fn main() {
+    le x: int = 1
+    let y: int  2
+}
+"#,
+        ],
+        [
+            "basic_struct",
+            r#"
+struct Foo {
+    le a: int = 1
+    let b: int 2
+}
+"#,
+        ],
+        [
+            "find_open_brace",
+            r#"
+truct Foo {
+    let a: int
+    let b: flat
+}
+"#,
+        ],
+        [
+            "fn_in_struct",
+            r#"
+struct Foo {
+    let a: int
+    let b float
+
+    fn bang o: int) {
+        printBang()
+    }
+}
+"#,
+        ],
+        [
+            "stmt_in_fn",
+            r#"
+fn bang(o: int) {
+    printBang)
+}
+"#,
+        ],
+/* NOTE: it is redundant (at least for now) to test nested_for
+because a for loop's inner blocks are parsed the same way a fn's inner
+blocks are. Included for completeness and future-proofing. */
+        [
+            "nested_for",
+            r#"
+for i: int = 0; i <= ; 1 {
+    for j: int  0; j <= 1; 1 {
+        let x: int = i  j
+    }
+}
+"#,
+        ],
+    ];
+    run_insta!("recovery", tests)
+}
