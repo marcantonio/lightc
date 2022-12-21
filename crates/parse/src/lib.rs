@@ -38,8 +38,8 @@ impl<'a> Parse<'a> {
         while self.tokens.peek().is_some() {
             match self.parse_stmt() {
                 Ok(n) if self.errs.is_empty() => ast.add(n),
-                Ok(_) => {},
                 Err(e) => self.push_err(e),
+                _ => continue
             };
         }
         if !self.errs.is_empty() {
@@ -675,14 +675,14 @@ impl<'a> Parse<'a> {
         Ok(args)
     }
 
+    // Add error to parse errs and try to recover
     fn push_err(&mut self, e: ParseError) {
         self.errs.push(e);
         self.recover();
     }
 
-    //Move token iter to or past next panic_stop_token
+    // Move token iter to or past next panic_stop_token
     fn recover(&mut self) {
-        // self.tokens.next();
         while self.tokens.peek().is_some() {
             if self.at_panic_stop_token() {
                 break;
@@ -692,16 +692,16 @@ impl<'a> Parse<'a> {
         }
     }
 
-    //True if iterator is at a panic_stop_token
+    // True if iterator is at a panic_stop_token
     fn at_panic_stop_token(&mut self) -> bool {
         use TokenType::*;
         if let Some(t) = self.tokens.peek() {
             if matches!(t.tt, Semicolon(true)) {
-                //only implicit semis in case error is within a for-loop
+                // only implicit semis in case error is within a for-loop
                 self.tokens.next();
                 true
             } else if matches!(t.tt, OpenBrace) {
-                //do not move past OpenBrace so block can be parsed
+                // do not move past OpenBrace so block can be parsed
                 true
             } else {
                 false
