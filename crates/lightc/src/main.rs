@@ -106,7 +106,7 @@ fn main() {
         .arg("-o")
         .arg(outfile)
         .arg(module_file)
-        // .arg("stdlib/stdlib.o")
+        .arg("stdlib/stdlib.o")
         .arg("-lm")
         .spawn()
         .expect("Error compiling")
