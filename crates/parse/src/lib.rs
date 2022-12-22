@@ -21,18 +21,43 @@ type ParseResult = Result<ast::Node, ParseError>;
 
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
-    symbol_table: &'a mut SymbolTable<Symbol>,
+    module_name: String,
+    symbol_table: SymbolTable<Symbol>,
 }
 
 impl<'a> Parse<'a> {
-    pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table }
+    pub fn new(tokens: &'a [Token]) -> Self {
+        Parse {
+            tokens: tokens.iter().peekable(),
+            module_name: String::new(),
+            symbol_table: SymbolTable::new(),
+        }
+    }
+
+    pub fn module_name(&self) -> &str {
+        &self.module_name
+    }
+
+    pub fn merge_symbols(&mut self, keeper: &mut SymbolTable<Symbol>) -> Result<(), String> {
+        let symbols = self.symbol_table.dump_table(0)?;
+        for (name, symbol) in symbols {
+            if name != "module" && keeper.insert_with_name(&name, symbol).is_some() {
+                return Err(format!("Can't redefine {}", name));
+            }
+        }
+        Ok(())
     }
 
     // Parse each token using recursive descent
     //
     // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<ast::Node>, ParseError> {
+    pub fn parse(&mut self) -> Result<Ast<ast::Node>, ParseError> {
+        // Ensure the file starts with a module name. No node is produced
+        match self.tokens.peek() {
+            Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
+            _ => return Err(ParseError::from("Files must begin with a module declaration".to_string())),
+        };
+
         let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
             let node = self.parse_stmt()?;
@@ -201,6 +226,17 @@ impl<'a> Parse<'a> {
         }
 
         self.parse_fn(false)
+    }
+
+    // ModuleDecl
+    fn parse_module(&mut self) -> Result<(), ParseError> {
+        self.tokens.next(); // Eat module
+        let (name, _) =
+            expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
+        self.symbol_table.insert_with_name("module", Symbol::new_mod(name));
+        self.module_name = name.to_owned();
+        self.tokens.next(); // Eat semicolon
+        Ok(())
     }
 
     /// Expression productions
@@ -538,7 +574,13 @@ impl<'a> Parse<'a> {
         // If the next token is a ';', this is an extern
         let is_extern = matches!(&self.tokens.peek(), Some(Token { tt: TokenType::Semicolon(..), .. }));
 
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type.unwrap_or_default(), is_extern))
+        Ok(Prototype::new(
+            fn_name.to_string(),
+            args,
+            ret_type.unwrap_or_default(),
+            is_extern,
+            self.module_name.clone(),
+        ))
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;

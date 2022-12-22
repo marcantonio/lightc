@@ -35,6 +35,7 @@ impl<'a> Symbolic for CodegenSymbol<'a> {
             AssocData::Fn(_) => "Fn",
             AssocData::Var(_) => "Var",
             AssocData::Struct(_) => "Struct",
+            AssocData::Module(_) => "Module",
         }
     }
 }

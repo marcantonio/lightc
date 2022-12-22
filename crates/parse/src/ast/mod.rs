@@ -26,6 +26,10 @@ impl<T: VisitableNode> Ast<T> {
     pub fn into_nodes(self) -> Vec<T> {
         self.nodes
     }
+
+    pub fn append(&mut self, mut other: Self) {
+        self.nodes.append(&mut other.nodes);
+    }
 }
 
 impl<T: VisitableNode> Default for Ast<T> {

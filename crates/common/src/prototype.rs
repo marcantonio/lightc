@@ -9,11 +9,14 @@ pub struct Prototype {
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
+    module: String,
 }
 
 impl Prototype {
-    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool) -> Prototype {
-        Prototype { name, args, ret_ty, is_extern }
+    pub fn new(
+        name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool, module: String,
+    ) -> Prototype {
+        Prototype { name, args, ret_ty, is_extern, module }
     }
 
     pub fn name(&self) -> &str {
@@ -57,7 +60,7 @@ impl From<&Prototype> for Symbol {
                 acc += format!("{}~", ty).as_str();
                 acc
             });
-            let new_name = format!("{}~{}{}", proto.name, args_string, proto.ret_ty);
+            let new_name = format!("{}~{}~{}{}", proto.module, proto.name, args_string, proto.ret_ty);
 
             // One underscore is enough
             if new_name.starts_with('_') {
@@ -98,6 +101,7 @@ mod test {
                     args: vec![(String::from("bar"), Type::Int32)],
                     ret_ty: Type::Float,
                     is_extern: false,
+                    module: String::from("main"),
                 },
                 "_foo~int32~float",
             ),
@@ -107,6 +111,7 @@ mod test {
                     args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
                     ret_ty: Type::Float,
                     is_extern: false,
+                    module: String::from("main"),
                 },
                 "_foo~int32~int32~float",
             ),
@@ -116,11 +121,18 @@ mod test {
                     args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
                     ret_ty: Type::Void,
                     is_extern: false,
+                    module: String::from("main"),
                 },
                 "_foo~int32~int32~void",
             ),
             (
-                Prototype { name: String::from("foo"), args: vec![], ret_ty: Type::Float, is_extern: false },
+                Prototype {
+                    name: String::from("foo"),
+                    args: vec![],
+                    ret_ty: Type::Float,
+                    is_extern: false,
+                    module: String::from("main"),
+                },
                 "_foo~float",
             ),
         ];

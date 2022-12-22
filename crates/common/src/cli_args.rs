@@ -43,13 +43,12 @@ pub struct CliArgs {
     #[clap(short, long, parse(from_flag))]
     pub compile_only: bool,
 
-    /// Input file
+    /// Input files
     #[clap(parse(from_os_str))]
-    pub file: PathBuf,
+    pub files: Vec<PathBuf>,
 }
 
 impl CliArgs {
-    // For testing only
     pub fn new() -> Self {
         CliArgs {
             show_tokens: false,
@@ -62,7 +61,7 @@ impl CliArgs {
             opt_level: 0,
             no_verify: false,
             compile_only: false,
-            file: PathBuf::new(),
+            files: vec![],
         }
     }
 }

@@ -24,6 +24,7 @@ pub enum AssocData {
     Fn(FnData),
     Var(VarData),
     Struct(StructData),
+    Module(String),
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -52,6 +53,10 @@ impl Symbol {
                 methods: methods.map(|x| x.to_vec()),
             }),
         }
+    }
+
+    pub fn new_mod(name: &str) -> Self {
+        Symbol { name: String::from("module"), data: AssocData::Module(name.to_owned()) }
     }
 
     pub fn set_name(&mut self, name: &str) {
@@ -120,6 +125,7 @@ impl Symbolic for Symbol {
             AssocData::Fn(_) => "Fn",
             AssocData::Var(_) => "Var",
             AssocData::Struct(_) => "Struct",
+            AssocData::Module(_) => "Module",
         }
     }
 }

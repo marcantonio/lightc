@@ -8,6 +8,7 @@ use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, Bas
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 use lower::hir::{VisitableNode, Visitor};
+use std::ffi::CStr;
 use std::path::PathBuf;
 use std::process;
 
@@ -37,7 +38,6 @@ pub struct Codegen<'ctx> {
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     no_verify: bool,
-    require_main: bool,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -73,7 +73,6 @@ impl<'ctx> Codegen<'ctx> {
             main: None,
             opt_level: args.opt_level,
             no_verify: args.no_verify,
-            require_main: !args.compile_only,
         };
 
         codegen.walk(hir)?;
@@ -162,8 +161,9 @@ impl<'ctx> Codegen<'ctx> {
         }
 
         // Ensure main exists if this is a standalone executable
-        if self.require_main && self.main.is_none() {
-            Err("Function main() required in executable and not found".to_string())
+        let main_str = CStr::from_bytes_with_nul(b"main\0").unwrap();
+        if self.module.get_name() == main_str && self.main.is_none() {
+            Err("Function main() required in `main` module".to_string())
         } else {
             Ok(())
         }

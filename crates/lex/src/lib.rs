@@ -103,6 +103,7 @@ impl Lex {
                 "true" => Bool(true),
                 "false" => Bool(false),
                 "struct" => Struct,
+                "module" => Module,
                 _ => Ident(identifier),
             };
 
