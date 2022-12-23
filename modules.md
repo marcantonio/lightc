@@ -21,7 +21,7 @@
 2. Process imports
    - Ensure external modules are in available
    - Read external module symbols
-   - Insert required symbols into relevent symbol tables
+   - Insert required symbols into relevant symbol tables
 
 > TODO: Details on importing external modules
 
@@ -30,7 +30,7 @@
    - Executables must have a `main` module with a `main()` function
    - Each module will produce an object in the `.build` directory
 
-4. Linking
+4. Linking permutations
 
 | >1 module | -c specified | -o specified | action      |
 |-----------|--------------|--------------|-------------|
@@ -39,6 +39,6 @@
 | no        | yes          | no           | mod_name.o  |
 | no        | yes          | yes          | `-o` .o     |
 | yes       | yes          | no           | multiple .o |
-| yes       | yes          | yes          | error       |
+| yes       | yes          | yes          | `-o` .o     |
 
 ## Module file format

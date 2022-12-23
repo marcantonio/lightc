@@ -12,32 +12,6 @@ use lower::Lower;
 use parse::Parse;
 use tych::Tych;
 
-struct BuildEnv {
-    args: CliArgs,
-    root_dir: PathBuf,
-    build_dir: PathBuf,
-}
-
-impl BuildEnv {
-    fn new() -> Self {
-        let (root_dir, build_dir) = Self::setup_build_env().expect("Error setting up build environment");
-        BuildEnv { args: CliArgs::parse(), root_dir, build_dir }
-    }
-
-    fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
-        let root_dir = env::current_dir()?;
-        let mut build_dir = root_dir.clone();
-        build_dir.push(".build");
-
-        if build_dir.exists() {
-            fs::remove_dir_all(&build_dir)?;
-        }
-        fs::create_dir(&build_dir)?;
-
-        Ok((root_dir, build_dir))
-    }
-}
-
 struct ParsedModule {
     tokens: Vec<Token>,
     ast: Ast<ast::Node>,
@@ -50,12 +24,38 @@ impl ParsedModule {
     }
 }
 
+fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
+    let root_dir = env::current_dir()?;
+    let mut build_dir = root_dir.clone();
+    build_dir.push(".build");
+
+    if build_dir.exists() {
+        fs::remove_dir_all(&build_dir)?;
+    }
+    fs::create_dir(&build_dir)?;
+
+    Ok((root_dir, build_dir))
+}
+
+fn link(output: &str, objects: &[PathBuf]) {
+    Command::new("clang")
+        .arg("-o")
+        .arg(output)
+        .args(objects)
+        //.arg("stdlib/stdlib.o")
+        .arg("-lm")
+        .spawn()
+        .expect("Error compiling")
+        .wait()
+        .expect("Error waiting on clang");
+}
+
 fn main() {
-    let env = BuildEnv::new();
-    let files = env.args.files.clone();
+    let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
+    let args = CliArgs::parse();
 
     let mut parsed_module_map: HashMap<String, ParsedModule> = HashMap::new();
-    for file in files {
+    for file in &args.files {
         let source = fs::read_to_string(file.as_path())
             .unwrap_or_else(|_| panic!("Error opening file: {}", file.to_string_lossy()));
 
@@ -85,7 +85,7 @@ fn main() {
         module.ast.append(ast);
     }
 
-    if env.args.show_tokens {
+    if args.show_tokens {
         println!("Tokens:");
         parsed_module_map.iter().for_each(|(name, module)| {
             println!("  module: {:?}", name);
@@ -94,7 +94,7 @@ fn main() {
         println!();
     }
 
-    if env.args.show_ast {
+    if args.show_ast {
         println!("AST:");
         parsed_module_map.iter().for_each(|(name, module)| {
             println!("  module: {:?}", name);
@@ -102,10 +102,6 @@ fn main() {
         });
         println!();
     }
-
-    // if module_map.len() > 1 && env.args.compile_only && env.args.output.is_some() {
-    //     eprintln!("Can't use `-c` and `-o` with multiple modules");
-    // }
 
     let mut object_module_map = HashMap::new();
     for (module_name, mut module) in parsed_module_map {
@@ -115,7 +111,7 @@ fn main() {
             process::exit(1);
         });
 
-        if env.args.show_typed_ast {
+        if args.show_typed_ast {
             println!("Typed AST:");
             for node in typed_ast.nodes() {
                 println!("{}", node);
@@ -129,7 +125,7 @@ fn main() {
             process::exit(1);
         });
 
-        if env.args.show_hir {
+        if args.show_hir {
             println!("HIR:\nstructs");
             for node in hir.structs() {
                 println!("{}", node);
@@ -144,59 +140,44 @@ fn main() {
 
         // Codegen
         let object_file =
-            Codegen::run(hir, &module_name, module.symbol_table, env.build_dir.clone(), &env.args, false)
+            Codegen::run(hir, &module_name, module.symbol_table, build_dir.clone(), &args, false)
                 .unwrap_or_else(|e| panic!("Error compiling module `{}`: {}", module_name, e))
                 .as_file_path();
 
         object_module_map.insert(module_name, object_file);
     }
 
-    // If we just want the object file, copy it/them up to the root and exit
-    if env.args.compile_only {
-        if let Some(filename) = env.args.output {
-            let object_file = &object_module_map.into_values().collect::<Vec<_>>()[0];
-            fs::copy(object_file.clone(), filename)
+    // Handle various permutations of command line arguments
+    match (object_module_map.len() > 1, args.compile_only, args.output) {
+        // Output a.out
+        (_, false, None) => link("a.out", &object_module_map.into_values().collect::<Vec<_>>()),
+        // Output `args.output` exec
+        (_, false, Some(filename)) => link(&filename, &object_module_map.into_values().collect::<Vec<_>>()),
+        // Copy to `module_name`.o
+        (false, true, None) => {
+            let mut output_file = root_dir;
+            let (module_name, object_file) =
+                &object_module_map.drain().collect::<Vec<(String, PathBuf)>>()[0];
+            output_file.push(&module_name);
+            fs::copy(object_file, output_file.with_extension("o"))
                 .expect(&format!("Error copying object file: {}", object_file.to_string_lossy()));
-        } else {
+        },
+        // Copy to `args.output`.o
+        (false, true, Some(filename)) => {
+            let mut output_file = root_dir;
+            let (_, object_file) = &object_module_map.drain().collect::<Vec<(String, PathBuf)>>()[0];
+            output_file.push(filename);
+            fs::copy(object_file, output_file.with_extension("o"))
+                .expect(&format!("Error copying object file: {}", object_file.to_string_lossy()));
+        },
+        // Copy to multiple object files
+        (true, true, None) => {
             for (_, object_file) in &object_module_map {
                 fs::copy(object_file, object_file.file_name().unwrap())
                     .expect(&format!("Error copying object file: {}", object_file.to_string_lossy()));
             }
-        }
-        process::exit(0);
-    }
-
-    Command::new("clang")
-        .arg("-o")
-        .arg("a.out")
-        .args(object_module_map.into_values())
-        //.arg("stdlib/stdlib.o")
-        .arg("-lm")
-        .spawn()
-        .expect("Error compiling")
-        .wait()
-        .expect("Error waiting on clang");
+        },
+        // Output `args.output`.o
+        (true, true, Some(filename)) => link(&filename, &object_module_map.into_values().collect::<Vec<_>>()),
+    };
 }
-
-// fn get_module_name(path: &Path) -> String {
-//     path.with_extension("")
-//         .file_name()
-//         .expect("Error getting source filename")
-//         .to_str()
-//         .expect("Error getting module name")
-//         .to_owned()
-// }
-
-// // Derive the output file name
-// fn derive_output_name(env: BuildEnv, object_map: HashMap<String, PathBuf>) -> String {
-//     // let outfile = match (env.args.output, env.args.compile_only) {
-//     //     (Some(name), _) => PathBuf::from(name),
-//     //     (None, true) => {
-//     //         let mut obj_file = env.root_dir;
-//     //         obj_file.push(&module_name);
-//     //         obj_file.as_path().with_extension("o")
-//     //     }
-//     //     (None, false) => PathBuf::from("a.out"),
-//     // };
-//     unimplemented!()
-// }
