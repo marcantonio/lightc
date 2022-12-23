@@ -53,9 +53,13 @@ impl<'a> Parse<'a> {
     // StmtList ::= ( Stmt ';' )+ ;
     pub fn parse(&mut self) -> Result<Ast<ast::Node>, ParseError> {
         // Ensure the file starts with a module name. No node is produced
+        // TODO: This sucks. Do a better job later
         match self.tokens.peek() {
             Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
-            _ => return Err(ParseError::from("Files must begin with a module declaration".to_string())),
+            _ => {
+                self.symbol_table.insert_with_name("module", Symbol::new_mod("main"));
+                self.module_name = String::from("main");
+            },
         };
 
         let mut ast = Ast::new();

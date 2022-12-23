@@ -103,7 +103,7 @@ mod test {
                     is_extern: false,
                     module: String::from("main"),
                 },
-                "_foo~int32~float",
+                "_main~foo~int32~float",
             ),
             (
                 Prototype {
@@ -113,7 +113,7 @@ mod test {
                     is_extern: false,
                     module: String::from("main"),
                 },
-                "_foo~int32~int32~float",
+                "_main~foo~int32~int32~float",
             ),
             (
                 Prototype {
@@ -123,7 +123,7 @@ mod test {
                     is_extern: false,
                     module: String::from("main"),
                 },
-                "_foo~int32~int32~void",
+                "_main~foo~int32~int32~void",
             ),
             (
                 Prototype {
@@ -133,7 +133,7 @@ mod test {
                     is_extern: false,
                     module: String::from("main"),
                 },
-                "_foo~float",
+                "_main~foo~float",
             ),
         ];
 

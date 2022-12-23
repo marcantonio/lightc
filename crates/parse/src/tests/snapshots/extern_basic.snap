@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 87
+assertion_line: 85
 expression: "(test[1], ast, ast_string)"
 ---
 - "extern fn cos(x: float)"
@@ -15,6 +15,7 @@ expression: "(test[1], ast, ast_string)"
                   - Float
               ret_ty: Void
               is_extern: true
+              module: main
             body: ~
 - "(define (cos x:float))"
 

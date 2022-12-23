@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 226
+assertion_line: 228
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let x: int\n    let x: int8\n    let x: int16\n    let x: int32\n    let x: int64\n    let x: uint\n    let x: uint8\n    let x: uint16\n    let x: uint32\n    let x: uint64\n    let x: float\n    let x: double\n    let x: char\n    let x: bool\n    let x: [bool; 3]\n}\n"
@@ -13,6 +13,7 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -182,4 +183,5 @@ expression: "(test[1], res)"
         args: []
         ret_ty: Void
         is_extern: false
+        module: main
 

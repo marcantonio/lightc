@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 475
+assertion_line: 476
 expression: "(test[1], res)"
 ---
 - "\nfn foo() -> float {\n    let x: float = 1.0\n    for x: int8 = 1; x < 2; 1 {\n        x\n    }\n    x\n}\n"
@@ -13,6 +13,7 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Float
               is_extern: false
+              module: main
             body:
               kind:
                 Block:

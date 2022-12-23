@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 369
+assertion_line: 370
 expression: "(test[1], res)"
 ---
 - "\nfn foo(a: int, b: float) { }\n"
@@ -17,6 +17,7 @@ expression: "(test[1], res)"
                   - Float
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:

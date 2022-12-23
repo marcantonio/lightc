@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 252
+assertion_line: 255
 expression: "(test[1], res, res_opt)"
 ---
 - "\n        fn main() {\n    let x: int = 1\n}\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  %x = alloca i32, align 4\n  store i32 1, i32* %x, align 4\n  ret void\n}\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %x = alloca i32, align 4\n  store i32 1, i32* %x, align 4\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
 

@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 130
+assertion_line: 132
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    foo()\n    foo()\n}\n\nfn foo() {}\n\nfn bar() {\n    foo()\n}\n"
@@ -13,28 +13,30 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
                   list:
                     - kind:
                         Call:
-                          name: _foo~void
+                          name: _main~foo~void
                           args: []
                           ty: Void
                     - kind:
                         Call:
-                          name: _foo~void
+                          name: _main~foo~void
                           args: []
                           ty: Void
                   ty: Void
       - kind:
           Fn:
             proto:
-              name: _foo~void
+              name: _main~foo~void
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -43,17 +45,18 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _bar~void
+              name: _main~bar~void
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
                   list:
                     - kind:
                         Call:
-                          name: _foo~void
+                          name: _main~foo~void
                           args: []
                           ty: Void
                   ty: Void
@@ -63,12 +66,15 @@ expression: "(test[1], res)"
         args: []
         ret_ty: Void
         is_extern: false
-      - name: _foo~void
+        module: main
+      - name: _main~foo~void
         args: []
         ret_ty: Void
         is_extern: false
-      - name: _bar~void
+        module: main
+      - name: _main~bar~void
         args: []
         ret_ty: Void
         is_extern: false
+        module: main
 

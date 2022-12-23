@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 53
+assertion_line: 56
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn main() {\n    {\n        10 + 2\n        1.0\n        5\n    }\n}\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
-- "; ModuleID = 'test'\nsource_filename = \"test\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
 

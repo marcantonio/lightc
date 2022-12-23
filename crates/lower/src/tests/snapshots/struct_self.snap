@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 170
+assertion_line: 172
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    let a: int\n    fn b() -> int { self.a + 1 }\n}\n"
@@ -9,12 +9,13 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _Foo_b~int32
+              name: _main~_Foo_b~int32
               args:
                 - - self
                   - Comp: Foo
               ret_ty: Int32
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -48,10 +49,11 @@ expression: "(test[1], res)"
             field_tys:
               - Int32
     prototypes:
-      - name: _Foo_b~int32
+      - name: _main~_Foo_b~int32
         args:
           - - self
             - Comp: Foo
         ret_ty: Int32
         is_extern: false
+        module: main
 

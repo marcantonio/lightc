@@ -10,23 +10,27 @@ macro_rules! run_insta {
             for test in $tests {
                 // Unoptimized code
                 let tokens = Lex::new(test[1]).scan().unwrap();
+                let mut parser = Parse::new(&tokens);
+                let ast = parser.parse().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
+                parser.merge_symbols(&mut symbol_table).unwrap();
+                let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Lower::new(&mut symbol_table).walk(typed_ast).unwrap();
                 let args = CliArgs::new();
-                let res = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 // Optimized code
                 let tokens = Lex::new(test[1]).scan().unwrap();
+                let mut parser = Parse::new(&tokens);
+                let ast = parser.parse().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
+                parser.merge_symbols(&mut symbol_table).unwrap();
+                let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
+                let hir = Lower::new(&mut symbol_table).walk(typed_ast).unwrap();
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
-                let res_opt = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res_opt = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));

@@ -9,8 +9,10 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lex::new(test[1]).scan().unwrap();
+                let mut parser = Parse::new(&tokens);
+                let ast = parser.parse().unwrap();
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
+                parser.merge_symbols(&mut symbol_table).unwrap();
                 let res = Tych::new(&mut symbol_table).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }

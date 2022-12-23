@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 910
+assertion_line: 920
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    let a: int\n}\nstruct Bar {\n    let b: Foo\n}\nfn main() {\n    let x: Foo\n    let y: Bar\n    x.a\n    y.b\n}\n"
@@ -34,6 +34,7 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:

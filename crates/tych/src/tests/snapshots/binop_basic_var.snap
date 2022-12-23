@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 152
+assertion_line: 153
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    let a: int = 1\n    a + 2\n}\n"
@@ -13,6 +13,7 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
