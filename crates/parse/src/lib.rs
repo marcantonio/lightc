@@ -44,6 +44,7 @@ impl<'a> Parse<'a> {
         &self.imports
     }
 
+    // XXX
     pub fn merge_symbols(&mut self, keeper: &mut SymbolTable<Symbol>) -> Result<(), String> {
         let symbols = self.symbol_table.dump_table(0)?;
         for (name, symbol) in symbols {
@@ -56,7 +57,7 @@ impl<'a> Parse<'a> {
 
     // Parse each token using recursive descent
     //
-    // StmtList ::= ( Stmt ';' )+ ;
+    // StmtList ::= ModDecl? ( Stmt ';' )+ ;
     pub fn parse(&mut self) -> Result<Ast<ast::Node>, ParseError> {
         // Ensure the file starts with a module name. No node is produced
         // TODO: This sucks. Do a better job later
@@ -80,7 +81,7 @@ impl<'a> Parse<'a> {
 
     /// Statement productions
 
-    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | Expr ;
+    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | UseStmt | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
         use TokenType::*;
 
@@ -243,7 +244,7 @@ impl<'a> Parse<'a> {
         self.parse_fn(false)
     }
 
-    // ModuleDecl
+    // ModDecl ::= 'module' ident ';' ;
     fn parse_module(&mut self) -> Result<(), ParseError> {
         self.tokens.next(); // Eat module
 
@@ -256,7 +257,7 @@ impl<'a> Parse<'a> {
         Ok(())
     }
 
-    // UseStmt
+    // UseStmt ::= 'use' ident
     fn parse_use(&mut self) -> ParseResult {
         self.tokens.next(); // Eat use
 
