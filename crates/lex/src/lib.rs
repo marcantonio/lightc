@@ -13,11 +13,13 @@ pub type LexResult = std::result::Result<Token, LexError>;
 pub struct Lex {
     stream: Peekable<StreamIter<char>>,
     pub tokens: Vec<Token>,
+    // xxx: no
+    overflow: Option<ContextElement<char>>,
 }
 
 impl Lex {
     pub fn new(input: &str) -> Self {
-        Lex { stream: StreamIter::new(input).peekable(), tokens: vec![] }
+        Lex { stream: StreamIter::new(input).peekable(), tokens: vec![], overflow: None }
     }
 
     // Scan all input
@@ -36,10 +38,16 @@ impl Lex {
     fn lex(&mut self) -> LexResult {
         use TokenType::*;
 
-        let cur = match self.stream.next() {
-            Some(cur) => cur,
-            None => unreachable!("can't lex nothing"),
-        };
+        let cur;
+        if let Some(next) = self.overflow {
+            cur = next;
+            self.overflow = None;
+        } else {
+            cur = match self.stream.next() {
+                Some(cur) => cur,
+                None => unreachable!("can't lex nothing"),
+            };
+        }
 
         // Inject a semicolon if certain tokens occur at the end of the line or
         // EOF. If EOF, make sure the context is right.
@@ -88,6 +96,15 @@ impl Lex {
                 if c.value.is_ascii_alphanumeric() || *c == '_' {
                     identifier.push(c.value);
                     self.stream.next();
+                } else if *c == ':' {
+                    self.overflow = Some(*c);
+                    self.stream.next();
+                    if matches!(self.stream.peek(), Some(c) if *c == ':') {
+                        identifier.push(':');
+                        identifier.push(':');
+                        self.stream.next();
+                        self.overflow = None;
+                    }
                 } else {
                     break;
                 }
@@ -104,6 +121,7 @@ impl Lex {
                 "false" => Bool(false),
                 "struct" => Struct,
                 "module" => Module,
+                "use" => Use,
                 _ => Ident(identifier),
             };
 

@@ -20,11 +20,12 @@ mod tests;
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
+    import_symbols: Vec<String>,
 }
 
 impl<'a> Lower<'a> {
-    pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table, struct_methods: vec![] }
+    pub fn new(import_symbols: Vec<String>, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        Lower { symbol_table, struct_methods: vec![], import_symbols }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
@@ -45,6 +46,24 @@ impl<'a> Lower<'a> {
             },
             _ => unreachable!("invalid node kind at global level"),
         });
+
+        // XXX: abstract
+        for name in self.import_symbols {
+            // Insert a duplicate of the symbol. The new one will have the lowered name. Use
+            // updated name in the HIR. Skip for externs.
+            let sym = self
+                .symbol_table
+                .get(&name)
+                .cloned()
+                .unwrap_or_else(|| unreachable!("missing symbol in `visit_fn()` for `{}`", name));
+
+            if !sym.is_extern() {
+                // Updates the map key name
+                self.symbol_table.insert(sym.clone());
+            }
+
+            hir.add_prototype(Prototype::from(sym));
+        }
 
         Ok(hir)
     }
@@ -291,7 +310,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             .get(&name)
             .unwrap_or_else(|| unreachable!("missing symbol in `visit_call()` for `{}`", name));
 
-        // Update the AST with the lowered name if it hasn't been done already and it's
+        // Update the HIR with the lowered name if it hasn't been done already and it's
         // not an extern call
         let lowered_name = match sym.name() {
             sym_name if !sym.is_extern() && sym_name != name => sym_name.to_owned(),

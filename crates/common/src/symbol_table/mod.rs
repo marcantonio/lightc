@@ -13,14 +13,14 @@ pub mod symbol;
  * 2          ---> baz ---> {...}
  */
 
-#[derive(Debug)]
-pub struct SymbolTable<T: Symbolic> {
+#[derive(Debug, Clone)]
+pub struct SymbolTable<T: Symbolic + Ord> {
     tables: HashMap<u32, HashMap<String, T>>,
     scope_depth: u32,
     auto_idents: HashMap<String, u32>,
 }
 
-impl<T: Symbolic> SymbolTable<T> {
+impl<T: Symbolic + Ord> SymbolTable<T> {
     pub fn new() -> Self {
         SymbolTable::with_table(HashMap::new())
     }
@@ -87,10 +87,24 @@ impl<T: Symbolic> SymbolTable<T> {
         Ok(table.drain())
     }
 
+    pub fn export_symbols(&self) -> Vec<&T> {
+        let mut symbols = self
+            .tables
+            .get(&0)
+            .unwrap_or_else(|| unreachable!("No global scope in `global_symbols()`"))
+            .values()
+            // TODO: limit this to exportables
+            .filter(|sym| sym.name().starts_with("_"))
+            .collect::<Vec<_>>();
+        symbols.sort();
+        symbols.dedup();
+        symbols
+    }
+
     pub fn types(&self) -> Vec<String> {
         self.tables
             .get(&0)
-            .unwrap_or_else(|| unreachable!("No global symbol table in `types()`"))
+            .unwrap_or_else(|| unreachable!("No global scope in `types()`"))
             .values()
             .filter(|sym| sym.kind() == "Struct")
             .map(|sym| sym.name().to_owned())
@@ -110,7 +124,7 @@ impl<T: Symbolic> SymbolTable<T> {
     }
 }
 
-impl<T: Symbolic> Default for SymbolTable<T> {
+impl<T: Symbolic + Ord> Default for SymbolTable<T> {
     fn default() -> Self {
         Self::new()
     }

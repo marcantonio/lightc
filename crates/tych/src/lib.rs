@@ -456,6 +456,7 @@ impl<'a> ast::Visitor for Tych<'a> {
 
     // TODO: errors in struct methods will display the partially lowered name. Pass in a
     // display name too.
+    // XXX: I think we have this now with `short_name`
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, _ty: Option<Type>) -> Self::Result {
         // Pull the function for the call from the table
         let fn_entry =

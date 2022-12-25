@@ -13,7 +13,7 @@ macro_rules! run_insta {
                 let mut symbol_table = SymbolTable::new();
                 parser.merge_symbols(&mut symbol_table).unwrap();
                 let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let res = Lower::new(&mut symbol_table).walk(typed_ast);
+                let res = Lower::new(vec![], &mut symbol_table).walk(typed_ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })

@@ -22,6 +22,7 @@ type ParseResult = Result<ast::Node, ParseError>;
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     module_name: String,
+    imports: Vec<String>,
     symbol_table: SymbolTable<Symbol>,
 }
 
@@ -30,12 +31,17 @@ impl<'a> Parse<'a> {
         Parse {
             tokens: tokens.iter().peekable(),
             module_name: String::new(),
+            imports: vec![],
             symbol_table: SymbolTable::new(),
         }
     }
 
     pub fn module_name(&self) -> &str {
         &self.module_name
+    }
+
+    pub fn imports(&self) -> &[String] {
+        &self.imports
     }
 
     pub fn merge_symbols(&mut self, keeper: &mut SymbolTable<Symbol>) -> Result<(), String> {
@@ -65,7 +71,9 @@ impl<'a> Parse<'a> {
         let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
             let node = self.parse_stmt()?;
-            ast.add(node);
+            if !node.is_blank() {
+                ast.add(node);
+            }
         }
         Ok(ast)
     }
@@ -74,14 +82,17 @@ impl<'a> Parse<'a> {
 
     // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
+        use TokenType::*;
+
         let token = self.tokens.peek().ok_or_else(|| "Premature end of statement".to_string())?;
 
         let stmt = match &token.tt {
-            TokenType::For => self.parse_for()?,
-            TokenType::Let => self.parse_let()?,
-            TokenType::Fn => self.parse_fn(false)?,
-            TokenType::Extern => self.parse_extern()?,
-            TokenType::Struct => self.parse_struct()?,
+            For => self.parse_for()?,
+            Let => self.parse_let()?,
+            Fn => self.parse_fn(false)?,
+            Extern => self.parse_extern()?,
+            Struct => self.parse_struct()?,
+            Use => self.parse_use()?,
             _ => self.parse_expr(0)?,
         };
 
@@ -235,12 +246,25 @@ impl<'a> Parse<'a> {
     // ModuleDecl
     fn parse_module(&mut self) -> Result<(), ParseError> {
         self.tokens.next(); // Eat module
+
         let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
         self.symbol_table.insert_with_name("module", Symbol::new_mod(name));
         self.module_name = name.to_owned();
+
         self.tokens.next(); // Eat semicolon
         Ok(())
+    }
+
+    // UseStmt
+    fn parse_use(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat use
+
+        let (name, _) =
+            expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `use`");
+        self.imports.push(name.to_owned());
+
+        Ok(ast::Node::new_blank())
     }
 
     /// Expression productions

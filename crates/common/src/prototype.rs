@@ -53,7 +53,7 @@ impl From<&Prototype> for Symbol {
         let args = proto.args.as_slice();
 
         // Don't mangle the name for main and externs
-        let proto_name = if proto.name == "main" || proto.is_extern {
+        let cooked_name = if proto.name == "main" || proto.is_extern {
             proto.name.clone()
         } else {
             let args_string = args.iter().fold(String::new(), |mut acc, (_, ty)| {
@@ -70,7 +70,15 @@ impl From<&Prototype> for Symbol {
             }
         };
 
-        Symbol::new_fn(&proto_name, args, &proto.ret_ty, proto.is_extern)
+        Symbol::new_fn(&cooked_name, &proto.name, args, &proto.ret_ty, proto.is_extern)
+    }
+}
+
+impl From<Symbol> for Prototype {
+    fn from(sym: Symbol) -> Self {
+        let module_name = &sym.name.split_once('~').unwrap().0[1..];
+        let args = sym.args().iter().cloned().map(|(n, t)| (n.to_owned(), t.clone())).collect();
+        Self::new(sym.name.to_owned(), args, sym.ret_ty().to_owned(), false, module_name.to_owned())
     }
 }
 

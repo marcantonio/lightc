@@ -85,6 +85,10 @@ impl Node {
         Self { kind: Kind::MSelector { comp: Box::new(comp), name, args, ty } }
     }
 
+    pub fn new_blank() -> Self {
+        Self { kind: Kind::Blank }
+    }
+
     pub fn ty(&self) -> Option<&Type> {
         use Kind::*;
 
@@ -122,6 +126,10 @@ impl Node {
                 ..
             }
         )
+    }
+
+    pub fn is_blank(&self) -> bool {
+        matches!(self.kind, Kind::Blank)
     }
 }
 
@@ -202,6 +210,7 @@ pub enum Kind {
         args: Vec<Node>,
         ty: Option<Type>,
     },
+    Blank,
 }
 
 impl VisitableNode for Node {
@@ -227,6 +236,7 @@ impl VisitableNode for Node {
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
             FSelector { comp, field, ty } => v.visit_fselector(*comp, field, ty),
             MSelector { comp, name, args, ty } => v.visit_mselector(*comp, name, args, ty),
+            Blank => unreachable!("I should not exist"),
         }
     }
 }
@@ -314,6 +324,7 @@ impl Display for Node {
                 }
                 write!(f, "{})", s)
             },
+            Blank => write!(f, "<blank_node>"),
         }
     }
 }

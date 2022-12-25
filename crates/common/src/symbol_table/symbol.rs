@@ -1,25 +1,28 @@
+use serde::{Deserialize, Serialize};
+
 use super::Symbolic;
 use crate::Type;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct FnData {
+    short_name: String,
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct VarData {
     pub ty: Type,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct StructData {
     pub fields: Option<Vec<(String, String)>>,
     pub methods: Option<Vec<String>>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum AssocData {
     Fn(FnData),
     Var(VarData),
@@ -27,17 +30,24 @@ pub enum AssocData {
     Module(String),
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Symbol {
     pub name: String,
     pub data: AssocData,
 }
 
 impl Symbol {
-    pub fn new_fn(name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool) -> Self {
+    pub fn new_fn(
+        name: &str, short_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool,
+    ) -> Self {
         Symbol {
             name: name.to_owned(),
-            data: AssocData::Fn(FnData { args: args.to_vec(), ret_ty: ret_ty.to_owned(), is_extern }),
+            data: AssocData::Fn(FnData {
+                short_name: short_name.to_owned(),
+                args: args.to_vec(),
+                ret_ty: ret_ty.to_owned(),
+                is_extern,
+            }),
         }
     }
 
@@ -67,6 +77,13 @@ impl Symbol {
         match &self.data {
             AssocData::Var(s) => &s.ty,
             _ => unreachable!("expected symbol to be a variable"),
+        }
+    }
+
+    pub fn short_name(&self) -> Option<&str> {
+        match &self.data {
+            AssocData::Fn(s) => Some(&s.short_name),
+            _ => None,
         }
     }
 
@@ -112,6 +129,18 @@ impl Symbol {
             AssocData::Struct(s) => Some(s.methods.as_deref()?.iter().map(|m| m.as_str()).collect()),
             _ => unreachable!("expected symbol to be a struct"),
         }
+    }
+}
+
+impl Ord for Symbol {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Symbol {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.name.partial_cmp(&other.name)
     }
 }
 

@@ -1,4 +1,6 @@
-extern putchar(x: int)
+module core
+
+extern fn putchar(x: int)
 
 fn hello() {
     putchar(64)

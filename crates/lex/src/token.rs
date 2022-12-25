@@ -80,6 +80,7 @@ pub enum TokenType {
     OpenParen,
     Semicolon(bool), // (is implicit?)
     Struct,
+    Use,
 }
 
 impl std::fmt::Display for TokenType {

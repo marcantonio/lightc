@@ -15,7 +15,7 @@ macro_rules! run_insta {
                 let mut symbol_table = SymbolTable::new();
                 parser.merge_symbols(&mut symbol_table).unwrap();
                 let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(typed_ast).unwrap();
+                let hir = Lower::new(vec![], &mut symbol_table).walk(typed_ast).unwrap();
                 let args = CliArgs::new();
                 let res = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
@@ -27,7 +27,7 @@ macro_rules! run_insta {
                 let mut symbol_table = SymbolTable::new();
                 parser.merge_symbols(&mut symbol_table).unwrap();
                 let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(typed_ast).unwrap();
+                let hir = Lower::new(vec![], &mut symbol_table).walk(typed_ast).unwrap();
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
                 let res_opt = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)

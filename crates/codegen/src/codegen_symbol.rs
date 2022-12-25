@@ -25,6 +25,18 @@ impl<'a> CodegenSymbol<'a> {
     }
 }
 
+impl<'a> Ord for CodegenSymbol<'a> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
+impl<'a> PartialOrd for CodegenSymbol<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.inner.partial_cmp(&other.inner)
+    }
+}
+
 impl<'a> Symbolic for CodegenSymbol<'a> {
     fn name(&self) -> &str {
         self.inner.name()
