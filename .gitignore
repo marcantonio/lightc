@@ -2,4 +2,5 @@
 a.out
 /.build
 /core/*.o
+/core/*.i
 /scratch

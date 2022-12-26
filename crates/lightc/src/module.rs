@@ -10,7 +10,7 @@ use parse::ast::{self, Ast};
 pub struct Module {
     name: String,
     pub tokens: Vec<Token>,
-    pub ast: Option<Ast<ast::Node>>,
+    pub ast: Ast<ast::Node>,
     pub symbol_table: SymbolTable<Symbol>,
     pub object_file: PathBuf,
     pub imports: Vec<String>,
@@ -22,7 +22,7 @@ impl Module {
         Self {
             name: name.to_owned(),
             tokens: vec![],
-            ast: Some(Ast::new()), // XXX
+            ast: Ast::new(),
             symbol_table: SymbolTable::new(),
             object_file: PathBuf::new(),
             imports: vec![],

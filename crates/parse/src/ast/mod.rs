@@ -5,7 +5,7 @@ pub use node::Node;
 
 pub mod node;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Ast<T: VisitableNode> {
     nodes: Vec<T>,
 }

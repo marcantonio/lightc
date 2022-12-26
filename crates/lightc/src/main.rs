@@ -80,7 +80,7 @@ fn main() {
         // Merge tokens, AST and, imports for each module
         // TODO: Dedup imports
         module.tokens.append(&mut tokens.clone());
-        module.ast.as_mut().unwrap().append(ast);
+        module.ast.append(ast);
         module.imports.append(&mut parser.imports().to_vec())
     }
 
@@ -99,7 +99,7 @@ fn main() {
         println!("AST:");
         module_map.iter().for_each(|(name, module)| {
             println!("  module: {:?}", name);
-            module.ast.as_ref().unwrap().nodes().iter().for_each(|n| println!("    {}", n));
+            module.ast.nodes().iter().for_each(|n| println!("    {}", n));
         });
         println!();
     }
@@ -110,8 +110,7 @@ fn main() {
         let import_symbols = module.resolve_imports(STDLIB_PATH).expect("Error resolving imports");
 
         // Type checker
-        let ast = module.ast.take().unwrap();
-        let typed_ast = Tych::new(&mut module.symbol_table).walk(ast).unwrap_or_else(|e| {
+        let typed_ast = Tych::new(&mut module.symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
             eprintln!("Type checking error: {}", e);
             process::exit(1);
         });
