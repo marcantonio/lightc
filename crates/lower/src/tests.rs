@@ -7,12 +7,9 @@ macro_rules! run_insta {
     ($prefix:expr, $tests:expr) => {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
-                let tokens = Lex::new(test[1]).scan().unwrap();
-                let mut parser = Parse::new(&tokens);
-                let ast = parser.parse().unwrap();
-                let mut symbol_table = SymbolTable::new();
-                parser.merge_symbols(&mut symbol_table).unwrap();
-                let typed_ast = Tych::new(&mut symbol_table).walk(ast).unwrap();
+                let tokens = Lex::new(test[1]).scan().expect("lexing faled in `lower` tests");
+                let (ast, mut symbol_table, _, _) = Parse::new(&tokens).parse().expect("parsing failed in `lower` tests");
+                let typed_ast = Tych::new(&mut symbol_table).walk(ast).expect("type checking failed in `lower` tests");
                 let res = Lower::new(vec![], &mut symbol_table).walk(typed_ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }

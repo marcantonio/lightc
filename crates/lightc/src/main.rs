@@ -60,19 +60,17 @@ fn main() {
         });
 
         // Parser
-        let mut parser = Parse::new(&tokens);
-        let ast = parser.parse().unwrap_or_else(|e| {
-            eprintln!("Parsing error: {}", e);
-            process::exit(1);
-        });
+        let (ast, mut symbol_table, module_name, mut imports) =
+            Parse::new(&tokens).parse().unwrap_or_else(|e| {
+                eprintln!("Parsing error: {}", e);
+                process::exit(1);
+            });
 
         // Get the existing module or create and insert an empty one
-        let module_name = parser.module_name();
-        let module = module_map.entry(module_name.to_owned()).or_insert(Module::new(module_name));
+        let module = module_map.entry(module_name.to_owned()).or_insert(Module::new(&module_name));
 
-        // xxx test
-        // Merge symbols into module map
-        parser.merge_symbols(&mut module.symbol_table).unwrap_or_else(|e| {
+        // Merge symbols into module's table
+        module.symbol_table.merge_symbols(&mut symbol_table).unwrap_or_else(|e| {
             eprintln!("Error merging parsed symbols: {}", e);
             process::exit(1);
         });
@@ -81,7 +79,7 @@ fn main() {
         // TODO: Dedup imports
         module.tokens.append(&mut tokens.clone());
         module.ast.append(ast);
-        module.imports.append(&mut parser.imports().to_vec())
+        module.imports.append(&mut imports)
     }
 
     // Side effect of displaying the aggregates outside the loop is that parsing needs to

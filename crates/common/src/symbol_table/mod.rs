@@ -87,11 +87,22 @@ impl<T: Symbolic + Ord> SymbolTable<T> {
         Ok(table.drain())
     }
 
+    // Merge globals from other table
+    pub fn merge_symbols(&mut self, other: &mut SymbolTable<T>) -> Result<(), String> {
+        let symbols = other.dump_table(0)?;
+        for (name, symbol) in symbols {
+            if name != "module" && self.insert_with_name(&name, symbol).is_some() {
+                return Err(format!("can't redefine `{}`", name));
+            }
+        }
+        Ok(())
+    }
+
     pub fn export_symbols(&self) -> Vec<&T> {
         let mut symbols = self
             .tables
             .get(&0)
-            .unwrap_or_else(|| unreachable!("No global scope in `global_symbols()`"))
+            .unwrap_or_else(|| unreachable!("No global scope in `export_symbols()`"))
             .values()
             // TODO: limit this to exportables
             .filter(|sym| sym.name().starts_with("_"))
@@ -193,4 +204,35 @@ mod test {
         assert_eq!(st.uniq_ident(None), String::from("_light_intern@1"));
         assert_eq!(st.uniq_ident(None), String::from("_light_intern@2"));
     }
+
+    #[test]
+    fn test_merge_symbols() {
+        let mut a = SymbolTable::<Symbol>::new();
+        let mut b = SymbolTable::<Symbol>::new();
+
+        let sym1 = Symbol::new_var("foo", &Type::Bool);
+        a.insert(sym1.clone());
+        let sym2 = Symbol::new_var("bar", &Type::Bool);
+        a.insert(sym2.clone());
+
+        let sym3 = Symbol::new_var("baz", &Type::Bool);
+        b.insert(sym3.clone());
+
+        assert_eq!(b.merge_symbols(&mut a), Ok(()));
+        assert_eq!(b.get("foo"), Some(&sym1));
+        assert_eq!(b.get("bar"), Some(&sym2));
+        assert_eq!(b.get("baz"), Some(&sym3));
+    }
+
+        #[test]
+    fn test_merge_symbols_dup() {
+        let mut a = SymbolTable::<Symbol>::new();
+        let mut b = SymbolTable::<Symbol>::new();
+
+        a.insert(Symbol::new_var("foo", &Type::Bool));
+        b.insert(Symbol::new_var("foo", &Type::Bool));
+
+        assert_eq!(b.merge_symbols(&mut a), Err(String::from("can't redefine `foo`")));
+    }
+
 }

@@ -36,29 +36,11 @@ impl<'a> Parse<'a> {
         }
     }
 
-    pub fn module_name(&self) -> &str {
-        &self.module_name
-    }
-
-    pub fn imports(&self) -> &[String] {
-        &self.imports
-    }
-
-    // XXX
-    pub fn merge_symbols(&mut self, keeper: &mut SymbolTable<Symbol>) -> Result<(), String> {
-        let symbols = self.symbol_table.dump_table(0)?;
-        for (name, symbol) in symbols {
-            if name != "module" && keeper.insert_with_name(&name, symbol).is_some() {
-                return Err(format!("Can't redefine {}", name));
-            }
-        }
-        Ok(())
-    }
-
-    // Parse each token using recursive descent
+    // Parse each token using recursive descent. Returns the AST, module name, imports,
+    // and symbol table
     //
     // StmtList ::= ModDecl? ( Stmt ';' )+ ;
-    pub fn parse(&mut self) -> Result<Ast<ast::Node>, ParseError> {
+    pub fn parse(mut self) -> Result<(Ast<ast::Node>, SymbolTable<Symbol>, String, Vec<String>), ParseError> {
         // Ensure the file starts with a module name. No node is produced
         // TODO: This sucks. Do a better job later
         match self.tokens.peek() {
@@ -76,7 +58,7 @@ impl<'a> Parse<'a> {
                 ast.add(node);
             }
         }
-        Ok(ast)
+        Ok((ast, self.symbol_table, self.module_name, self.imports))
     }
 
     /// Statement productions
