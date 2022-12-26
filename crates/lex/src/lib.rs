@@ -1,5 +1,5 @@
+use itertools::peek_nth;
 use serde::Serialize;
-use std::iter::Peekable;
 
 use common::Operator;
 pub use token::{Token, TokenType};
@@ -8,18 +8,16 @@ pub use token::{Token, TokenType};
 mod tests;
 pub mod token;
 
-pub type LexResult = std::result::Result<Token, LexError>;
+pub type LexResult = Result<Token, LexError>;
 
 pub struct Lex {
-    stream: Peekable<StreamIter<char>>,
+    stream: itertools::PeekNth<StreamIter<char>>,
     pub tokens: Vec<Token>,
-    // xxx: no
-    overflow: Option<ContextElement<char>>,
 }
 
 impl Lex {
     pub fn new(input: &str) -> Self {
-        Lex { stream: StreamIter::new(input).peekable(), tokens: vec![], overflow: None }
+        Lex { stream: peek_nth(StreamIter::new(input)), tokens: vec![] }
     }
 
     // Scan all input
@@ -39,15 +37,10 @@ impl Lex {
         use TokenType::*;
 
         let cur;
-        if let Some(next) = self.overflow {
-            cur = next;
-            self.overflow = None;
-        } else {
-            cur = match self.stream.next() {
-                Some(cur) => cur,
-                None => unreachable!("can't lex nothing"),
-            };
-        }
+        cur = match self.stream.next() {
+            Some(cur) => cur,
+            None => unreachable!("can't lex nothing"),
+        };
 
         // Inject a semicolon if certain tokens occur at the end of the line or
         // EOF. If EOF, make sure the context is right.
@@ -96,15 +89,9 @@ impl Lex {
                 if c.value.is_ascii_alphanumeric() || *c == '_' {
                     identifier.push(c.value);
                     self.stream.next();
-                } else if *c == ':' {
-                    self.overflow = Some(*c);
-                    self.stream.next();
-                    if matches!(self.stream.peek(), Some(c) if *c == ':') {
-                        identifier.push(':');
-                        identifier.push(':');
-                        self.stream.next();
-                        self.overflow = None;
-                    }
+                } else if *c == ':' && matches!(self.stream.peek_nth(1), Some(c) if *c == ':') {
+                    identifier += "::";
+                    self.stream.nth(1);
                 } else {
                     break;
                 }
