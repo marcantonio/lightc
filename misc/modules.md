@@ -11,10 +11,9 @@
 ## Compilation
 
 1. Lex and parse all source files specified
-   - Find module name during parsing
+   - Find module name during parsing (or insert `main`)
    - Concatenate ASTs by module
-   - Store ASTs and symbol tables by module name in a map
-   - Error if no module name found
+   - Store ASTs, imports, and symbol tables by module name in a map
    - Prepend symbols with module name
    - Extract imports
 
@@ -26,7 +25,6 @@
 > TODO: Details on importing external modules
 
 3. Type check, lower and codegen each module separately
-   - During lowering, insert `extern`s for required symbols
    - Executables must have a `main` module with a `main()` function
    - Each module will produce an object in the `.build` directory
 
@@ -42,3 +40,4 @@
 | yes       | yes          | yes          | `-o` .o     |
 
 ## Module file format
+> TODO

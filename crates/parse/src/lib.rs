@@ -42,9 +42,9 @@ impl<'a> Parse<'a> {
     // StmtList ::= ModDecl? ( Stmt ';' )+ ;
     pub fn parse(mut self) -> Result<(Ast<ast::Node>, SymbolTable<Symbol>, String, Vec<String>), ParseError> {
         // Ensure the file starts with a module name. No node is produced
-        // TODO: This sucks. Do a better job later
         match self.tokens.peek() {
             Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
+            // If no module is declared, assume it's `main`
             _ => {
                 self.symbol_table.insert_with_name("module", Symbol::new_mod("main"));
                 self.module_name = String::from("main");
