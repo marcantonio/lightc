@@ -29,12 +29,20 @@ fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
     Ok((root_dir, build_dir))
 }
 
-fn link(output: &str, objects: &[PathBuf]) {
+// Extract all the object files from the module map and link everything
+fn link(output: &str, module_map: HashMap<String, Module>) {
+    let mut object_files = module_map.into_values().fold(vec![], |mut acc, mut m| {
+        acc.push(m.object_file);
+        acc.append(&mut m.import_objects);
+        acc
+    });
+    object_files.sort();
+    object_files.dedup();
+
     Command::new("clang")
         .arg("-o")
         .arg(output)
-        .args(objects)
-        .arg("core/core.o")
+        .args(object_files)
         .arg("-lm")
         .spawn()
         .expect("Error compiling")
@@ -45,13 +53,14 @@ fn link(output: &str, objects: &[PathBuf]) {
 fn main() {
     let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
     let args = CliArgs::parse();
+    let mod_path = &[STDLIB_PATH, "scratch/"];
 
     // Lex and parse one file at a time. Merge the resulting tokens and symbols into a
     // Module
     let mut module_map: HashMap<String, Module> = HashMap::new();
     for file in &args.files {
         let source = fs::read_to_string(file.as_path())
-            .unwrap_or_else(|_| panic!("Error opening file: {}", file.to_string_lossy()));
+            .unwrap_or_else(|err| panic!("Error opening `{}`: {}", file.to_string_lossy(), err));
 
         // Lexer
         let tokens = Lex::new(&source).scan().unwrap_or_else(|e| {
@@ -105,7 +114,7 @@ fn main() {
     // Produce an object file for each module. Add to Module
     for (module_name, mut module) in &mut module_map {
         // Resolve imported symbols
-        let import_symbols = module.resolve_imports(STDLIB_PATH).expect("Error resolving imports");
+        let import_symbols = module.resolve_imports(mod_path).expect("Error resolving imports");
 
         // Type checker
         let typed_ast = Tych::new(&mut module.symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
@@ -153,17 +162,22 @@ fn main() {
     // TODO: Create interfaces and archives whenever `-c` is specified
     match (module_map.len() > 1, args.compile_only, args.output) {
         // Output a.out
-        (_, false, None) => link(
-            "a.out",
-            &[module_map
-                .get("main")
-                .expect("Linking error: no `main` module for executable")
-                .object_file
-                .clone()],
-        ),
+        (_, false, None) => {
+            // println!(">>{:?}", module_map.keys());
+            // println!("{:?}", &module_map.clone().into_values().map(|m| m.object_file).collect::<Vec<_>>());
+            link(
+                "a.out",
+                module_map,
+                // &[module_map
+                //     .get("main")
+                //     .expect("Linking error: no `main` module for executable")
+                //     .object_file
+                //     .clone()],
+            );
+        },
         // Output `args.output` exec
         (_, false, Some(filename)) => {
-            link(&filename, &module_map.into_values().map(|m| m.object_file).collect::<Vec<_>>())
+            link(&filename, module_map);
         },
         // Copy to `module_name`.o
         (false, true, None) => {
@@ -196,7 +210,7 @@ fn main() {
         },
         // Output `args.output`.o
         (true, true, Some(filename)) => {
-            link(&filename, &module_map.into_values().map(|m| m.object_file).collect::<Vec<_>>())
+            link(&filename, module_map);
         },
     };
 }

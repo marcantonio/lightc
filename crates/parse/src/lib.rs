@@ -44,7 +44,7 @@ impl<'a> Parse<'a> {
         // Ensure the file starts with a module name. No node is produced
         match self.tokens.peek() {
             Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
-            // If no module is declared, assume it's `main`
+            // If no module is declared, assume it's `main` for now
             _ => {
                 self.symbol_table.insert_with_name("module", Symbol::new_mod("main"));
                 self.module_name = String::from("main");

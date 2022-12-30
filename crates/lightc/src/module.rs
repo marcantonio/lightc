@@ -1,12 +1,13 @@
-use std::io::Write;
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::{fs::File, io::Read};
 
 use common::symbol_table::Symbolic;
 use common::{Symbol, SymbolTable};
 use lex::Token;
 use parse::ast::{self, Ast};
 
+#[derive(Debug, Clone)]
 pub struct Module {
     name: String,
     pub tokens: Vec<Token>,
@@ -14,6 +15,7 @@ pub struct Module {
     pub symbol_table: SymbolTable<Symbol>,
     pub object_file: PathBuf,
     pub imports: Vec<String>,
+    pub import_objects: Vec<PathBuf>,
 }
 
 // Container type for module related stuff needed during compilation
@@ -26,6 +28,7 @@ impl Module {
             symbol_table: SymbolTable::new(),
             object_file: PathBuf::new(),
             imports: vec![],
+            import_objects: vec![],
         }
     }
 
@@ -53,33 +56,49 @@ impl Module {
         let output =
             bincode::serialize(&symbols).map_err(|err| format!("error serializing symbols: {}", err))?;
 
-        let mut file = File::create(self.object_file.with_extension("i"))
-            .map_err(|err| format!("error opening `{}`: {}", self.object_file.display(), err))?;
-        file.write_all(&output)
-            .map_err(|err| format!("error writing `{}`: {}", self.object_file.display(), err))?;
+        let int_file = self.object_file.with_extension("i");
+        let mut file = File::create(int_file.clone())
+            .map_err(|err| format!("error opening `{}`: {}", int_file.display(), err))?;
+        file.write_all(&output).map_err(|err| format!("error writing `{}`: {}", int_file.display(), err))?;
 
         Ok(())
     }
 
     // Read the interface files in `library_path`. Each should be named `import`.i
-    pub fn resolve_imports(&mut self, library_path: &str) -> Result<Vec<String>, String> {
+    pub fn resolve_imports(&mut self, mod_pathes: &[&str]) -> Result<Vec<String>, String> {
         let mut import_symbols = vec![];
-        for import in &self.imports {
-            let path: PathBuf = [library_path, import].iter().collect();
 
-            // Get symbols from interface file
-            let mut file = File::open(path.with_extension("i"))
-                .map_err(|err| format!("error opening `{}.i`: {}", path.display(), err))?;
-            let mut bytes = vec![];
-            file.read_to_end(&mut bytes)
-                .map_err(|err| format!("error reading `{}.i`: {}", path.display(), err))?;
-            let symbols = bincode::deserialize::<Vec<(String, Symbol)>>(&bytes)
-                .map_err(|err| format!("error deserializing symbols: {}", err))?;
+        'found: for import in &self.imports {
+            for &mod_path in mod_pathes {
+                let path = [mod_path, import].iter().collect::<PathBuf>().with_extension("i");
 
-            for (name, symbol) in symbols {
-                self.symbol_table.insert_with_name(&name, symbol);
-                import_symbols.push(name);
+                // Get symbols the interface file and locate the object file
+                if path.exists() {
+                    // Interface file
+                    let mut file = File::open(path.as_path())
+                        .map_err(|err| format!("error opening `{}`: {}", path.display(), err))?;
+                    let mut bytes = vec![];
+                    file.read_to_end(&mut bytes)
+                        .map_err(|err| format!("error reading `{}`: {}", path.display(), err))?;
+                    let symbols = bincode::deserialize::<Vec<(String, Symbol)>>(&bytes)
+                        .map_err(|err| format!("error deserializing symbols: {}", err))?;
+
+                    for (name, symbol) in symbols {
+                        self.symbol_table.insert_with_name(&name, symbol);
+                        import_symbols.push(name);
+                    }
+
+                    // Object file
+                    let path = path.with_extension("o");
+                    if path.exists() {
+                        self.import_objects.push(path);
+                    } else {
+                        return Err(format!("can't find object file `{}`", path.display()));
+                    }
+                    continue 'found;
+                }
             }
+            return Err(format!("could not resolve `{}`", import));
         }
 
         Ok(import_symbols)
