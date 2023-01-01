@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 370
+assertion_line: 369
 expression: "(test[1], res)"
 ---
 - "\nfn bar() { }\nfn foo() {\n    bar()\n}\n"
@@ -9,7 +9,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: bar
+              name: "main::bar"
               args: []
               ret_ty: Void
               is_extern: false
@@ -22,7 +22,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: foo
+              name: "main::foo"
               args: []
               ret_ty: Void
               is_extern: false
@@ -33,7 +33,7 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: bar
+                          name: "main::bar"
                           args: []
                           ty: Void
                   ty: Void

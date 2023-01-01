@@ -5,7 +5,7 @@ use crate::Codegen;
 use common::symbol_table::{AssocData, Symbolic};
 use common::{Symbol, SymbolTable, Type};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct CodegenSymbol<'a> {
     inner: Symbol,
     pointer: Option<PointerValue<'a>>,
@@ -20,8 +20,8 @@ impl<'a> CodegenSymbol<'a> {
         self.pointer
     }
 
-    pub fn new_var(name: &str, ty: &Type, ptr: PointerValue<'a>) -> Self {
-        Self { inner: Symbol::new_var(name, ty), pointer: Some(ptr) }
+    pub fn new_var(name: &str, ty: &Type, module: &str, ptr: PointerValue<'a>) -> Self {
+        Self { inner: Symbol::new_var(name, ty, module), pointer: Some(ptr) }
     }
 }
 
@@ -81,7 +81,7 @@ impl<'ctx> Codegen<'ctx> {
         // name doesn't match the symbol, it's because the symbol is from before the HIR
         // was constructed. Filtering them out is important since we now call
         // codegen_proto() on the symbol table.
-        symbols.filter(|(name, sym)| name == &sym.name).for_each(|(k, v)| {
+        symbols.into_iter().filter(|(name, sym)| name == &sym.name).for_each(|(k, v)| {
             table.insert(k, CodegenSymbol::from(v));
         });
         Ok(SymbolTable::with_table(table))

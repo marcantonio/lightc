@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -9,10 +10,9 @@ use parse::ast::{self, Ast};
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    name: String,
+    //name: String,
     pub tokens: Vec<Token>,
     pub ast: Ast<ast::Node>,
-    pub symbol_table: SymbolTable<Symbol>,
     pub object_file: PathBuf,
     pub imports: Vec<String>,
     pub import_objects: Vec<PathBuf>,
@@ -20,12 +20,11 @@ pub struct Module {
 
 // Container type for module related stuff needed during compilation
 impl Module {
-    pub fn new(name: &str) -> Self {
+    pub fn new(_name: &str) -> Self {
         Self {
-            name: name.to_owned(),
+            //name: name.to_owned(),
             tokens: vec![],
             ast: Ast::new(),
-            symbol_table: SymbolTable::new(),
             object_file: PathBuf::new(),
             imports: vec![],
             import_objects: vec![],
@@ -34,13 +33,12 @@ impl Module {
 
     // Create am interface file for module. The file contains a Vec of tuples containing
     // the symbols fully qualified name and the symbol itself
-    pub fn create_interface(&self) -> Result<(), String> {
-        let symbols = self
-            .symbol_table
+    pub fn create_interface(&self, symbol_table: &SymbolTable<Symbol>) -> Result<(), String> {
+        let symbols = symbol_table
             .export_symbols()
             .iter()
             .map(|&sym| {
-                let symbol_name = match sym.short_name() {
+                let symbol_name = match sym.fq_name() {
                     Some(name) => name.to_owned(),
                     None => {
                         return Err(format!(
@@ -49,7 +47,7 @@ impl Module {
                         ))
                     },
                 };
-                Ok((format!("{}::{}", self.name, symbol_name), sym))
+                Ok((symbol_name, sym))
             })
             .collect::<Result<Vec<_>, String>>()?;
 
@@ -64,15 +62,21 @@ impl Module {
         Ok(())
     }
 
-    // Read the interface files in `library_path`. Each should be named `import`.i
-    pub fn resolve_imports(&mut self, mod_pathes: &[&str]) -> Result<Vec<String>, String> {
-        let mut import_symbols = vec![];
-
+    // Read the interface files in `library_path` for each external import. Each should be
+    // named `import`.i
+    pub fn resolve_imports(
+        &mut self, available: &[String], mod_pathes: &[OsString], symbol_table: &mut SymbolTable<Symbol>,
+    ) -> Result<(), String> {
         'found: for import in &self.imports {
-            for &mod_path in mod_pathes {
-                let path = [mod_path, import].iter().collect::<PathBuf>().with_extension("i");
+            if available.contains(import) {
+                continue;
+            }
+            for mod_path in mod_pathes {
+                let path =
+                    [mod_path, &OsString::from(import)].iter().collect::<PathBuf>().with_extension("i");
 
-                // Get symbols the interface file and locate the object file
+                // Get symbols the interface file and locate the object file. Update
+                // symbol table with imported symbols
                 if path.exists() {
                     // Interface file
                     let mut file = File::open(path.as_path())
@@ -80,12 +84,12 @@ impl Module {
                     let mut bytes = vec![];
                     file.read_to_end(&mut bytes)
                         .map_err(|err| format!("error reading `{}`: {}", path.display(), err))?;
-                    let symbols = bincode::deserialize::<Vec<(String, Symbol)>>(&bytes)
-                        .map_err(|err| format!("error deserializing symbols: {}", err))?;
+                    let symbols = bincode::deserialize::<Vec<(String, Symbol)>>(&bytes).map_err(|err| {
+                        format!("error deserializing symbols for `{}`: {}", path.display(), err)
+                    })?;
 
                     for (name, symbol) in symbols {
-                        self.symbol_table.insert_with_name(&name, symbol);
-                        import_symbols.push(name);
+                        symbol_table.insert_with_name(&name, symbol);
                     }
 
                     // Object file
@@ -101,6 +105,6 @@ impl Module {
             return Err(format!("could not resolve `{}`", import));
         }
 
-        Ok(import_symbols)
+        Ok(())
     }
 }

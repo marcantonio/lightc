@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 335
+assertion_line: 331
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn foo() {\n    let x: float = 1.0\n    if x < 2.0 {\n        let y: int = 2\n        x\n    }\n    x\n}\nfn main() { foo() }\n"
-- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @\"_main~foo~void\"() {\nentry:\n  %y = alloca i32, align 4\n  %x = alloca float, align 4\n  store float 1.000000e+00, float* %x, align 4\n  %x1 = load float, float* %x, align 4\n  %ult.float = fcmp ult float %x1, 2.000000e+00\n  %if.cond.int = icmp ne i1 %ult.float, false\n  br i1 %if.cond.int, label %if.then, label %if.end\n\nif.then:                                          ; preds = %entry\n  store i32 2, i32* %y, align 4\n  %x2 = load float, float* %x, align 4\n  br label %if.end\n\nif.end:                                           ; preds = %if.then, %entry\n  %if.phi.float = phi float [ %x2, %if.then ], [ undef, %entry ]\n  %x3 = load float, float* %x, align 4\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_main~foo~void\"()\n  ret void\n}\n"
-- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @\"_main~foo~void\"() {\nentry:\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_main~foo~void\"()\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @\"_main::foo~void\"() {\nentry:\n  %y = alloca i32, align 4\n  %x = alloca float, align 4\n  store float 1.000000e+00, float* %x, align 4\n  %x1 = load float, float* %x, align 4\n  %ult.float = fcmp ult float %x1, 2.000000e+00\n  %if.cond.int = icmp ne i1 %ult.float, false\n  br i1 %if.cond.int, label %if.then, label %if.end\n\nif.then:                                          ; preds = %entry\n  store i32 2, i32* %y, align 4\n  %x2 = load float, float* %x, align 4\n  br label %if.end\n\nif.end:                                           ; preds = %if.then, %entry\n  %if.phi.float = phi float [ %x2, %if.then ], [ undef, %entry ]\n  %x3 = load float, float* %x, align 4\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_main::foo~void\"()\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @\"_main::foo~void\"() {\nentry:\n  ret void\n}\n\ndefine void @main() {\nentry:\n  call void @\"_main::foo~void\"()\n  ret void\n}\n"
 

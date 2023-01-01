@@ -20,12 +20,13 @@ mod tests;
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
-    import_symbols: Vec<String>,
+    import_symbols: Vec<Symbol>,
+    module: String,
 }
 
 impl<'a> Lower<'a> {
-    pub fn new(import_symbols: Vec<String>, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table, struct_methods: vec![], import_symbols }
+    pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        Lower { symbol_table, struct_methods: vec![], import_symbols: vec![], module: module.to_owned() }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
@@ -48,21 +49,9 @@ impl<'a> Lower<'a> {
         });
 
         // XXX: abstract
-        for name in self.import_symbols {
-            // Insert a duplicate of the symbol. The new one will have the lowered name. Use
-            // updated name in the HIR. Skip for externs.
-            let sym = self
-                .symbol_table
-                .get(&name)
-                .cloned()
-                .unwrap_or_else(|| unreachable!("missing symbol in `visit_fn()` for `{}`", name));
-
-            if !sym.is_extern() {
-                // Updates the map key name
-                self.symbol_table.insert(sym.clone());
-            }
-
-            hir.add_prototype(Prototype::from(sym));
+        // XXX: this could maybe move to visit_call unless structs block it
+        for symbol in self.import_symbols {
+            hir.add_prototype(Prototype::from(symbol))
         }
 
         Ok(hir)
@@ -151,7 +140,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     ) -> Self::Result {
         // Insert start var
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn));
+        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn, &self.module));
 
         let start_expr = self.lower_var_init(&start_name, start_expr.as_ref(), &start_antn)?;
         let cond_expr = self.visit_node(cond_expr)?;
@@ -164,7 +153,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
-        self.symbol_table.insert(Symbol::new_var(&name, &antn));
+        self.symbol_table.insert(Symbol::new_var(&name, &antn, &self.module));
         let init_node = self.lower_var_init(&name, init.as_ref(), &antn)?;
         Ok(hir::Node::new_let(name, antn, Some(init_node)))
     }
@@ -192,7 +181,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         self.symbol_table.enter_scope();
 
         for arg in proto.args() {
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
         }
 
         let body_node = body.map(|e| self.visit_node(e));
@@ -316,6 +305,11 @@ impl<'a> ast::Visitor for Lower<'a> {
             sym_name if !sym.is_extern() && sym_name != name => sym_name.to_owned(),
             _ => name,
         };
+
+        // Make a list of all imported functions
+        if sym.is_import(&self.module) {
+            self.import_symbols.push(sym.clone())
+        }
 
         let mut lowered_args = vec![];
         for node in args {

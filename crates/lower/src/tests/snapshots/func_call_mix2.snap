@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 132
+assertion_line: 130
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    foo()\n    foo()\n}\n\nfn foo() {}\n\nfn bar() {\n    foo()\n}\n"
@@ -20,19 +20,19 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: _main~foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                     - kind:
                         Call:
-                          name: _main~foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                   ty: Void
       - kind:
           Fn:
             proto:
-              name: _main~foo~void
+              name: "_main::foo~void"
               args: []
               ret_ty: Void
               is_extern: false
@@ -45,7 +45,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _main~bar~void
+              name: "_main::bar~void"
               args: []
               ret_ty: Void
               is_extern: false
@@ -56,7 +56,7 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: _main~foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                   ty: Void
@@ -67,12 +67,12 @@ expression: "(test[1], res)"
         ret_ty: Void
         is_extern: false
         module: main
-      - name: _main~foo~void
+      - name: "_main::foo~void"
         args: []
         ret_ty: Void
         is_extern: false
         module: main
-      - name: _main~bar~void
+      - name: "_main::bar~void"
         args: []
         ret_ty: Void
         is_extern: false

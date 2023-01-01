@@ -21,33 +21,28 @@ type ParseResult = Result<ast::Node, ParseError>;
 
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
-    module_name: String,
+    symbol_table: &'a mut SymbolTable<Symbol>,
+    module: String,
     imports: Vec<String>,
-    symbol_table: SymbolTable<Symbol>,
 }
 
 impl<'a> Parse<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
-        Parse {
-            tokens: tokens.iter().peekable(),
-            module_name: String::new(),
-            imports: vec![],
-            symbol_table: SymbolTable::new(),
-        }
+    pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        Parse { tokens: tokens.iter().peekable(), symbol_table, module: String::new(), imports: vec![] }
     }
 
     // Parse each token using recursive descent. Returns the AST, module name, imports,
     // and symbol table
     //
     // StmtList ::= ModDecl? ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<(Ast<ast::Node>, SymbolTable<Symbol>, String, Vec<String>), ParseError> {
+    pub fn parse(mut self) -> Result<(Ast<ast::Node>, String, Vec<String>), ParseError> {
         // Ensure the file starts with a module name. No node is produced
         match self.tokens.peek() {
             Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
             // If no module is declared, assume it's `main` for now
             _ => {
                 self.symbol_table.insert_with_name("module", Symbol::new_mod("main"));
-                self.module_name = String::from("main");
+                self.module = String::from("main");
             },
         };
 
@@ -58,7 +53,7 @@ impl<'a> Parse<'a> {
                 ast.add(node);
             }
         }
-        Ok((ast, self.symbol_table, self.module_name, self.imports))
+        Ok((ast, self.module, self.imports))
     }
 
     /// Statement productions
@@ -137,7 +132,7 @@ impl<'a> Parse<'a> {
                     // Insert struct into symbol table
                     if self
                         .symbol_table
-                        .insert(Symbol::new_struct(name, Some(&sym_fields), Some(&sym_methods)))
+                        .insert(Symbol::new_struct(name, Some(&sym_fields), Some(&sym_methods), &self.module))
                         .is_some()
                     {
                         return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
@@ -199,16 +194,22 @@ impl<'a> Parse<'a> {
         // Eat 'fn'
         let token = self.tokens.next().unwrap();
 
-        let proto = self.parse_proto()?;
+        let proto = self.parse_proto(in_struct)?;
+
+        // No body for externs
+        let body = if proto.is_extern() { None } else { Some(self.parse_block()?) };
 
         // Create symbol table entry. Use the old name as the key until later
         // lowering. Skip for struct methods. They are handled elsewhere.
         if !in_struct && self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
-            return Err(ParseError::from((format!("Function `{}` can't be redefined", proto.name()), token)));
+            // Ignore dups for externs
+            if body.is_some() {
+                return Err(ParseError::from((
+                    format!("Function `{}` can't be redefined", proto.name()),
+                    token,
+                )));
+            }
         }
-
-        // No body for externs
-        let body = if proto.is_extern() { None } else { Some(self.parse_block()?) };
 
         Ok(ast::Node::new_fn(proto, body))
     }
@@ -233,7 +234,7 @@ impl<'a> Parse<'a> {
         let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
         self.symbol_table.insert_with_name("module", Symbol::new_mod(name));
-        self.module_name = name.to_owned();
+        self.module = name.to_owned();
 
         self.tokens.next(); // Eat semicolon
         Ok(())
@@ -520,26 +521,26 @@ impl<'a> Parse<'a> {
     /// Misc productions
 
     // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
-    fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
-        let (fn_name, _) =
+    fn parse_proto(&mut self, in_struct: bool) -> Result<Prototype, ParseError> {
+        let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting function name in prototype");
 
         expect_next_token!(self.tokens, TokenType::OpenParen, "Expecting `(` in prototype");
 
-        // Parse args list
-        let mut args = vec![];
+        // Parse parameter list
+        let mut params = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
                 break;
             }
 
-            // Get the name of the argument and its type annotation
+            // Get the name of the parameter and its type annotation
             let (name, antn) = self.parse_typed_decl("prototype")?;
 
-            args.push((name.to_string(), antn));
+            params.push((name.to_string(), antn));
 
-            // This rusty mess checks for a ',' or a ')' in the argument list. If one
+            // This rusty mess checks for a ',' or a ')' in the parameter list. If one
             // isn't found we try to create a new "error token" with the right context for
             // the error message. If the bad token is an implicit semicolon, take the next
             // one in the list or use EOF.
@@ -586,11 +587,12 @@ impl<'a> Parse<'a> {
         let is_extern = matches!(&self.tokens.peek(), Some(Token { tt: TokenType::Semicolon(..), .. }));
 
         Ok(Prototype::new(
-            fn_name.to_string(),
-            args,
+            name.to_owned(),
+            params,
             ret_type.unwrap_or_default(),
             is_extern,
-            self.module_name.clone(),
+            in_struct,
+            self.module.clone(),
         ))
     }
 

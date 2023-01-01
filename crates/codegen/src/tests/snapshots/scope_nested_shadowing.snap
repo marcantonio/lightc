@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 335
+assertion_line: 331
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n        let a: float = {\n            let b: float = 1.0\n            b\n        }\n    }\n    b\n}\nfn main() { foo(3) }\n"
-- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine i32 @\"_main~foo~int32~int32\"(i32 %a) {\nentry:\n  %a5 = alloca float, align 4\n  %b3 = alloca float, align 4\n  %b2 = alloca i1, align 1\n  %b = alloca i32, align 4\n  %a1 = alloca i32, align 4\n  store i32 %a, i32* %a1, align 4\n  store i32 1, i32* %b, align 4\n  store i1 false, i1* %b2, align 1\n  store float 1.000000e+00, float* %b3, align 4\n  %b4 = load float, float* %b3, align 4\n  store float %b4, float* %a5, align 4\n  %b6 = load i32, i32* %b, align 4\n  ret i32 %b6\n}\n\ndefine void @main() {\nentry:\n  %\"call__main~foo~int32~int32\" = call i32 @\"_main~foo~int32~int32\"(i32 3)\n  ret void\n}\n"
-- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine i32 @\"_main~foo~int32~int32\"(i32 %a) {\nentry:\n  ret i32 1\n}\n\ndefine void @main() {\nentry:\n  %\"call__main~foo~int32~int32\" = call i32 @\"_main~foo~int32~int32\"(i32 3)\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine i32 @\"_main::foo~int32~int32\"(i32 %a) {\nentry:\n  %a5 = alloca float, align 4\n  %b3 = alloca float, align 4\n  %b2 = alloca i1, align 1\n  %b = alloca i32, align 4\n  %a1 = alloca i32, align 4\n  store i32 %a, i32* %a1, align 4\n  store i32 1, i32* %b, align 4\n  store i1 false, i1* %b2, align 1\n  store float 1.000000e+00, float* %b3, align 4\n  %b4 = load float, float* %b3, align 4\n  store float %b4, float* %a5, align 4\n  %b6 = load i32, i32* %b, align 4\n  ret i32 %b6\n}\n\ndefine void @main() {\nentry:\n  %\"call__main::foo~int32~int32\" = call i32 @\"_main::foo~int32~int32\"(i32 3)\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine i32 @\"_main::foo~int32~int32\"(i32 %a) {\nentry:\n  ret i32 1\n}\n\ndefine void @main() {\nentry:\n  %\"call__main::foo~int32~int32\" = call i32 @\"_main::foo~int32~int32\"(i32 3)\n  ret void\n}\n"
 

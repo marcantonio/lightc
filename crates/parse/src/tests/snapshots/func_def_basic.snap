@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 161
+assertion_line: 162
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn a(b: int, c: int) -> int {\n    19 + a + 40\n}\n"
@@ -9,7 +9,7 @@ expression: "(test[1], ast, ast_string)"
       - kind:
           Fn:
             proto:
-              name: a
+              name: "main::a"
               args:
                 - - b
                   - Int32
@@ -49,5 +49,5 @@ expression: "(test[1], ast, ast_string)"
                                 ty: ~
                           ty: ~
                   ty: ~
-- "(define (a b:int32 c:int32) '((+ (+ 19 a) 40)))"
+- "(define (main::a b:int32 c:int32) '((+ (+ 19 a) 40)))"
 

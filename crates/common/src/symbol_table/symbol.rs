@@ -5,7 +5,7 @@ use crate::Type;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct FnData {
-    short_name: String,
+    fq_name: String,
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
@@ -34,39 +34,53 @@ pub enum AssocData {
 pub struct Symbol {
     pub name: String,
     pub data: AssocData,
+    pub module: String,
 }
 
 impl Symbol {
     pub fn new_fn(
-        name: &str, short_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool,
+        name: &str, fq_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
     ) -> Self {
         Symbol {
             name: name.to_owned(),
             data: AssocData::Fn(FnData {
-                short_name: short_name.to_owned(),
+                fq_name: fq_name.to_owned(),
                 args: args.to_vec(),
                 ret_ty: ret_ty.to_owned(),
                 is_extern,
             }),
+            module: module.to_owned(),
         }
     }
 
-    pub fn new_var(name: &str, ty: &Type) -> Self {
-        Symbol { name: name.to_owned(), data: AssocData::Var(VarData { ty: ty.to_owned() }) }
+    pub fn new_var(name: &str, ty: &Type, module: &str) -> Self {
+        Symbol {
+            name: name.to_owned(),
+            data: AssocData::Var(VarData { ty: ty.to_owned() }),
+            module: module.to_owned(),
+        }
     }
 
-    pub fn new_struct(name: &str, fields: Option<&[(String, String)]>, methods: Option<&[String]>) -> Self {
+    pub fn new_struct(
+        name: &str, fields: Option<&[(String, String)]>, methods: Option<&[String]>, module: &str,
+    ) -> Self {
         Symbol {
             name: name.to_owned(),
             data: AssocData::Struct(StructData {
                 fields: fields.map(|x| x.to_vec()),
                 methods: methods.map(|x| x.to_vec()),
             }),
+            module: module.to_owned(),
         }
     }
 
+    // XXX: still needed?
     pub fn new_mod(name: &str) -> Self {
-        Symbol { name: String::from("module"), data: AssocData::Module(name.to_owned()) }
+        Symbol {
+            name: String::from("module"),
+            data: AssocData::Module(name.to_owned()),
+            module: name.to_owned(), // XXX
+        }
     }
 
     pub fn set_name(&mut self, name: &str) {
@@ -80,9 +94,9 @@ impl Symbol {
         }
     }
 
-    pub fn short_name(&self) -> Option<&str> {
+    pub fn fq_name(&self) -> Option<&str> {
         match &self.data {
-            AssocData::Fn(s) => Some(&s.short_name),
+            AssocData::Fn(s) => Some(&s.fq_name),
             _ => None,
         }
     }
@@ -129,6 +143,10 @@ impl Symbol {
             AssocData::Struct(s) => Some(s.methods.as_deref()?.iter().map(|m| m.as_str()).collect()),
             _ => unreachable!("expected symbol to be a struct"),
         }
+    }
+
+    pub fn is_import(&self, module: &str) -> bool {
+        self.module != module && !self.is_extern()
     }
 }
 

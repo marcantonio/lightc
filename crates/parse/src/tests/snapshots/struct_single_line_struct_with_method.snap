@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 359
+assertion_line: 360
 expression: "(test[1], ast, ast_string)"
 ---
 - "struct Foo { fn foo() {} }"

@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 132
+assertion_line: 130
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    foo()\n}\n\nfn main() {\n    foo()\n}\n"
@@ -9,7 +9,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _main~foo~void
+              name: "_main::foo~void"
               args: []
               ret_ty: Void
               is_extern: false
@@ -20,7 +20,7 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: _main~foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                   ty: Void
@@ -38,13 +38,13 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: _main~foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                   ty: Void
     structs: []
     prototypes:
-      - name: _main~foo~void
+      - name: "_main::foo~void"
         args: []
         ret_ty: Void
         is_extern: false

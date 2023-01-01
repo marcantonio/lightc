@@ -1,4 +1,3 @@
-use std::collections::hash_map::Drain;
 use std::collections::HashMap;
 
 pub use symbol::{AssocData, FnData, StructData, Symbol, VarData};
@@ -20,7 +19,10 @@ pub struct SymbolTable<T: Symbolic + Ord> {
     auto_idents: HashMap<String, u32>,
 }
 
-impl<T: Symbolic + Ord> SymbolTable<T> {
+impl<T> SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone,
+{
     pub fn new() -> Self {
         SymbolTable::with_table(HashMap::new())
     }
@@ -82,14 +84,19 @@ impl<T: Symbolic + Ord> SymbolTable<T> {
         self.scope_depth
     }
 
-    pub fn dump_table(&mut self, scope: u32) -> Result<Drain<String, T>, String> {
-        let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
-        Ok(table.drain())
+    pub fn copy_table(&self, scope: u32) -> Result<Vec<(String, T)>, String> {
+        Ok(self.tables.get(&scope).ok_or(format!("can't find table: `{}`", scope))?.clone().drain().collect())
     }
 
+    pub fn dump_table(&mut self, scope: u32) -> Result<Vec<(String, T)>, String> {
+        let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
+        Ok(table.drain().collect())
+    }
+
+    // XXX: still needed?
     // Merge globals from other table
-    pub fn merge_symbols(&mut self, other: &mut SymbolTable<T>) -> Result<(), String> {
-        let symbols = other.dump_table(0)?;
+    pub fn merge_symbols(&mut self, other: &SymbolTable<T>) -> Result<(), String> {
+        let symbols = other.copy_table(0)?;
         for (name, symbol) in symbols {
             if name != "module" && self.insert_with_name(&name, symbol).is_some() {
                 return Err(format!("can't redefine `{}`", name));
@@ -135,7 +142,10 @@ impl<T: Symbolic + Ord> SymbolTable<T> {
     }
 }
 
-impl<T: Symbolic + Ord> Default for SymbolTable<T> {
+impl<T> Default for SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -151,6 +161,8 @@ mod test {
     use crate::Type;
     use crate::{Symbol, SymbolTable};
 
+    const MOD_NAME: &str = "main";
+
     #[test]
     fn test_symbol_table_scope() {
         let mut st = SymbolTable::<Symbol>::new();
@@ -158,14 +170,14 @@ mod test {
         assert_eq!(st.scope_depth, 0);
 
         // Insert at global scope
-        let sym1 = Symbol::new_var("foo", &Type::Bool);
+        let sym1 = Symbol::new_var("foo", &Type::Bool, &MOD_NAME);
         assert_eq!(st.insert(sym1.clone()), None);
         // Get from global scope
         assert_eq!(st.get("foo"), Some(&sym1));
 
         // Enter scope and insert dup name
         assert_eq!(st.enter_scope(), 1);
-        let sym2 = Symbol::new_var("foo", &Type::Int32);
+        let sym2 = Symbol::new_var("foo", &Type::Int32, &MOD_NAME);
         assert_eq!(st.insert(sym2.clone()), None);
         // Get dup from new scope
         assert_eq!(st.get("foo"), Some(&sym2));
@@ -176,12 +188,12 @@ mod test {
         // Unknown symbol
         assert_eq!(st.get("bar"), None);
         // Insert new symbol at current scope
-        let sym3 = Symbol::new_var("bar", &Type::Int32);
+        let sym3 = Symbol::new_var("bar", &Type::Int32, &MOD_NAME);
         assert_eq!(st.insert(sym3.clone()), None);
         // Get new symbol from current scope
         assert_eq!(st.get("bar"), Some(&sym3));
         // Overwrite new symbol with dup at and check that the old symbol is returned
-        let sym4 = Symbol::new_var("bar", &Type::Float);
+        let sym4 = Symbol::new_var("bar", &Type::Float, &MOD_NAME);
         assert_eq!(st.insert(sym4.clone()), Some(sym3));
         // Get dup with new id
         assert_eq!(st.get("bar"), Some(&sym4));
@@ -210,12 +222,12 @@ mod test {
         let mut a = SymbolTable::<Symbol>::new();
         let mut b = SymbolTable::<Symbol>::new();
 
-        let sym1 = Symbol::new_var("foo", &Type::Bool);
+        let sym1 = Symbol::new_var("foo", &Type::Bool, &MOD_NAME);
         a.insert(sym1.clone());
-        let sym2 = Symbol::new_var("bar", &Type::Bool);
+        let sym2 = Symbol::new_var("bar", &Type::Bool, &MOD_NAME);
         a.insert(sym2.clone());
 
-        let sym3 = Symbol::new_var("baz", &Type::Bool);
+        let sym3 = Symbol::new_var("baz", &Type::Bool, &MOD_NAME);
         b.insert(sym3.clone());
 
         assert_eq!(b.merge_symbols(&mut a), Ok(()));
@@ -224,15 +236,14 @@ mod test {
         assert_eq!(b.get("baz"), Some(&sym3));
     }
 
-        #[test]
+    #[test]
     fn test_merge_symbols_dup() {
         let mut a = SymbolTable::<Symbol>::new();
         let mut b = SymbolTable::<Symbol>::new();
 
-        a.insert(Symbol::new_var("foo", &Type::Bool));
-        b.insert(Symbol::new_var("foo", &Type::Bool));
+        a.insert(Symbol::new_var("foo", &Type::Bool, &MOD_NAME));
+        b.insert(Symbol::new_var("foo", &Type::Bool, &MOD_NAME));
 
         assert_eq!(b.merge_symbols(&mut a), Err(String::from("can't redefine `foo`")));
     }
-
 }

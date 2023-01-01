@@ -13,7 +13,8 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 let tokens = Lex::new(test[1]).scan().expect("lexing failed in `parse` tests");
-                let ast = Parse::new(&tokens).parse().map(|(ast, ..)| ast);
+                let mut symbol_table = SymbolTable::new();
+                let ast = Parse::new(&tokens, &mut symbol_table).parse().map(|(ast, ..)| ast);
                 let ast_string = ast_to_string(ast.as_ref());
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], ast, ast_string));
             }

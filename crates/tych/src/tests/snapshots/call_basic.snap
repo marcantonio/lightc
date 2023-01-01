@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 239
+assertion_line: 238
 expression: "(test[1], res)"
 ---
 - "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1)\n}\n"
@@ -9,7 +9,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: plusOne
+              name: "main::plusOne"
               args:
                 - - x
                   - Int32
@@ -50,7 +50,7 @@ expression: "(test[1], res)"
                   list:
                     - kind:
                         Call:
-                          name: plusOne
+                          name: "main::plusOne"
                           args:
                             - kind:
                                 Lit:

@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 172
+assertion_line: 170
 expression: "(test[1], res)"
 ---
 - "\nfn returnStruct() -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let x: Foo\n    x.a\n    returnStruct().a\n    let b: Bar\n    b.foo.b()\n    b.foo.a\n}\nstruct Foo {\n    let a: int\n    fn b() {}\n}\nstruct Bar {\n    let foo: Foo\n}\n"
@@ -9,7 +9,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _main~returnStruct~Foo
+              name: "_main::returnStruct~Foo"
               args: []
               ret_ty:
                 Comp: Foo
@@ -93,7 +93,7 @@ expression: "(test[1], res)"
                                 init:
                                   kind:
                                     Call:
-                                      name: _main~returnStruct~Foo
+                                      name: "_main::returnStruct~Foo"
                                       args: []
                                       ty:
                                         Comp: Foo
@@ -124,7 +124,7 @@ expression: "(test[1], res)"
                                   Comp: Bar
                     - kind:
                         Call:
-                          name: _main~_Foo_b~void
+                          name: _Foo_b~void
                           args:
                             - kind:
                                 FSelector:
@@ -158,7 +158,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _main~_Foo_b~void
+              name: _Foo_b~void
               args:
                 - - self
                   - Comp: Foo
@@ -182,7 +182,7 @@ expression: "(test[1], res)"
             field_tys:
               - Comp: Foo
     prototypes:
-      - name: _main~returnStruct~Foo
+      - name: "_main::returnStruct~Foo"
         args: []
         ret_ty:
           Comp: Foo
@@ -193,7 +193,7 @@ expression: "(test[1], res)"
         ret_ty: Void
         is_extern: false
         module: main
-      - name: _main~_Foo_b~void
+      - name: _Foo_b~void
         args:
           - - self
             - Comp: Foo

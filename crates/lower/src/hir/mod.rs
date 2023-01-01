@@ -37,6 +37,10 @@ impl<T: VisitableNode> Hir<T> {
         &self.functions
     }
 
+    pub fn prototypes(&self) -> &[Prototype] {
+        &self.prototypes
+    }
+
     pub fn structs(&self) -> &[T] {
         &self.structs
     }

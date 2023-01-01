@@ -16,19 +16,21 @@ mod tests;
 // - checks for type consistency in if branches
 // - checks main()'s annotation
 // - checks for unknown functions, variables, and types
+// - resolves function and struct names
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     types: Vec<String>,
     hint: Option<Type>,
     cur_struct: Option<String>,
+    module: String,
 }
 
 impl<'a> Tych<'a> {
-    pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+    pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
         let mut types = Type::dump_types();
         types.append(&mut symbol_table.types());
-        Tych { symbol_table, types, hint: None, cur_struct: None }
+        Tych { module: module.to_owned(), symbol_table, types, hint: None, cur_struct: None }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Ast<ast::Node>, String> {
@@ -118,6 +120,18 @@ impl<'a> Tych<'a> {
             self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;
         Ok(comp_sym)
     }
+
+    // Try to resolve first the simple name (as for externs), then the fully qualified
+    // name
+    fn resolve_symbol(&'a self, name: &str) -> Option<Symbol> {
+        let names = &[name, &format!("{}::{}", self.module, name)];
+        for name in names {
+            if let Some(sym) = self.symbol_table.get(&name) {
+                return Some(sym.clone());
+            }
+        }
+        None
+    }
 }
 
 impl<'a> ast::Visitor for Tych<'a> {
@@ -134,7 +148,7 @@ impl<'a> ast::Visitor for Tych<'a> {
     ) -> Self::Result {
         // Insert starting variable
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn));
+        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn, &self.module));
 
         let start_expr =
             self.check_var_init(&start_name, start_expr.as_ref(), &start_antn, "for statement")?;
@@ -175,7 +189,7 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Don't process initization values for struct fields
         let init_node = if self.cur_struct.is_none() {
-            self.symbol_table.insert(Symbol::new_var(&name, &antn));
+            self.symbol_table.insert(Symbol::new_var(&name, &antn, &self.module));
             self.check_var_init(&name, init.as_ref(), &antn, "let statement")?
         } else if self.cur_struct.is_some() && init.is_some() {
             return Err(format!("initializers aren't supported for struct fields at `{}`", name));
@@ -213,7 +227,7 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Insert symbol for self if this is a method
         if let Some(name) = &self.cur_struct {
-            self.symbol_table.insert(Symbol::new_var("self", &Type::Comp(name.to_owned())));
+            self.symbol_table.insert(Symbol::new_var("self", &Type::Comp(name.to_owned()), &self.module));
         }
 
         // Insert args into the local scope table
@@ -221,7 +235,7 @@ impl<'a> ast::Visitor for Tych<'a> {
             if !self.is_valid_type(&arg.1) {
                 return Err(format!("Unknown argument type in prototype for `{}`: `{}`", arg.0, arg.1));
             }
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
         }
 
         let body_node = self.check_node(body, None)?;
@@ -456,11 +470,17 @@ impl<'a> ast::Visitor for Tych<'a> {
 
     // TODO: errors in struct methods will display the partially lowered name. Pass in a
     // display name too.
-    // XXX: I think we have this now with `short_name`
+    // XXX: I think we have this now with `fq_name`
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, _ty: Option<Type>) -> Self::Result {
         // Pull the function for the call from the table
         let fn_entry =
-            self.symbol_table.get(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
+            self.resolve_symbol(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
+
+        // Now that we have the FQN, use it in the AST
+        let name = fn_entry
+            .fq_name()
+            .unwrap_or_else(|| unreachable!("non-function symbol in `visit_call()`"))
+            .to_owned();
 
         // Pull out the function arg types
         let fe_arg_tys = fn_entry.arg_tys().to_vec();

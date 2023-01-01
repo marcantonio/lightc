@@ -5,7 +5,7 @@ use std::process::Command;
 use std::{env, fs, process};
 
 use codegen::Codegen;
-use common::CliArgs;
+use common::{CliArgs, SymbolTable};
 use lex::Lex;
 use lower::Lower;
 use module::Module;
@@ -54,6 +54,7 @@ fn main() {
     let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
     let args = CliArgs::parse();
     let mod_path = &[STDLIB_PATH, "scratch/"];
+    let mut symbol_table = SymbolTable::new();
 
     // Lex and parse one file at a time. Merge the resulting tokens and symbols into a
     // Module
@@ -69,8 +70,8 @@ fn main() {
         });
 
         // Parser
-        let (ast, mut symbol_table, module_name, mut imports) =
-            Parse::new(&tokens).parse().unwrap_or_else(|e| {
+        let (ast, module_name, mut imports) =
+            Parse::new(&tokens, &mut symbol_table).parse().unwrap_or_else(|e| {
                 eprintln!("Parsing error: {}", e);
                 process::exit(1);
             });
@@ -78,17 +79,11 @@ fn main() {
         // Get the existing module or create and insert an empty one
         let module = module_map.entry(module_name.to_owned()).or_insert(Module::new(&module_name));
 
-        // Merge symbols into module's table
-        module.symbol_table.merge_symbols(&mut symbol_table).unwrap_or_else(|e| {
-            eprintln!("Error merging parsed symbols: {}", e);
-            process::exit(1);
-        });
-
-        // Merge tokens, AST and, imports for each module
+        // Merge tokens, AST, imports, and symbol table for each module
         // TODO: Dedup imports
         module.tokens.append(&mut tokens.clone());
         module.ast.append(ast);
-        module.imports.append(&mut imports)
+        module.imports.append(&mut imports);
     }
 
     // Side effect of displaying the aggregates outside the loop is that parsing needs to
@@ -96,8 +91,8 @@ fn main() {
     if args.show_tokens {
         println!("Tokens:");
         module_map.iter().for_each(|(name, module)| {
-            println!("  module: {:?}", name);
-            module.tokens.iter().for_each(|t| println!("    {}", t));
+            println!(" module: {:?}", name);
+            module.tokens.iter().for_each(|t| println!("  {}", t));
         });
         println!();
     }
@@ -105,53 +100,66 @@ fn main() {
     if args.show_ast {
         println!("AST:");
         module_map.iter().for_each(|(name, module)| {
-            println!("  module: {:?}", name);
-            module.ast.nodes().iter().for_each(|n| println!("    {}", n));
+            println!(" module: {:?}", name);
+            module.ast.nodes().iter().for_each(|n| println!("  {}", n));
         });
         println!();
     }
 
+    let available_modules = module_map.keys().cloned().collect::<Vec<_>>();
+
     // Produce an object file for each module. Add to Module
     for (module_name, mut module) in &mut module_map {
         // Resolve imported symbols
-        let import_symbols = module.resolve_imports(mod_path).expect("Error resolving imports");
+        module
+            .resolve_imports(&available_modules, mod_path, &mut symbol_table)
+            .expect("Error resolving imports");
 
         // Type checker
-        let typed_ast = Tych::new(&mut module.symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
-            eprintln!("Type checking error: {}", e);
-            process::exit(1);
-        });
+        let typed_ast =
+            Tych::new(&module_name, &mut symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
+                eprintln!("Type checking error: {}", e);
+                process::exit(1);
+            });
 
         if args.show_typed_ast {
             println!("Typed AST:");
+            println!(" module: {:?}", module_name);
             for node in typed_ast.nodes() {
-                println!("{}", node);
+                println!("  {}", node);
             }
             println!();
         }
 
         // Lower
-        let hir = Lower::new(import_symbols, &mut module.symbol_table).walk(typed_ast).unwrap_or_else(|e| {
+        let hir = Lower::new(&module_name, &mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
             eprintln!("Lowering error: {}", e);
             process::exit(1);
         });
 
         if args.show_hir {
-            println!("HIR:\nstructs");
+            println!("HIR:");
+            println!(" module: {:?}", module_name);
+            println!("  structs:");
             for node in hir.structs() {
-                println!("{}", node);
+                println!("   {}", node);
             }
             println!();
-            println!("functions");
+            println!("  functions:");
             for node in hir.functions() {
-                println!("{}", node);
+                println!("   {}", node);
+            }
+            println!();
+            println!("  prototypes:");
+            for node in hir.prototypes() {
+                println!("   {}", node);
             }
             println!();
         }
 
         // Codegen
         let object_file =
-            Codegen::run(hir, &module_name, module.symbol_table.clone(), build_dir.clone(), &args, false)
+            Codegen::run(hir, &module_name, symbol_table.clone(), build_dir.clone(), &args, false)
                 .unwrap_or_else(|e| panic!("Error compiling module `{}`: {}", module_name, e))
                 .as_file_path();
 
@@ -188,7 +196,7 @@ fn main() {
                 .expect(&format!("Error copying object file: {}", module.object_file.to_string_lossy()));
 
             // Write interface file
-            module.create_interface().expect("Error creating interface file");
+            module.create_interface(&symbol_table).expect("Error creating interface file");
         },
         // Copy to `args.output`.o
         (false, true, Some(filename)) => {
