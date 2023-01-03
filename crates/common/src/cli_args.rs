@@ -43,8 +43,12 @@ pub struct CliArgs {
     #[clap(short, long, parse(from_flag))]
     pub compile_only: bool,
 
+    /// Build directory (will be emptied first)
+    #[clap(short, long)]
+    pub build_dir: Option<String>,
+
     /// Input files
-    #[clap(parse(from_os_str))]
+    #[clap(required(true), parse(from_os_str))]
     pub files: Vec<PathBuf>,
 }
 
@@ -61,6 +65,7 @@ impl CliArgs {
             opt_level: 0,
             no_verify: false,
             compile_only: false,
+            build_dir: None,
             files: vec![],
         }
     }

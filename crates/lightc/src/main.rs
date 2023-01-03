@@ -1,6 +1,7 @@
 use clap::Parser as Clap;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs, process};
 
@@ -15,22 +16,23 @@ use tych::Tych;
 mod module;
 
 const STDLIB_PATH: &str = "core/";
+const DEFAULT_BUILD_DIR: &str = ".build/";
 
-fn setup_build_env() -> std::io::Result<(PathBuf, PathBuf)> {
-    let root_dir = env::current_dir()?;
-    let mut build_dir = root_dir.clone();
-    build_dir.push(".build");
+fn setup_build_env(args: &CliArgs) -> std::io::Result<(PathBuf, PathBuf)> {
+    let build_dir = match &args.build_dir {
+        Some(dir) => PathBuf::from(dir),
+        None => PathBuf::from(DEFAULT_BUILD_DIR),
+    };
 
-    if build_dir.exists() {
-        fs::remove_dir_all(&build_dir)?;
+    if !build_dir.exists() {
+        fs::create_dir(&build_dir)?;
     }
-    fs::create_dir(&build_dir)?;
 
-    Ok((root_dir, build_dir))
+    Ok((env::current_dir()?, build_dir.canonicalize()?))
 }
 
 // Extract all the object files from the module map and link everything
-fn link(output: &str, module_map: HashMap<String, Module>) {
+fn link(output: &Path, module_map: HashMap<String, Module>) {
     let mut object_files = module_map.into_values().fold(vec![], |mut acc, mut m| {
         acc.push(m.object_file);
         acc.append(&mut m.import_objects);
@@ -51,9 +53,9 @@ fn link(output: &str, module_map: HashMap<String, Module>) {
 }
 
 fn main() {
-    let (root_dir, build_dir) = setup_build_env().expect("Error setting up build environment");
     let args = CliArgs::parse();
-    let mod_path = &[STDLIB_PATH, "scratch/"];
+    let (root_dir, build_dir) = setup_build_env(&args).expect("Error setting up build environment");
+    let mod_path = &[OsString::from(STDLIB_PATH), build_dir.clone().into()];
     let mut symbol_table = SymbolTable::new();
 
     // Lex and parse one file at a time. Merge the resulting tokens and symbols into a
@@ -167,58 +169,78 @@ fn main() {
     }
 
     // Handle various permutations of command line arguments
-    // TODO: Create interfaces and archives whenever `-c` is specified
     match (module_map.len() > 1, args.compile_only, args.output) {
         // Output a.out
         (_, false, None) => {
-            // println!(">>{:?}", module_map.keys());
-            // println!("{:?}", &module_map.clone().into_values().map(|m| m.object_file).collect::<Vec<_>>());
-            link(
-                "a.out",
-                module_map,
-                // &[module_map
-                //     .get("main")
-                //     .expect("Linking error: no `main` module for executable")
-                //     .object_file
-                //     .clone()],
-            );
+            module_map.get("main").expect("Linking error: no `main` module for executable");
+            let binary_out = build_dir.join("a.out");
+            link(&binary_out, module_map);
+            fs::copy(binary_out, root_dir.join("a.out")).expect("Error copying a.out");
         },
         // Output `args.output` exec
-        (_, false, Some(filename)) => {
-            link(&filename, module_map);
+        (_, false, Some(file_name)) => {
+            module_map.get("main").expect("Linking error: no `main` module for executable");
+            let file_name = PathBuf::from(&file_name);
+            let binary_out =
+                build_dir.join(file_name.file_name().expect("Can't find filename for output executable"));
+            link(&binary_out, module_map);
+            fs::copy(binary_out, &file_name).expect(&format!("Error copying to {}", file_name.display()));
         },
         // Copy to `module_name`.o
         (false, true, None) => {
             let mut output_file = root_dir;
             let (module_name, module) = &module_map.drain().collect::<Vec<(String, Module)>>()[0];
             output_file.push(&module_name);
-            fs::copy(module.object_file.clone(), output_file.with_extension("o"))
-                .expect(&format!("Error copying object file: {}", module.object_file.to_string_lossy()));
+            fs::copy(&module.object_file, output_file.with_extension("o"))
+                .expect(&format!("Error copying object file: {}", module.object_file.display()));
 
             // Write interface file
             module.create_interface(&symbol_table).expect("Error creating interface file");
+            fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
+                &format!(
+                    "Error copying interface file: {}",
+                    module.object_file.with_extension("i").display()
+                ),
+            );
         },
         // Copy to `args.output`.o
         (false, true, Some(filename)) => {
             let mut output_file = root_dir;
-            let (_, object_file) = &module_map
-                .drain()
-                .map(|(name, module)| (name, module.object_file))
-                .collect::<Vec<(String, PathBuf)>>()[0];
+            let (_, module) = &module_map.drain().collect::<Vec<(String, Module)>>()[0];
             output_file.push(filename);
-            fs::copy(object_file, output_file.with_extension("o"))
-                .expect(&format!("Error copying object file: {}", object_file.to_string_lossy()));
+            fs::copy(&module.object_file, output_file.with_extension("o"))
+                .expect(&format!("Error copying object file: {}", module.object_file.display()));
+
+            // Write interface file
+            module.create_interface(&symbol_table).expect("Error creating interface file");
+            fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
+                &format!(
+                    "Error copying interface file: {}",
+                    module.object_file.with_extension("i").display()
+                ),
+            );
         },
         // Copy to multiple object files
         (true, true, None) => {
-            for (_, module) in &module_map {
-                fs::copy(module.object_file.clone(), module.object_file.file_name().unwrap())
-                    .expect(&format!("Error copying object file: {}", module.object_file.to_string_lossy()));
+            for (module_name, module) in &module_map {
+                let output_file = root_dir.join(&module_name);
+                fs::copy(module.object_file.clone(), &output_file.with_extension("o"))
+                    .expect(&format!("Error copying object file: {}", module.object_file.display()));
+
+                // Write interface file
+                module.create_interface(&symbol_table).expect("Error creating interface file");
+                fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
+                    &format!(
+                        "Error copying interface file: {}",
+                        module.object_file.with_extension("i").display()
+                    ),
+                );
             }
         },
-        // Output `args.output`.o
-        (true, true, Some(filename)) => {
-            link(&filename, module_map);
+        // Error for now. Could output `args.output`.o and .i
+        (true, true, Some(_)) => {
+            eprintln!("Argument error: Can't specify `-o` and `-c` for multiple modules");
+            process::exit(1);
         },
     };
 }
