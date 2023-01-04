@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 pub use symbol::{AssocData, FnData, StructData, Symbol, VarData};
 
@@ -148,6 +148,24 @@ where
 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T> Display for SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone + Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for (id, table) in &self.tables {
+            if !table.is_empty() {
+                output += &format!("table {}:\n", id);
+                for (name, symbol) in table {
+                    output += &format!("  [{}] {}\n", name, symbol);
+                }
+            }
+        }
+        write!(f, "{}", output)
     }
 }
 

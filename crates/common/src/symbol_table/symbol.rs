@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use super::Symbolic;
 use crate::Type;
@@ -174,5 +175,47 @@ impl Symbolic for Symbol {
             AssocData::Struct(_) => "Struct",
             AssocData::Module(_) => "Module",
         }
+    }
+}
+
+impl Display for Symbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = format!("name: {}, module: {}\n", self.name, self.module);
+        match &self.data {
+            AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern }) => {
+                output += &format!("      [Fn] {}(", fq_name);
+                if !args.is_empty() {
+                    output += &format!("{}: {}", args[0].0, args[0].1);
+                    output += &args[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
+                        acc += &format!(", {}: {}", name, ty);
+                        acc
+                    });
+                };
+                output += &format!(") -> {}, is_extern: {}", ret_ty, is_extern);
+            },
+            AssocData::Var(_) => todo!(),
+            AssocData::Struct(StructData { fields, methods }) => {
+                output += &format!("      [Struct] {{ ");
+                if let Some(fields) = fields {
+                    output += &format!("{}: {}", fields[0].0, fields[0].1);
+                    output += &fields[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
+                        acc += &format!(", {}: {}", name, ty);
+                        acc
+                    });
+                };
+                output += " }";
+                if let Some(methods) = methods {
+                    if !methods.is_empty() {
+                        output += &format!(" | {}()", methods[0]);
+                        output += &methods[1..].iter().fold(String::new(), |mut acc, method| {
+                            acc += &format!(", {}()", method);
+                            acc
+                        });
+                    }
+                }
+            },
+            AssocData::Module(_) => (),
+        }
+        write!(f, "{}", output)
     }
 }
