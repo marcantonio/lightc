@@ -23,12 +23,19 @@ pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
     module: String,
+    current_struct: Option<String>,
     imports: Vec<String>,
 }
 
 impl<'a> Parse<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table, module: String::new(), imports: vec![] }
+        Parse {
+            tokens: tokens.iter().peekable(),
+            symbol_table,
+            module: String::new(),
+            current_struct: None,
+            imports: vec![],
+        }
     }
 
     // Parse each token using recursive descent. Returns the AST, module name, imports,
@@ -67,7 +74,7 @@ impl<'a> Parse<'a> {
         let stmt = match &token.tt {
             For => self.parse_for()?,
             Let => self.parse_let()?,
-            Fn => self.parse_fn(false)?,
+            Fn => self.parse_fn()?,
             Extern => self.parse_extern()?,
             Struct => self.parse_struct()?,
             Use => self.parse_use()?,
@@ -106,26 +113,15 @@ impl<'a> Parse<'a> {
                         }
                     }
 
-                    // Make an entry for each method using a "semi" lowered name. We do
-                    // this here to allow for proper name collision detection in the tych.
+                    // Add method names to struct symbol
                     let mut sym_methods = vec![];
                     for node in methods.iter_mut() {
                         if let ast::Node { kind: ast::node::Kind::Fn { proto, .. } } = node {
-                            let orig_name = proto.name().to_owned();
-                            sym_methods.push(proto.name().to_owned());
-                            let method_name = format!("_{}_{}", name, proto.name());
-                            proto.set_name(method_name);
-
-                            if self
-                                .symbol_table
-                                .insert_with_name(proto.name(), Symbol::from(&*proto))
-                                .is_some()
-                            {
-                                return Err(ParseError::from((
-                                    format!("method `{}` can't be redefined on `{}`", orig_name, name),
-                                    token,
-                                )));
-                            }
+                            // TODO: remove this when `orig_name` becomes part of Prototype
+                            let simple_name = proto.name().split("_").nth(2).unwrap_or_else(|| {
+                                unreachable!("couldn't split prototype name in `parse_struct()`")
+                            });
+                            sym_methods.push(simple_name.to_owned());
                         }
                     }
 
@@ -147,10 +143,12 @@ impl<'a> Parse<'a> {
                     });
                 },
                 TokenType::Fn => {
-                    methods.push(self.parse_fn(true)?);
+                    self.current_struct = Some(name.to_owned());
+                    methods.push(self.parse_fn()?);
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
+                    self.current_struct = None;
                 },
                 tt => {
                     return Err(ParseError::from((
@@ -190,22 +188,37 @@ impl<'a> Parse<'a> {
     }
 
     // FnDecl ::= Prototype Block ;
-    fn parse_fn(&mut self, in_struct: bool) -> ParseResult {
+    fn parse_fn(&mut self) -> ParseResult {
         // Eat 'fn'
         let token = self.tokens.next().unwrap();
 
-        let proto = self.parse_proto(in_struct)?;
+        let mut proto = self.parse_proto()?;
 
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(self.parse_block()?) };
 
         // Create symbol table entry. Use the old name as the key until later
-        // lowering. Skip for struct methods. They are handled elsewhere.
-        if !in_struct && self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
-            // Ignore dups for externs
-            if body.is_some() {
+        // lowering.
+        //
+        // For methods use a "semi" lowered name. We do this here to allow for proper name
+        // collision detection in the tych
+        if let Some(struct_name) = &self.current_struct {
+            let orig_name = proto.name().to_owned();
+            let method_name = format!("_{}_{}", struct_name, proto.name());
+            proto.set_name(method_name);
+
+            if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
                 return Err(ParseError::from((
-                    format!("Function `{}` can't be redefined", proto.name()),
+                    format!("method `{}` can't be redefined on `{}`", orig_name, struct_name),
+                    token,
+                )));
+            }
+        } else {
+            let sym = self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto));
+            // Error on dups. Ignore for externs
+            if sym.is_some() && body.is_some() {
+                return Err(ParseError::from((
+                    format!("function `{}` can't be redefined", proto.name()),
                     token,
                 )));
             }
@@ -224,7 +237,7 @@ impl<'a> Parse<'a> {
             return Err(ParseError::from((String::from("Expecting `fn` after `extern`"), *next.unwrap())));
         }
 
-        self.parse_fn(false)
+        self.parse_fn()
     }
 
     // ModDecl ::= 'module' ident ';' ;
@@ -233,6 +246,7 @@ impl<'a> Parse<'a> {
 
         let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
+        // XXX: needed?
         self.symbol_table.insert_with_name("module", Symbol::new_mod(name));
         self.module = name.to_owned();
 
@@ -521,7 +535,7 @@ impl<'a> Parse<'a> {
     /// Misc productions
 
     // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
-    fn parse_proto(&mut self, in_struct: bool) -> Result<Prototype, ParseError> {
+    fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
         let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting function name in prototype");
 
@@ -591,7 +605,7 @@ impl<'a> Parse<'a> {
             params,
             ret_type.unwrap_or_default(),
             is_extern,
-            in_struct,
+            self.current_struct.is_some(),
             self.module.clone(),
         ))
     }
