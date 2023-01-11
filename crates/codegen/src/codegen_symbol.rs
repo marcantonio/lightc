@@ -1,5 +1,6 @@
 use inkwell::values::PointerValue;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 use crate::Codegen;
 use common::symbol_table::{AssocData, Symbolic};
@@ -72,6 +73,12 @@ impl<'a> From<Symbol> for CodegenSymbol<'a> {
 //         )
 //     }
 // }
+
+impl<'a> Display for CodegenSymbol<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner())
+    }
+}
 
 impl<'ctx> Codegen<'ctx> {
     pub fn convert_table(mut old: SymbolTable<Symbol>) -> Result<SymbolTable<CodegenSymbol<'ctx>>, String> {

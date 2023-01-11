@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 920
+assertion_line: 919
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    fn bar() { self }\n}\n"
@@ -8,13 +8,13 @@ expression: "(test[1], res)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields: []
             methods:
               - kind:
                   Fn:
                     proto:
-                      name: _Foo_bar
+                      name: "_main::Foo_bar"
                       args: []
                       ret_ty: Void
                       is_extern: false
@@ -27,7 +27,7 @@ expression: "(test[1], res)"
                                 Ident:
                                   name: self
                                   ty:
-                                    Comp: Foo
+                                    Comp: "main::Foo"
                           ty:
-                            Comp: Foo
+                            Comp: "main::Foo"
 

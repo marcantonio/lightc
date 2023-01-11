@@ -96,6 +96,8 @@ impl<'a> Parse<'a> {
         let (name, token) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
 
+        let full_name = format!("{}::{}", self.module, name);
+
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start struct block");
 
         let mut fields = vec![];
@@ -128,13 +130,13 @@ impl<'a> Parse<'a> {
                     // Insert struct into symbol table
                     if self
                         .symbol_table
-                        .insert(Symbol::new_struct(name, Some(&sym_fields), Some(&sym_methods), &self.module))
+                        .insert(Symbol::new_struct(&full_name, Some(&sym_fields), Some(&sym_methods), &self.module))
                         .is_some()
                     {
-                        return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
+                        return Err(ParseError::from((format!("struct `{}` already defined", full_name), token)));
                     }
 
-                    return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
+                    return Ok(ast::Node::new_struct(full_name, fields, methods));
                 },
                 TokenType::Let => {
                     fields.push(self.parse_let()?);
@@ -143,7 +145,7 @@ impl<'a> Parse<'a> {
                     });
                 },
                 TokenType::Fn => {
-                    self.current_struct = Some(name.to_owned());
+                    self.current_struct = Some(full_name.to_owned());
                     methods.push(self.parse_fn()?);
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon

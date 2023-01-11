@@ -158,7 +158,7 @@ fn main() {
             }
             println!();
         }
-
+// XXX if we do this as a separate step, can we eliminate reading the symbol table in the hir?
         // Codegen
         let object_file =
             Codegen::run(hir, &module_name, symbol_table.clone(), build_dir.clone(), &args, false)

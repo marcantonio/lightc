@@ -1,6 +1,6 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 228
+assertion_line: 226
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let x: Foo\n}\nstruct Foo {\n    let a: int\n    let b: bool\n}\nstruct Bar {\n    let a: Foo\n}\n"
@@ -22,7 +22,7 @@ expression: "(test[1], res)"
                         Let:
                           name: x
                           antn:
-                            Comp: Foo
+                            Comp: "main::Foo"
                           init:
                             kind:
                               Lit:
@@ -39,20 +39,20 @@ expression: "(test[1], res)"
                                             Bool: false
                                           ty: Bool
                                 ty:
-                                  Comp: Foo
+                                  Comp: "main::Foo"
                   ty: Void
     structs:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             field_tys:
               - Int32
               - Bool
       - kind:
           Struct:
-            name: Bar
+            name: "main::Bar"
             field_tys:
-              - Comp: Foo
+              - Comp: "main::Foo"
     prototypes:
       - name: main
         args: []

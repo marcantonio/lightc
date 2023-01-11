@@ -38,7 +38,7 @@ impl<'a> Lower<'a> {
             .collect::<Result<Vec<_>, String>>()?;
 
         // Add globals nodes to the right place in the HIR. Make sure struct methods live
-        // at the top of the tree after lowering
+        // at the top of the tree after lowering XXX: Why?
         nodes.into_iter().chain(self.struct_methods).for_each(|node| match node.kind {
             hir::node::Kind::Struct { .. } => hir.add_struct(node),
             hir::node::Kind::Fn { ref proto, .. } => {
@@ -108,7 +108,7 @@ impl<'a> Lower<'a> {
             Comp(name) => {
                 let sym = self
                     .symbol_table
-                    .get(name)
+                    .resolve_symbol(name, &self.module)
                     .cloned()
                     .unwrap_or_else(|| unreachable!("missing symbol for `{}` in `init_null()`", name));
                 let initializers = if let Some(fields) = sym.fields() {

@@ -97,7 +97,8 @@ impl Symbol {
 
     pub fn fq_name(&self) -> Option<&str> {
         match &self.data {
-            AssocData::Fn(s) => Some(&s.fq_name),
+            AssocData::Fn(data) => Some(&data.fq_name),
+            AssocData::Struct(_) => Some(&self.name),
             _ => None,
         }
     }
@@ -180,10 +181,10 @@ impl Symbolic for Symbol {
 
 impl Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut output = format!("name: {}, module: {}\n", self.name, self.module);
+        let mut output = format!("name: {}, module: {}", self.name, self.module);
         match &self.data {
             AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern }) => {
-                output += &format!("      [Fn] {}(", fq_name);
+                output += &format!("\n      [Fn] {}(", fq_name);
                 if !args.is_empty() {
                     output += &format!("{}: {}", args[0].0, args[0].1);
                     output += &args[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
@@ -193,15 +194,17 @@ impl Display for Symbol {
                 };
                 output += &format!(") -> {}, is_extern: {}", ret_ty, is_extern);
             },
-            AssocData::Var(_) => todo!(),
+            AssocData::Var(VarData { ty }) => output += &format!("\n      [Var] type: {}", ty),
             AssocData::Struct(StructData { fields, methods }) => {
-                output += &format!("      [Struct] {{ ");
+                output += &format!("\n      [Struct] {{ ");
                 if let Some(fields) = fields {
-                    output += &format!("{}: {}", fields[0].0, fields[0].1);
-                    output += &fields[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
-                        acc += &format!(", {}: {}", name, ty);
-                        acc
-                    });
+                    if !fields.is_empty() {
+                        output += &format!("{}: {}", fields[0].0, fields[0].1);
+                        output += &fields[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
+                            acc += &format!(", {}: {}", name, ty);
+                            acc
+                        });
+                    }
                 };
                 output += " }";
                 if let Some(methods) = methods {

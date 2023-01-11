@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 375
+assertion_line: 360
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nstruct Foo {\n    let a: int\n    let b: float = 1.0\n}\n"
@@ -8,7 +8,7 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields:
               - kind:
                   Let:
@@ -26,5 +26,5 @@ expression: "(test[1], ast, ast_string)"
                             Float: 1.0
                           ty: ~
             methods: []
-- "(struct Foo '((let a:int32) (let b:float 1)) '())"
+- "(struct main::Foo '((let a:int32) (let b:float 1)) '())"
 

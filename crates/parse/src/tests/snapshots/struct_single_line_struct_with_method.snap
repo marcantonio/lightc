@@ -8,13 +8,13 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields: []
             methods:
               - kind:
                   Fn:
                     proto:
-                      name: _Foo_foo
+                      name: "_main::Foo_foo"
                       args: []
                       ret_ty: Void
                       is_extern: false
@@ -24,5 +24,5 @@ expression: "(test[1], ast, ast_string)"
                         Block:
                           list: []
                           ty: ~
-- "(struct Foo '() '((define (_Foo_foo) '()))))"
+- "(struct main::Foo '() '((define (_main::Foo_foo) '()))))"
 

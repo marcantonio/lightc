@@ -365,6 +365,29 @@ fn main() { }
 fn main() -> int { }
 "#,
         ],
+        [
+            "proto_comp_params_cooked",
+            r#"
+struct Foo {
+    let a: int
+}
+fn cook(f: Foo, fp: Foo) -> Foo {
+    let a: Foo
+    a
+}
+fn main() {
+    let f: Foo
+    let fp: Foo
+    cook(f, fp)
+    cook_more(f, fp)
+}
+fn cook_more(f: Foo, fp: Foo) -> Foo {
+    let a: Foo
+    a
+}
+"#,
+        ],
+
     ];
     run_insta!("def_func", tests);
 }

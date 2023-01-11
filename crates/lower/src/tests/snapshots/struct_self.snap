@@ -9,10 +9,10 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: _Foo_b~int32
+              name: "_main::Foo_b~int32"
               args:
                 - - self
-                  - Comp: Foo
+                  - Comp: "main::Foo"
               ret_ty: Int32
               is_extern: false
               module: main
@@ -31,7 +31,7 @@ expression: "(test[1], res)"
                                     Ident:
                                       name: self
                                       ty:
-                                        Comp: Foo
+                                        Comp: "main::Foo"
                                 idx: 0
                                 ty: Int32
                           rhs:
@@ -45,14 +45,14 @@ expression: "(test[1], res)"
     structs:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             field_tys:
               - Int32
     prototypes:
-      - name: _Foo_b~int32
+      - name: "_main::Foo_b~int32"
         args:
           - - self
-            - Comp: Foo
+            - Comp: "main::Foo"
         ret_ty: Int32
         is_extern: false
         module: main

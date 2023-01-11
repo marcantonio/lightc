@@ -14,17 +14,6 @@ use serial_test::serial;
 | yes       | no           | yes          | `-o` exec   |
 | yes       | yes          | no           | multiple .o |
 | yes       | yes          | yes          | `-o` .o     |
-
-//onemod_exec_nooutspec
-//onemod_exec_outspec
-//onemod_obj_nooutspec
-//onemod_obj_outspec
-//multimod_exec_nooutspec
-//multimod_exec_outspec
-multimod_obj_nooutspec
-multimod_obj_outspec
-
-extern mods
 */
 
 #[test]

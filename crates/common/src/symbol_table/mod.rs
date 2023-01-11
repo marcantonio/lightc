@@ -21,7 +21,7 @@ pub struct SymbolTable<T: Symbolic + Ord> {
 
 impl<T> SymbolTable<T>
 where
-    T: Symbolic + Ord + Clone,
+    T: Symbolic + Ord + Clone + Display,
 {
     pub fn new() -> Self {
         SymbolTable::with_table(HashMap::new())
@@ -51,6 +51,14 @@ where
             .insert(name.to_owned(), sym)
     }
 
+    // XXX: needed?
+    pub fn insert_global_with_name(&mut self, name: &str, sym: T) -> Option<T> {
+        self.tables
+            .get_mut(&0)
+            .unwrap_or_else(|| unreachable!("no global scope in `insert_global_with_name()`"))
+            .insert(name.to_owned(), sym)
+    }
+
     pub fn get(&self, name: &str) -> Option<&T> {
         let mut sym = None;
         for depth in (0..=self.scope_depth).rev() {
@@ -70,6 +78,18 @@ where
             }
         }
         sym
+    }
+
+    // Try to resolve first the simple name (as for externs), then the fully qualified
+    // name
+    pub fn resolve_symbol(&self, name: &str, module_name: &str) -> Option<&T> {
+        let names = &[name, &format!("{}::{}", module_name, name)];
+        for name in names {
+            if let Some(sym) = self.get(name) {
+                return Some(sym);
+            }
+        }
+        None
     }
 
     pub fn enter_scope(&mut self) -> u32 {
@@ -112,11 +132,27 @@ where
             .unwrap_or_else(|| unreachable!("No global scope in `export_symbols()`"))
             .values()
             // TODO: limit this to exportables
-            .filter(|sym| sym.name().starts_with("_"))
+            .filter(|sym| {
+                println!("{}", sym);
+                //sym.name().starts_with("_")
+                sym.name().contains("::")//XXX
+            })
             .collect::<Vec<_>>();
         symbols.sort();
         symbols.dedup();
         symbols
+    }
+
+    pub fn filter<P>(&self, predicate: P) -> Vec<&T>
+    where
+        P: FnMut(&&T) -> bool,
+    {
+        self.tables
+            .get(&0)
+            .unwrap_or_else(|| unreachable!("No global scope in `filter()`"))
+            .values()
+            .filter(predicate)
+            .collect()
     }
 
     pub fn types(&self) -> Vec<String> {
@@ -144,7 +180,7 @@ where
 
 impl<T> Default for SymbolTable<T>
 where
-    T: Symbolic + Ord + Clone,
+    T: Symbolic + Ord + Clone + Display,
 {
     fn default() -> Self {
         Self::new()

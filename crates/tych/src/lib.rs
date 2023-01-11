@@ -28,6 +28,7 @@ pub struct Tych<'a> {
 
 impl<'a> Tych<'a> {
     pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        // XXX: see resolve_type()
         let mut types = Type::dump_types();
         types.append(&mut symbol_table.types());
         Tych { module: module.to_owned(), symbol_table, types, hint: None, current_struct: None }
@@ -105,8 +106,22 @@ impl<'a> Tych<'a> {
         }
     }
 
-    fn is_valid_type(&self, ty: &Type) -> bool {
-        self.types.contains(&ty.to_string()) || ty.to_string().starts_with("sarray")
+    // XXX: why check self.types for primitives?
+    fn resolve_type(&self, ty: &Type) -> Option<Type> {
+        if let Type::SArray(_, _) = ty {
+            return Some(ty.to_owned());
+        }
+
+        let types = [ty.to_string(), format!("{}::{}", self.module, ty.to_string())];
+        for ty_str in types {
+            if self.types.contains(&ty_str) {
+                if let Type::Comp(_) = ty {
+                    return Some(Type::Comp(ty_str));
+                }
+                return Some(ty.to_owned());
+            }
+        }
+        None
     }
 
     // Helper to get composite name and symbol for selector checking
@@ -116,21 +131,11 @@ impl<'a> Tych<'a> {
             Some(ty) => return Err(format!("Attempt to use selector on non-composite type: {}", ty)),
             None => unreachable!("no type for for selector target in tych"),
         };
-        let comp_sym =
-            self.symbol_table.get(comp_name).ok_or(format!("Unknown composite type: `{}`", comp_name))?;
+        let comp_sym = self
+            .symbol_table
+            .resolve_symbol(&comp_name, &self.module)
+            .ok_or(format!("Unknown composite type: `{}`", comp_name))?;
         Ok(comp_sym)
-    }
-
-    // Try to resolve first the simple name (as for externs), then the fully qualified
-    // name
-    fn resolve_symbol(&'a self, name: &str) -> Option<Symbol> {
-        let names = &[name, &format!("{}::{}", self.module, name)];
-        for name in names {
-            if let Some(sym) = self.symbol_table.get(&name) {
-                return Some(sym.clone());
-            }
-        }
-        None
     }
 }
 
@@ -153,9 +158,10 @@ impl<'a> ast::Visitor for Tych<'a> {
         let start_expr =
             self.check_var_init(&start_name, start_expr.as_ref(), &start_antn, "for statement")?;
 
-        if !self.is_valid_type(&start_antn) {
-            return Err(format!("Unknown type for start declaration in for loop: `{}`", start_antn));
-        }
+        let start_antn = match self.resolve_type(&start_antn) {
+            Some(ty) => ty,
+            None => return Err(format!("Unknown type for start declaration in for loop: `{}`", start_antn)),
+        };
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
@@ -183,9 +189,10 @@ impl<'a> ast::Visitor for Tych<'a> {
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
-        if !self.is_valid_type(&antn) {
-            return Err(format!("Unknown type in let declaration: `{}`", antn));
-        }
+        let antn = match self.resolve_type(&antn) {
+            Some(ty) => ty,
+            None => return Err(format!("Unknown type in let declaration: `{}`", antn)),
+        };
 
         // Don't process initization values for struct fields
         let init_node = if self.current_struct.is_none() {
@@ -208,13 +215,16 @@ impl<'a> ast::Visitor for Tych<'a> {
             None => unreachable!("missing symbol table entry for function: `{}`", proto.name()),
         };
 
-        if !self.is_valid_type(proto.ret_ty()) {
-            return Err(format!(
-                "Unknown return type in prototype for `{}`: `{}`",
-                proto.name(),
-                proto.ret_ty()
-            ));
-        }
+        let ret_ty = match self.resolve_type(proto.ret_ty()) {
+            Some(ty) => ty,
+            None => {
+                return Err(format!(
+                    "Unknown return type in prototype for `{}`: `{}`",
+                    proto.name(),
+                    proto.ret_ty()
+                ))
+            },
+        };
 
         // If body is None, this is an extern and no checking is needed
         let body = match body {
@@ -231,32 +241,40 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
 
         // Insert args into the local scope table
+        let mut resolved_args = vec![];
         for arg in proto.args() {
-            if !self.is_valid_type(&arg.1) {
-                return Err(format!("Unknown argument type in prototype for `{}`: `{}`", arg.0, arg.1));
-            }
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
+            let arg_ty = match self.resolve_type(&arg.1) {
+                Some(ty) => ty,
+                None => {
+                    return Err(format!(
+                        "Unknown argument type in prototype `{}` for `{}`: `{}`",
+                        proto.name(),
+                        arg.0,
+                        arg.1
+                    ))
+                },
+            };
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg_ty, &self.module));
+            resolved_args.push((arg.0.clone(), arg_ty));
         }
+        proto.set_args(resolved_args);
 
         let body_node = self.check_node(body, None)?;
         let body_ty = body_node.ty().unwrap_or_default();
 
         // Make sure these are in sync since there's no `check_proto()`
         if proto.name() == "main" {
-            if proto.ret_ty() != &Type::Void {
-                return Err(format!(
-                    "main()'s return value shouldn't be annotated. Found `{}`",
-                    proto.ret_ty()
-                ));
+            if ret_ty != Type::Void {
+                return Err(format!("main()'s return value shouldn't be annotated. Found `{}`", ret_ty));
             }
             proto.set_ret_ty(Type::Void);
         } else {
-            proto.set_ret_ty(fn_entry.ret_ty().to_owned());
+            proto.set_ret_ty(ret_ty.clone());
         }
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if fn_entry.ret_ty() != body_ty && fn_entry.ret_ty() != &Type::Void && proto.name() != "main" {
+        if &ret_ty != body_ty && ret_ty != Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
                 proto.name(),
@@ -266,6 +284,9 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
 
         self.symbol_table.leave_scope();
+
+        // XXX
+        self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto));
 
         Ok(ast::Node::new_fn(proto, Some(body_node)))
     }
@@ -284,6 +305,32 @@ impl<'a> ast::Visitor for Tych<'a> {
         let chkd_methods =
             methods.iter().map(|n| self.check_node(n.clone(), None)).collect::<Result<Vec<_>, String>>()?;
         self.current_struct = None;
+
+        // Create a new symbol for the struct from the checked nodes. We do this to update
+        // the symbol table with the fully resolved type names
+        let mut sym_fields = vec![];
+        for node in &chkd_fields {
+            if let ast::Node { kind: ast::node::Kind::Let { name, antn, .. } } = node {
+                sym_fields.push((name.to_owned(), antn.to_string()));
+            }
+        }
+        let methods: Vec<_> = self
+            .symbol_table
+            .get(&name)
+            .unwrap_or_else(|| unreachable!("missing symbol table entry for `{}` in `visit_struct()`", name))
+            .methods()
+            .unwrap_or_else(|| {
+                unreachable!("missing struct symbol methods for `{}` in `visit_struct()`", name)
+            })
+            .into_iter()
+            .map(|m| m.to_owned())
+            .collect();
+        self.symbol_table.insert(Symbol::new_struct(
+            &name,
+            Some(&sym_fields),
+            Some(methods.as_slice()),
+            &self.module,
+        ));
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
@@ -333,7 +380,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                 Bool(v) => (Bool(v), Type::Bool),
                 Char(v) => (Char(v), Type::Char),
                 Array { .. } => self.check_lit_array(lit, Some(hint.clone()))?,
-                Comp(_) => unreachable!("Composite types don't exist in the tych"),
+                Comp(_) => unreachable!("composite types don't exist in the tych"),
             },
             None => match lit {
                 Int32(v) => (Int32(v), Type::Int32), // Only used for main's return value
@@ -473,8 +520,11 @@ impl<'a> ast::Visitor for Tych<'a> {
     // XXX: I think we have this now with `fq_name`
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, _ty: Option<Type>) -> Self::Result {
         // Pull the function for the call from the table
-        let fn_entry =
-            self.resolve_symbol(&name).ok_or(format!("Call to undefined function: `{}`", name))?.clone();
+        let fn_entry = self
+            .symbol_table
+            .resolve_symbol(&name, &self.module)
+            .ok_or(format!("Call to undefined function: `{}`", name))?
+            .clone();
 
         // Now that we have the FQN, use it in the AST
         let name = fn_entry
@@ -495,9 +545,14 @@ impl<'a> ast::Visitor for Tych<'a> {
             ));
         }
 
+        // Resolve the call's return type.
+        let ret_ty = match self.resolve_type(fn_entry.ret_ty()) {
+            Some(ty) => ty,
+            None => unreachable!("unknown return type in `visit_call()`"),
+        };
+
         // Check all args and record their types. Use the function entry arg types as type
         // hints.
-        let ret_ty = fn_entry.ret_ty();
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
@@ -508,12 +563,17 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
-            if *fa_ty != &ca_ty {
+            // Resolve param type first
+            let fp_ty = match self.resolve_type(&fa_ty) {
+                Some(ty) => ty,
+                None => unreachable!("bad arg type in `visit_call()`"),
+            };
+            if fp_ty != ca_ty {
                 Err(format!(
                     "Type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
                     idx + 1,
                     name,
-                    fa_ty,
+                    fp_ty,
                     ca_ty
                 ))
             } else {
@@ -521,7 +581,7 @@ impl<'a> ast::Visitor for Tych<'a> {
             }
         })?;
 
-        Ok(ast::Node::new_call(name, chkd_args, Some(ret_ty.clone())))
+        Ok(ast::Node::new_call(name, chkd_args, Some(ret_ty)))
     }
 
     fn visit_cond(
@@ -601,6 +661,11 @@ impl<'a> ast::Visitor for Tych<'a> {
             .ok_or(format!("composite `{}` has no field: `{}`", comp_sym.name, field))?
             .1
             .into();
+
+        let field_ty = match self.resolve_type(&field_ty) {
+            Some(ty) => ty,
+            None => unreachable!("bad field selector type in `visit_fselector()`"),
+        };
 
         Ok(ast::Node::new_fselector(chkd_comp, field, Some(field_ty)))
     }
