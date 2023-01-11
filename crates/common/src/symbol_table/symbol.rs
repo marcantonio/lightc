@@ -36,11 +36,13 @@ pub struct Symbol {
     pub name: String,
     pub data: AssocData,
     pub module: String,
+    pub is_exportable: bool,
 }
 
 impl Symbol {
     pub fn new_fn(
         name: &str, fq_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
+        is_exportable: bool,
     ) -> Self {
         Symbol {
             name: name.to_owned(),
@@ -51,6 +53,7 @@ impl Symbol {
                 is_extern,
             }),
             module: module.to_owned(),
+            is_exportable,
         }
     }
 
@@ -59,11 +62,13 @@ impl Symbol {
             name: name.to_owned(),
             data: AssocData::Var(VarData { ty: ty.to_owned() }),
             module: module.to_owned(),
+            is_exportable: false,
         }
     }
 
     pub fn new_struct(
         name: &str, fields: Option<&[(String, String)]>, methods: Option<&[String]>, module: &str,
+        is_exportable: bool,
     ) -> Self {
         Symbol {
             name: name.to_owned(),
@@ -72,6 +77,7 @@ impl Symbol {
                 methods: methods.map(|x| x.to_vec()),
             }),
             module: module.to_owned(),
+            is_exportable,
         }
     }
 
@@ -81,6 +87,7 @@ impl Symbol {
             name: String::from("module"),
             data: AssocData::Module(name.to_owned()),
             module: name.to_owned(), // XXX
+            is_exportable: false,
         }
     }
 
@@ -177,11 +184,16 @@ impl Symbolic for Symbol {
             AssocData::Module(_) => "Module",
         }
     }
+
+    fn is_exportable(&self) -> bool {
+        self.is_exportable
+    }
 }
 
 impl Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut output = format!("name: {}, module: {}", self.name, self.module);
+        let mut output =
+            format!("name: {}, module: {}, exportable: {}", self.name, self.module, self.is_exportable);
         match &self.data {
             AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern }) => {
                 output += &format!("\n      [Fn] {}(", fq_name);

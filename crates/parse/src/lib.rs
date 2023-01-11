@@ -130,10 +130,19 @@ impl<'a> Parse<'a> {
                     // Insert struct into symbol table
                     if self
                         .symbol_table
-                        .insert(Symbol::new_struct(&full_name, Some(&sym_fields), Some(&sym_methods), &self.module))
+                        .insert(Symbol::new_struct(
+                            &full_name,
+                            Some(&sym_fields),
+                            Some(&sym_methods),
+                            &self.module,
+                            true,
+                        ))
                         .is_some()
                     {
-                        return Err(ParseError::from((format!("struct `{}` already defined", full_name), token)));
+                        return Err(ParseError::from((
+                            format!("struct `{}` already defined", full_name),
+                            token,
+                        )));
                     }
 
                     return Ok(ast::Node::new_struct(full_name, fields, methods));

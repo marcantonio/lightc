@@ -131,12 +131,7 @@ where
             .get(&0)
             .unwrap_or_else(|| unreachable!("No global scope in `export_symbols()`"))
             .values()
-            // TODO: limit this to exportables
-            .filter(|sym| {
-                println!("{}", sym);
-                //sym.name().starts_with("_")
-                sym.name().contains("::")//XXX
-            })
+            .filter(|sym| sym.is_exportable())
             .collect::<Vec<_>>();
         symbols.sort();
         symbols.dedup();
@@ -208,6 +203,7 @@ where
 pub trait Symbolic {
     fn name(&self) -> &str;
     fn kind(&self) -> &str;
+    fn is_exportable(&self) -> bool;
 }
 
 #[cfg(test)]

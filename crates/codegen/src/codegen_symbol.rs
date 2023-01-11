@@ -51,6 +51,10 @@ impl<'a> Symbolic for CodegenSymbol<'a> {
             AssocData::Module(_) => "Module",
         }
     }
+
+    fn is_exportable(&self) -> bool {
+        self.inner.is_exportable
+    }
 }
 
 impl<'a> From<Symbol> for CodegenSymbol<'a> {

@@ -51,6 +51,7 @@ impl Module {
             })
             .collect::<Result<Vec<_>, String>>()?;
 
+        // TODO: Add a versioned API for serialized symbols
         let output =
             bincode::serialize(&symbols).map_err(|err| format!("error serializing symbols: {}", err))?;
 

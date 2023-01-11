@@ -330,6 +330,7 @@ impl<'a> ast::Visitor for Tych<'a> {
             Some(&sym_fields),
             Some(methods.as_slice()),
             &self.module,
+            true,
         ));
 
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
