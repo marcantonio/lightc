@@ -185,6 +185,7 @@ fn printDot() {
     putchar(10)
 }
 fn main() {
+    let foo: a::Foo
     printDot()
     a::printBang()
 }
@@ -199,6 +200,10 @@ extern fn putchar(x: int)
 fn printBang() {
     putchar(33)
     putchar(10)
+}
+struct Foo {
+    let a: int
+    fn some() {}
 }
 "#,
     )?;
@@ -238,6 +243,7 @@ fn printDot() {
     putchar(10)
 }
 fn main() {
+    let foo: a::Foo
     printDot()
     a::printBang()
 }
@@ -252,6 +258,10 @@ extern fn putchar(x: int)
 fn printBang() {
     putchar(33)
     putchar(10)
+}
+struct Foo {
+    let a: int
+    fn some() {}
 }
 "#,
     )?;
@@ -388,6 +398,7 @@ fn printDot() {
     putchar(10)
 }
 fn main() {
+    let foo: a::Foo
     printDot()
     a::printBang()
 }
@@ -402,6 +413,10 @@ extern fn putchar(x: int)
 fn printBang() {
     putchar(33)
     putchar(10)
+}
+struct Foo {
+    let a: int
+    fn some() {}
 }
 "#,
     )?;
