@@ -5,7 +5,7 @@ expression: "(test[1], res)"
 ---
 - "\nfn returnStruct() -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let x: Foo\n    x.a\n    returnStruct().a\n    let b: Bar\n    b.foo.b()\n    b.foo.a\n}\nstruct Foo {\n    let a: int\n    fn b() {}\n}\nstruct Bar {\n    let foo: Foo\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -170,17 +170,6 @@ expression: "(test[1], res)"
                 Block:
                   list: []
                   ty: Void
-    structs:
-      - kind:
-          Struct:
-            name: "main::Foo"
-            field_tys:
-              - Int32
-      - kind:
-          Struct:
-            name: "main::Bar"
-            field_tys:
-              - Comp: "main::Foo"
     prototypes:
       - name: "_main::returnStruct~main::Foo"
         args: []

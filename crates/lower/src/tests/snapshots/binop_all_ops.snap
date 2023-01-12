@@ -1,11 +1,11 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 49
+assertion_line: 47
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let y: int\n    y += 1\n    y -= 1\n    y *= 1\n    y /= 1\n    y <= 1\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -144,7 +144,6 @@ expression: "(test[1], res)"
                                 ty: Int32
                           ty: Bool
                   ty: Bool
-    structs: []
     prototypes:
       - name: main
         args: []

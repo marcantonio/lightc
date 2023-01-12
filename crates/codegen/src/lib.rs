@@ -149,10 +149,10 @@ impl<'ctx> Codegen<'ctx> {
 
     // Iterate over all nodes and codegen
     pub fn walk(&mut self, hir: Hir<hir::Node>) -> Result<(), String> {
-        let (structs, functions, prototypes) = hir.into_components();
+        let (functions, prototypes) = hir.into_components();
 
         // Do structs first so all types are complete
-        self.codegen_all_structs(structs)?;
+        self.codegen_all_structs()?;
 
         // Do prototypes next so declaration order doesn't matter
         self.codegen_all_prototypes(prototypes)?;
@@ -171,8 +171,7 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // Codegen all structs to ensure that declaration order doesn't matter
-    // XXX
-    fn codegen_all_structs(&self, _structs: Vec<hir::Node>) -> Result<(), String> {
+    fn codegen_all_structs(&self) -> Result<(), String> {
         let structs = self.symbol_table.filter(|sym| sym.kind() == "Struct");
         let struct_parts = structs
             .iter()

@@ -5,7 +5,7 @@ expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    let a: int\n    fn b() -> int { self.a + 1 }\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -42,12 +42,6 @@ expression: "(test[1], res)"
                                 ty: Int32
                           ty: Int32
                   ty: Int32
-    structs:
-      - kind:
-          Struct:
-            name: "main::Foo"
-            field_tys:
-              - Int32
     prototypes:
       - name: "_main::Foo_b~int32"
         args:

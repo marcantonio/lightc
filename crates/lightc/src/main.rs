@@ -94,7 +94,7 @@ fn main() {
     if args.show_tokens {
         println!("Tokens:");
         module_map.iter().for_each(|(name, module)| {
-            println!(" module: {:?}", name);
+            println!(" module: {}", name);
             module.tokens.iter().for_each(|t| println!("  {}", t));
         });
         println!();
@@ -103,7 +103,7 @@ fn main() {
     if args.show_ast {
         println!("AST:");
         module_map.iter().for_each(|(name, module)| {
-            println!(" module: {:?}", name);
+            println!(" module: {}", name);
             module.ast.nodes().iter().for_each(|n| println!("  {}", n));
         });
         println!();
@@ -143,13 +143,9 @@ fn main() {
         if args.show_hir {
             println!("HIR:");
             println!(" module: {:?}", module_name);
-            println!("  structs:");
-            for node in hir.structs() {
-                println!("   {}", node);
-            }
             println!();
-            println!("  functions:");
-            for node in hir.functions() {
+            println!("  nodes:");
+            for node in hir.nodes() {
                 println!("   {}", node);
             }
             println!();

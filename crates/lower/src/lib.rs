@@ -16,17 +16,18 @@ mod tests;
 // - initializes uninitialized variables
 // - drops field information from structs
 // - inserts let statements to support field/method chaining
+// - inserts imported functions into the HIR
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
-    import_symbols: Vec<Symbol>,
+    imported_functions: Vec<Symbol>,
     module: String,
 }
 
 impl<'a> Lower<'a> {
     pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table, struct_methods: vec![], import_symbols: vec![], module: module.to_owned() }
+        Lower { symbol_table, struct_methods: vec![], imported_functions: vec![], module: module.to_owned() }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
@@ -37,20 +38,19 @@ impl<'a> Lower<'a> {
             .map(|node| node.accept(&mut self))
             .collect::<Result<Vec<_>, String>>()?;
 
-        // Add globals nodes to the right place in the HIR. Make sure struct methods live
-        // at the top of the tree after lowering XXX: Why?
+        // Add globals nodes to the right place in the HIR
         nodes.into_iter().chain(self.struct_methods).for_each(|node| match node.kind {
-            hir::node::Kind::Struct { .. } => hir.add_struct(node),
             hir::node::Kind::Fn { ref proto, .. } => {
                 hir.add_prototype(proto.clone());
-                hir.add_function(node);
+                hir.add_node(node);
             },
+            // TODO: Eliminate these from the HIR
+            hir::node::Kind::Struct { .. } => (),
             _ => unreachable!("invalid node kind at global level"),
         });
 
-        // XXX: abstract
-        // XXX: this could maybe move to visit_call unless structs block it
-        for symbol in self.import_symbols {
+        // Inject imported functions into the HIR
+        for symbol in self.imported_functions {
             hir.add_prototype(Prototype::from(symbol))
         }
 
@@ -308,7 +308,7 @@ impl<'a> ast::Visitor for Lower<'a> {
 
         // Make a list of all imported functions
         if sym.is_import(&self.module) {
-            self.import_symbols.push(sym.clone())
+            self.imported_functions.push(sym.clone())
         }
 
         let mut lowered_args = vec![];

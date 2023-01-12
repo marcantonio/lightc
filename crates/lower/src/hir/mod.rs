@@ -7,42 +7,33 @@ pub mod node;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Hir<T: VisitableNode> {
-    functions: Vec<T>,
-    structs: Vec<T>,
+    nodes: Vec<T>,
     prototypes: Vec<Prototype>,
 }
 
 impl<T: VisitableNode> Hir<T> {
     pub fn new() -> Self {
-        Hir { functions: vec![], structs: vec![], prototypes: vec![] }
+        Hir { nodes: vec![], prototypes: vec![] }
     }
 
-    pub fn add_struct(&mut self, node: T) {
-        self.structs.push(node)
-    }
-
-    pub fn add_function(&mut self, node: T) {
-        self.functions.push(node);
+    pub fn add_node(&mut self, node: T) {
+        self.nodes.push(node);
     }
 
     pub fn add_prototype(&mut self, proto: Prototype) {
         self.prototypes.push(proto);
     }
 
-    pub fn into_components(self) -> (Vec<T>, Vec<T>, Vec<Prototype>) {
-        (self.structs, self.functions, self.prototypes)
+    pub fn into_components(self) -> (Vec<T>, Vec<Prototype>) {
+        (self.nodes, self.prototypes)
     }
 
-    pub fn functions(&self) -> &[T] {
-        &self.functions
+    pub fn nodes(&self) -> &[T] {
+        &self.nodes
     }
 
     pub fn prototypes(&self) -> &[Prototype] {
         &self.prototypes
-    }
-
-    pub fn structs(&self) -> &[T] {
-        &self.structs
     }
 }
 

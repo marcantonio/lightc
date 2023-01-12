@@ -1,11 +1,11 @@
 ---
 source: crates/lower/src/tests.rs
-assertion_line: 49
+assertion_line: 47
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let x: int = 1\n    let y: bool = x <= 3\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -49,7 +49,6 @@ expression: "(test[1], res)"
                                       ty: Int32
                                 ty: Bool
                   ty: Void
-    structs: []
     prototypes:
       - name: main
         args: []

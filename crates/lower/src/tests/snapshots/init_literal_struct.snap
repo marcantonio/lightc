@@ -5,7 +5,7 @@ expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    let x: Foo\n}\nstruct Foo {\n    let a: int\n    let b: bool\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -41,13 +41,6 @@ expression: "(test[1], res)"
                                 ty:
                                   Comp: "main::Foo"
                   ty: Void
-    structs:
-      - kind:
-          Struct:
-            name: "main::Foo"
-            field_tys:
-              - Int32
-              - Bool
     prototypes:
       - name: main
         args: []

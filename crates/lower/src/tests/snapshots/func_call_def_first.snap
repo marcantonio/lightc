@@ -5,7 +5,7 @@ expression: "(test[1], res)"
 ---
 - "\nfn foo() {}\n\nfn main() {\n    foo()\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
@@ -37,7 +37,6 @@ expression: "(test[1], res)"
                           args: []
                           ty: Void
                   ty: Void
-    structs: []
     prototypes:
       - name: "_main::foo~void"
         args: []

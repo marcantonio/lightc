@@ -65,7 +65,9 @@ impl Module {
     }
 
     // Read the interface files in `library_path` for each external import. Each should be
-    // named `import`.i
+    // named `import`.i. Inserts imported symbols into the symbol table
+    //
+    // Also locates needed object files
     pub fn resolve_imports(
         &mut self, available: &[String], mod_pathes: &[OsString], symbol_table: &mut SymbolTable<Symbol>,
     ) -> Result<(), String> {
