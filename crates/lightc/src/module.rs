@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -14,7 +15,7 @@ pub struct Module {
     pub tokens: Vec<Token>,
     pub ast: Ast<ast::Node>,
     pub object_file: PathBuf,
-    pub imports: Vec<String>,
+    pub imports: HashSet<String>,
     pub import_objects: Vec<PathBuf>,
 }
 
@@ -26,7 +27,7 @@ impl Module {
             tokens: vec![],
             ast: Ast::new(),
             object_file: PathBuf::new(),
-            imports: vec![],
+            imports: HashSet::new(),
             import_objects: vec![],
         }
     }

@@ -559,3 +559,85 @@ fn printBang() {
         .stderr(predicate::str::contains("Linking error: no `main` module for executable"));
     Ok(())
 }
+
+#[test]
+#[serial]
+fn dup_imports_and_circular_modules() -> Result<(), Box<dyn std::error::Error>> {
+    let tmp_dir = TempDir::new()?;
+    let main_file = tmp_dir.child("main.lt");
+    main_file.write_str(
+        r#"
+module main
+use a
+use a
+use b
+extern fn putchar(x: int)
+fn printDot() {
+    putchar(46)
+    putchar(10)
+}
+fn main() {
+    let foo: a::Foo
+    let other_foo: b::Foo
+    printDot()
+    a::printBang()
+}
+"#,
+    )?;
+
+    let mod_a_file = tmp_dir.child("a.lt");
+    mod_a_file.write_str(
+        r#"
+module a
+use b
+extern fn putchar(x: int)
+fn printBang() {
+    let foo: b::Foo
+    putchar(33)
+    putchar(10)
+}
+struct Foo {
+    let a: int
+    fn some() {}
+}
+"#,
+    )?;
+
+    let mod_b_file = tmp_dir.child("b.lt");
+    mod_b_file.write_str(
+        r#"
+module b
+use a
+extern fn putchar(x: int)
+fn printBang() {
+    let foo: a::Foo
+    putchar(33)
+    putchar(10)
+}
+struct Foo {
+    let b: int
+    fn some() {}
+}
+"#,
+    )?;
+
+    let build_dir = tmp_dir.join("build");
+    Command::cargo_bin("lightc")?
+        .current_dir(tmp_dir.path())
+        .arg("--build-dir")
+        .arg(&build_dir)
+        .args([main_file.path(), mod_a_file.path(), mod_b_file.path()])
+        .assert()
+        .success();
+
+    assert!(predicate::path::exists().eval(&build_dir));
+    assert!(predicate::path::exists().eval(&build_dir.join("main.o")));
+    assert!(predicate::path::exists().eval(&build_dir.join("a.o")));
+    assert!(predicate::path::exists().eval(&build_dir.join("b.o")));
+    assert!(predicate::path::exists().eval(&build_dir.join("a.out")));
+
+    let exec_file = tmp_dir.join("a.out");
+    assert!(predicate::path::exists().eval(&exec_file));
+
+    Ok(())
+}

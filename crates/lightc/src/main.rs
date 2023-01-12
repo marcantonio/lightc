@@ -52,6 +52,8 @@ fn link(output: &Path, module_map: HashMap<String, Module>) {
         .expect("Error waiting on clang");
 }
 
+// XXX: prelude?
+
 fn main() {
     let args = CliArgs::parse();
     let (root_dir, build_dir) = setup_build_env(&args).expect("Error setting up build environment");
@@ -72,7 +74,7 @@ fn main() {
         });
 
         // Parser
-        let (ast, module_name, mut imports) =
+        let (ast, module_name, imports) =
             Parse::new(&tokens, &mut symbol_table).parse().unwrap_or_else(|e| {
                 eprintln!("Parsing error: {}", e);
                 process::exit(1);
@@ -82,10 +84,9 @@ fn main() {
         let module = module_map.entry(module_name.to_owned()).or_insert(Module::new(&module_name));
 
         // Merge tokens, AST, imports, and symbol table for each module
-        // TODO: Dedup imports
         module.tokens.append(&mut tokens.clone());
         module.ast.append(ast);
-        module.imports.append(&mut imports);
+        module.imports.extend(imports);
     }
 
     // Side effect of displaying the aggregates outside the loop is that parsing needs to
@@ -158,7 +159,7 @@ fn main() {
             }
             println!();
         }
-// XXX if we do this as a separate step, can we eliminate reading the symbol table in the hir?
+
         // Codegen
         let object_file =
             Codegen::run(hir, &module_name, symbol_table.clone(), build_dir.clone(), &args, false)
