@@ -387,7 +387,6 @@ fn cook_more(f: Foo, fp: Foo) -> Foo {
 }
 "#,
         ],
-
     ];
     run_insta!("def_func", tests);
 }

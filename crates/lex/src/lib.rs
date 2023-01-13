@@ -36,8 +36,7 @@ impl Lex {
     fn lex(&mut self) -> LexResult {
         use TokenType::*;
 
-        let cur;
-        cur = match self.stream.next() {
+        let cur = match self.stream.next() {
             Some(cur) => cur,
             None => unreachable!("can't lex nothing"),
         };

@@ -236,7 +236,7 @@ impl VisitableNode for Node {
             Index { binding, idx, ty } => v.visit_index(*binding, *idx, ty),
             FSelector { comp, field, ty } => v.visit_fselector(*comp, field, ty),
             MSelector { comp, name, args, ty } => v.visit_mselector(*comp, name, args, ty),
-            Blank => unreachable!("I should not exist"),
+            Blank => unreachable!("invalid node kind visited"),
         }
     }
 }

@@ -45,6 +45,7 @@ pub enum Operator {
 impl std::fmt::Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Operator::*;
+
         let s = match self {
             Add => "+",
             AddEq => "+=",
@@ -96,23 +97,8 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn dump_types() -> Vec<String> {
-        vec![
-            String::from("int8"),
-            String::from("int16"),
-            String::from("int32"),
-            String::from("int64"),
-            String::from("uint8"),
-            String::from("uint16"),
-            String::from("uint32"),
-            String::from("uint64"),
-            String::from("float"),
-            String::from("double"),
-            String::from("bool"),
-            String::from("char"),
-            String::from("void"),
-            String::from("sarray"), // TODO: remove this when arrays are gone; XXX: used?
-        ]
+    pub fn is_primitive(&self) -> bool {
+        !matches!(self, Type::Comp(_) | Type::SArray(_, _))
     }
 }
 

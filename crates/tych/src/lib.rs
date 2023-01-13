@@ -28,9 +28,7 @@ pub struct Tych<'a> {
 
 impl<'a> Tych<'a> {
     pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        // XXX: see resolve_type()
-        let mut types = Type::dump_types();
-        types.append(&mut symbol_table.types());
+        let types = symbol_table.types();
         Tych { module: module.to_owned(), symbol_table, types, hint: None, current_struct: None }
     }
 
@@ -106,19 +104,18 @@ impl<'a> Tych<'a> {
         }
     }
 
-    // XXX: why check self.types for primitives?
+    // Resolve composites to Module::Ty if needed
     fn resolve_type(&self, ty: &Type) -> Option<Type> {
-        if let Type::SArray(_, _) = ty {
+        if ty.is_primitive() {
+            return Some(ty.to_owned());
+        } else if let Type::SArray(_, _) = ty {
             return Some(ty.to_owned());
         }
 
-        let types = [ty.to_string(), format!("{}::{}", self.module, ty.to_string())];
+        let types = [ty.to_string(), format!("{}::{}", self.module, ty)];
         for ty_str in types {
             if self.types.contains(&ty_str) {
-                if let Type::Comp(_) = ty {
-                    return Some(Type::Comp(ty_str));
-                }
-                return Some(ty.to_owned());
+                return Some(Type::Comp(ty_str));
             }
         }
         None
@@ -133,7 +130,7 @@ impl<'a> Tych<'a> {
         };
         let comp_sym = self
             .symbol_table
-            .resolve_symbol(&comp_name, &self.module)
+            .resolve_symbol(comp_name, &self.module)
             .ok_or(format!("Unknown composite type: `{}`", comp_name))?;
         Ok(comp_sym)
     }
@@ -285,7 +282,8 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         self.symbol_table.leave_scope();
 
-        // XXX
+        // After updating proto types above, update the symbol table entry, using the
+        // original name, with the new proto
         self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto));
 
         Ok(ast::Node::new_fn(proto, Some(body_node)))
@@ -516,9 +514,6 @@ impl<'a> ast::Visitor for Tych<'a> {
         Ok(ast::Node::new_unop(op, chkd_rhs, Some(rhs_ty)))
     }
 
-    // TODO: errors in struct methods will display the partially lowered name. Pass in a
-    // display name too.
-    // XXX: I think we have this now with `fq_name`
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, _ty: Option<Type>) -> Self::Result {
         // Pull the function for the call from the table
         let fn_entry = self
@@ -565,7 +560,7 @@ impl<'a> ast::Visitor for Tych<'a> {
         // Make sure the function args and the call args jive
         fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
             // Resolve param type first
-            let fp_ty = match self.resolve_type(&fa_ty) {
+            let fp_ty = match self.resolve_type(fa_ty) {
                 Some(ty) => ty,
                 None => unreachable!("bad arg type in `visit_call()`"),
             };

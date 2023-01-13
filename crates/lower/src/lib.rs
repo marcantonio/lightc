@@ -45,7 +45,7 @@ impl<'a> Lower<'a> {
                 hir.add_node(node);
             },
             // TODO: Eliminate these from the HIR
-            hir::node::Kind::Struct { .. } => (),
+            hir::node::Kind::Blank => (),
             _ => unreachable!("invalid node kind at global level"),
         });
 
@@ -192,16 +192,8 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_struct(
-        &mut self, name: String, fields: Vec<ast::Node>, methods: Vec<ast::Node>,
+        &mut self, name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
-        let field_tys = fields
-            .into_iter()
-            .map(|n| match n.kind {
-                ast::node::Kind::Let { antn, .. } => antn,
-                _ => unreachable!("invalid node type in struct fields"),
-            })
-            .collect();
-
         // Save the methods separately to pop them up to the top of the HIR later
         let mut lowered_methods = methods
             .into_iter()
@@ -222,7 +214,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             .collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
-        Ok(hir::Node::new_struct(name, field_tys))
+        Ok(hir::Node::new_blank())
     }
 
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -386,7 +378,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         let lowered_call = self.visit_call(name, args, ty)?;
         match lowered_call.kind {
             hir::node::Kind::Call { name, mut args, ty } => {
-                // xxx: add lowered_comp as self here
+                // XXX: add lowered_comp as self here
                 args.insert(0, lowered_comp);
                 Ok(hir::Node::new_call(name, args, ty))
             },

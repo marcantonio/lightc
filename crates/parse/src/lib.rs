@@ -48,7 +48,6 @@ impl<'a> Parse<'a> {
             Some(Token { tt: TokenType::Module, .. }) => self.parse_module()?,
             // If no module is declared, assume it's `main` for now
             _ => {
-                self.symbol_table.insert_with_name("module", Symbol::new_mod("main"));
                 self.module = String::from("main");
             },
         };
@@ -120,7 +119,7 @@ impl<'a> Parse<'a> {
                     for node in methods.iter_mut() {
                         if let ast::Node { kind: ast::node::Kind::Fn { proto, .. } } = node {
                             // TODO: remove this when `orig_name` becomes part of Prototype
-                            let simple_name = proto.name().split("_").nth(2).unwrap_or_else(|| {
+                            let simple_name = proto.name().split('_').nth(2).unwrap_or_else(|| {
                                 unreachable!("couldn't split prototype name in `parse_struct()`")
                             });
                             sym_methods.push(simple_name.to_owned());
@@ -257,8 +256,7 @@ impl<'a> Parse<'a> {
 
         let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
-        // XXX: needed?
-        self.symbol_table.insert_with_name("module", Symbol::new_mod(name));
+
         self.module = name.to_owned();
 
         self.tokens.next(); // Eat semicolon

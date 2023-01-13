@@ -52,8 +52,6 @@ fn link(output: &Path, module_map: HashMap<String, Module>) {
         .expect("Error waiting on clang");
 }
 
-// XXX: prelude?
-
 fn main() {
     let args = CliArgs::parse();
     let (root_dir, build_dir) = setup_build_env(&args).expect("Error setting up build environment");
@@ -81,7 +79,7 @@ fn main() {
             });
 
         // Get the existing module or create and insert an empty one
-        let module = module_map.entry(module_name.to_owned()).or_insert(Module::new(&module_name));
+        let module = module_map.entry(module_name.to_owned()).or_insert_with(|| Module::new(&module_name));
 
         // Merge tokens, AST, imports, and symbol table for each module
         module.tokens.append(&mut tokens.clone());
@@ -120,7 +118,7 @@ fn main() {
 
         // Type checker
         let typed_ast =
-            Tych::new(&module_name, &mut symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
+            Tych::new(module_name, &mut symbol_table).walk(module.ast.clone()).unwrap_or_else(|e| {
                 eprintln!("Type checking error: {}", e);
                 process::exit(1);
             });
@@ -135,7 +133,7 @@ fn main() {
         }
 
         // Lower
-        let hir = Lower::new(&module_name, &mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
+        let hir = Lower::new(module_name, &mut symbol_table).walk(typed_ast).unwrap_or_else(|e| {
             eprintln!("Lowering error: {}", e);
             process::exit(1);
         });
@@ -158,7 +156,7 @@ fn main() {
 
         // Codegen
         let object_file =
-            Codegen::run(hir, &module_name, symbol_table.clone(), build_dir.clone(), &args, false)
+            Codegen::run(hir, module_name, symbol_table.clone(), build_dir.clone(), &args, false)
                 .unwrap_or_else(|e| panic!("Error compiling module `{}`: {}", module_name, e))
                 .as_file_path();
 
@@ -181,23 +179,28 @@ fn main() {
             let binary_out =
                 build_dir.join(file_name.file_name().expect("Can't find filename for output executable"));
             link(&binary_out, module_map);
-            fs::copy(binary_out, &file_name).expect(&format!("Error copying to {}", file_name.display()));
+            fs::copy(binary_out, &file_name)
+                .unwrap_or_else(|err| panic!("Error copying to {}: {}", file_name.display(), err));
         },
         // Copy to `module_name`.o
         (false, true, None) => {
             let mut output_file = root_dir;
             let (module_name, module) = &module_map.drain().collect::<Vec<(String, Module)>>()[0];
-            output_file.push(&module_name);
-            fs::copy(&module.object_file, output_file.with_extension("o"))
-                .expect(&format!("Error copying object file: {}", module.object_file.display()));
+            output_file.push(module_name);
+            fs::copy(&module.object_file, output_file.with_extension("o")).unwrap_or_else(|err| {
+                panic!("Error copying object file `{}`: {}", module.object_file.display(), err)
+            });
 
             // Write interface file
             module.create_interface(&symbol_table).expect("Error creating interface file");
-            fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
-                &format!(
-                    "Error copying interface file: {}",
-                    module.object_file.with_extension("i").display()
-                ),
+            fs::copy(module.object_file.with_extension("i"), output_file.with_extension("i")).unwrap_or_else(
+                |err| {
+                    panic!(
+                        "Error copying interface file `{}`: {}",
+                        module.object_file.with_extension("i").display(),
+                        err
+                    )
+                },
             );
         },
         // Copy to `args.output`.o
@@ -205,33 +208,40 @@ fn main() {
             let mut output_file = root_dir;
             let (_, module) = &module_map.drain().collect::<Vec<(String, Module)>>()[0];
             output_file.push(filename);
-            fs::copy(&module.object_file, output_file.with_extension("o"))
-                .expect(&format!("Error copying object file: {}", module.object_file.display()));
+            fs::copy(&module.object_file, output_file.with_extension("o")).unwrap_or_else(|err| {
+                panic!("Error copying object file `{}`: {}", module.object_file.display(), err)
+            });
 
             // Write interface file
             module.create_interface(&symbol_table).expect("Error creating interface file");
-            fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
-                &format!(
-                    "Error copying interface file: {}",
-                    module.object_file.with_extension("i").display()
-                ),
+            fs::copy(module.object_file.with_extension("i"), output_file.with_extension("i")).unwrap_or_else(
+                |err| {
+                    panic!(
+                        "Error copying interface file `{}`: {}",
+                        module.object_file.with_extension("i").display(),
+                        err
+                    )
+                },
             );
         },
         // Copy to multiple object files
         (true, true, None) => {
             for (module_name, module) in &module_map {
-                let output_file = root_dir.join(&module_name);
-                fs::copy(module.object_file.clone(), &output_file.with_extension("o"))
-                    .expect(&format!("Error copying object file: {}", module.object_file.display()));
+                let output_file = root_dir.join(module_name);
+                fs::copy(module.object_file.clone(), output_file.with_extension("o")).unwrap_or_else(|err| {
+                    panic!("Error copying object file `{}`: {}", module.object_file.display(), err)
+                });
 
                 // Write interface file
                 module.create_interface(&symbol_table).expect("Error creating interface file");
-                fs::copy(&module.object_file.with_extension("i"), output_file.with_extension("i")).expect(
-                    &format!(
-                        "Error copying interface file: {}",
-                        module.object_file.with_extension("i").display()
-                    ),
-                );
+                fs::copy(module.object_file.with_extension("i"), output_file.with_extension("i"))
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "Error copying interface file `{}`: {}",
+                            module.object_file.with_extension("i").display(),
+                            err
+                        )
+                    });
             }
         },
         // Error for now. Could output `args.output`.o and .i

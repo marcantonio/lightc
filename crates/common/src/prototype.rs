@@ -18,11 +18,8 @@ impl Prototype {
         module: String,
     ) -> Prototype {
         // Prepend the local module name for local functions
-        let name = if is_extern || is_method || name == "main" {
-            name.to_owned()
-        } else {
-            format!("{}::{}", module, name)
-        };
+        let name =
+            if is_extern || is_method || name == "main" { name } else { format!("{}::{}", module, name) };
         Prototype { name, args, ret_ty, is_extern, module }
     }
 

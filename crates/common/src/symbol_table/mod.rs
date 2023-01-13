@@ -51,14 +51,6 @@ where
             .insert(name.to_owned(), sym)
     }
 
-    // XXX: needed?
-    pub fn insert_global_with_name(&mut self, name: &str, sym: T) -> Option<T> {
-        self.tables
-            .get_mut(&0)
-            .unwrap_or_else(|| unreachable!("no global scope in `insert_global_with_name()`"))
-            .insert(name.to_owned(), sym)
-    }
-
     pub fn get(&self, name: &str) -> Option<&T> {
         let mut sym = None;
         for depth in (0..=self.scope_depth).rev() {
@@ -111,18 +103,6 @@ where
     pub fn dump_table(&mut self, scope: u32) -> Result<Vec<(String, T)>, String> {
         let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
         Ok(table.drain().collect())
-    }
-
-    // XXX: still needed?
-    // Merge globals from other table
-    pub fn merge_symbols(&mut self, other: &SymbolTable<T>) -> Result<(), String> {
-        let symbols = other.copy_table(0)?;
-        for (name, symbol) in symbols {
-            if name != "module" && self.insert_with_name(&name, symbol).is_some() {
-                return Err(format!("can't redefine `{}`", name));
-            }
-        }
-        Ok(())
     }
 
     pub fn export_symbols(&self) -> Vec<&T> {
@@ -265,35 +245,5 @@ mod test {
         assert_eq!(st.uniq_ident(Some("foo")), String::from("_foo@2"));
         assert_eq!(st.uniq_ident(None), String::from("_light_intern@1"));
         assert_eq!(st.uniq_ident(None), String::from("_light_intern@2"));
-    }
-
-    #[test]
-    fn test_merge_symbols() {
-        let mut a = SymbolTable::<Symbol>::new();
-        let mut b = SymbolTable::<Symbol>::new();
-
-        let sym1 = Symbol::new_var("foo", &Type::Bool, &MOD_NAME);
-        a.insert(sym1.clone());
-        let sym2 = Symbol::new_var("bar", &Type::Bool, &MOD_NAME);
-        a.insert(sym2.clone());
-
-        let sym3 = Symbol::new_var("baz", &Type::Bool, &MOD_NAME);
-        b.insert(sym3.clone());
-
-        assert_eq!(b.merge_symbols(&mut a), Ok(()));
-        assert_eq!(b.get("foo"), Some(&sym1));
-        assert_eq!(b.get("bar"), Some(&sym2));
-        assert_eq!(b.get("baz"), Some(&sym3));
-    }
-
-    #[test]
-    fn test_merge_symbols_dup() {
-        let mut a = SymbolTable::<Symbol>::new();
-        let mut b = SymbolTable::<Symbol>::new();
-
-        a.insert(Symbol::new_var("foo", &Type::Bool, &MOD_NAME));
-        b.insert(Symbol::new_var("foo", &Type::Bool, &MOD_NAME));
-
-        assert_eq!(b.merge_symbols(&mut a), Err(String::from("can't redefine `foo`")));
     }
 }

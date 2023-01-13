@@ -81,16 +81,6 @@ impl Symbol {
         }
     }
 
-    // XXX: still needed?
-    pub fn new_mod(name: &str) -> Self {
-        Symbol {
-            name: String::from("module"),
-            data: AssocData::Module(name.to_owned()),
-            module: name.to_owned(), // XXX
-            is_exportable: false,
-        }
-    }
-
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_owned();
     }
@@ -208,7 +198,7 @@ impl Display for Symbol {
             },
             AssocData::Var(VarData { ty }) => output += &format!("\n      [Var] type: {}", ty),
             AssocData::Struct(StructData { fields, methods }) => {
-                output += &format!("\n      [Struct] {{ ");
+                output += "\n      [Struct] {{ ";
                 if let Some(fields) = fields {
                     if !fields.is_empty() {
                         output += &format!("{}: {}", fields[0].0, fields[0].1);
