@@ -41,15 +41,18 @@ fn link(output: &Path, module_map: HashMap<String, Module>) {
     object_files.sort();
     object_files.dedup();
 
-    Command::new("clang")
+    let status = Command::new("clang")
         .arg("-o")
         .arg(output)
         .args(object_files)
         .arg("-lm")
-        .spawn()
-        .expect("Error compiling")
-        .wait()
-        .expect("Error waiting on clang");
+        .status()
+        .expect("Error launching clang");
+
+    if !status.success() {
+        eprintln!("Linking error");
+        process::exit(1);
+    }
 }
 
 fn main() {
