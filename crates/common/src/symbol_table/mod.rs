@@ -72,8 +72,8 @@ where
         sym
     }
 
-    // Try to resolve first the simple name (as for externs), then the fully qualified
-    // name
+    // Wrapper around get(). Try to first find the simple name (as for externs), then the
+    // fully qualified name
     pub fn resolve_symbol(&self, name: &str, module_name: &str) -> Option<&T> {
         let names = &[name, &format!("{}::{}", module_name, name)];
         for name in names {

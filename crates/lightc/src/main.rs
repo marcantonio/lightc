@@ -33,9 +33,9 @@ fn setup_build_env(args: &CliArgs) -> std::io::Result<(PathBuf, PathBuf)> {
 
 // Extract all the object files from the module map and link everything
 fn link(output: &Path, module_map: HashMap<String, Module>) {
-    let mut object_files = module_map.into_values().fold(vec![], |mut acc, mut m| {
+    let mut object_files = module_map.into_values().fold(vec![], |mut acc, m| {
         acc.push(m.object_file);
-        acc.append(&mut m.import_objects);
+        acc.append(&mut m.needed_imports.into_values().collect());
         acc
     });
     object_files.sort();
@@ -87,10 +87,12 @@ fn main() {
         // Get the existing module or create and insert an empty one
         let module = module_map.entry(module_name.to_owned()).or_insert_with(|| Module::new(&module_name));
 
-        // Merge tokens, AST, imports, and symbol table for each module
+        // Merge tokens, AST, and needed imports for each module
         module.tokens.append(&mut tokens.clone());
         module.ast.append(ast);
-        module.imports.extend(imports);
+        for import in imports {
+            module.needed_imports.insert(import, PathBuf::new());
+        }
     }
 
     // Side effect of displaying the aggregates outside the loop is that parsing needs to
@@ -113,6 +115,7 @@ fn main() {
         println!();
     }
 
+    // These are modules we just parsed. Don't look for them externally later
     let available_modules = module_map.keys().cloned().collect::<Vec<_>>();
 
     // Produce an object file for each module. Add to Module

@@ -40,14 +40,16 @@ impl<'a> Parse<'a> {
         }
     }
 
-    // Parse each token using recursive descent. Returns the AST, module name, imports,
-    // and symbol table
+    // Parse each token using recursive descent. Returns the AST, module name, and needed
+    // imports
     //
     // StmtList ::= ModDecl? ( Stmt ';' )+ ;
     pub fn parse(mut self) -> Result<(Ast<ast::Node>, String, Vec<String>), Vec<ParseError>> {
         // Ensure the file starts with a module name. No node is produced
         match self.tokens.peek() {
-            Some(Token { tt: TokenType::Module, .. }) => self.parse_module().unwrap(), //XXX
+            Some(Token { tt: TokenType::Module, .. }) => {
+                self.parse_module().unwrap_or_else(|err| self.push_err(err))
+            },
             // If no module is declared, assume it's `main` for now
             _ => {
                 self.module = String::from("main");
@@ -59,7 +61,7 @@ impl<'a> Parse<'a> {
             match self.parse_stmt() {
                 Ok(n) if self.errors.is_empty() & !n.is_blank() => ast.add(n),
                 Err(e) => self.push_err(e),
-                _ => continue
+                _ => continue,
             };
         }
         if self.errors.is_empty() {
@@ -232,8 +234,7 @@ impl<'a> Parse<'a> {
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(self.parse_block()?) };
 
-        // Create symbol table entry. Use the old name as the key until later
-        // lowering.
+        // Create symbol table entry. Use the old name as the key until later lowering.
         //
         // For methods use a "semi" lowered name. We do this here to allow for proper name
         // collision detection in the tych
@@ -495,8 +496,8 @@ impl<'a> Parse<'a> {
                     return Ok(ast::Node::new_block(block, None));
                 },
                 _ => {
-                    /*Do not propagate a ParseError within a block or
-                    the block will not be parsed, causing incorrect errors*/
+                    // Do not propagate a ParseError within a block or the block will not
+                    // be parsed, causing incorrect errors
                     match self.parse_stmt() {
                         Ok(b) => block.push(b),
                         Err(e) => self.push_err(e),
@@ -773,22 +774,21 @@ impl<'a> Parse<'a> {
         }
     }
 
-    /* True if iterator is at a panic_stop_token.
-    Moves iterator to proper location depending on
-    the stop token that is detected for optimal
-    error recovery. */
+    // True if iterator is at a panic_stop_token. Moves iterator to proper location
+    // depending on the stop token that is detected for optimal error recovery.
     fn at_panic_stop_token(&mut self) -> bool {
         use TokenType::*;
         if let Some(t) = self.tokens.peek() {
             if matches!(t.tt, Semicolon(true)) {
-                // only implicit semis in case error is within a for-loop
+                // Only implicit semis in case error is within a for-loop
                 self.tokens.next();
                 true
-            } else if matches!(t.tt, OpenBrace) {
-                // do not move past OpenBrace so block can be parsed
-                true
             } else {
-                false
+                match t.tt {
+                    // Do not move past OpenBrace so block can be parsed
+                    OpenBrace => true,
+                    _ => false,
+                }
             }
         } else {
             false

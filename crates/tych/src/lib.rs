@@ -16,7 +16,7 @@ mod tests;
 // - checks for type consistency in if branches
 // - checks main()'s annotation
 // - checks for unknown functions, variables, and types
-// - resolves function and struct names
+// - resolves type, function, and struct names
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,

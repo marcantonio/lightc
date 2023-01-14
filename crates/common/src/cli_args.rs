@@ -53,6 +53,7 @@ pub struct CliArgs {
 }
 
 impl CliArgs {
+    // Only used in tests
     pub fn new() -> Self {
         CliArgs {
             show_tokens: false,

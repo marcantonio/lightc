@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -11,12 +11,10 @@ use parse::ast::{self, Ast};
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    //name: String,
     pub tokens: Vec<Token>,
     pub ast: Ast<ast::Node>,
     pub object_file: PathBuf,
-    pub imports: HashSet<String>,
-    pub import_objects: Vec<PathBuf>,
+    pub needed_imports: HashMap<String, PathBuf>,
 }
 
 // Container type for module related stuff needed during compilation
@@ -27,8 +25,7 @@ impl Module {
             tokens: vec![],
             ast: Ast::new(),
             object_file: PathBuf::new(),
-            imports: HashSet::new(),
-            import_objects: vec![],
+            needed_imports: HashMap::new(),
         }
     }
 
@@ -71,15 +68,15 @@ impl Module {
     pub fn resolve_imports(
         &mut self, available: &[String], mod_pathes: &[OsString], symbol_table: &mut SymbolTable<Symbol>,
     ) -> Result<(), String> {
-        'found: for import in &self.imports {
-            if available.contains(import) {
+        'found: for (import_name, object_file) in &mut self.needed_imports {
+            if available.contains(import_name) {
                 continue;
             }
             for mod_path in mod_pathes {
                 let path =
-                    [mod_path, &OsString::from(import)].iter().collect::<PathBuf>().with_extension("i");
+                    [mod_path, &OsString::from(import_name)].iter().collect::<PathBuf>().with_extension("i");
 
-                // Get symbols the interface file and locate the object file. Update
+                // Get symbols from the interface file and locate the object file. Update
                 // symbol table with imported symbols
                 if path.exists() {
                     // Interface file
@@ -99,14 +96,14 @@ impl Module {
                     // Object file
                     let path = path.with_extension("o");
                     if path.exists() {
-                        self.import_objects.push(path);
+                        *object_file = path;
                     } else {
                         return Err(format!("can't find object file `{}`", path.display()));
                     }
                     continue 'found;
                 }
             }
-            return Err(format!("could not resolve `{}`", import));
+            return Err(format!("could not resolve `{}`", import_name));
         }
 
         Ok(())

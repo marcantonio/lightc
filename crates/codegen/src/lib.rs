@@ -149,7 +149,7 @@ impl<'ctx> Codegen<'ctx> {
 
     // Iterate over all nodes and codegen
     pub fn walk(&mut self, hir: Hir<hir::Node>) -> Result<(), String> {
-        let (functions, prototypes) = hir.into_components();
+        let (nodes, prototypes) = hir.into_components();
 
         // Do structs first so all types are complete
         self.codegen_all_structs()?;
@@ -158,7 +158,7 @@ impl<'ctx> Codegen<'ctx> {
         self.codegen_all_prototypes(prototypes)?;
 
         // Do the rest
-        for node in functions {
+        for node in nodes {
             node.accept(self)?;
         }
 

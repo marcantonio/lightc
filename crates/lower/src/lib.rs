@@ -44,7 +44,6 @@ impl<'a> Lower<'a> {
                 hir.add_prototype(proto.clone());
                 hir.add_node(node);
             },
-            // TODO: Eliminate these from the HIR
             hir::node::Kind::Blank => (),
             _ => unreachable!("invalid node kind at global level"),
         });
@@ -191,6 +190,9 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(hir::Node::new_fn(proto, body_node.transpose()?))
     }
 
+    // Structs don't make it into the HIR. The type with fields is already in the symbol
+    // table. This lowers the methods to be added via self.struct_methods. Returns a blank
+    // node
     fn visit_struct(
         &mut self, name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
