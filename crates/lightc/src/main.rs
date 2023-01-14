@@ -76,8 +76,11 @@ fn main() {
 
         // Parser
         let (ast, module_name, imports) =
-            Parse::new(&tokens, &mut symbol_table).parse().unwrap_or_else(|e| {
-                eprintln!("Parsing error: {}", e);
+            Parse::new(&tokens, &mut symbol_table).parse().unwrap_or_else(|errors| {
+                eprintln!("Encountered the following parsing error(s):");
+                for e in errors.iter() {
+                    eprintln!("\t{}", e);
+                }
                 process::exit(1);
             });
 

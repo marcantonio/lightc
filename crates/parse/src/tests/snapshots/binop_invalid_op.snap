@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 47
 expression: "(test[1], ast, ast_string)"
 ---
 - 20 ! 19
 - Err:
-    message: "Unknown binary operator: `!`"
-    line: 0
-    column: 0
+    - message: "Unknown binary operator: `!`"
+      line: 0
+      column: 0
 - "Unknown binary operator: `!`"
 

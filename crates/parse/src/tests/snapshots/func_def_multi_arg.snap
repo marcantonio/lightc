@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 163
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn (a: int, c: int) {\n    1 + 2\n}\n"
 - Err:
-    message: "Expecting function name in prototype. Got `OpenParen`"
-    line: 2
-    column: 4
+    - message: "Expecting function name in prototype. Got `OpenParen`"
+      line: 2
+      column: 4
 - "Expecting function name in prototype. Got `OpenParen` at 2:4"
 

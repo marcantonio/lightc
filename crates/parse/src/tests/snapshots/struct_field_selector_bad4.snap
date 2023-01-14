@@ -1,12 +1,11 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 402
 expression: "(test[1], ast, ast_string)"
 ---
 - x.y(a a
 - Err:
-    message: "Expecting `,` or `CloseParen` in method call argument list. Got `a`"
-    line: 1
-    column: 5
+    - message: "Expecting `,` or `CloseParen` in method call argument list. Got `a`"
+      line: 1
+      column: 5
 - "Expecting `,` or `CloseParen` in method call argument list. Got `a` at 1:5"
 
