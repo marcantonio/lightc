@@ -34,10 +34,6 @@ impl Node {
         Self { kind: Kind::Fn { proto, body: body.map(Box::new) } }
     }
 
-    pub fn new_struct(name: String, field_tys: Vec<Type>) -> Self {
-        Self { kind: Kind::Struct { name, field_tys } }
-    }
-
     pub fn new_lit(value: Literal<Node>, ty: Type) -> Self {
         Self { kind: Kind::Lit { value, ty } }
     }
@@ -79,6 +75,10 @@ impl Node {
 
     pub fn new_fselector(comp: Node, idx: u32, ty: Type) -> Self {
         Self { kind: Kind::FSelector { comp: Box::new(comp), idx, ty } }
+    }
+
+    pub fn new_blank() -> Self {
+        Self { kind: Kind::Blank }
     }
 
     pub fn ty(&self) -> &Type {
@@ -140,10 +140,6 @@ pub enum Kind {
         proto: Prototype,
         body: Option<Box<Node>>,
     },
-    Struct {
-        name: String,
-        field_tys: Vec<Type>,
-    },
 
     // Expressions
     Lit {
@@ -190,6 +186,7 @@ pub enum Kind {
         idx: u32,
         ty: Type,
     },
+    Blank,
 }
 
 impl VisitableNode for Node {
@@ -241,15 +238,6 @@ impl Display for Node {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
-            Struct { name, field_tys } => {
-                let mut attr_string = String::from("");
-                attr_string += &field_tys.iter().fold(String::new(), |mut acc, n| {
-                    acc += &format!("{} ", n);
-                    acc
-                });
-
-                write!(f, "(struct {} '({}))", name, attr_string.strip_suffix(' ').unwrap_or(""),)
-            },
             Lit { value, .. } => write!(f, "{}", value),
             Ident { name, .. } => write!(f, "{}", name),
             BinOp { op, lhs, rhs, .. } => write!(f, "({} {} {})", op, lhs, rhs),
@@ -280,6 +268,7 @@ impl Display for Node {
             },
             Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
             FSelector { comp, idx, .. } => write!(f, "{}.{}", comp, idx),
+            Blank => write!(f, "<blank_node>"),
         }
     }
 }

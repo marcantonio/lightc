@@ -1,11 +1,12 @@
 ---
 source: crates/parse/src/tests.rs
+assertion_line: 165
 expression: "(test[1], ast, ast_string)"
 ---
 - "\nfn foo() {}\nfn bar() {}\nfn foo() {}\n"
 - Err:
-    - message: "Function `foo` can't be redefined"
+    - message: "function `main::foo` can't be redefined"
       line: 4
       column: 1
-- "Function `foo` can't be redefined at 4:1"
+- "function `main::foo` can't be redefined at 4:1"
 

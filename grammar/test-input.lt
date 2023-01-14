@@ -1,3 +1,8 @@
+module main;
+
+use core;
+use foo::bar;
+
 extern fn putchar(x: int);
 
 fn foo() -> int {

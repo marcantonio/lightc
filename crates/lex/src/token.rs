@@ -72,6 +72,7 @@ pub enum TokenType {
     Ident(String),
     If,
     Let,
+    Module,
     Num(String),
     Op(Operator),
     OpenBrace,
@@ -79,6 +80,7 @@ pub enum TokenType {
     OpenParen,
     Semicolon(bool), // (is implicit?)
     Struct,
+    Use,
 }
 
 impl std::fmt::Display for TokenType {

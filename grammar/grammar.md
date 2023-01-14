@@ -4,14 +4,16 @@ Formal grammar for Light. It's written as a modified form of EBNF. Deviations fr
 Note that while semicolons are part of the formal for simplicity, they are optional in practice. Similar to Swift and Go, they are inserted by the lexer when appropriate.
 
 ```ebnf
-Program            ::= StmtList ;
+Program            ::= ModDecl? StmtList ;
 StmtList           ::= ( Stmt ';' )+ ;
 Stmt               ::= LetStmt
                      | ForStmt
                      | FnDecl
                      | ExternDecl
                      | StructDecl
+                     | UseStmt
                      | Expr ;
+ModDecl            ::= 'module' ident ';' ;
 Block              ::= '{' StmtList? '}' ;
 FnDecl             ::= Prototype Block ;
 ExternDecl         ::= 'extern' Prototype ;
@@ -22,6 +24,7 @@ LetStmt            ::= 'let' VarInit ;
 VarInit            ::= TypedDecl ( '=' Expr  )? ;
 TypedDecl          ::= ident ':' TypeAntn ;
 TypeAntn           ::= type | '[' type ']' ;
+UseStmt            ::= 'use' ident ;
 Expr               ::= PrimaryExpr
                      | Expr mul_op Expr
                      | Expr add_op Expr
@@ -61,7 +64,7 @@ type               ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
                      | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
                      | 'float' | 'double' | 'bool' | 'char' ;
 bool               ::= 'true' | 'false' ;
-ident              ::= letter ( letter | digit | '_' )* ;
+ident              ::= letter ( letter | digit | '_' | '::' )* ;
 assign_op          ::= '=' | '+=' | '-=' ;
 bit_op             ::= '&' | '|' | '^' ;
 eq_op              ::= '==' | '!=' ;

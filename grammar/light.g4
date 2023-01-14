@@ -1,13 +1,16 @@
+// For the official grammar, see grammar.md. This is just for testing and validation
 grammar light;
 
-program              : stmt_list;
+program              : mod_decl? stmt_list;
 stmt_list            : (stmt ';')+;
 stmt                 : let_stmt
                      | for_stmt
                      | fn_decl
                      | extern_decl
                      | struct_decl
+                     | use_stmt
                      | expr;
+mod_decl             : 'module' IDENT ';';
 block                : '{' stmt_list? '}';
 fn_decl              : proto block;
 extern_decl          : 'extern' proto;
@@ -19,6 +22,7 @@ var_init             : typed_decl ('=' expr)?;
 typed_decl           : IDENT ':' type_antn;
 type_antn            : TYPE
                      | '[' TYPE ']';
+use_stmt             : 'use' IDENT ;
 expr                 : primary_expr
                      | expr ('*' | '/') expr
                      | expr ('+' | '-') expr
@@ -75,7 +79,7 @@ TYPE                 : 'int'
                      | 'bool'
                      | 'char';
 BOOL                 : 'true' | 'false';
-IDENT                : LETTER (LETTER | DIGIT | '_')*;
+IDENT                : LETTER (LETTER | DIGIT | '_' | '::')*;
 NUMBER               : INTEGER | FLOAT;
 INTEGER              : DIGIT+;
 FLOAT                : DIGIT '.' DIGIT;

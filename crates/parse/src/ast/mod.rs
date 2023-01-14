@@ -5,7 +5,7 @@ pub use node::Node;
 
 pub mod node;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Ast<T: VisitableNode> {
     nodes: Vec<T>,
 }
@@ -25,6 +25,10 @@ impl<T: VisitableNode> Ast<T> {
 
     pub fn into_nodes(self) -> Vec<T> {
         self.nodes
+    }
+
+    pub fn append(&mut self, mut other: Self) {
+        self.nodes.append(&mut other.nodes);
     }
 }
 

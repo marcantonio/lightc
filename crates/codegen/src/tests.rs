@@ -9,24 +9,24 @@ macro_rules! run_insta {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
                 // Unoptimized code
-                let tokens = Lex::new(test[1]).scan().unwrap();
+                let tokens = Lex::new(test[1]).scan().expect("lexing failed in `codegen` tests");
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
+                let (ast, _, _) = Parse::new(&tokens, &mut symbol_table).parse().expect("parsing failed in `codegen` tests");
+                let typed_ast = Tych::new("main", &mut symbol_table).walk(ast).expect("type checking failed in `codegen` tests");
+                let hir = Lower::new("main", &mut symbol_table).walk(typed_ast).expect("lowering failed in `codegen` tests");
                 let args = CliArgs::new();
-                let res = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 // Optimized code
-                let tokens = Lex::new(test[1]).scan().unwrap();
+                let tokens = Lex::new(test[1]).scan().expect("lexing faled in `codegen` tests");
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
-                let tyst = Tych::new(&mut symbol_table).walk(ast).unwrap();
-                let hir = Lower::new(&mut symbol_table).walk(tyst).unwrap();
+                let (ast, _, _) = Parse::new(&tokens, &mut symbol_table).parse().expect("parsing failed in `codegen` tests");
+                let typed_ast = Tych::new("main", &mut symbol_table).walk(ast).expect("type checking failed in `codegen` tests");
+                let hir = Lower::new("main", &mut symbol_table).walk(typed_ast).expect("lowering failed in `codegen` tests");
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
-                let res_opt = Codegen::run(hir, "test", symbol_table, PathBuf::new(), &args, true)
+                let res_opt = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
                     .expect("codegen error").as_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));

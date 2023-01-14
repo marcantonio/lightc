@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 394
+assertion_line: 360
 expression: "(test[1], ast, ast_string)"
 ---
 - "struct Foo {}"
@@ -8,8 +8,8 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields: []
             methods: []
-- "(struct Foo '() '())"
+- "(struct main::Foo '() '())"
 

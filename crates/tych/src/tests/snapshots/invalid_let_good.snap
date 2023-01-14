@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 809
+assertion_line: 949
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {}\nfn main() {\n    let x: int\n    let y: Foo\n    let z: Bar\n}\nstruct Bar {}\n"
@@ -8,7 +8,7 @@ expression: "(test[1], res)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields: []
             methods: []
       - kind:
@@ -18,6 +18,7 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -31,18 +32,18 @@ expression: "(test[1], res)"
                         Let:
                           name: y
                           antn:
-                            Comp: Foo
+                            Comp: "main::Foo"
                           init: ~
                     - kind:
                         Let:
                           name: z
                           antn:
-                            Comp: Bar
+                            Comp: "main::Bar"
                           init: ~
                   ty: Void
       - kind:
           Struct:
-            name: Bar
+            name: "main::Bar"
             fields: []
             methods: []
 

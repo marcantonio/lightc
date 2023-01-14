@@ -43,13 +43,17 @@ pub struct CliArgs {
     #[clap(short, long, parse(from_flag))]
     pub compile_only: bool,
 
-    /// Input file
-    #[clap(parse(from_os_str))]
-    pub file: PathBuf,
+    /// Build directory (will be emptied first)
+    #[clap(short, long)]
+    pub build_dir: Option<String>,
+
+    /// Input files
+    #[clap(required(true), parse(from_os_str))]
+    pub files: Vec<PathBuf>,
 }
 
 impl CliArgs {
-    // For testing only
+    // Only used in tests
     pub fn new() -> Self {
         CliArgs {
             show_tokens: false,
@@ -62,7 +66,8 @@ impl CliArgs {
             opt_level: 0,
             no_verify: false,
             compile_only: false,
-            file: PathBuf::new(),
+            build_dir: None,
+            files: vec![],
         }
     }
 }

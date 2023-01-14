@@ -7,12 +7,13 @@ use inkwell::targets::{FileType, InitializationConfig, Target, TargetMachine};
 use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
-use lower::hir::{VisitableNode, Visitor};
 use std::path::PathBuf;
 use std::process;
 
 use codegen_symbol::CodegenSymbol;
+use common::symbol_table::Symbolic;
 use common::{CliArgs, Literal, Operator, Prototype, Symbol, SymbolTable, Type};
+use lower::hir::{VisitableNode, Visitor};
 use lower::{hir, Hir};
 
 #[macro_use]
@@ -37,7 +38,7 @@ pub struct Codegen<'ctx> {
     main: Option<FunctionValue<'ctx>>,
     opt_level: usize,
     no_verify: bool,
-    require_main: bool,
+    module_name: String,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -73,7 +74,7 @@ impl<'ctx> Codegen<'ctx> {
             main: None,
             opt_level: args.opt_level,
             no_verify: args.no_verify,
-            require_main: !args.compile_only,
+            module_name: module_name.to_owned(),
         };
 
         codegen.walk(hir)?;
@@ -148,37 +149,41 @@ impl<'ctx> Codegen<'ctx> {
 
     // Iterate over all nodes and codegen
     pub fn walk(&mut self, hir: Hir<hir::Node>) -> Result<(), String> {
-        let (structs, functions, prototypes) = hir.into_components();
+        let (nodes, prototypes) = hir.into_components();
 
         // Do structs first so all types are complete
-        self.codegen_all_structs(structs)?;
+        self.codegen_all_structs()?;
 
         // Do prototypes next so declaration order doesn't matter
         self.codegen_all_prototypes(prototypes)?;
 
         // Do the rest
-        for node in functions {
+        for node in nodes {
             node.accept(self)?;
         }
 
         // Ensure main exists if this is a standalone executable
-        if self.require_main && self.main.is_none() {
-            Err("Function main() required in executable and not found".to_string())
+        if self.module_name == "main" && self.main.is_none() {
+            Err("Function main() required in `main` module".to_string())
         } else {
             Ok(())
         }
     }
 
     // Codegen all structs to ensure that declaration order doesn't matter
-    fn codegen_all_structs(&self, structs: Vec<hir::Node>) -> Result<(), String> {
+    fn codegen_all_structs(&self) -> Result<(), String> {
+        let structs = self.symbol_table.filter(|sym| sym.kind() == "Struct");
         let struct_parts = structs
             .iter()
-            .map(|node| {
-                if let hir::node::Kind::Struct { name, field_tys } = &node.kind {
-                    (self.context.opaque_struct_type(name), field_tys)
-                } else {
-                    unreachable!("invalid node in struct list")
-                }
+            .map(|sym| {
+                let sym = sym.inner();
+                let field_tys: Vec<Type> = sym
+                    .fields()
+                    .unwrap_or_else(|| unreachable!("invalid node in struct list"))
+                    .iter()
+                    .map(|(_, ty)| Type::from(*ty))
+                    .collect();
+                (self.context.opaque_struct_type(&sym.name), field_tys)
             })
             .collect::<Vec<_>>();
 
@@ -449,7 +454,8 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         self.symbol_table.enter_scope();
 
         // Save new symbol with alloca
-        let start_sym = CodegenSymbol::new_var(start_name.as_str(), &start_antn, start_alloca);
+        let start_sym =
+            CodegenSymbol::new_var(start_name.as_str(), &start_antn, &self.module_name, start_alloca);
         self.symbol_table.insert(start_sym);
 
         // Create all the blocks
@@ -519,7 +525,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         let init_alloca = self.create_entry_block_alloca(&name, &antn, &parent)?;
         self.builder.build_store(init_alloca, init_code);
 
-        let sym = CodegenSymbol::new_var(name.as_str(), &antn, init_alloca);
+        let sym = CodegenSymbol::new_var(name.as_str(), &antn, &self.module_name, init_alloca);
         self.symbol_table.insert(sym);
 
         Ok(None)
@@ -561,7 +567,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             let (name, ty) = &proto.args()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function)?;
             self.builder.build_store(alloca, arg);
-            self.symbol_table.insert(CodegenSymbol::new_var(name.as_str(), ty, alloca));
+            self.symbol_table.insert(CodegenSymbol::new_var(name.as_str(), ty, &self.module_name, alloca));
         }
 
         let body_val = self.visit_node(body)?;
@@ -692,7 +698,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             Or | BitOr => self.or((lhs_val, lhs_ty), (rhs_val, rhs_ty)),
             Assign => self.assign(lhs, rhs_val),
             op @ (Gt | GtEq | Lt | LtEq | Eq | NotEq) => self.cmp(op, (lhs_val, lhs_ty), (rhs_val, rhs_ty)),
-            x => Err(format!("Unknown binary operator: `{}`", x)),
+            x => Err(format!("unknown binary operator: `{}`", x)),
         }
         .map(Some)
     }
@@ -704,13 +710,13 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         let rhs_val = self.visit_node(rhs)?.expr_value()?;
         match op {
             Sub => self.neg((rhs_val, &rhs_ty)).map(Some),
-            x => Err(format!("Unknown unary operator: `{}`", x)),
+            x => Err(format!("unknown unary operator: `{}`", x)),
         }
     }
 
     fn visit_call(&mut self, name: String, args: Vec<hir::Node>) -> Self::Result {
         // Look up the function. Error if it's not been defined.
-        let func = self.module.get_function(&name).ok_or(format!("Unknown function call: {}", name))?;
+        let func = self.module.get_function(&name).ok_or(format!("unknown function call: {}", name))?;
 
         // Codegen the call args
         let mut args_code = Vec::with_capacity(args.len());

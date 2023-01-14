@@ -9,10 +9,11 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: bar
+              name: "main::bar"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -21,17 +22,18 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: foo
+              name: "main::foo"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
                   list:
                     - kind:
                         Call:
-                          name: bar
+                          name: "main::bar"
                           args: []
                           ty: Void
                   ty: Void

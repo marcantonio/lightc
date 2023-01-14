@@ -1,5 +1,4 @@
-use std::collections::hash_map::Drain;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 pub use symbol::{AssocData, FnData, StructData, Symbol, VarData};
 
@@ -13,14 +12,17 @@ pub mod symbol;
  * 2          ---> baz ---> {...}
  */
 
-#[derive(Debug)]
-pub struct SymbolTable<T: Symbolic> {
+#[derive(Debug, Clone)]
+pub struct SymbolTable<T: Symbolic + Ord> {
     tables: HashMap<u32, HashMap<String, T>>,
     scope_depth: u32,
     auto_idents: HashMap<String, u32>,
 }
 
-impl<T: Symbolic> SymbolTable<T> {
+impl<T> SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone + Display,
+{
     pub fn new() -> Self {
         SymbolTable::with_table(HashMap::new())
     }
@@ -70,6 +72,18 @@ impl<T: Symbolic> SymbolTable<T> {
         sym
     }
 
+    // Wrapper around get(). Try to first find the simple name (as for externs), then the
+    // fully qualified name
+    pub fn resolve_symbol(&self, name: &str, module_name: &str) -> Option<&T> {
+        let names = &[name, &format!("{}::{}", module_name, name)];
+        for name in names {
+            if let Some(sym) = self.get(name) {
+                return Some(sym);
+            }
+        }
+        None
+    }
+
     pub fn enter_scope(&mut self) -> u32 {
         self.scope_depth += 1;
         self.tables.insert(self.scope_depth, HashMap::new());
@@ -82,15 +96,44 @@ impl<T: Symbolic> SymbolTable<T> {
         self.scope_depth
     }
 
-    pub fn dump_table(&mut self, scope: u32) -> Result<Drain<String, T>, String> {
+    pub fn copy_table(&self, scope: u32) -> Result<Vec<(String, T)>, String> {
+        Ok(self.tables.get(&scope).ok_or(format!("can't find table: `{}`", scope))?.clone().drain().collect())
+    }
+
+    pub fn dump_table(&mut self, scope: u32) -> Result<Vec<(String, T)>, String> {
         let table = self.tables.get_mut(&scope).ok_or(format!("can't find table: `{}`", scope))?;
-        Ok(table.drain())
+        Ok(table.drain().collect())
+    }
+
+    pub fn export_symbols(&self) -> Vec<&T> {
+        let mut symbols = self
+            .tables
+            .get(&0)
+            .unwrap_or_else(|| unreachable!("No global scope in `export_symbols()`"))
+            .values()
+            .filter(|sym| sym.is_exportable())
+            .collect::<Vec<_>>();
+        symbols.sort();
+        symbols.dedup();
+        symbols
+    }
+
+    pub fn filter<P>(&self, predicate: P) -> Vec<&T>
+    where
+        P: FnMut(&&T) -> bool,
+    {
+        self.tables
+            .get(&0)
+            .unwrap_or_else(|| unreachable!("No global scope in `filter()`"))
+            .values()
+            .filter(predicate)
+            .collect()
     }
 
     pub fn types(&self) -> Vec<String> {
         self.tables
             .get(&0)
-            .unwrap_or_else(|| unreachable!("No global symbol table in `types()`"))
+            .unwrap_or_else(|| unreachable!("No global scope in `types()`"))
             .values()
             .filter(|sym| sym.kind() == "Struct")
             .map(|sym| sym.name().to_owned())
@@ -110,21 +153,45 @@ impl<T: Symbolic> SymbolTable<T> {
     }
 }
 
-impl<T: Symbolic> Default for SymbolTable<T> {
+impl<T> Default for SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone + Display,
+{
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T> Display for SymbolTable<T>
+where
+    T: Symbolic + Ord + Clone + Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+        for (id, table) in &self.tables {
+            if !table.is_empty() {
+                output += &format!("table {}:\n", id);
+                for (name, symbol) in table {
+                    output += &format!("  [{}] {}\n", name, symbol);
+                }
+            }
+        }
+        write!(f, "{}", output)
     }
 }
 
 pub trait Symbolic {
     fn name(&self) -> &str;
     fn kind(&self) -> &str;
+    fn is_exportable(&self) -> bool;
 }
 
 #[cfg(test)]
 mod test {
     use crate::Type;
     use crate::{Symbol, SymbolTable};
+
+    const MOD_NAME: &str = "main";
 
     #[test]
     fn test_symbol_table_scope() {
@@ -133,14 +200,14 @@ mod test {
         assert_eq!(st.scope_depth, 0);
 
         // Insert at global scope
-        let sym1 = Symbol::new_var("foo", &Type::Bool);
+        let sym1 = Symbol::new_var("foo", &Type::Bool, &MOD_NAME);
         assert_eq!(st.insert(sym1.clone()), None);
         // Get from global scope
         assert_eq!(st.get("foo"), Some(&sym1));
 
         // Enter scope and insert dup name
         assert_eq!(st.enter_scope(), 1);
-        let sym2 = Symbol::new_var("foo", &Type::Int32);
+        let sym2 = Symbol::new_var("foo", &Type::Int32, &MOD_NAME);
         assert_eq!(st.insert(sym2.clone()), None);
         // Get dup from new scope
         assert_eq!(st.get("foo"), Some(&sym2));
@@ -151,12 +218,12 @@ mod test {
         // Unknown symbol
         assert_eq!(st.get("bar"), None);
         // Insert new symbol at current scope
-        let sym3 = Symbol::new_var("bar", &Type::Int32);
+        let sym3 = Symbol::new_var("bar", &Type::Int32, &MOD_NAME);
         assert_eq!(st.insert(sym3.clone()), None);
         // Get new symbol from current scope
         assert_eq!(st.get("bar"), Some(&sym3));
         // Overwrite new symbol with dup at and check that the old symbol is returned
-        let sym4 = Symbol::new_var("bar", &Type::Float);
+        let sym4 = Symbol::new_var("bar", &Type::Float, &MOD_NAME);
         assert_eq!(st.insert(sym4.clone()), Some(sym3));
         // Get dup with new id
         assert_eq!(st.get("bar"), Some(&sym4));

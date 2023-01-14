@@ -9,12 +9,13 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: plusOne
+              name: "main::plusOne"
               args:
                 - - x
                   - Int32
               ret_ty: Int32
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -42,13 +43,14 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
                   list:
                     - kind:
                         Call:
-                          name: plusOne
+                          name: "main::plusOne"
                           args:
                             - kind:
                                 Lit:

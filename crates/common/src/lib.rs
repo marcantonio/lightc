@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub use cli_args::CliArgs;
 pub use literal::Literal;
@@ -13,7 +13,7 @@ pub mod symbol_table;
 
 // A Operator is an extra layer of abstraction between TokenType::Op() and the
 // actual character. Convenient in Rust to help constrain matching.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Operator {
     Add,
     AddEq,
@@ -45,6 +45,7 @@ pub enum Operator {
 impl std::fmt::Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Operator::*;
+
         let s = match self {
             Add => "+",
             AddEq => "+=",
@@ -76,7 +77,7 @@ impl std::fmt::Display for Operator {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum Type {
     Int8,
     Int16,
@@ -96,23 +97,8 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn dump_types() -> Vec<String> {
-        vec![
-            String::from("int8"),
-            String::from("int16"),
-            String::from("int32"),
-            String::from("int64"),
-            String::from("uint8"),
-            String::from("uint16"),
-            String::from("uint32"),
-            String::from("uint64"),
-            String::from("float"),
-            String::from("double"),
-            String::from("bool"),
-            String::from("char"),
-            String::from("void"),
-            String::from("sarray"), // TODO: remove this when arrays are gone; XXX: used?
-        ]
+    pub fn is_primitive(&self) -> bool {
+        !matches!(self, Type::Comp(_) | Type::SArray(_, _))
     }
 }
 

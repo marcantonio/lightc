@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 809
+assertion_line: 973
 expression: "(test[1], res)"
 ---
 - "fn main(a: int, b: inti) { }"
-- Err: "Unknown argument type in prototype for `b`: `inti`"
+- Err: "Unknown argument type in prototype `main` for `b`: `inti`"
 

@@ -187,6 +187,7 @@ foo + bar
 // bar
 / not_a_comment
 baz
+foo::bar
 "#;
     let mut lexer = Lex::new(input);
 
@@ -196,7 +197,8 @@ baz
     assert_eq!(lexer.lex(), Ok(Token::new(Op(Div), 4, 1)));
     assert_eq!(lexer.lex(), Ok(Token::new(Ident("not_a_comment".to_string()), 4, 3)));
     assert_eq!(lexer.lex(), Ok(Token::new(Ident("baz".to_string()), 5, 1)));
-    assert_eq!(lexer.lex(), Ok(Token::new(Eof, 6, 1)));
+    assert_eq!(lexer.lex(), Ok(Token::new(Ident("foo::bar".to_string()), 6, 1)));
+    assert_eq!(lexer.lex(), Ok(Token::new(Eof, 7, 1)));
 }
 
 #[test]

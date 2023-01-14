@@ -5,14 +5,15 @@ expression: "(test[1], res)"
 ---
 - "\nfn foo() {}\n\nfn main() {\n    foo()\n}\n"
 - Ok:
-    functions:
+    nodes:
       - kind:
           Fn:
             proto:
-              name: _foo~void
+              name: "_main::foo~void"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
@@ -25,24 +26,26 @@ expression: "(test[1], res)"
               args: []
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:
                   list:
                     - kind:
                         Call:
-                          name: _foo~void
+                          name: "_main::foo~void"
                           args: []
                           ty: Void
                   ty: Void
-    structs: []
     prototypes:
-      - name: _foo~void
+      - name: "_main::foo~void"
         args: []
         ret_ty: Void
         is_extern: false
+        module: main
       - name: main
         args: []
         ret_ty: Void
         is_extern: false
+        module: main
 

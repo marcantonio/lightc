@@ -1,5 +1,5 @@
+use itertools::peek_nth;
 use serde::Serialize;
-use std::iter::Peekable;
 
 use common::Operator;
 pub use token::{Token, TokenType};
@@ -8,16 +8,16 @@ pub use token::{Token, TokenType};
 mod tests;
 pub mod token;
 
-pub type LexResult = std::result::Result<Token, LexError>;
+pub type LexResult = Result<Token, LexError>;
 
 pub struct Lex {
-    stream: Peekable<StreamIter<char>>,
+    stream: itertools::PeekNth<StreamIter<char>>,
     pub tokens: Vec<Token>,
 }
 
 impl Lex {
     pub fn new(input: &str) -> Self {
-        Lex { stream: StreamIter::new(input).peekable(), tokens: vec![] }
+        Lex { stream: peek_nth(StreamIter::new(input)), tokens: vec![] }
     }
 
     // Scan all input
@@ -88,6 +88,9 @@ impl Lex {
                 if c.value.is_ascii_alphanumeric() || *c == '_' {
                     identifier.push(c.value);
                     self.stream.next();
+                } else if *c == ':' && matches!(self.stream.peek_nth(1), Some(c) if *c == ':') {
+                    identifier += "::";
+                    self.stream.nth(1);
                 } else {
                     break;
                 }
@@ -103,6 +106,8 @@ impl Lex {
                 "true" => Bool(true),
                 "false" => Bool(false),
                 "struct" => Struct,
+                "module" => Module,
+                "use" => Use,
                 _ => Ident(identifier),
             };
 

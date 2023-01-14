@@ -1,0 +1,137 @@
+---
+source: crates/tych/src/tests.rs
+assertion_line: 392
+expression: "(test[1], res)"
+---
+- "\nstruct Foo {\n    let a: int\n}\nfn cook(f: Foo, fp: Foo) -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let f: Foo\n    let fp: Foo\n    cook(f, fp)\n    cook_more(f, fp)\n}\nfn cook_more(f: Foo, fp: Foo) -> Foo {\n    let a: Foo\n    a\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Struct:
+            name: "main::Foo"
+            fields:
+              - kind:
+                  Let:
+                    name: a
+                    antn: Int32
+                    init: ~
+            methods: []
+      - kind:
+          Fn:
+            proto:
+              name: "main::cook"
+              args:
+                - - f
+                  - Comp: "main::Foo"
+                - - fp
+                  - Comp: "main::Foo"
+              ret_ty:
+                Comp: "main::Foo"
+              is_extern: false
+              module: main
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: a
+                          antn:
+                            Comp: "main::Foo"
+                          init: ~
+                    - kind:
+                        Ident:
+                          name: a
+                          ty:
+                            Comp: "main::Foo"
+                  ty:
+                    Comp: "main::Foo"
+      - kind:
+          Fn:
+            proto:
+              name: main
+              args: []
+              ret_ty: Void
+              is_extern: false
+              module: main
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: f
+                          antn:
+                            Comp: "main::Foo"
+                          init: ~
+                    - kind:
+                        Let:
+                          name: fp
+                          antn:
+                            Comp: "main::Foo"
+                          init: ~
+                    - kind:
+                        Call:
+                          name: "main::cook"
+                          args:
+                            - kind:
+                                Ident:
+                                  name: f
+                                  ty:
+                                    Comp: "main::Foo"
+                            - kind:
+                                Ident:
+                                  name: fp
+                                  ty:
+                                    Comp: "main::Foo"
+                          ty:
+                            Comp: "main::Foo"
+                    - kind:
+                        Call:
+                          name: "main::cook_more"
+                          args:
+                            - kind:
+                                Ident:
+                                  name: f
+                                  ty:
+                                    Comp: "main::Foo"
+                            - kind:
+                                Ident:
+                                  name: fp
+                                  ty:
+                                    Comp: "main::Foo"
+                          ty:
+                            Comp: "main::Foo"
+                  ty:
+                    Comp: "main::Foo"
+      - kind:
+          Fn:
+            proto:
+              name: "main::cook_more"
+              args:
+                - - f
+                  - Comp: "main::Foo"
+                - - fp
+                  - Comp: "main::Foo"
+              ret_ty:
+                Comp: "main::Foo"
+              is_extern: false
+              module: main
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: a
+                          antn:
+                            Comp: "main::Foo"
+                          init: ~
+                    - kind:
+                        Ident:
+                          name: a
+                          ty:
+                            Comp: "main::Foo"
+                  ty:
+                    Comp: "main::Foo"
+

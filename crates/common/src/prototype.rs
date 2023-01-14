@@ -9,11 +9,18 @@ pub struct Prototype {
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
+    module: String,
 }
 
 impl Prototype {
-    pub fn new(name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool) -> Prototype {
-        Prototype { name, args, ret_ty, is_extern }
+    pub fn new(
+        name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool, is_method: bool,
+        module: String,
+    ) -> Prototype {
+        // Prepend the local module name for local functions
+        let name =
+            if is_extern || is_method || name == "main" { name } else { format!("{}::{}", module, name) };
+        Prototype { name, args, ret_ty, is_extern, module }
     }
 
     pub fn name(&self) -> &str {
@@ -50,7 +57,7 @@ impl From<&Prototype> for Symbol {
         let args = proto.args.as_slice();
 
         // Don't mangle the name for main and externs
-        let proto_name = if proto.name == "main" || proto.is_extern {
+        let cooked_name = if proto.name == "main" || proto.is_extern {
             proto.name.clone()
         } else {
             let args_string = args.iter().fold(String::new(), |mut acc, (_, ty)| {
@@ -67,7 +74,26 @@ impl From<&Prototype> for Symbol {
             }
         };
 
-        Symbol::new_fn(&proto_name, args, &proto.ret_ty, proto.is_extern)
+        Symbol::new_fn(&cooked_name, &proto.name, args, &proto.ret_ty, proto.is_extern, &proto.module, true)
+    }
+}
+
+impl From<Symbol> for Prototype {
+    fn from(sym: Symbol) -> Self {
+        let sym_name_parts = sym
+            .name
+            .split_once("::")
+            .unwrap_or_else(|| unreachable!("couldn't split module name in `from()`"));
+        let module = &sym_name_parts.0[1..];
+        let args = sym.args().iter().cloned().map(|(n, t)| (n.to_owned(), t.clone())).collect();
+
+        Prototype {
+            name: sym.name.to_owned(),
+            args,
+            ret_ty: sym.ret_ty().to_owned(),
+            is_extern: sym.is_extern(),
+            module: module.to_owned(),
+        }
     }
 }
 
@@ -93,35 +119,41 @@ mod test {
     fn test_prototype_to_symbol() {
         let tests = [
             (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Type::Int32)],
-                    ret_ty: Type::Float,
-                    is_extern: false,
-                },
-                "_foo~int32~float",
+                Prototype::new(
+                    String::from("foo"),
+                    vec![(String::from("bar"), Type::Int32)],
+                    Type::Float,
+                    false,
+                    false,
+                    String::from("main"),
+                ),
+                "_main::foo~int32~float",
             ),
             (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
-                    ret_ty: Type::Float,
-                    is_extern: false,
-                },
-                "_foo~int32~int32~float",
+                Prototype::new(
+                    String::from("foo"),
+                    vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
+                    Type::Float,
+                    false,
+                    false,
+                    String::from("main"),
+                ),
+                "_main::foo~int32~int32~float",
             ),
             (
-                Prototype {
-                    name: String::from("foo"),
-                    args: vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
-                    ret_ty: Type::Void,
-                    is_extern: false,
-                },
-                "_foo~int32~int32~void",
+                Prototype::new(
+                    String::from("foo"),
+                    vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
+                    Type::Void,
+                    false,
+                    false,
+                    String::from("main"),
+                ),
+                "_main::foo~int32~int32~void",
             ),
             (
-                Prototype { name: String::from("foo"), args: vec![], ret_ty: Type::Float, is_extern: false },
-                "_foo~float",
+                Prototype::new(String::from("foo"), vec![], Type::Float, false, false, String::from("main")),
+                "_main::foo~float",
             ),
         ];
 

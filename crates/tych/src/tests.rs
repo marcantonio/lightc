@@ -3,15 +3,16 @@ use lex::Lex;
 use parse::Parse;
 
 const ERR_STR: &str = "Numeric literal out of range";
+const MOD_NAME: &str = "main";
 
 macro_rules! run_insta {
     ($prefix:expr, $tests:expr) => {
         insta::with_settings!({ snapshot_path => "tests/snapshots", prepend_module_to_snapshot => false }, {
             for test in $tests {
-                let tokens = Lex::new(test[1]).scan().unwrap();
+                let tokens = Lex::new(test[1]).scan().expect("lexing failed in `tych` tests");
                 let mut symbol_table = SymbolTable::new();
-                let ast = Parse::new(&tokens, &mut symbol_table).parse().unwrap();
-                let res = Tych::new(&mut symbol_table).walk(ast);
+                let (ast, _, _) = Parse::new(&tokens, &mut symbol_table).parse().expect("parsing failed in `tych` tests");
+                let res = Tych::new(MOD_NAME, &mut symbol_table).walk(ast);
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res));
             }
         })
@@ -362,6 +363,28 @@ fn main() { }
             "main_antn",
             r#"
 fn main() -> int { }
+"#,
+        ],
+        [
+            "proto_comp_params_cooked",
+            r#"
+struct Foo {
+    let a: int
+}
+fn cook(f: Foo, fp: Foo) -> Foo {
+    let a: Foo
+    a
+}
+fn main() {
+    let f: Foo
+    let fp: Foo
+    cook(f, fp)
+    cook_more(f, fp)
+}
+fn cook_more(f: Foo, fp: Foo) -> Foo {
+    let a: Foo
+    a
+}
 "#,
         ],
     ];
@@ -960,7 +983,7 @@ fn test_tych_int_no_hint() {
     ];
 
     let mut symbol_table = SymbolTable::new();
-    let mut tc = Tych::new(&mut symbol_table);
+    let mut tc = Tych::new(MOD_NAME, &mut symbol_table);
     for lit in literals {
         let res = tc.visit_lit(lit.0, None).map(|e| e.ty().cloned().unwrap_or_default());
         assert_eq!(res, lit.1.map_err(|x| x.to_string()));
@@ -1000,7 +1023,7 @@ fn test_tych_int_with_hint() {
     ];
 
     let mut symbol_table = SymbolTable::new();
-    let mut tc = Tych::new(&mut symbol_table);
+    let mut tc = Tych::new(MOD_NAME, &mut symbol_table);
     for lit in literals {
         tc.hint = Some(lit.1);
         let res = tc.visit_lit(lit.0, None).map(|e| e.ty().cloned().unwrap_or_default());
@@ -1013,16 +1036,16 @@ fn test_tych_int_with_hint() {
 macro_rules! test_lit_hint_binop_int {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
-        st.insert(Symbol::new_var("x", &$variant));
-        let mut tc = Tych::new(&mut st);
+        st.insert(Symbol::new_var("x", &$variant, MOD_NAME));
+        let mut tc = Tych::new(MOD_NAME, &mut st);
         let lhs = ast::Node::new_ident(String::from("x"), None);
         let rhs = ast::Node::new_lit(Literal::UInt64(3), None);
         let res = tc.visit_binop(Operator::Add, lhs, rhs, None).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
-        st.insert(Symbol::new_var("x", &$variant));
-        let mut tc = Tych::new(&mut st);
+        st.insert(Symbol::new_var("x", &$variant, MOD_NAME));
+        let mut tc = Tych::new(MOD_NAME, &mut st);
         let lhs = ast::Node::new_lit(Literal::UInt64(3), None);
         let rhs = ast::Node::new_ident(String::from("x"), None);
         let res = tc.visit_binop(Operator::Add, lhs, rhs, None).map(|e| e.ty().unwrap_or_default().clone());
@@ -1035,16 +1058,16 @@ macro_rules! test_lit_hint_binop_int {
 macro_rules! test_lit_hint_binop_float {
     ($variant:ident) => {{
         let mut st = SymbolTable::new();
-        st.insert(Symbol::new_var("x", &$variant));
-        let mut tc = Tych::new(&mut st);
+        st.insert(Symbol::new_var("x", &$variant, MOD_NAME));
+        let mut tc = Tych::new(MOD_NAME, &mut st);
         let lhs = ast::Node::new_ident(String::from("x"), None);
         let rhs = ast::Node::new_lit(Literal::Float(3.0), None);
         let res = tc.visit_binop(Operator::Add, lhs, rhs, None).map(|e| e.ty().unwrap_or_default().clone());
         assert_eq!(res, Ok($variant));
 
         let mut st = SymbolTable::new();
-        st.insert(Symbol::new_var("x", &$variant));
-        let mut tc = Tych::new(&mut st);
+        st.insert(Symbol::new_var("x", &$variant, MOD_NAME));
+        let mut tc = Tych::new(MOD_NAME, &mut st);
         let lhs = ast::Node::new_lit(Literal::Float(3.0), None);
         let rhs = ast::Node::new_ident(String::from("x"), None);
         let res = tc.visit_binop(Operator::Add, lhs, rhs, None).map(|e| e.ty().unwrap_or_default().clone());

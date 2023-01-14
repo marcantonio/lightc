@@ -16,15 +16,18 @@ mod tests;
 // - initializes uninitialized variables
 // - drops field information from structs
 // - inserts let statements to support field/method chaining
+// - inserts imported functions into the HIR
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
+    imported_functions: Vec<Symbol>,
+    module: String,
 }
 
 impl<'a> Lower<'a> {
-    pub fn new(symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table, struct_methods: vec![] }
+    pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
+        Lower { symbol_table, struct_methods: vec![], imported_functions: vec![], module: module.to_owned() }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
@@ -35,16 +38,20 @@ impl<'a> Lower<'a> {
             .map(|node| node.accept(&mut self))
             .collect::<Result<Vec<_>, String>>()?;
 
-        // Add globals nodes to the right place in the HIR. Make sure struct methods live
-        // at the top of the tree after lowering
+        // Add globals nodes to the right place in the HIR
         nodes.into_iter().chain(self.struct_methods).for_each(|node| match node.kind {
-            hir::node::Kind::Struct { .. } => hir.add_struct(node),
             hir::node::Kind::Fn { ref proto, .. } => {
                 hir.add_prototype(proto.clone());
-                hir.add_function(node);
+                hir.add_node(node);
             },
+            hir::node::Kind::Blank => (),
             _ => unreachable!("invalid node kind at global level"),
         });
+
+        // Inject imported functions into the HIR
+        for symbol in self.imported_functions {
+            hir.add_prototype(Prototype::from(symbol))
+        }
 
         Ok(hir)
     }
@@ -100,7 +107,7 @@ impl<'a> Lower<'a> {
             Comp(name) => {
                 let sym = self
                     .symbol_table
-                    .get(name)
+                    .resolve_symbol(name, &self.module)
                     .cloned()
                     .unwrap_or_else(|| unreachable!("missing symbol for `{}` in `init_null()`", name));
                 let initializers = if let Some(fields) = sym.fields() {
@@ -132,7 +139,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     ) -> Self::Result {
         // Insert start var
         self.symbol_table.enter_scope();
-        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn));
+        self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn, &self.module));
 
         let start_expr = self.lower_var_init(&start_name, start_expr.as_ref(), &start_antn)?;
         let cond_expr = self.visit_node(cond_expr)?;
@@ -145,7 +152,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
-        self.symbol_table.insert(Symbol::new_var(&name, &antn));
+        self.symbol_table.insert(Symbol::new_var(&name, &antn, &self.module));
         let init_node = self.lower_var_init(&name, init.as_ref(), &antn)?;
         Ok(hir::Node::new_let(name, antn, Some(init_node)))
     }
@@ -173,7 +180,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         self.symbol_table.enter_scope();
 
         for arg in proto.args() {
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1));
+            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
         }
 
         let body_node = body.map(|e| self.visit_node(e));
@@ -183,17 +190,12 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(hir::Node::new_fn(proto, body_node.transpose()?))
     }
 
+    // Structs don't make it into the HIR. The type with fields is already in the symbol
+    // table. This lowers the methods to be added via self.struct_methods. Returns a blank
+    // node
     fn visit_struct(
-        &mut self, name: String, fields: Vec<ast::Node>, methods: Vec<ast::Node>,
+        &mut self, name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
-        let field_tys = fields
-            .into_iter()
-            .map(|n| match n.kind {
-                ast::node::Kind::Let { antn, .. } => antn,
-                _ => unreachable!("invalid node type in struct fields"),
-            })
-            .collect();
-
         // Save the methods separately to pop them up to the top of the HIR later
         let mut lowered_methods = methods
             .into_iter()
@@ -214,7 +216,7 @@ impl<'a> ast::Visitor for Lower<'a> {
             .collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
-        Ok(hir::Node::new_struct(name, field_tys))
+        Ok(hir::Node::new_blank())
     }
 
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -291,12 +293,17 @@ impl<'a> ast::Visitor for Lower<'a> {
             .get(&name)
             .unwrap_or_else(|| unreachable!("missing symbol in `visit_call()` for `{}`", name));
 
-        // Update the AST with the lowered name if it hasn't been done already and it's
+        // Update the HIR with the lowered name if it hasn't been done already and it's
         // not an extern call
         let lowered_name = match sym.name() {
             sym_name if !sym.is_extern() && sym_name != name => sym_name.to_owned(),
             _ => name,
         };
+
+        // Make a list of all imported functions
+        if sym.is_import(&self.module) {
+            self.imported_functions.push(sym.clone())
+        }
 
         let mut lowered_args = vec![];
         for node in args {
@@ -373,7 +380,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         let lowered_call = self.visit_call(name, args, ty)?;
         match lowered_call.kind {
             hir::node::Kind::Call { name, mut args, ty } => {
-                // xxx: add lowered_comp as self here
+                // XXX: add lowered_comp as self here
                 args.insert(0, lowered_comp);
                 Ok(hir::Node::new_call(name, args, ty))
             },

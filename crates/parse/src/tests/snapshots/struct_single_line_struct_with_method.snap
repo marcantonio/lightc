@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 394
+assertion_line: 360
 expression: "(test[1], ast, ast_string)"
 ---
 - "struct Foo { fn foo() {} }"
@@ -8,20 +8,21 @@ expression: "(test[1], ast, ast_string)"
     nodes:
       - kind:
           Struct:
-            name: Foo
+            name: "main::Foo"
             fields: []
             methods:
               - kind:
                   Fn:
                     proto:
-                      name: _Foo_foo
+                      name: "_main::Foo_foo"
                       args: []
                       ret_ty: Void
                       is_extern: false
+                      module: main
                     body:
                       kind:
                         Block:
                           list: []
                           ty: ~
-- "(struct Foo '() '((define (_Foo_foo) '()))))"
+- "(struct main::Foo '() '((define (_main::Foo_foo) '()))))"
 

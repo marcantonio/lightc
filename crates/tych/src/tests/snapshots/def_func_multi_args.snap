@@ -9,7 +9,7 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: foo
+              name: "main::foo"
               args:
                 - - a
                   - Int32
@@ -17,6 +17,7 @@ expression: "(test[1], res)"
                   - Float
               ret_ty: Void
               is_extern: false
+              module: main
             body:
               kind:
                 Block:

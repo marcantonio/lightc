@@ -37,7 +37,9 @@
     "struct"
     "self"
     "true"
-    "false"))
+    "false"
+    "module"
+    "use"))
 
 (defconst light-builtin-type
   '("int" "uint"
@@ -49,7 +51,7 @@
     "bool" "char"))
 
 ;; Matches fn `foo'()
-(defconst light-fn-name-re "\\(?:fn\\|extern\\)[[:space:]]+\\([[:word:]]+\\)")
+(defconst light-fn-name-re "\\(?:fn\\|extern[[:space:]]fn\\)[[:space:]]+\\([[:word:]]+\\)")
 
 ;; Matches fn foo() -> `int'
 (defconst light-fn-return-re "\\(?:fn\\|extern\\)[[:space:]]+[[:word:]]+.+->[[:space:]]+\\([[:word:]]+\\)")
@@ -63,6 +65,13 @@
 ;; Matches `foo': int
 (defconst light-typed-decl-re (concat "\\([[:word:]]+\\)[[:space:]]*:[[:space:]]+" light-type-re))
 
+;; Matches module `foo'
+(defconst light-mod-name-re "\\(?:module\\|use\\)[[:space:]]+\\([[:word:]]+\\)")
+
+;; Matches `foo'::bar()
+;; Not sure if I like this one...
+(defconst light-mod-path-re "\\([[:word:]]+\\)::")
+
 ;; Identifies a closer. Used to skip further indentation when a block is closing
 (defconst light-closing-brace-re "^[[:space:]]*[})].*$")
 
@@ -74,6 +83,8 @@
      (,light-struct-def-re . (1 'font-lock-type-face))
      (,light-typed-decl-re . ((1 'font-lock-variable-name-face)
                               (2 'font-lock-type-face)))
+     (,light-mod-name-re . (1 'font-lock-preprocessor-face))
+     (,light-mod-path-re . (1 'font-lock-preprocessor-face))
      (,(regexp-opt light-builtin-type 'symbols) . font-lock-type-face)
      (,(regexp-opt light-keywords 'symbols) . font-lock-keyword-face))))
 

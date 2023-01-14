@@ -22,45 +22,70 @@ type ParseResult = Result<ast::Node, ParseError>;
 pub struct Parse<'a> {
     tokens: Peekable<Iter<'a, Token>>,
     symbol_table: &'a mut SymbolTable<Symbol>,
+    module: String,
+    current_struct: Option<String>,
+    imports: Vec<String>,
     errors: Vec<ParseError>,
 }
 
 impl<'a> Parse<'a> {
     pub fn new(tokens: &'a [Token], symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Parse { tokens: tokens.iter().peekable(), symbol_table, errors: Vec::new() }
+        Parse {
+            tokens: tokens.iter().peekable(),
+            symbol_table,
+            module: String::new(),
+            current_struct: None,
+            imports: vec![],
+            errors: vec![],
+        }
     }
 
-    // Parse each token using recursive descent
+    // Parse each token using recursive descent. Returns the AST, module name, and needed
+    // imports
     //
-    // StmtList ::= ( Stmt ';' )+ ;
-    pub fn parse(mut self) -> Result<Ast<ast::Node>, Vec<ParseError>> {
+    // StmtList ::= ModDecl? ( Stmt ';' )+ ;
+    pub fn parse(mut self) -> Result<(Ast<ast::Node>, String, Vec<String>), Vec<ParseError>> {
+        // Ensure the file starts with a module name. No node is produced
+        match self.tokens.peek() {
+            Some(Token { tt: TokenType::Module, .. }) => {
+                self.parse_module().unwrap_or_else(|err| self.push_err(err))
+            },
+            // If no module is declared, assume it's `main` for now
+            _ => {
+                self.module = String::from("main");
+            },
+        };
+
         let mut ast = Ast::new();
         while self.tokens.peek().is_some() {
             match self.parse_stmt() {
-                Ok(n) if self.errors.is_empty() => ast.add(n),
+                Ok(n) if self.errors.is_empty() & !n.is_blank() => ast.add(n),
                 Err(e) => self.push_err(e),
-                _ => continue
+                _ => continue,
             };
         }
-        if !self.errors.is_empty() {
-            Err(self.errors)
+        if self.errors.is_empty() {
+            Ok((ast, self.module, self.imports))
         } else {
-            Ok(ast)
+            Err(self.errors)
         }
     }
 
     /// Statement productions
 
-    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | Expr ;
+    // Stmt ::= LetStmt | ForStmt | FnDecl | ExternDecl | StructDecl | UseStmt | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
+        use TokenType::*;
+
         let token = self.tokens.peek().ok_or_else(|| "Premature end of statement".to_string())?;
 
         let stmt = match &token.tt {
-            TokenType::For => self.parse_for()?,
-            TokenType::Let => self.parse_let()?,
-            TokenType::Fn => self.parse_fn(false)?,
-            TokenType::Extern => self.parse_extern()?,
-            TokenType::Struct => self.parse_struct()?,
+            For => self.parse_for()?,
+            Let => self.parse_let()?,
+            Fn => self.parse_fn()?,
+            Extern => self.parse_extern()?,
+            Struct => self.parse_struct()?,
+            Use => self.parse_use()?,
             _ => self.parse_expr(0)?,
         };
 
@@ -79,6 +104,8 @@ impl<'a> Parse<'a> {
         let (name, token) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting struct name in declaration");
 
+        let full_name = format!("{}::{}", self.module, name);
+
         expect_next_token!(self.tokens, TokenType::OpenBrace, "Expecting `{` to start struct block");
 
         let mut fields = vec![];
@@ -96,39 +123,37 @@ impl<'a> Parse<'a> {
                         }
                     }
 
-                    // Make an entry for each method using a "semi" lowered name. We do
-                    // this here to allow for proper name collision detection in the tych.
+                    // Add method names to struct symbol
                     let mut sym_methods = vec![];
                     for node in methods.iter_mut() {
                         if let ast::Node { kind: ast::node::Kind::Fn { proto, .. } } = node {
-                            let orig_name = proto.name().to_owned();
-                            sym_methods.push(proto.name().to_owned());
-                            let method_name = format!("_{}_{}", name, proto.name());
-                            proto.set_name(method_name);
-
-                            if self
-                                .symbol_table
-                                .insert_with_name(proto.name(), Symbol::from(&*proto))
-                                .is_some()
-                            {
-                                return Err(ParseError::from((
-                                    format!("method `{}` can't be redefined on `{}`", orig_name, name),
-                                    token,
-                                )));
-                            }
+                            // TODO: remove this when `orig_name` becomes part of Prototype
+                            let simple_name = proto.name().split('_').nth(2).unwrap_or_else(|| {
+                                unreachable!("couldn't split prototype name in `parse_struct()`")
+                            });
+                            sym_methods.push(simple_name.to_owned());
                         }
                     }
 
                     // Insert struct into symbol table
                     if self
                         .symbol_table
-                        .insert(Symbol::new_struct(name, Some(&sym_fields), Some(&sym_methods)))
+                        .insert(Symbol::new_struct(
+                            &full_name,
+                            Some(&sym_fields),
+                            Some(&sym_methods),
+                            &self.module,
+                            true,
+                        ))
                         .is_some()
                     {
-                        return Err(ParseError::from((format!("struct `{}` already defined", name), token)));
+                        return Err(ParseError::from((
+                            format!("struct `{}` already defined", full_name),
+                            token,
+                        )));
                     }
 
-                    return Ok(ast::Node::new_struct(name.to_owned(), fields, methods));
+                    return Ok(ast::Node::new_struct(full_name, fields, methods));
                 },
                 TokenType::Let => {
                     match self.parse_let() {
@@ -140,25 +165,27 @@ impl<'a> Parse<'a> {
                     });
                 },
                 TokenType::Fn => {
-                    match self.parse_fn(true) {
+                    self.current_struct = Some(full_name.to_owned());
+                    match self.parse_fn() {
                         Ok(f) => methods.push(f),
                         Err(e) => self.push_err(e),
                     }
                     token_is_and_then!(self.tokens.peek(), TokenType::Semicolon(_), {
                         self.tokens.next(); // Eat semicolon
                     });
+                    self.current_struct = None;
                 },
                 tt => {
-                    /*Do not propagate a ParseError within a struct or
-                    the struct will not be parsed, causing incorrect errors*/
+                    // Do not propagate a ParseError within a struct or the struct will
+                    // not be parsed, causing incorrect errors
                     let e = ParseError::from((
                         format!("Expecting `let` or `fn` in struct definition. Got `{}`", tt),
                         *t,
                     ));
                     if let Some(t) = self.tokens.peek() {
                         if t.tt == TokenType::OpenBrace {
-                            /*If token is an open brace, parse it as a stmt
-                            allows it to parse generic blocks within a struct*/
+                            // If token is an open brace, parse it as a stmt allows it to
+                            // parse generic blocks within a struct
                             self.parse_stmt()?;
                         } else {
                             self.push_err(e);
@@ -198,20 +225,40 @@ impl<'a> Parse<'a> {
     }
 
     // FnDecl ::= Prototype Block ;
-    fn parse_fn(&mut self, in_struct: bool) -> ParseResult {
+    fn parse_fn(&mut self) -> ParseResult {
         // Eat 'fn'
         let token = self.tokens.next().unwrap();
 
-        let proto = self.parse_proto()?;
-
-        // Create symbol table entry. Use the old name as the key until later
-        // lowering. Skip for struct methods. They are handled elsewhere.
-        if !in_struct && self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
-            return Err(ParseError::from((format!("Function `{}` can't be redefined", proto.name()), token)));
-        }
+        let mut proto = self.parse_proto()?;
 
         // No body for externs
         let body = if proto.is_extern() { None } else { Some(self.parse_block()?) };
+
+        // Create symbol table entry. Use the old name as the key until later lowering.
+        //
+        // For methods use a "semi" lowered name. We do this here to allow for proper name
+        // collision detection in the tych
+        if let Some(struct_name) = &self.current_struct {
+            let orig_name = proto.name().to_owned();
+            let method_name = format!("_{}_{}", struct_name, proto.name());
+            proto.set_name(method_name);
+
+            if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
+                return Err(ParseError::from((
+                    format!("method `{}` can't be redefined on `{}`", orig_name, struct_name),
+                    token,
+                )));
+            }
+        } else {
+            let sym = self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto));
+            // Error on dups. Ignore for externs
+            if sym.is_some() && body.is_some() {
+                return Err(ParseError::from((
+                    format!("function `{}` can't be redefined", proto.name()),
+                    token,
+                )));
+            }
+        }
 
         Ok(ast::Node::new_fn(proto, body))
     }
@@ -226,7 +273,31 @@ impl<'a> Parse<'a> {
             return Err(ParseError::from((String::from("Expecting `fn` after `extern`"), *next.unwrap())));
         }
 
-        self.parse_fn(false)
+        self.parse_fn()
+    }
+
+    // ModDecl ::= 'module' ident ';' ;
+    fn parse_module(&mut self) -> Result<(), ParseError> {
+        self.tokens.next(); // Eat module
+
+        let (name, _) =
+            expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `module`");
+
+        self.module = name.to_owned();
+
+        self.tokens.next(); // Eat semicolon
+        Ok(())
+    }
+
+    // UseStmt ::= 'use' ident
+    fn parse_use(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat use
+
+        let (name, _) =
+            expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting module name after `use`");
+        self.imports.push(name.to_owned());
+
+        Ok(ast::Node::new_blank())
     }
 
     /// Expression productions
@@ -425,8 +496,8 @@ impl<'a> Parse<'a> {
                     return Ok(ast::Node::new_block(block, None));
                 },
                 _ => {
-                    /*Do not propagate a ParseError within a block or
-                    the block will not be parsed, causing incorrect errors*/
+                    // Do not propagate a ParseError within a block or the block will not
+                    // be parsed, causing incorrect errors
                     match self.parse_stmt() {
                         Ok(b) => block.push(b),
                         Err(e) => self.push_err(e),
@@ -507,25 +578,25 @@ impl<'a> Parse<'a> {
 
     // Prototype ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
     fn parse_proto(&mut self) -> Result<Prototype, ParseError> {
-        let (fn_name, _) =
+        let (name, _) =
             expect_next_token!(self.tokens, TokenType::Ident(_), "Expecting function name in prototype");
 
         expect_next_token!(self.tokens, TokenType::OpenParen, "Expecting `(` in prototype");
 
-        // Parse args list
-        let mut args = vec![];
+        // Parse parameter list
+        let mut params = vec![];
         while let Some(&next) = self.tokens.peek() {
             // Matches immediate ')'
             if next.tt == TokenType::CloseParen {
                 break;
             }
 
-            // Get the name of the argument and its type annotation
+            // Get the name of the parameter and its type annotation
             let (name, antn) = self.parse_typed_decl("prototype")?;
 
-            args.push((name.to_string(), antn));
+            params.push((name.to_string(), antn));
 
-            // This rusty mess checks for a ',' or a ')' in the argument list. If one
+            // This rusty mess checks for a ',' or a ')' in the parameter list. If one
             // isn't found we try to create a new "error token" with the right context for
             // the error message. If the bad token is an implicit semicolon, take the next
             // one in the list or use EOF.
@@ -571,7 +642,14 @@ impl<'a> Parse<'a> {
         // If the next token is a ';', this is an extern
         let is_extern = matches!(&self.tokens.peek(), Some(Token { tt: TokenType::Semicolon(..), .. }));
 
-        Ok(Prototype::new(fn_name.to_string(), args, ret_type.unwrap_or_default(), is_extern))
+        Ok(Prototype::new(
+            name.to_owned(),
+            params,
+            ret_type.unwrap_or_default(),
+            is_extern,
+            self.current_struct.is_some(),
+            self.module.clone(),
+        ))
     }
 
     // VarInit ::= TypedDecl ( '=' Expr  )? ;
@@ -696,22 +774,21 @@ impl<'a> Parse<'a> {
         }
     }
 
-    /* True if iterator is at a panic_stop_token.
-    Moves iterator to proper location depending on
-    the stop token that is detected for optimal
-    error recovery. */
+    // True if iterator is at a panic_stop_token. Moves iterator to proper location
+    // depending on the stop token that is detected for optimal error recovery.
     fn at_panic_stop_token(&mut self) -> bool {
         use TokenType::*;
         if let Some(t) = self.tokens.peek() {
             if matches!(t.tt, Semicolon(true)) {
-                // only implicit semis in case error is within a for-loop
+                // Only implicit semis in case error is within a for-loop
                 self.tokens.next();
                 true
-            } else if matches!(t.tt, OpenBrace) {
-                // do not move past OpenBrace so block can be parsed
-                true
             } else {
-                false
+                match t.tt {
+                    // Do not move past OpenBrace so block can be parsed
+                    OpenBrace => true,
+                    _ => false,
+                }
             }
         } else {
             false
