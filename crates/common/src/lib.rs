@@ -106,6 +106,18 @@ impl From<&str> for Type {
     fn from(ty: &str) -> Self {
         use Type::*;
 
+        if ty.starts_with("sarray") {
+            let start = ty.find('(').unwrap_or_else(|| unreachable!("malformed array annotation"));
+            let end = ty.find(')').unwrap_or_else(|| unreachable!("malformed array annotation"));
+            let (inner, sz) = ty[start + 1..end]
+                .split_once(", ")
+                .unwrap_or_else(|| unreachable!("malformed array annotation"));
+            return SArray(
+                Box::new(Type::from(inner)),
+                sz.parse().unwrap_or_else(|err| unreachable!("malformed array annotation: {}", err)),
+            );
+        }
+
         match ty {
             "int8" => Int8,
             "int16" => Int16,
@@ -154,8 +166,9 @@ mod test {
     use crate::Type;
 
     #[test]
-    fn test_resolve_primitive() {
+    fn test_type_from() {
         assert_eq!(Type::from("int32"), Type::Int32);
         assert_eq!(Type::from("Int32"), Type::Comp(String::from("Int32")));
+        assert_eq!(Type::from("sarray(int, 3)"), Type::SArray(Box::new(Type::Int32), 3));
     }
 }

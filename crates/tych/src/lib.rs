@@ -274,6 +274,7 @@ impl<'a> ast::Visitor for Tych<'a> {
         if &ret_ty != body_ty && ret_ty != Type::Void && proto.name() != "main" {
             return Err(format!(
                 "Function `{}` should return type `{}` but last statement is `{}`",
+                // TODO: proto.name() will be the butchered name. Use the original name
                 proto.name(),
                 fn_entry.ret_ty(),
                 body_ty

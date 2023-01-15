@@ -412,7 +412,9 @@ impl<'ctx> Codegen<'ctx> {
             Type::Comp(name) => self
                 .module
                 .get_struct_type(name)
-                .unwrap_or_else(|| unreachable!("missing struct definition in `get_llvm_basic_type()`"))
+                .unwrap_or_else(|| {
+                    unreachable!("missing struct definition for `{}` in `get_llvm_basic_type()`", name)
+                })
                 .as_basic_type_enum(),
             Type::Void => unreachable!("void can't be coerced into LLVM basic type"),
         })
