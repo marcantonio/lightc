@@ -69,8 +69,8 @@ impl Node {
         Self { kind: Kind::Block { list, ty } }
     }
 
-    pub fn new_index(binding: Node, idx: Node, ty: Type) -> Self {
-        Self { kind: Kind::Index { binding: Box::new(binding), idx: Box::new(idx), ty } }
+    pub fn new_index(array: Node, idx: Node, ty: Type) -> Self {
+        Self { kind: Kind::Index { array: Box::new(array), idx: Box::new(idx), ty } }
     }
 
     pub fn new_fselector(comp: Node, idx: u32, ty: Type) -> Self {
@@ -177,7 +177,7 @@ pub enum Kind {
         ty: Type,
     },
     Index {
-        binding: Box<Node>,
+        array: Box<Node>,
         idx: Box<Node>,
         ty: Type,
     },
@@ -208,7 +208,7 @@ impl VisitableNode for Node {
                 v.visit_cond(*cond_expr, *then_block, else_block.map(|x| *x), ty)
             },
             Block { list, .. } => v.visit_block(list),
-            Index { binding, idx, .. } => v.visit_index(*binding, *idx),
+            Index { array, idx, .. } => v.visit_index(*array, *idx),
             FSelector { comp, idx, .. } => v.visit_fselector(*comp, idx),
             _ => unreachable!("invalid node kind visited"),
         }
@@ -266,7 +266,7 @@ impl Display for Node {
                 });
                 write!(f, "{})", s.strip_suffix(' ').unwrap_or("'()"))
             },
-            Index { binding, idx, .. } => write!(f, "{}[{}]", binding, idx),
+            Index { array, idx, .. } => write!(f, "{}[{}]", array, idx),
             FSelector { comp, idx, .. } => write!(f, "{}.{}", comp, idx),
             Blank => write!(f, "<blank_node>"),
         }

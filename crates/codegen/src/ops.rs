@@ -232,7 +232,7 @@ impl<'ctx> Codegen<'ctx> {
                 .unwrap_or_else(|| unreachable!("unknown variable in assignment: {}", name))
                 .pointer()
                 .expect("missing pointer on symbol"),
-            Index { binding, idx, .. } => self.get_array_element(*binding, *idx)?.1,
+            Index { array, idx, .. } => self.get_array_element(*array, *idx)?,
             FSelector { comp, idx, .. } => self.get_struct_element(*comp, idx)?,
             _ => unreachable!("bad LHS in codegen assignment: `{}`", lhs),
         };

@@ -324,45 +324,37 @@ impl<'ctx> Codegen<'ctx> {
     }
 
     // Helper to fetch a pointer to an array element
-    fn get_array_element(
-        &mut self, binding: hir::Node, idx: hir::Node,
-    ) -> Result<(String, PointerValue<'ctx>), String> {
-        // Extract the name of the ident in `binding`
-        //
-        // TODO: This could be something other than an ident in the future
-        let name = match binding.kind {
-            hir::node::Kind::Ident { name, .. } => name,
-            _ => unreachable!("name missing for array index"),
+    fn get_array_element(&mut self, array: hir::Node, idx: hir::Node) -> Result<PointerValue<'ctx>, String> {
+        use hir::node::Kind::*;
+
+        // Codegen the array value
+        let array_ptr = match array.kind {
+            // TODO: As an optimization, when an Ident is found, pull the pointer out of
+            // the symbol table rather than calling visit_node(). This will skip the
+            // generated load instruction
+            Ident { .. } | FSelector { .. } => {
+                let value =
+                    self.visit_node(array)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+                let inst = value.as_instruction_value().unwrap();
+                inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
+            },
+            _ => unreachable!("unsupported type for array index"),
         };
 
-        // Get the allocated array ptr
-        let array_ptr = self
-            .symbol_table
-            .get(&name)
-            .unwrap_or_else(|| unreachable!("codegen failed to resolve array name `{}`", name))
-            .pointer()
-            .expect("missing pointer on symbol");
-
         // Codegen the index
-        let idx = self
-            .visit_node(idx)?
-            .unwrap_or_else(|| unreachable!("missing value in index of `{}`", name))
-            .into_int_value();
+        let idx =
+            self.visit_node(idx)?.unwrap_or_else(|| unreachable!("missing value in index")).into_int_value();
 
         let zero = self.context.i32_type().const_zero();
 
-        unsafe {
-            Ok((
-                name.to_owned(),
-                self.builder.build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep"),
-            ))
-        }
+        unsafe { Ok(self.builder.build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep")) }
     }
 
     fn get_struct_element(&mut self, comp: hir::Node, idx: u32) -> Result<PointerValue<'ctx>, String> {
         use hir::node::Kind::*;
 
-        let comp_node = match comp.clone().kind {
+        // Codegen the composite value
+        let comp_value = match comp.clone().kind {
             Let { ref name, .. } => {
                 self.visit_node(comp)?;
                 self.symbol_table.get(name).unwrap().pointer().unwrap().as_basic_value_enum()
@@ -375,11 +367,11 @@ impl<'ctx> Codegen<'ctx> {
 
         // If the composite is already a pointer, as in the case of chained fields, don't
         // try to coerce into a pointer
-        let struct_ptr = if comp_node.is_pointer_value() {
-            comp_node.into_pointer_value()
+        let struct_ptr = if comp_value.is_pointer_value() {
+            comp_value.into_pointer_value()
         } else {
             // Get the load instruction for the struct
-            let inst = comp_node.as_instruction_value().unwrap();
+            let inst = comp_value.as_instruction_value().unwrap();
             // The only operand to the load instruction is the pointer to the struct
             inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
         };
@@ -841,23 +833,13 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(node_val)
     }
 
-    fn visit_index(&mut self, binding: hir::Node, idx: hir::Node) -> Self::Result {
-        let (binding_name, element_ptr) = self.get_array_element(binding, idx)?;
-        Ok(Some(self.builder.build_load(element_ptr, &("index.".to_owned() + binding_name.as_str()))))
+    fn visit_index(&mut self, array: hir::Node, idx: hir::Node) -> Self::Result {
+        let element_ptr = self.get_array_element(array, idx)?;
+        Ok(Some(self.builder.build_load(element_ptr, "array.index")))
     }
 
     fn visit_fselector(&mut self, comp: hir::Node, idx: u32) -> Self::Result {
         let field_ptr = self.get_struct_element(comp, idx)?;
-
-        // TODO: I did this to eliminate an extraneous load instructions in some cases
-        // when compared to clang. It was dumb.
-        // If the pointer is pointing to a struct, just return it and skip the load
-        // instruction
-        // if field_ptr.get_type().get_element_type().is_struct_type() {
-        //     Ok(Some(field_ptr.as_basic_value_enum()))
-        // } else {
-        //     Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
-        // }
         Ok(Some(self.builder.build_load(field_ptr, &format!("struct.{}", idx))))
     }
 }

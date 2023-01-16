@@ -1,9 +1,9 @@
 ---
 source: crates/codegen/src/tests.rs
-assertion_line: 368
+assertion_line: 364
 expression: "(test[1], res, res_opt)"
 ---
 - "\nfn main() {\n    let a: [int; 3] = [1, 2, 3]\n    let b: [int; 3]\n    a[1] = 7\n    a[1]\n}\n"
-- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %b = alloca [3 x i32], align 4\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  store [3 x i32] zeroinitializer, [3 x i32]* %b, align 4\n  %array.index.gep = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a = load i32, i32* %array.index.gep, align 4\n  %array.index.gep1 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  store i32 7, i32* %array.index.gep1, align 4\n  %array.index.gep2 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %index.a3 = load i32, i32* %array.index.gep2, align 4\n  ret void\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %b = alloca [3 x i32], align 4\n  %a = alloca [3 x i32], align 4\n  store [3 x i32] [i32 1, i32 2, i32 3], [3 x i32]* %a, align 4\n  store [3 x i32] zeroinitializer, [3 x i32]* %b, align 4\n  %a1 = load [3 x i32], [3 x i32]* %a, align 4\n  %array.index.gep = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %array.index = load i32, i32* %array.index.gep, align 4\n  %a2 = load [3 x i32], [3 x i32]* %a, align 4\n  %array.index.gep3 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  store i32 7, i32* %array.index.gep3, align 4\n  %a4 = load [3 x i32], [3 x i32]* %a, align 4\n  %array.index.gep5 = getelementptr inbounds [3 x i32], [3 x i32]* %a, i32 0, i32 1\n  %array.index6 = load i32, i32* %array.index.gep5, align 4\n  ret void\n}\n"
 - "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
 

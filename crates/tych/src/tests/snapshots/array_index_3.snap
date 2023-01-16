@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 651
+assertion_line: 674
 expression: "(test[1], res)"
 ---
 - "\nlet x: [int; 3] = [1, 2, 3]\nlet y: int = 1\nx[y]\n"
@@ -51,7 +51,7 @@ expression: "(test[1], res)"
                   ty: Int32
       - kind:
           Index:
-            binding:
+            array:
               kind:
                 Ident:
                   name: x
