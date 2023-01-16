@@ -17,6 +17,7 @@ mod tests;
 // - checks main()'s annotation
 // - checks for unknown functions, variables, and types
 // - resolves type, function, and struct names
+// - inserts temporary `self` value into methods
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -232,11 +233,6 @@ impl<'a> ast::Visitor for Tych<'a> {
         // Creates interstitial scope for the arguments in the function definition
         self.symbol_table.enter_scope();
 
-        // Insert symbol for self if this is a method
-        if let Some(name) = &self.current_struct {
-            self.symbol_table.insert(Symbol::new_var("self", &Type::Comp(name.to_owned()), &self.module));
-        }
-
         // Insert args into the local scope table
         let mut resolved_args = vec![];
         for arg in proto.args() {
@@ -256,8 +252,11 @@ impl<'a> ast::Visitor for Tych<'a> {
         }
         proto.set_args(resolved_args);
 
+        // Hack to allow methods to use `let` initializers
+        let current_struct = self.current_struct.take();
         let body_node = self.check_node(body, None)?;
         let body_ty = body_node.ty().unwrap_or_default();
+        self.current_struct = current_struct;
 
         // Make sure these are in sync since there's no `check_proto()`
         if proto.name() == "main" {
@@ -529,12 +528,29 @@ impl<'a> ast::Visitor for Tych<'a> {
             .unwrap_or_else(|| unreachable!("non-function symbol in `visit_call()`"))
             .to_owned();
 
+        // Inject a temporary `self` into the call's arguments and the symbol table. Will
+        // be replaced in the lower
+        let mut args = args;
+        if let Some(struct_name) = fn_entry.member_of() {
+            self.symbol_table.insert(Symbol::new_var(
+                "self",
+                &Type::Comp(struct_name.to_owned()),
+                &self.module,
+            ));
+            args.insert(
+                0,
+                ast::Node::new_ident(String::from("self"), Some(Type::Comp(struct_name.to_owned()))),
+            );
+        }
+
         // Pull out the function arg types
         let fe_arg_tys = fn_entry.arg_tys().to_vec();
 
-        // Check arg length
-        let fe_args_len = fe_arg_tys.len();
-        let args_len = args.len();
+        // Check arg length. Account for injected self if method
+        let (fe_args_len, args_len) = match fn_entry.member_of().is_some() {
+            true => (fe_arg_tys.len() - 1, args.len() - 1),
+            false => (fe_arg_tys.len(), args.len()),
+        };
         if fe_arg_tys.len() != args.len() {
             return Err(format!(
                 "Call to `{}()` takes {} args and {} were given",

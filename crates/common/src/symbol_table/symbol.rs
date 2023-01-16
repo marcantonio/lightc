@@ -10,6 +10,7 @@ pub struct FnData {
     args: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
+    member_of: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -42,7 +43,7 @@ pub struct Symbol {
 impl Symbol {
     pub fn new_fn(
         name: &str, fq_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
-        is_exportable: bool,
+        is_exportable: bool, member_of: Option<&str>,
     ) -> Self {
         Symbol {
             name: name.to_owned(),
@@ -51,6 +52,7 @@ impl Symbol {
                 args: args.to_vec(),
                 ret_ty: ret_ty.to_owned(),
                 is_extern,
+                member_of: member_of.map(|x| x.to_owned()),
             }),
             module: module.to_owned(),
             is_exportable,
@@ -128,6 +130,13 @@ impl Symbol {
         }
     }
 
+    pub fn member_of(&self) -> Option<&str> {
+        match &self.data {
+            AssocData::Fn(s) => s.member_of.as_deref(),
+            _ => unreachable!("expected symbol to be a function"),
+        }
+    }
+
     pub fn fields(&self) -> Option<Vec<(&str, &str)>> {
         match &self.data {
             AssocData::Struct(s) => {
@@ -185,7 +194,7 @@ impl Display for Symbol {
         let mut output =
             format!("name: {}, module: {}, exportable: {}", self.name, self.module, self.is_exportable);
         match &self.data {
-            AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern }) => {
+            AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern, member_of }) => {
                 output += &format!("\n      [Fn] {}(", fq_name);
                 if !args.is_empty() {
                     output += &format!("{}: {}", args[0].0, args[0].1);
@@ -195,6 +204,9 @@ impl Display for Symbol {
                     });
                 };
                 output += &format!(") -> {}, is_extern: {}", ret_ty, is_extern);
+                if let Some(struct_name) = member_of {
+                    output += &format!(", member_of: {}", struct_name);
+                }
             },
             AssocData::Var(VarData { ty }) => output += &format!("\n      [Var] type: {}", ty),
             AssocData::Struct(StructData { fields, methods }) => {

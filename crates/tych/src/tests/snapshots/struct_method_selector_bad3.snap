@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 919
+assertion_line: 941
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    fn bar() {}\n}\nfn main() {\n    let f: Foo\n    f.bar(1)\n}\n"

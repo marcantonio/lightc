@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 392
+assertion_line: 391
 expression: "(test[1], res)"
 ---
 - "\nstruct Foo {\n    let a: int\n}\nfn cook(f: Foo, fp: Foo) -> Foo {\n    let a: Foo\n    a\n}\nfn main() {\n    let f: Foo\n    let fp: Foo\n    cook(f, fp)\n    cook_more(f, fp)\n}\nfn cook_more(f: Foo, fp: Foo) -> Foo {\n    let a: Foo\n    a\n}\n"
@@ -29,6 +29,7 @@ expression: "(test[1], res)"
                 Comp: "main::Foo"
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:
@@ -54,6 +55,7 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:
@@ -117,6 +119,7 @@ expression: "(test[1], res)"
                 Comp: "main::Foo"
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:

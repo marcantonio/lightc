@@ -9,13 +9,14 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: "_main::Foo_b~int32"
+              name: "_main::Foo_b~main::Foo~int32"
               args:
                 - - self
                   - Comp: "main::Foo"
               ret_ty: Int32
               is_extern: false
               module: main
+              member_of: "main::Foo"
             body:
               kind:
                 Block:
@@ -43,11 +44,12 @@ expression: "(test[1], res)"
                           ty: Int32
                   ty: Int32
     prototypes:
-      - name: "_main::Foo_b~int32"
+      - name: "_main::Foo_b~main::Foo~int32"
         args:
           - - self
             - Comp: "main::Foo"
         ret_ty: Int32
         is_extern: false
         module: main
+        member_of: "main::Foo"
 

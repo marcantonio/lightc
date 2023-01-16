@@ -194,26 +194,11 @@ impl<'a> ast::Visitor for Lower<'a> {
     // table. This lowers the methods to be added via self.struct_methods. Returns a blank
     // node
     fn visit_struct(
-        &mut self, name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
+        &mut self, _name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
         // Save the methods separately to pop them up to the top of the HIR later
-        let mut lowered_methods = methods
-            .into_iter()
-            .map(|n| {
-                let mut node = self.visit_node(n)?;
-
-                // Insert `self` into the method's args list.
-                match node.kind {
-                    hir::node::Kind::Fn { ref mut proto, .. } => {
-                        let mut args = vec![(String::from("self"), Type::Comp(name.clone()))];
-                        args.append(&mut proto.args().to_vec());
-                        proto.set_args(args);
-                    },
-                    _ => unreachable!("non-function node in struct methods"),
-                }
-                Ok(node)
-            })
-            .collect::<Result<Vec<_>, String>>()?;
+        let mut lowered_methods =
+            methods.into_iter().map(|n| Ok(self.visit_node(n)?)).collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
         Ok(hir::Node::new_blank())
@@ -380,8 +365,8 @@ impl<'a> ast::Visitor for Lower<'a> {
         let lowered_call = self.visit_call(name, args, ty)?;
         match lowered_call.kind {
             hir::node::Kind::Call { name, mut args, ty } => {
-                // XXX: add lowered_comp as self here
-                args.insert(0, lowered_comp);
+                // Replace `self` ident with the real composite
+                args[0] = lowered_comp;
                 Ok(hir::Node::new_call(name, args, ty))
             },
             _ => unreachable!("unknown node kind in `visit_mselector()`"),

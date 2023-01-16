@@ -15,6 +15,7 @@ expression: "(test[1], res)"
                 Comp: "main::Foo"
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:
@@ -51,6 +52,7 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:
@@ -124,7 +126,7 @@ expression: "(test[1], res)"
                                   Comp: "main::Bar"
                     - kind:
                         Call:
-                          name: "_main::Foo_b~void"
+                          name: "_main::Foo_b~main::Foo~void"
                           args:
                             - kind:
                                 FSelector:
@@ -158,13 +160,14 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: "_main::Foo_b~void"
+              name: "_main::Foo_b~main::Foo~void"
               args:
                 - - self
                   - Comp: "main::Foo"
               ret_ty: Void
               is_extern: false
               module: main
+              member_of: "main::Foo"
             body:
               kind:
                 Block:
@@ -177,16 +180,19 @@ expression: "(test[1], res)"
           Comp: "main::Foo"
         is_extern: false
         module: main
+        member_of: ~
       - name: main
         args: []
         ret_ty: Void
         is_extern: false
         module: main
-      - name: "_main::Foo_b~void"
+        member_of: ~
+      - name: "_main::Foo_b~main::Foo~void"
         args:
           - - self
             - Comp: "main::Foo"
         ret_ty: Void
         is_extern: false
         module: main
+        member_of: "main::Foo"
 

@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 360
+assertion_line: 363
 expression: "(test[1], ast, ast_string)"
 ---
 - "struct Foo { fn foo() {} }"
@@ -15,14 +15,17 @@ expression: "(test[1], ast, ast_string)"
                   Fn:
                     proto:
                       name: "_main::Foo_foo"
-                      args: []
+                      args:
+                        - - self
+                          - Comp: "main::Foo"
                       ret_ty: Void
                       is_extern: false
                       module: main
+                      member_of: "main::Foo"
                     body:
                       kind:
                         Block:
                           list: []
                           ty: ~
-- "(struct main::Foo '() '((define (_main::Foo_foo) '()))))"
+- "(struct main::Foo '() '((define (_main::Foo_foo self:main::Foo) '()))))"
 

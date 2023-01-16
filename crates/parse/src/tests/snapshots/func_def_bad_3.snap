@@ -1,6 +1,6 @@
 ---
 source: crates/parse/src/tests.rs
-assertion_line: 162
+assertion_line: 165
 expression: "(test[1], ast, ast_string)"
 ---
 - "fn a(b: int) -> not_a_type { b }"
@@ -17,6 +17,7 @@ expression: "(test[1], ast, ast_string)"
                 Comp: not_a_type
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:

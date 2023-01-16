@@ -422,6 +422,7 @@ fn main() {
     b.foo.a = returnStruct().a
     b.foo.b()
     b.foo.a
+    b.d(2)
 }
 struct Foo {
     let a: int
@@ -429,6 +430,8 @@ struct Foo {
 }
 struct Bar {
     let foo: Foo
+    let c: [int; 3]
+    fn d(i: int) -> int { self.c[i] }
 }
 "#,
         ],

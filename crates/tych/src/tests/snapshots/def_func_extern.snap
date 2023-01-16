@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 370
+assertion_line: 391
 expression: "(test[1], res)"
 ---
 - "\nextern fn foo()\n"
@@ -14,5 +14,6 @@ expression: "(test[1], res)"
               ret_ty: Void
               is_extern: true
               module: main
+              member_of: ~
             body: ~
 

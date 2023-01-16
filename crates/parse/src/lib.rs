@@ -243,6 +243,12 @@ impl<'a> Parse<'a> {
             let method_name = format!("_{}_{}", struct_name, proto.name());
             proto.set_name(method_name);
 
+            // Insert `self` for methods. Do this early so we don't have to mess with the
+            // symbol table later
+            let mut args = vec![(String::from("self"), Type::Comp(struct_name.clone()))];
+            args.append(&mut proto.args().to_vec());
+            proto.set_args(args);
+
             if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
                 return Err(ParseError::from((
                     format!("method `{}` can't be redefined on `{}`", orig_name, struct_name),
@@ -647,8 +653,8 @@ impl<'a> Parse<'a> {
             params,
             ret_type.unwrap_or_default(),
             is_extern,
-            self.current_struct.is_some(),
             self.module.clone(),
+            self.current_struct.clone(),
         ))
     }
 

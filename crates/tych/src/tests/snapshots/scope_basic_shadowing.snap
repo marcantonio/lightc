@@ -1,6 +1,6 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 732
+assertion_line: 754
 expression: "(test[1], res)"
 ---
 - "\nfn foo(a: int) -> int {\n    let b: int = 1\n    {\n        let b: bool = false\n    }\n    b\n}\n"
@@ -16,6 +16,7 @@ expression: "(test[1], res)"
               ret_ty: Int32
               is_extern: false
               module: main
+              member_of: ~
             body:
               kind:
                 Block:

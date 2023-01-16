@@ -10,17 +10,18 @@ pub struct Prototype {
     ret_ty: Type,
     is_extern: bool,
     module: String,
+    member_of: Option<String>,
 }
 
 impl Prototype {
     pub fn new(
-        name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool, is_method: bool,
-        module: String,
+        name: String, args: Vec<(String, Type)>, ret_ty: Type, is_extern: bool, module: String,
+        member_of: Option<String>,
     ) -> Prototype {
         // Prepend the local module name for local functions
         let name =
-            if is_extern || is_method || name == "main" { name } else { format!("{}::{}", module, name) };
-        Prototype { name, args, ret_ty, is_extern, module }
+            if is_extern || member_of.is_some() || name == "main" { name } else { format!("{}::{}", module, name) };
+        Prototype { name, args, ret_ty, is_extern, module, member_of }
     }
 
     pub fn name(&self) -> &str {
@@ -74,7 +75,16 @@ impl From<&Prototype> for Symbol {
             }
         };
 
-        Symbol::new_fn(&cooked_name, &proto.name, args, &proto.ret_ty, proto.is_extern, &proto.module, true)
+        Symbol::new_fn(
+            &cooked_name,
+            &proto.name,
+            args,
+            &proto.ret_ty,
+            proto.is_extern,
+            &proto.module,
+            true,
+            proto.member_of.as_deref(),
+        )
     }
 }
 
@@ -93,6 +103,7 @@ impl From<Symbol> for Prototype {
             ret_ty: sym.ret_ty().to_owned(),
             is_extern: sym.is_extern(),
             module: module.to_owned(),
+            member_of: sym.member_of().map(|x| x.to_owned()),
         }
     }
 }
@@ -124,8 +135,8 @@ mod test {
                     vec![(String::from("bar"), Type::Int32)],
                     Type::Float,
                     false,
-                    false,
                     String::from("main"),
+                    None,
                 ),
                 "_main::foo~int32~float",
             ),
@@ -135,8 +146,8 @@ mod test {
                     vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
                     Type::Float,
                     false,
-                    false,
                     String::from("main"),
+                    None,
                 ),
                 "_main::foo~int32~int32~float",
             ),
@@ -146,13 +157,20 @@ mod test {
                     vec![(String::from("bar"), Type::Int32), (String::from("baz"), Type::Int32)],
                     Type::Void,
                     false,
-                    false,
                     String::from("main"),
+                    None,
                 ),
                 "_main::foo~int32~int32~void",
             ),
             (
-                Prototype::new(String::from("foo"), vec![], Type::Float, false, false, String::from("main")),
+                Prototype::new(
+                    String::from("foo"),
+                    vec![],
+                    Type::Float,
+                    false,
+                    String::from("main"),
+                    None,
+                ),
                 "_main::foo~float",
             ),
         ];
