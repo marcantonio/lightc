@@ -4,7 +4,7 @@ use std::fmt::Display;
 use super::Symbolic;
 use crate::Type;
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct FnData {
     fq_name: String,
     args: Vec<(String, Type)>,
@@ -13,18 +13,18 @@ pub struct FnData {
     member_of: Option<String>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct VarData {
     pub ty: Type,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct StructData {
     pub fields: Option<Vec<(String, String)>>,
     pub methods: Option<Vec<String>>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum AssocData {
     Fn(FnData),
     Var(VarData),
@@ -32,7 +32,7 @@ pub enum AssocData {
     Module(String),
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct Symbol {
     pub name: String,
     pub data: AssocData,

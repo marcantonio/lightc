@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use common::symbol_table::Symbolic;
 use common::{Literal, Operator, Prototype, Symbol, SymbolTable, Type};
 pub use hir::Hir;
@@ -21,13 +23,18 @@ mod tests;
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
-    imported_functions: Vec<Symbol>,
+    imported_functions: HashSet<Symbol>,
     module: String,
 }
 
 impl<'a> Lower<'a> {
     pub fn new(module: &str, symbol_table: &'a mut SymbolTable<Symbol>) -> Self {
-        Lower { symbol_table, struct_methods: vec![], imported_functions: vec![], module: module.to_owned() }
+        Lower {
+            symbol_table,
+            struct_methods: vec![],
+            imported_functions: HashSet::new(),
+            module: module.to_owned(),
+        }
     }
 
     pub fn walk(mut self, ast: Ast<ast::Node>) -> Result<Hir<hir::Node>, String> {
@@ -287,7 +294,7 @@ impl<'a> ast::Visitor for Lower<'a> {
 
         // Make a list of all imported functions
         if sym.is_import(&self.module) {
-            self.imported_functions.push(sym.clone())
+            self.imported_functions.insert(sym.clone());
         }
 
         let mut lowered_args = vec![];

@@ -77,7 +77,7 @@ impl std::fmt::Display for Operator {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Hash)]
 pub enum Type {
     Int8,
     Int16,
