@@ -1,33 +1,24 @@
-extern fn putchar(x: int)
-
-fn printDot() {
-    putchar(46)
-    putchar(10)
-}
-
-fn printInt(x: int) {
-    putchar(x + 48)
-    putchar(10)
-}
-
-fn printBang() {
-    putchar(33)
-    putchar(10)
-}
-
-struct Foo {
-    let a: int
-    let b: float
-
-    fn bang(o: int) {
-        printBang()
-    }
-}
+use core
 
 fn main() {
-    let mm: Foo
+    let arr: core::Array
 
-    mm.bang(1)
+    arr.init()
+    core::printInt(arr.len())
+    arr.push(9)
+    core::printInt(arr.len())
 
-    printDot()
+    for i: int; i < 4; 1 {
+        arr.push(i)
+    }
+    core::printInt(arr.len())
+
+    for i: int; i < 5; 1 {
+        core::printInt(arr.get(i))
+    }
+
+    arr.insert(4, 7)
+    core::printInt(arr.buffer[4])
+
+    core::printDot()
 }

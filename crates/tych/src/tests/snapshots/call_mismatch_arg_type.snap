@@ -4,5 +4,5 @@ assertion_line: 238
 expression: "(test[1], res)"
 ---
 - "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    let x: float = 1.0\n    plusOne(x)\n}\n"
-- Err: "Type mismatch in arg 1 of call to `main::plusOne()`: `int32` != `float`"
+- Err: "type mismatch in arg 1 of call to `main::plusOne()`: `int32` != `float`"
 

@@ -10,7 +10,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: "main::foo"
-              args: []
+              params: []
               ret_ty: Float
               is_extern: false
               module: main

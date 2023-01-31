@@ -6,7 +6,7 @@ use crate::{Symbol, Type};
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct Prototype {
     name: String,
-    args: Vec<(String, Type)>,
+    params: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
     module: String,
@@ -19,9 +19,12 @@ impl Prototype {
         member_of: Option<String>,
     ) -> Prototype {
         // Prepend the local module name for local functions
-        let name =
-            if is_extern || member_of.is_some() || name == "main" { name } else { format!("{}::{}", module, name) };
-        Prototype { name, args, ret_ty, is_extern, module, member_of }
+        let name = if is_extern || member_of.is_some() || name == "main" {
+            name
+        } else {
+            format!("{}::{}", module, name)
+        };
+        Prototype { name, params: args, ret_ty, is_extern, module, member_of }
     }
 
     pub fn name(&self) -> &str {
@@ -32,12 +35,12 @@ impl Prototype {
         self.name = name;
     }
 
-    pub fn args(&self) -> &[(String, Type)] {
-        &self.args
+    pub fn params(&self) -> &[(String, Type)] {
+        &self.params
     }
 
-    pub fn set_args(&mut self, args: Vec<(String, Type)>) {
-        self.args = args;
+    pub fn set_params(&mut self, args: Vec<(String, Type)>) {
+        self.params = args;
     }
 
     pub fn ret_ty(&self) -> &Type {
@@ -55,7 +58,7 @@ impl Prototype {
 
 impl From<&Prototype> for Symbol {
     fn from(proto: &Prototype) -> Self {
-        let args = proto.args.as_slice();
+        let args = proto.params.as_slice();
 
         // Don't mangle the name for main and externs
         let cooked_name = if proto.name == "main" || proto.is_extern {
@@ -95,11 +98,11 @@ impl From<Symbol> for Prototype {
             .split_once("::")
             .unwrap_or_else(|| unreachable!("couldn't split module name in `from()`"));
         let module = &sym_name_parts.0[1..];
-        let args = sym.args().iter().cloned().map(|(n, t)| (n.to_owned(), t.clone())).collect();
+        let args = sym.params().iter().cloned().map(|(n, t)| (n.to_owned(), t.clone())).collect();
 
         Prototype {
             name: sym.name.to_owned(),
-            args,
+            params: args,
             ret_ty: sym.ret_ty().to_owned(),
             is_extern: sym.is_extern(),
             module: module.to_owned(),
@@ -111,8 +114,8 @@ impl From<Symbol> for Prototype {
 impl Display for Prototype {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = format!("({}", self.name);
-        if !self.args.is_empty() {
-            for arg in &self.args {
+        if !self.params.is_empty() {
+            for arg in &self.params {
                 s += &format!(" {}:{}", arg.0, arg.1);
             }
         }
@@ -163,14 +166,7 @@ mod test {
                 "_main::foo~int32~int32~void",
             ),
             (
-                Prototype::new(
-                    String::from("foo"),
-                    vec![],
-                    Type::Float,
-                    false,
-                    String::from("main"),
-                    None,
-                ),
+                Prototype::new(String::from("foo"), vec![], Type::Float, false, String::from("main"), None),
                 "_main::foo~float",
             ),
         ];

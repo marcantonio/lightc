@@ -4,10 +4,7 @@ use lex::Lex;
 fn ast_to_string(ast: Result<&Ast<ast::Node>, &Vec<ParseError>>) -> String {
     match ast {
         Ok(ast) => ast.nodes().iter().map(|x| x.to_string()).collect(),
-        Err(errs) => errs.iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<String>>()
-                        .join(" | "),
+        Err(errs) => errs.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(" | "),
     }
 }
 
@@ -414,9 +411,11 @@ fn bang(o: int) {
 }
 "#,
         ],
-/* NOTE: it is redundant (at least for now) to test nested_for
-because a for loop's inner blocks are parsed the same way a fn's inner
-blocks are. Included for completeness and future-proofing. */
+        /*
+         * NOTE: it is redundant (at least for now) to test nested_for because a for
+         * loop's inner blocks are parsed the same way a fn's inner blocks are. Included
+         * for completeness and future-proofing.
+         */
         [
             "nested_for",
             r#"

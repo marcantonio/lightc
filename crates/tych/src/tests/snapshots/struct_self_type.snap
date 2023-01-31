@@ -15,9 +15,10 @@ expression: "(test[1], res)"
                   Fn:
                     proto:
                       name: "_main::Foo_bar"
-                      args:
+                      params:
                         - - self
-                          - Comp: "main::Foo"
+                          - Ptr:
+                              Comp: "main::Foo"
                       ret_ty: Void
                       is_extern: false
                       module: main
@@ -30,7 +31,9 @@ expression: "(test[1], res)"
                                 Ident:
                                   name: self
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
 

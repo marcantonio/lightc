@@ -30,9 +30,10 @@ expression: "(test[1], ast, ast_string)"
                   Fn:
                     proto:
                       name: "_main::Foo_c"
-                      args:
+                      params:
                         - - self
-                          - Comp: "main::Foo"
+                          - Ptr:
+                              Comp: "main::Foo"
                       ret_ty: Int32
                       is_extern: false
                       module: main
@@ -51,9 +52,10 @@ expression: "(test[1], ast, ast_string)"
                   Fn:
                     proto:
                       name: "_main::Foo_d"
-                      args:
+                      params:
                         - - self
-                          - Comp: "main::Foo"
+                          - Ptr:
+                              Comp: "main::Foo"
                       ret_ty: Void
                       is_extern: false
                       module: main
@@ -63,5 +65,5 @@ expression: "(test[1], ast, ast_string)"
                         Block:
                           list: []
                           ty: ~
-- "(struct main::Foo '((let a:int32) (let b:float 1)) '((define (_main::Foo_c self:main::Foo) '(1)) (define (_main::Foo_d self:main::Foo) '()))))"
+- "(struct main::Foo '((let a:int32) (let b:float 1)) '((define (_main::Foo_c self:*main::Foo) '(1)) (define (_main::Foo_d self:*main::Foo) '()))))"
 

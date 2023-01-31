@@ -24,14 +24,15 @@ expression: "(test[1], res)"
                   Let:
                     name: b
                     antn:
-                      Comp: "main::Foo"
+                      Ptr:
+                        Comp: "main::Foo"
                     init: ~
             methods: []
       - kind:
           Fn:
             proto:
               name: main
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -72,7 +73,9 @@ expression: "(test[1], res)"
                                   Comp: "main::Bar"
                           field: b
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                   ty:
-                    Comp: "main::Foo"
+                    Ptr:
+                      Comp: "main::Foo"
 

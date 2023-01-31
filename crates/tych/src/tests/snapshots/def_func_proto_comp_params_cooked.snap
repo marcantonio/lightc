@@ -20,13 +20,16 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: "main::cook"
-              args:
+              params:
                 - - f
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
                 - - fp
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
               ret_ty:
-                Comp: "main::Foo"
+                Ptr:
+                  Comp: "main::Foo"
               is_extern: false
               module: main
               member_of: ~
@@ -44,14 +47,16 @@ expression: "(test[1], res)"
                         Ident:
                           name: a
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                   ty:
-                    Comp: "main::Foo"
+                    Ptr:
+                      Comp: "main::Foo"
       - kind:
           Fn:
             proto:
               name: main
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -80,14 +85,17 @@ expression: "(test[1], res)"
                                 Ident:
                                   name: f
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                             - kind:
                                 Ident:
                                   name: fp
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                     - kind:
                         Call:
                           name: "main::cook_more"
@@ -96,27 +104,34 @@ expression: "(test[1], res)"
                                 Ident:
                                   name: f
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                             - kind:
                                 Ident:
                                   name: fp
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                   ty:
-                    Comp: "main::Foo"
+                    Ptr:
+                      Comp: "main::Foo"
       - kind:
           Fn:
             proto:
               name: "main::cook_more"
-              args:
+              params:
                 - - f
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
                 - - fp
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
               ret_ty:
-                Comp: "main::Foo"
+                Ptr:
+                  Comp: "main::Foo"
               is_extern: false
               module: main
               member_of: ~
@@ -134,7 +149,9 @@ expression: "(test[1], res)"
                         Ident:
                           name: a
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                   ty:
-                    Comp: "main::Foo"
+                    Ptr:
+                      Comp: "main::Foo"
 

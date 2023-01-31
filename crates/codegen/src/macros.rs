@@ -12,6 +12,7 @@ macro_rules! make_undef_value {
             Type::Void => $ctx.i8_type().get_undef().as_basic_value_enum(),
             Type::SArray(..) => todo!(),
             Type::Comp(_) => todo!(),
+            Type::Ptr(_) => todo!(),
         }
     };
 }
@@ -30,6 +31,17 @@ macro_rules! make_phi_for_type {
             Type::Void => $bldr.build_phi($ctx.i8_type(), &($name.to_owned() + ".void")),
             Type::SArray(..) => todo!(),
             Type::Comp(_) => todo!(),
+            Type::Ptr(_) => todo!(),
         }
     };
+}
+
+// Get the load instruction for the struct. The only operand to the load instruction is
+// the pointer to the struct
+#[macro_export]
+macro_rules! derive_composite_pointer {
+    ($load_value:expr) => {{
+        let inst = $load_value.as_instruction_value().unwrap();
+        inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
+    }};
 }

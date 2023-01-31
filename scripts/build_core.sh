@@ -3,4 +3,4 @@
 set -e
 
 cargo run -- -c core/core.lt
-mv .build/core.* core/
+mv core.i core.o core/

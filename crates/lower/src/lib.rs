@@ -10,6 +10,9 @@ mod macros;
 #[cfg(test)]
 mod tests;
 
+#[macro_use]
+extern crate common;
+
 // Performs the following:
 // - builds the HIR
 // - desugars x += 1 to x = x + 1
@@ -127,6 +130,7 @@ impl<'a> Lower<'a> {
                 };
                 hir::Node::new_lit(Literal::Comp(initializers), Type::Comp(name.to_owned()))
             },
+            Ptr(_) => hir::Node::new_lit(Literal::UInt64(0), Type::UInt64), // TODO: Arch?
             Void => unreachable!("void type for `{}` variable initialization annotation", name),
         })
     }
@@ -186,7 +190,7 @@ impl<'a> ast::Visitor for Lower<'a> {
         // issue.
         self.symbol_table.enter_scope();
 
-        for arg in proto.args() {
+        for arg in proto.params() {
             self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
         }
 
@@ -205,7 +209,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     ) -> Self::Result {
         // Save the methods separately to pop them up to the top of the HIR later
         let mut lowered_methods =
-            methods.into_iter().map(|n| Ok(self.visit_node(n)?)).collect::<Result<Vec<_>, String>>()?;
+            methods.into_iter().map(|n| self.visit_node(n)).collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
         Ok(hir::Node::new_blank())
@@ -298,9 +302,10 @@ impl<'a> ast::Visitor for Lower<'a> {
         }
 
         let mut lowered_args = vec![];
-        for node in args {
-            lowered_args.push(self.visit_node(node)?);
+        for arg in args {
+            lowered_args.push(self.visit_node(arg)?);
         }
+
         Ok(hir::Node::new_call(lowered_name, lowered_args, ty.unwrap_or_default()))
     }
 
@@ -337,11 +342,15 @@ impl<'a> ast::Visitor for Lower<'a> {
         let mut lowered_comp = self.visit_node(comp)?;
 
         let comp_name = match lowered_comp.ty() {
+            Type::Ptr(boxed) => match &**boxed {
+                Type::Comp(name) => name.to_owned(),
+                _ => unreachable!("not a composite pointer in lower"),
+            },
             Type::Comp(name) => name.to_owned(),
             _ => unreachable!("unexpected type for for field selector target in lower"),
         };
 
-        // If the composite isn't an ident or a let, wrap it in a new let stmt
+        // If the composite is a call, wrap it in a new let stmt
         if let hir::node::Kind::Call { ty, .. } = lowered_comp.clone().kind {
             lowered_comp = hir::Node::new_let(self.symbol_table.uniq_ident(None), ty, Some(lowered_comp))
         }
@@ -372,8 +381,14 @@ impl<'a> ast::Visitor for Lower<'a> {
         let lowered_call = self.visit_call(name, args, ty)?;
         match lowered_call.kind {
             hir::node::Kind::Call { name, mut args, ty } => {
-                // Replace `self` ident with the real composite
-                args[0] = lowered_comp;
+                // Replace `self` node with the real composite value
+                args[0] = match lowered_comp.kind {
+                    hir::node::Kind::Ident { name, ty } => hir::Node::new_ident(name, pointer_wrap!(ty)),
+                    hir::node::Kind::FSelector { comp, idx, ty } => {
+                        hir::Node::new_fselector(*comp, idx, pointer_wrap!(ty))
+                    },
+                    e => unimplemented!("unexpected node type for `self`: `{:?}`", e),
+                };
                 Ok(hir::Node::new_call(name, args, ty))
             },
             _ => unreachable!("unknown node kind in `visit_mselector()`"),

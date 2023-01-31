@@ -1017,7 +1017,7 @@ fn test_tych_int_with_hint() {
         (UInt64(u32::MAX as u64), Type::UInt32, Ok(Type::UInt32)),
         (UInt64(u32::MAX as u64 + 1), Type::UInt32, Err(ERR_STR)),
         (UInt64(7), Type::UInt64, Ok(Type::UInt64)),
-        (UInt64(u64::MAX as u64), Type::UInt64, Ok(Type::UInt64)),
+        (UInt64(u64::MAX), Type::UInt64, Ok(Type::UInt64)),
         (Float(7.0), Type::Float, Ok(Type::Float)),
         (Float(7.0), Type::Double, Ok(Type::Double)),
     ];

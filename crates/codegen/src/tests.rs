@@ -16,7 +16,7 @@ macro_rules! run_insta {
                 let hir = Lower::new("main", &mut symbol_table).walk(typed_ast).expect("lowering failed in `codegen` tests");
                 let args = CliArgs::new();
                 let res = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
-                    .expect("codegen error").as_ir_string();
+                    .expect("codegen error").to_ir_string();
 
                 // Optimized code
                 let tokens = Lex::new(test[1]).scan().expect("lexing faled in `codegen` tests");
@@ -27,7 +27,7 @@ macro_rules! run_insta {
                 let mut args = CliArgs::new();
                 args.opt_level = 1;
                 let res_opt = Codegen::run(hir, "main", symbol_table, PathBuf::new(), &args, true)
-                    .expect("codegen error").as_ir_string();
+                    .expect("codegen error").to_ir_string();
 
                 insta::assert_yaml_snapshot!(format!("{}_{}", $prefix, test[0]), (test[1], res, res_opt));
             }
@@ -432,6 +432,26 @@ struct Bar {
     let foo: Foo
     let c: [int; 3]
     fn d(i: int) -> int { self.c[i] }
+}
+"#,
+        ],
+        [
+            "self",
+            r#"
+struct Foo {
+    let a: int
+    let b: [int; 5]
+    fn init(a: int) {
+        self.a = a
+    }
+    fn bar() {
+        self.b[self.a]
+    }
+}
+fn main() {
+    let foo: Foo
+    foo.init(2)
+    foo.a
 }
 "#,
         ],

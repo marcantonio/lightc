@@ -9,10 +9,11 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: "_main::Foo_b~main::Foo~int32"
-              args:
+              name: "_main::Foo_b~*main::Foo~int32"
+              params:
                 - - self
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
               ret_ty: Int32
               is_extern: false
               module: main
@@ -32,7 +33,8 @@ expression: "(test[1], res)"
                                     Ident:
                                       name: self
                                       ty:
-                                        Comp: "main::Foo"
+                                        Ptr:
+                                          Comp: "main::Foo"
                                 idx: 0
                                 ty: Int32
                           rhs:
@@ -44,10 +46,11 @@ expression: "(test[1], res)"
                           ty: Int32
                   ty: Int32
     prototypes:
-      - name: "_main::Foo_b~main::Foo~int32"
-        args:
+      - name: "_main::Foo_b~*main::Foo~int32"
+        params:
           - - self
-            - Comp: "main::Foo"
+            - Ptr:
+                Comp: "main::Foo"
         ret_ty: Int32
         is_extern: false
         module: main

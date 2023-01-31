@@ -167,7 +167,7 @@ fn main() {
         let object_file =
             Codegen::run(hir, module_name, symbol_table.clone(), build_dir.clone(), &args, false)
                 .unwrap_or_else(|e| panic!("Error compiling module `{}`: {}", module_name, e))
-                .as_file_path();
+                .to_path();
 
         module.object_file = object_file;
     }

@@ -10,7 +10,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: "_main::foo~void"
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -29,7 +29,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: main
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -46,13 +46,13 @@ expression: "(test[1], res)"
                   ty: Void
     prototypes:
       - name: "_main::foo~void"
-        args: []
+        params: []
         ret_ty: Void
         is_extern: false
         module: main
         member_of: ~
       - name: main
-        args: []
+        params: []
         ret_ty: Void
         is_extern: false
         module: main

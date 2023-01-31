@@ -98,6 +98,23 @@ impl Node {
         }
     }
 
+    pub fn set_ty(&mut self, new_ty: Type) {
+        use Kind::*;
+
+        match &mut self.kind {
+            Lit { ty, .. } => *ty = new_ty,
+            Ident { ty, .. } => *ty = new_ty,
+            BinOp { ty, .. } => *ty = new_ty,
+            UnOp { ty, .. } => *ty = new_ty,
+            Call { ty, .. } => *ty = new_ty,
+            Cond { ty, .. } => *ty = new_ty,
+            Block { ty, .. } => *ty = new_ty,
+            Index { ty, .. } => *ty = new_ty,
+            FSelector { ty, .. } => *ty = new_ty,
+            _ => unreachable!("can't set type on statement"),
+        }
+    }
+
     pub fn is_num_literal(&self) -> bool {
         use Literal::*;
 
@@ -200,7 +217,7 @@ impl VisitableNode for Node {
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Lit { value, ty } => v.visit_lit(value, ty),
-            Ident { name, .. } => v.visit_ident(name),
+            Ident { name, ty } => v.visit_ident(name, ty),
             BinOp { op, lhs, rhs, .. } => v.visit_binop(op, *lhs, *rhs),
             UnOp { op, rhs, .. } => v.visit_unop(op, *rhs),
             Call { name, args, .. } => v.visit_call(name, args),

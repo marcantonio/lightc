@@ -17,6 +17,9 @@ mod precedence;
 #[cfg(test)]
 mod tests;
 
+#[macro_use]
+extern crate common;
+
 type ParseResult = Result<ast::Node, ParseError>;
 
 pub struct Parse<'a> {
@@ -244,10 +247,10 @@ impl<'a> Parse<'a> {
             proto.set_name(method_name);
 
             // Insert `self` for methods. Do this early so we don't have to mess with the
-            // symbol table later
-            let mut args = vec![(String::from("self"), Type::Comp(struct_name.clone()))];
-            args.append(&mut proto.args().to_vec());
-            proto.set_args(args);
+            // symbol table later. `self` will be passed as a pointer
+            let mut args = vec![(String::from("self"), pointer_wrap!(Type::Comp(struct_name.clone())))];
+            args.append(&mut proto.params().to_vec());
+            proto.set_params(args);
 
             if self.symbol_table.insert_with_name(proto.name(), Symbol::from(&proto)).is_some() {
                 return Err(ParseError::from((

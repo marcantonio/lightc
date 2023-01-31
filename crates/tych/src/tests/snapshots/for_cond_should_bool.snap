@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 467
+assertion_line: 497
 expression: "(test[1], res)"
 ---
 - "\nfn foo() {\n    for x: int = 1; 2.0; 1 {\n        x\n    }\n}\n"
-- Err: For loop conditional should always be a bool
+- Err: for loop conditional should always be a bool
 

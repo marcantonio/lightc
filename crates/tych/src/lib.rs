@@ -8,16 +8,20 @@ mod macros;
 #[cfg(test)]
 mod tests;
 
-// Performs the following tasks:
-// - applies types to all nodes
-// - checks for annotation consistency
-// - checks for type consistency and relevance in binops
-// - checks for type consistency in for step
-// - checks for type consistency in if branches
-// - checks main()'s annotation
-// - checks for unknown functions, variables, and types
-// - resolves type, function, and struct names
-// - inserts temporary `self` value into methods
+/*
+ * Performs the following tasks:
+ *   - applies types to all nodes
+ *   - checks for annotation consistency
+ *   - checks for type consistency and relevance in binops
+ *   - checks for type consistency in for step
+ *   - checks for type consistency in if branches
+ *   - checks main()'s annotation
+ *   - checks for unknown functions, variables, and types
+ *   - resolves type, function, and struct names
+ *   - inserts temporary `self` value into methods
+ *   - wraps structs in pointers when passing or returning from functions
+ *   - wraps structs in pointers when declared as struct members
+ */
 
 pub struct Tych<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -109,7 +113,7 @@ impl<'a> Tych<'a> {
     fn resolve_type(&self, ty: &Type) -> Option<Type> {
         if ty.is_primitive() {
             return Some(ty.to_owned());
-        } else if let Type::SArray(_, _) = ty {
+        } else if let Type::SArray(_, _) | Type::Ptr(_) = ty {
             return Some(ty.to_owned());
         }
 
@@ -126,6 +130,10 @@ impl<'a> Tych<'a> {
     fn get_composite_symbol(&'a self, ty: Option<&'a Type>) -> Result<&'a Symbol, String> {
         let comp_name = match ty {
             Some(Type::Comp(name)) => name,
+            Some(Type::Ptr(boxed)) => match &**boxed {
+                Type::Comp(name) => name,
+                _ => unreachable!("not a composite pointer in tych"),
+            },
             Some(ty) => return Err(format!("Attempt to use selector on non-composite type: {}", ty)),
             None => unreachable!("no type for for selector target in tych"),
         };
@@ -158,14 +166,14 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         let start_antn = match self.resolve_type(&start_antn) {
             Some(ty) => ty,
-            None => return Err(format!("Unknown type for start declaration in for loop: `{}`", start_antn)),
+            None => return Err(format!("unknown type for start declaration in for loop: `{}`", start_antn)),
         };
 
         // Ensure the loop cond is always a bool
         let cond_expr = self.check_node(cond_expr, None)?;
 
         if cond_expr.ty().unwrap_or_default() != &Type::Bool {
-            return Err("For loop conditional should always be a bool".to_string());
+            return Err("for loop conditional should always be a bool".to_string());
         }
 
         // Make sure the step type matches the starting variable
@@ -173,7 +181,7 @@ impl<'a> ast::Visitor for Tych<'a> {
         let step_ty = step_expr.ty().unwrap_or_default();
         if step_ty != &start_antn {
             return Err(format!(
-                "Step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
+                "step type mismatch in for statement. Step is `{}` but `{}` is `{}`",
                 step_ty, start_name, start_antn
             ));
         }
@@ -187,10 +195,16 @@ impl<'a> ast::Visitor for Tych<'a> {
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
-        let antn = match self.resolve_type(&antn) {
+        let mut antn = match self.resolve_type(&antn) {
             Some(ty) => ty,
-            None => return Err(format!("Unknown type in let declaration: `{}`", antn)),
+            None => return Err(format!("unknown type in let declaration: `{}`", antn)),
         };
+
+        // Hack to ensure let declarations in structs are always pointers
+        // TODO: make cleaner
+        if self.current_struct.is_some() && matches!(antn, Type::Comp(_)) {
+            antn = pointer_wrap!(antn);
+        }
 
         // Don't process initization values for struct fields
         let init_node = if self.current_struct.is_none() {
@@ -214,7 +228,15 @@ impl<'a> ast::Visitor for Tych<'a> {
         };
 
         let ret_ty = match self.resolve_type(proto.ret_ty()) {
-            Some(ty) => ty,
+            Some(ty) => {
+                // Returned structs should always be pointers
+                // TODO: This is very wrong without memory allocation
+                if let Type::Comp(_) = ty {
+                    pointer_wrap!(ty)
+                } else {
+                    ty
+                }
+            },
             None => {
                 return Err(format!(
                     "Unknown return type in prototype for `{}`: `{}`",
@@ -234,28 +256,40 @@ impl<'a> ast::Visitor for Tych<'a> {
         self.symbol_table.enter_scope();
 
         // Insert args into the local scope table
-        let mut resolved_args = vec![];
-        for arg in proto.args() {
-            let arg_ty = match self.resolve_type(&arg.1) {
+        let mut resolved_params = vec![];
+        for param in proto.params() {
+            let param_ty = match self.resolve_type(&param.1) {
+                Some(Type::Comp(ty)) => pointer_wrap!(Type::Comp(ty)),
                 Some(ty) => ty,
                 None => {
                     return Err(format!(
                         "Unknown argument type in prototype `{}` for `{}`: `{}`",
                         proto.name(),
-                        arg.0,
-                        arg.1
+                        param.0,
+                        param.1
                     ))
                 },
             };
-            self.symbol_table.insert(Symbol::new_var(&arg.0, &arg_ty, &self.module));
-            resolved_args.push((arg.0.clone(), arg_ty));
+            self.symbol_table.insert(Symbol::new_var(&param.0, &param_ty, &self.module));
+            resolved_params.push((param.0.clone(), param_ty));
         }
-        proto.set_args(resolved_args);
+        proto.set_params(resolved_params);
 
         // Hack to allow methods to use `let` initializers
         let current_struct = self.current_struct.take();
-        let body_node = self.check_node(body, None)?;
-        let body_ty = body_node.ty().unwrap_or_default();
+        let mut body_node = self.check_node(body, None)?;
+        let mut body_ty = body_node.ty().unwrap_or_default().clone();
+
+        // Make sure the body returns a pointer if a struct is used
+        if let Type::Comp(_) = body_ty {
+            body_ty = pointer_wrap!(body_ty);
+            if let ast::node::Kind::Block { mut list, .. } = body_node.kind {
+                let last =
+                    list.last_mut().unwrap_or_else(|| unreachable!("no last body node in `visit_fn()`"));
+                last.set_ty(body_ty.clone());
+                body_node = ast::Node::new_block(list, Some(body_ty.clone()));
+            }
+        }
         self.current_struct = current_struct;
 
         // Make sure these are in sync since there's no `check_proto()`
@@ -270,9 +304,9 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Make sure function return type and the last statement match. Ignore
         // body type when proto is void.
-        if &ret_ty != body_ty && ret_ty != Type::Void && proto.name() != "main" {
+        if ret_ty != body_ty && ret_ty != Type::Void && proto.name() != "main" {
             return Err(format!(
-                "Function `{}` should return type `{}` but last statement is `{}`",
+                "function `{}` should return type `{}` but last statement is `{}`",
                 // TODO: proto.name() will be the butchered name. Use the original name
                 proto.name(),
                 fn_entry.ret_ty(),
@@ -364,7 +398,8 @@ impl<'a> ast::Visitor for Tych<'a> {
                     Type::Char => return Err("Literal is an integer in a char context".to_string()),
                     Type::SArray(..) => return Err("Literal is an integer in an sarray context".to_string()),
                     Type::Void => return Err("Literal is an integer in a void context".to_string()),
-                    Type::Comp(_) => return Err("Literal is an integer in a compound context".to_string()),
+                    Type::Comp(_) => return Err("Literal is an integer in a composite context".to_string()),
+                    Type::Ptr(_) => return Err("Literal is an integer in a pointer context".to_string()),
                 },
                 Float(v) => match hint {
                     Type::Float => convert_num!(v, Float, f32),
@@ -424,31 +459,37 @@ impl<'a> ast::Visitor for Tych<'a> {
 
         // Check if either side is a numeric literal. If so use the other side
         // as a type hint for the literal type.
-        let (chkd_lhs, lhs_ty, chkd_rhs, rhs_ty);
+        let (chkd_lhs, lhs_ty, mut chkd_rhs, mut rhs_ty);
         if lhs.is_num_literal() {
             chkd_rhs = self.check_node(rhs, None)?;
-            rhs_ty = chkd_rhs.ty().unwrap_or_default();
-            chkd_lhs = self.check_node(lhs, Some(rhs_ty))?;
-            lhs_ty = chkd_lhs.ty().unwrap_or_default();
+            rhs_ty = chkd_rhs.ty().unwrap_or_default().to_owned();
+            chkd_lhs = self.check_node(lhs, Some(&rhs_ty))?;
+            lhs_ty = chkd_lhs.ty().unwrap_or_default().to_owned();
         } else {
             chkd_lhs = self.check_node(lhs, None)?;
-            lhs_ty = chkd_lhs.ty().unwrap_or_default();
-            chkd_rhs = self.check_node(rhs, Some(lhs_ty))?;
-            rhs_ty = chkd_rhs.ty().unwrap_or_default();
+            lhs_ty = chkd_lhs.ty().unwrap_or_default().to_owned();
+            chkd_rhs = self.check_node(rhs, Some(&lhs_ty))?;
+            rhs_ty = chkd_rhs.ty().unwrap_or_default().to_owned();
+        }
+
+        // If lhs is a pointer and rhs isn't, wrap rhs type in a pointer
+        if matches!(lhs_ty, Type::Ptr(_)) && !matches!(rhs_ty, Type::Ptr(_)) {
+            rhs_ty = pointer_wrap!(rhs_ty);
+            chkd_rhs.set_ty(rhs_ty.clone());
         }
 
         // Both sides must match
         if lhs_ty != rhs_ty {
-            return Err(format!("Mismatched types in binop: `{}` != `{}`", lhs_ty, rhs_ty));
+            return Err(format!("mismatched types in binop: `{}` != `{}`", lhs_ty, rhs_ty));
         }
 
         // Check the operand types based on the operator used and set the
         // expression type accordingly
         let ty = match op {
             And | Or => {
-                if lhs_ty != &Type::Bool || rhs_ty != &Type::Bool {
+                if lhs_ty != Type::Bool || rhs_ty != Type::Bool {
                     return Err(format!(
-                        "Expected bools on either side of `{}`, got lhs: `{}`, rhs: `{}`",
+                        "expected bools on either side of `{}`, got lhs: `{}`, rhs: `{}`",
                         op, lhs_ty, rhs_ty
                     ));
                 }
@@ -529,32 +570,26 @@ impl<'a> ast::Visitor for Tych<'a> {
             .to_owned();
 
         // Inject a temporary `self` into the call's arguments and the symbol table. Will
-        // be replaced in the lower
+        // be replaced in the lower. Always pass `self` as a pointer
         let mut args = args;
         if let Some(struct_name) = fn_entry.member_of() {
-            self.symbol_table.insert(Symbol::new_var(
-                "self",
-                &Type::Comp(struct_name.to_owned()),
-                &self.module,
-            ));
-            args.insert(
-                0,
-                ast::Node::new_ident(String::from("self"), Some(Type::Comp(struct_name.to_owned()))),
-            );
+            let self_ty = pointer_wrap!(Type::Comp(struct_name.to_owned()));
+            self.symbol_table.insert(Symbol::new_var("self", &self_ty, &self.module));
+            args.insert(0, ast::Node::new_ident(String::from("self"), Some(self_ty)));
         }
 
         // Pull out the function arg types
-        let fe_arg_tys = fn_entry.arg_tys().to_vec();
+        let fe_param_tys = fn_entry.param_tys().to_vec();
 
         // Check arg length. Account for injected self if method
-        let (fe_args_len, args_len) = match fn_entry.member_of().is_some() {
-            true => (fe_arg_tys.len() - 1, args.len() - 1),
-            false => (fe_arg_tys.len(), args.len()),
+        let (fe_params_len, args_len) = match fn_entry.member_of().is_some() {
+            true => (fe_param_tys.len() - 1, args.len() - 1),
+            false => (fe_param_tys.len(), args.len()),
         };
-        if fe_arg_tys.len() != args.len() {
+        if fe_param_tys.len() != args.len() {
             return Err(format!(
-                "Call to `{}()` takes {} args and {} were given",
-                name, fe_args_len, args_len
+                "call to `{}()` takes {} args and {} were given",
+                name, fe_params_len, args_len
             ));
         }
 
@@ -569,21 +604,26 @@ impl<'a> ast::Visitor for Tych<'a> {
         let mut chkd_args = Vec::with_capacity(args_len);
         let mut arg_tys = Vec::with_capacity(args_len);
         for (idx, expr) in args.into_iter().enumerate() {
-            let chkd_arg = self.check_node(expr, Some(fe_arg_tys[idx]))?;
+            let mut chkd_arg = self.check_node(expr, Some(fe_param_tys[idx]))?;
+            // Send structs as pointers
+            if let Some(Type::Comp(ty)) = chkd_arg.ty() {
+                chkd_arg.set_ty(pointer_wrap!(Type::Comp(ty.to_owned())));
+            }
             arg_tys.push((idx, chkd_arg.ty().unwrap_or_default().clone()));
             chkd_args.push(chkd_arg);
         }
 
-        // Make sure the function args and the call args jive
-        fe_arg_tys.iter().zip(arg_tys).try_for_each(|(fa_ty, (idx, ca_ty))| {
+        // Make sure the function params and the call args jive
+        fe_param_tys.iter().zip(arg_tys).try_for_each(|(fp_ty, (idx, ca_ty))| {
             // Resolve param type first
-            let fp_ty = match self.resolve_type(fa_ty) {
+            let fp_ty = match self.resolve_type(fp_ty) {
                 Some(ty) => ty,
                 None => unreachable!("bad arg type in `visit_call()`"),
             };
-            if fp_ty != ca_ty {
+            // XXX: remove `&& pointer_wrap!()...` when declaration order is resolved
+            if fp_ty != ca_ty && pointer_wrap!(fp_ty) != ca_ty {
                 Err(format!(
-                    "Type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
+                    "type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
                     idx + 1,
                     name,
                     fp_ty,

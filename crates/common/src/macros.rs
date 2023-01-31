@@ -60,3 +60,10 @@ macro_rules! float_types {
         Type::Float | Type::Double
     };
 }
+
+#[macro_export]
+macro_rules! pointer_wrap {
+    ($ty:expr) => {
+        Type::Ptr(Box::new($ty.clone()))
+    };
+}

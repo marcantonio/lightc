@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 809
+assertion_line: 971
 expression: "(test[1], res)"
 ---
 - "\nfn main() {\n    for x: bad; x < 1; 1 { }\n}\n"
-- Err: "Unknown type for start declaration in for loop: `bad`"
+- Err: "unknown type for start declaration in for loop: `bad`"
 

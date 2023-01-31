@@ -107,6 +107,24 @@ impl Node {
         }
     }
 
+    pub fn set_ty(&mut self, new_ty: Type) {
+        use Kind::*;
+
+        match &mut self.kind {
+            Lit { ty, .. } => *ty = Some(new_ty),
+            Ident { ty, .. } => *ty = Some(new_ty),
+            BinOp { ty, .. } => *ty = Some(new_ty),
+            UnOp { ty, .. } => *ty = Some(new_ty),
+            Call { ty, .. } => *ty = Some(new_ty),
+            Cond { ty, .. } => *ty = Some(new_ty),
+            Block { ty, .. } => *ty = Some(new_ty),
+            Index { ty, .. } => *ty = Some(new_ty),
+            FSelector { ty, .. } => *ty = Some(new_ty),
+            MSelector { ty, .. } => *ty = Some(new_ty),
+            _ => unreachable!("can't set type on statement"),
+        }
+    }
+
     pub fn is_num_literal(&self) -> bool {
         use Literal::*;
 

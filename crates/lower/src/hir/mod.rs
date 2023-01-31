@@ -57,7 +57,7 @@ pub trait Visitor {
     fn visit_let(&mut self, name: String, antn: Type, init: Option<Node>) -> Self::Result;
     fn visit_fn(&mut self, proto: Prototype, body: Option<Node>) -> Self::Result;
     fn visit_lit(&mut self, value: Literal<Node>, ty: Type) -> Self::Result;
-    fn visit_ident(&mut self, name: String) -> Self::Result;
+    fn visit_ident(&mut self, name: String, ty: Type) -> Self::Result;
     fn visit_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> Self::Result;
     fn visit_unop(&mut self, op: Operator, rhs: Node) -> Self::Result;
     fn visit_call(&mut self, name: String, args: Vec<Node>) -> Self::Result;

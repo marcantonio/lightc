@@ -1,8 +1,8 @@
 ---
 source: crates/tych/src/tests.rs
-assertion_line: 369
+assertion_line: 391
 expression: "(test[1], res)"
 ---
 - "\nfn foo(a: int, b: float) -> int {\n    1.0\n}\n"
-- Err: "Function `main::foo` should return type `int32` but last statement is `float`"
+- Err: "function `main::foo` should return type `int32` but last statement is `float`"
 

@@ -4,5 +4,5 @@ assertion_line: 238
 expression: "(test[1], res)"
 ---
 - "\nfn plusOne(x: int) -> int {\n    x + 1\n}\nfn main() {\n    plusOne(1, 2)\n}\n"
-- Err: "Call to `main::plusOne()` takes 1 args and 2 were given"
+- Err: "call to `main::plusOne()` takes 1 args and 2 were given"
 

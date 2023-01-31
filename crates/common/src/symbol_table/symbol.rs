@@ -7,7 +7,7 @@ use crate::Type;
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct FnData {
     fq_name: String,
-    args: Vec<(String, Type)>,
+    params: Vec<(String, Type)>,
     ret_ty: Type,
     is_extern: bool,
     member_of: Option<String>,
@@ -42,14 +42,14 @@ pub struct Symbol {
 
 impl Symbol {
     pub fn new_fn(
-        name: &str, fq_name: &str, args: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
+        name: &str, fq_name: &str, params: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
         is_exportable: bool, member_of: Option<&str>,
     ) -> Self {
         Symbol {
             name: name.to_owned(),
             data: AssocData::Fn(FnData {
                 fq_name: fq_name.to_owned(),
-                args: args.to_vec(),
+                params: params.to_vec(),
                 ret_ty: ret_ty.to_owned(),
                 is_extern,
                 member_of: member_of.map(|x| x.to_owned()),
@@ -102,16 +102,16 @@ impl Symbol {
         }
     }
 
-    pub fn args(&self) -> Vec<(&str, &Type)> {
+    pub fn params(&self) -> Vec<(&str, &Type)> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
+            AssocData::Fn(s) => s.params.iter().map(|(a, ty)| (a.as_str(), ty)).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
 
-    pub fn arg_tys(&self) -> Vec<&Type> {
+    pub fn param_tys(&self) -> Vec<&Type> {
         match &self.data {
-            AssocData::Fn(s) => s.args.iter().map(|(_, ty)| ty).collect(),
+            AssocData::Fn(s) => s.params.iter().map(|(_, ty)| ty).collect(),
             _ => unreachable!("expected symbol to be a function"),
         }
     }
@@ -194,11 +194,11 @@ impl Display for Symbol {
         let mut output =
             format!("name: {}, module: {}, exportable: {}", self.name, self.module, self.is_exportable);
         match &self.data {
-            AssocData::Fn(FnData { fq_name, args, ret_ty, is_extern, member_of }) => {
+            AssocData::Fn(FnData { fq_name, params, ret_ty, is_extern, member_of }) => {
                 output += &format!("\n      [Fn] {}(", fq_name);
-                if !args.is_empty() {
-                    output += &format!("{}: {}", args[0].0, args[0].1);
-                    output += &args[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
+                if !params.is_empty() {
+                    output += &format!("{}: {}", params[0].0, params[0].1);
+                    output += &params[1..].iter().fold(String::new(), |mut acc, (name, ty)| {
                         acc += &format!(", {}: {}", name, ty);
                         acc
                     });

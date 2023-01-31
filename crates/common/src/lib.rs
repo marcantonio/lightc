@@ -94,11 +94,26 @@ pub enum Type {
     Void,
     SArray(Box<Type>, usize),
     Comp(String),
+    Ptr(Box<Type>),
 }
 
 impl Type {
     pub fn is_primitive(&self) -> bool {
-        !matches!(self, Type::Comp(_) | Type::SArray(_, _))
+        !matches!(self, Type::Comp(_) | Type::SArray(_, _) | Type::Ptr(_))
+    }
+
+    pub fn get_ptr_ty(&self) -> &Type {
+        match self {
+            Type::Ptr(ty) => ty,
+            ty => unreachable!("expecting pointer, found `{}`", ty),
+        }
+    }
+
+    pub fn get_comp_name(&self) -> &str {
+        match self {
+            Type::Comp(ty) => ty,
+            ty => unreachable!("expecting composite, found `{}`", ty),
+        }
     }
 }
 
@@ -134,7 +149,10 @@ impl From<&str> for Type {
             "void" => Void,
             "int" => Int32,
             "uint" => UInt32,
-            x => Comp(x.to_owned()),
+            comp => match comp.strip_prefix('*') {
+                Some(comp) => pointer_wrap!(Comp(comp.to_owned())),
+                None => Comp(comp.to_owned()),
+            },
         }
     }
 }
@@ -155,6 +173,7 @@ impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Type::Comp(ty) => ty.to_owned(),
+            Type::Ptr(boxed) => format!("*{}", *boxed),
             _ => format!("{:?}", self).to_ascii_lowercase(),
         };
         write!(f, "{}", s)

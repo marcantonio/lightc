@@ -9,10 +9,11 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: "_main::returnStruct~main::Foo"
-              args: []
+              name: "_main::returnStruct~*main::Foo"
+              params: []
               ret_ty:
-                Comp: "main::Foo"
+                Ptr:
+                  Comp: "main::Foo"
               is_extern: false
               module: main
               member_of: ~
@@ -41,14 +42,16 @@ expression: "(test[1], res)"
                         Ident:
                           name: a
                           ty:
-                            Comp: "main::Foo"
+                            Ptr:
+                              Comp: "main::Foo"
                   ty:
-                    Comp: "main::Foo"
+                    Ptr:
+                      Comp: "main::Foo"
       - kind:
           Fn:
             proto:
               name: main
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -91,14 +94,16 @@ expression: "(test[1], res)"
                               Let:
                                 name: _light_intern@1
                                 antn:
-                                  Comp: "main::Foo"
+                                  Ptr:
+                                    Comp: "main::Foo"
                                 init:
                                   kind:
                                     Call:
-                                      name: "_main::returnStruct~main::Foo"
+                                      name: "_main::returnStruct~*main::Foo"
                                       args: []
                                       ty:
-                                        Comp: "main::Foo"
+                                        Ptr:
+                                          Comp: "main::Foo"
                           idx: 0
                           ty: Int32
                     - kind:
@@ -114,19 +119,13 @@ expression: "(test[1], res)"
                                     - kind:
                                         Lit:
                                           value:
-                                            Comp:
-                                              - kind:
-                                                  Lit:
-                                                    value:
-                                                      Int32: 0
-                                                    ty: Int32
-                                          ty:
-                                            Comp: "main::Foo"
+                                            UInt64: 0
+                                          ty: UInt64
                                 ty:
                                   Comp: "main::Bar"
                     - kind:
                         Call:
-                          name: "_main::Foo_b~main::Foo~void"
+                          name: "_main::Foo_b~*main::Foo~void"
                           args:
                             - kind:
                                 FSelector:
@@ -138,7 +137,8 @@ expression: "(test[1], res)"
                                           Comp: "main::Bar"
                                   idx: 0
                                   ty:
-                                    Comp: "main::Foo"
+                                    Ptr:
+                                      Comp: "main::Foo"
                           ty: Void
                     - kind:
                         FSelector:
@@ -160,10 +160,11 @@ expression: "(test[1], res)"
       - kind:
           Fn:
             proto:
-              name: "_main::Foo_b~main::Foo~void"
-              args:
+              name: "_main::Foo_b~*main::Foo~void"
+              params:
                 - - self
-                  - Comp: "main::Foo"
+                  - Ptr:
+                      Comp: "main::Foo"
               ret_ty: Void
               is_extern: false
               module: main
@@ -174,23 +175,25 @@ expression: "(test[1], res)"
                   list: []
                   ty: Void
     prototypes:
-      - name: "_main::returnStruct~main::Foo"
-        args: []
+      - name: "_main::returnStruct~*main::Foo"
+        params: []
         ret_ty:
-          Comp: "main::Foo"
+          Ptr:
+            Comp: "main::Foo"
         is_extern: false
         module: main
         member_of: ~
       - name: main
-        args: []
+        params: []
         ret_ty: Void
         is_extern: false
         module: main
         member_of: ~
-      - name: "_main::Foo_b~main::Foo~void"
-        args:
+      - name: "_main::Foo_b~*main::Foo~void"
+        params:
           - - self
-            - Comp: "main::Foo"
+            - Ptr:
+                Comp: "main::Foo"
         ret_ty: Void
         is_extern: false
         module: main

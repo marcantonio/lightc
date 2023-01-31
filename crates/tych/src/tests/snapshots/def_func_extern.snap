@@ -10,7 +10,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: foo
-              args: []
+              params: []
               ret_ty: Void
               is_extern: true
               module: main

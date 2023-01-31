@@ -10,7 +10,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: "main::bar"
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main
@@ -24,7 +24,7 @@ expression: "(test[1], res)"
           Fn:
             proto:
               name: "main::foo"
-              args: []
+              params: []
               ret_ty: Void
               is_extern: false
               module: main

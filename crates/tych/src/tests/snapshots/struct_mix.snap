@@ -25,9 +25,10 @@ expression: "(test[1], res)"
                   Fn:
                     proto:
                       name: "_main::Foo_c"
-                      args:
+                      params:
                         - - self
-                          - Comp: "main::Foo"
+                          - Ptr:
+                              Comp: "main::Foo"
                       ret_ty: Int32
                       is_extern: false
                       module: main

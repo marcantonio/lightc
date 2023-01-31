@@ -2,7 +2,17 @@ module core
 
 extern fn putchar(x: int)
 
-fn hello() {
-    putchar(64)
+fn printDot() {
+    putchar(46)
+    putchar(10)
+}
+
+fn printBang() {
+    putchar(33)
+    putchar(10)
+}
+
+fn printInt(x: int) {
+    putchar(x + 48)
     putchar(10)
 }

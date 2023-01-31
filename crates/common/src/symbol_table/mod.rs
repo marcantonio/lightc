@@ -200,14 +200,14 @@ mod test {
         assert_eq!(st.scope_depth, 0);
 
         // Insert at global scope
-        let sym1 = Symbol::new_var("foo", &Type::Bool, &MOD_NAME);
+        let sym1 = Symbol::new_var("foo", &Type::Bool, MOD_NAME);
         assert_eq!(st.insert(sym1.clone()), None);
         // Get from global scope
         assert_eq!(st.get("foo"), Some(&sym1));
 
         // Enter scope and insert dup name
         assert_eq!(st.enter_scope(), 1);
-        let sym2 = Symbol::new_var("foo", &Type::Int32, &MOD_NAME);
+        let sym2 = Symbol::new_var("foo", &Type::Int32, MOD_NAME);
         assert_eq!(st.insert(sym2.clone()), None);
         // Get dup from new scope
         assert_eq!(st.get("foo"), Some(&sym2));
@@ -218,12 +218,12 @@ mod test {
         // Unknown symbol
         assert_eq!(st.get("bar"), None);
         // Insert new symbol at current scope
-        let sym3 = Symbol::new_var("bar", &Type::Int32, &MOD_NAME);
+        let sym3 = Symbol::new_var("bar", &Type::Int32, MOD_NAME);
         assert_eq!(st.insert(sym3.clone()), None);
         // Get new symbol from current scope
         assert_eq!(st.get("bar"), Some(&sym3));
         // Overwrite new symbol with dup at and check that the old symbol is returned
-        let sym4 = Symbol::new_var("bar", &Type::Float, &MOD_NAME);
+        let sym4 = Symbol::new_var("bar", &Type::Float, MOD_NAME);
         assert_eq!(st.insert(sym4.clone()), Some(sym3));
         // Get dup with new id
         assert_eq!(st.get("bar"), Some(&sym4));

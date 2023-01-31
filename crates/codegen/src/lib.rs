@@ -203,12 +203,13 @@ impl<'ctx> Codegen<'ctx> {
         for proto in prototypes {
             // Get LLVM types for function args
             let mut args_types = vec![];
-            for (_, arg_ty) in proto.args() {
+            for (_, arg_ty) in proto.params() {
                 let llvm_ty = match self.get_llvm_any_type(arg_ty)? {
                     AnyTypeEnum::FloatType(ty) => BasicMetadataTypeEnum::FloatType(ty),
                     AnyTypeEnum::IntType(ty) => BasicMetadataTypeEnum::IntType(ty),
                     AnyTypeEnum::ArrayType(ty) => BasicMetadataTypeEnum::ArrayType(ty),
                     AnyTypeEnum::StructType(ty) => BasicMetadataTypeEnum::StructType(ty),
+                    AnyTypeEnum::PointerType(ty) => BasicMetadataTypeEnum::PointerType(ty),
                     ty => unreachable!(
                         "unsupported argument type `{}` in prototype `{}()`",
                         ty.print_to_string(),
@@ -224,6 +225,7 @@ impl<'ctx> Codegen<'ctx> {
                 AnyTypeEnum::IntType(ty) => ty.fn_type(&args_types, false),
                 AnyTypeEnum::VoidType(ty) => ty.fn_type(&args_types, false),
                 AnyTypeEnum::StructType(ty) => ty.fn_type(&args_types, false),
+                AnyTypeEnum::PointerType(ty) => ty.fn_type(&args_types, false),
                 ty => unreachable!(
                     "unsupported return type `{}` in prototype `{}()`",
                     ty.print_to_string(),
@@ -237,7 +239,7 @@ impl<'ctx> Codegen<'ctx> {
 
             // Name all args
             func.get_param_iter().enumerate().for_each(|(i, arg)| {
-                arg.set_name(&proto.args()[i].0);
+                arg.set_name(&proto.params()[i].0);
             });
         }
         Ok(())
@@ -265,7 +267,7 @@ impl<'ctx> Codegen<'ctx> {
             (Type::Float, None) => Some(self.context.f32_type().const_zero().as_basic_value_enum()),
             (Type::Double, None) => Some(self.context.f64_type().const_zero().as_basic_value_enum()),
             (Type::Bool, None) => Some(self.context.bool_type().const_zero().as_basic_value_enum()),
-            (Type::Void | Type::SArray(..) | Type::Comp(_), None) => {
+            (Type::Void | Type::SArray(..) | Type::Comp(_) | Type::Ptr(_), None) => {
                 unreachable!("void/invalid type for init annotation in `codegen_var_init()`")
             },
         };
@@ -297,9 +299,6 @@ impl<'ctx> Codegen<'ctx> {
             int64_types!() => builder.build_alloca(self.context.i64_type(), name),
             Type::Float => builder.build_alloca(self.context.f32_type(), name),
             Type::Double => builder.build_alloca(self.context.f64_type(), name),
-            Type::Void => {
-                unreachable!("void type for stack variable in `create_entry_block_alloca()`")
-            },
             Type::Bool => builder.build_alloca(self.context.bool_type(), name),
             Type::SArray(ty, sz) => {
                 let sarray_ty = match self.get_llvm_any_type(&ty.as_ref().clone())? {
@@ -318,7 +317,15 @@ impl<'ctx> Codegen<'ctx> {
             },
             Type::Comp(_) => {
                 let struct_ty = self.get_llvm_basic_type(ty)?;
-                self.builder.build_alloca(struct_ty, name)
+                builder.build_alloca(struct_ty, name)
+            },
+            Type::Ptr(ty) => {
+                let ptr_ty =
+                    self.get_llvm_basic_type(ty)?.into_struct_type().ptr_type(inkwell::AddressSpace::Generic);
+                builder.build_alloca(ptr_ty, name)
+            },
+            Type::Void => {
+                unreachable!("void type for stack variable in `create_entry_block_alloca()`")
             },
         })
     }
@@ -350,6 +357,7 @@ impl<'ctx> Codegen<'ctx> {
         unsafe { Ok(self.builder.build_in_bounds_gep(array_ptr, &[zero, idx], "array.index.gep")) }
     }
 
+    // Help to find the pointer to a struct element
     fn get_struct_element(&mut self, comp: hir::Node, idx: u32) -> Result<PointerValue<'ctx>, String> {
         use hir::node::Kind::*;
 
@@ -366,14 +374,19 @@ impl<'ctx> Codegen<'ctx> {
         };
 
         // If the composite is already a pointer, as in the case of chained fields, don't
-        // try to coerce into a pointer
+        // try to coerce into a pointer. Otherwise derive pointer from load
+        // instruction. In some cases the loaded value is a pointer. If not, derive as
+        // well.
         let struct_ptr = if comp_value.is_pointer_value() {
-            comp_value.into_pointer_value()
+            let comp_ptr = comp_value.into_pointer_value();
+            let comp_load = self.builder.build_load(comp_ptr, "");
+            if comp_load.is_pointer_value() {
+                comp_load.into_pointer_value()
+            } else {
+                derive_composite_pointer!(comp_load)
+            }
         } else {
-            // Get the load instruction for the struct
-            let inst = comp_value.as_instruction_value().unwrap();
-            // The only operand to the load instruction is the pointer to the struct
-            inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
+            derive_composite_pointer!(comp_value)
         };
 
         Ok(self
@@ -391,10 +404,10 @@ impl<'ctx> Codegen<'ctx> {
             Type::Float => self.context.f32_type().as_basic_type_enum(),
             Type::Double => self.context.f64_type().as_basic_type_enum(),
             Type::Bool => self.context.bool_type().as_basic_type_enum(),
-            Type::SArray(ty, size) => {
+            Type::SArray(element_ty, size) => {
                 let size =
                     (*size).try_into().map_err(|err| format!("failed to convert sarray size: `{}`", err))?;
-                match self.get_llvm_any_type(ty)? {
+                match self.get_llvm_any_type(element_ty)? {
                     AnyTypeEnum::ArrayType(ty) => ty.array_type(size).as_basic_type_enum(),
                     AnyTypeEnum::FloatType(ty) => ty.array_type(size).as_basic_type_enum(),
                     AnyTypeEnum::IntType(ty) => ty.array_type(size).as_basic_type_enum(),
@@ -408,6 +421,16 @@ impl<'ctx> Codegen<'ctx> {
                     unreachable!("missing struct definition for `{}` in `get_llvm_basic_type()`", name)
                 })
                 .as_basic_type_enum(),
+            Type::Ptr(ptr_ty) => {
+                let name = ptr_ty.get_comp_name();
+                self.module
+                    .get_struct_type(name)
+                    .unwrap_or_else(|| {
+                        unreachable!("missing struct definition for `{}` in `get_llvm_basic_type()`", name)
+                    })
+                    .ptr_type(inkwell::AddressSpace::Generic) // XXX right address space?
+                    .as_basic_type_enum()
+            },
             Type::Void => unreachable!("void can't be coerced into LLVM basic type"),
         })
     }
@@ -558,7 +581,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
         // Allocate space for the function's arguments on the stack
         for (i, arg) in function.get_param_iter().enumerate() {
-            let (name, ty) = &proto.args()[i];
+            let (name, ty) = &proto.params()[i];
             let alloca = self.create_entry_block_alloca(name, ty, &function)?;
             self.builder.build_store(alloca, arg);
             self.symbol_table.insert(CodegenSymbol::new_var(name.as_str(), ty, &self.module_name, alloca));
@@ -662,15 +685,21 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(Some(lit))
     }
 
-    fn visit_ident(&mut self, name: String) -> Self::Result {
+    fn visit_ident(&mut self, name: String, ty: Type) -> Self::Result {
         // Get the variable pointer and load from the stack
         let ptr = self
             .symbol_table
             .get(&name)
-            .unwrap_or_else(|| panic!("codegen failed to resolve `{}`", name))
+            .unwrap_or_else(|| unreachable!("codegen failed to resolve `{}`", name))
             .pointer()
             .expect("missing pointer on symbol");
-        Ok(Some(self.builder.build_load(ptr, &name)))
+
+        // Don't generate load if it's a pointer already
+        if let Type::Ptr(_) = ty {
+            Ok(Some(ptr.as_basic_value_enum()))
+        } else {
+            Ok(Some(self.builder.build_load(ptr, &name)))
+        }
     }
 
     fn visit_binop(&mut self, op: Operator, lhs: hir::Node, rhs: hir::Node) -> Self::Result {
@@ -715,7 +744,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Codegen the call args
         let mut args_code = Vec::with_capacity(args.len());
         for arg in args {
-            args_code.push((self.visit_node(arg)?.expr_value()?).into());
+            args_code.push(self.visit_node(arg)?.expr_value()?.into());
         }
 
         // Build the call instruction
@@ -852,14 +881,14 @@ pub enum CodegenResult {
 }
 
 impl CodegenResult {
-    pub fn as_file_path(self) -> PathBuf {
+    pub fn to_path(self) -> PathBuf {
         match self {
             CodegenResult::FilePath(b) => b,
             CodegenResult::Ir(_) => unimplemented!("Expecting file path"),
         }
     }
 
-    pub fn as_ir_string(self) -> String {
+    pub fn to_ir_string(self) -> String {
         match self {
             CodegenResult::FilePath(_) => unimplemented!("Expecting IR string"),
             CodegenResult::Ir(ir) => ir,
@@ -881,7 +910,7 @@ impl<T> ExprValue<T> for Option<T> {
     fn expr_value(self) -> Result<T, Self::Result> {
         match self {
             Some(v) => Ok(v),
-            None => Err("Expecting expression, found statement".to_string()),
+            None => Err("expecting expression, found statement".to_string()),
         }
     }
 }
