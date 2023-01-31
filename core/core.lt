@@ -16,3 +16,34 @@ fn printInt(x: int) {
     putchar(x + 48)
     putchar(10)
 }
+
+struct Array {
+    let buffer: [int; 5]
+    let size: int
+    let capacity: int
+
+    fn init() {
+        self.capacity = 5
+    }
+
+    fn len() -> int {
+        self.size
+    }
+
+    fn capacity() -> int {
+        self.capacity
+    }
+
+    fn get(index: int) -> int {
+        self.buffer[index]
+    }
+
+    fn insert(index: int, value: int) {
+        self.buffer[index] = value
+    }
+
+    fn push(value: int) {
+        self.buffer[self.size] = value
+        self.size += 1
+    }
+}
