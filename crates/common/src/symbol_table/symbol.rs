@@ -166,7 +166,7 @@ impl Ord for Symbol {
 
 impl PartialOrd for Symbol {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.name.partial_cmp(&other.name)
+        Some(self.name.cmp(&other.name))
     }
 }
 

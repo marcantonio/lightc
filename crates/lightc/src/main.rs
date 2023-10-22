@@ -119,7 +119,7 @@ fn main() {
     let available_modules = module_map.keys().cloned().collect::<Vec<_>>();
 
     // Produce an object file for each module. Add to Module
-    for (module_name, mut module) in &mut module_map {
+    for (module_name, module) in &mut module_map {
         // Resolve imported symbols
         module
             .resolve_imports(&available_modules, mod_path, &mut symbol_table)
