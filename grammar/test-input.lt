@@ -56,6 +56,11 @@ fn main() {
 
     x.method();
     x.field += 1;
+
+    loop {
+        let i: int = 0;
+        i += 1;
+    };
 };
 
 struct Foo {

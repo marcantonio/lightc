@@ -5,6 +5,7 @@ program              : mod_decl? stmt_list;
 stmt_list            : (stmt ';')+;
 stmt                 : let_stmt
                      | for_stmt
+                     | loop_stmt
                      | fn_decl
                      | extern_decl
                      | struct_decl
@@ -17,6 +18,7 @@ extern_decl          : 'extern' proto;
 struct_decl          : 'struct' IDENT '{' (let_stmt ';' | fn_decl ';')* '}' ;
 proto                : 'fn' IDENT '(' (typed_decl (',' typed_decl)*)* ')' ('->' type_antn)?;
 for_stmt             : 'for' var_init ';' expr ';' NUMBER? block;
+loop_stmt            : 'loop' block;
 let_stmt             : 'let' var_init;
 var_init             : typed_decl ('=' expr)?;
 typed_decl           : IDENT ':' type_antn;

@@ -8,6 +8,7 @@ Program            ::= ModDecl? StmtList ;
 StmtList           ::= ( Stmt ';' )+ ;
 Stmt               ::= LetStmt
                      | ForStmt
+                     | LoopStmt
                      | FnDecl
                      | ExternDecl
                      | StructDecl
@@ -20,6 +21,7 @@ ExternDecl         ::= 'extern' Prototype ;
 StructDecl         ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
 Prototype          ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
 ForStmt            ::= 'for' VarInit ';' Expr ';' number? Block ;
+LoopStmt           ::= 'loop' Block ;
 LetStmt            ::= 'let' VarInit ;
 VarInit            ::= TypedDecl ( '=' Expr  )? ;
 TypedDecl          ::= ident ':' TypeAntn ;
