@@ -108,6 +108,7 @@ impl Lex {
                 "struct" => Struct,
                 "module" => Module,
                 "use" => Use,
+                "loop" => Loop,
                 _ => Ident(identifier),
             };
 

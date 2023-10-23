@@ -20,5 +20,16 @@ fn main() {
     arr.insert(4, 7)
     core::printInt(arr.buffer[4])
 
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        if i == 3 {
+            break
+        }
+        core::printBang()
+        i += 1
+    }
+
     core::printDot()
 }

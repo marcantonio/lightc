@@ -49,6 +49,7 @@ pub trait Visitor {
         &mut self, start_name: String, start_antn: Type, start_expr: Option<Node>, cond_expr: Node,
         step_expr: Node, body: Node,
     ) -> Self::Result;
+    fn visit_loop(&mut self, body: Node) -> Self::Result;
     fn visit_let(&mut self, name: String, antn: Type, init: Option<Node>) -> Self::Result;
     fn visit_fn(&mut self, proto: Prototype, body: Option<Node>) -> Self::Result;
     fn visit_struct(&mut self, name: String, fields: Vec<Node>, methods: Vec<Node>) -> Self::Result;

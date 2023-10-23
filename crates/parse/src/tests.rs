@@ -429,3 +429,11 @@ for i: int = 0; i <= ; 1 {
     ];
     run_insta!("recovery", tests)
 }
+
+#[test]
+fn test_loop() {
+    let tests = [
+        ["basic", "loop { i += 1 }"],
+    ];
+    run_insta!("loop", tests);
+}

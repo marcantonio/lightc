@@ -1,0 +1,32 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 438
+expression: "(test[1], ast, ast_string)"
+---
+- "loop { i += 1 }"
+- Ok:
+    nodes:
+      - kind:
+          Loop:
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        BinOp:
+                          op: AddEq
+                          lhs:
+                            kind:
+                              Ident:
+                                name: i
+                                ty: ~
+                          rhs:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt64: 1
+                                ty: ~
+                          ty: ~
+                  ty: ~
+- "(loop '((+= i 1)))"
+

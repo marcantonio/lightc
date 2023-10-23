@@ -102,6 +102,19 @@ fn test_logical_ops() {
 }
 
 #[test]
+fn test_loop() {
+    let tests = [[
+        "basic",
+        r#"
+loop {
+    print(x)
+}
+"#,
+    ]];
+    run_insta!("loop", tests);
+}
+
+#[test]
 fn test_let() {
     let tests = [
         ["int", "let a: int = 1"],

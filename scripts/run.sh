@@ -3,7 +3,7 @@
 set -e
 
 # Don't try to exec is `-c` is specified
-if [[ " ${@}" =~  [[:space:]]+-c[[:space:]]+ ]]; then
+if [[ " ${@}" =~  [[:space:]]+-[ch][[:space:]]+ ]]; then
     cargo run -- $@
 else
     cargo run -- $@ && ./a.out

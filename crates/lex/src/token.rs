@@ -72,6 +72,7 @@ pub enum TokenType {
     Ident(String),
     If,
     Let,
+    Loop,
     Module,
     Num(String),
     Op(Operator),

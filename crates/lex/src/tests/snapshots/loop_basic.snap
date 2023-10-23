@@ -1,0 +1,39 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 114
+expression: "(test[1], tokens)"
+---
+- "\nloop {\n    print(x)\n}\n"
+- Ok:
+    - tt: Loop
+      line: 2
+      column: 1
+    - tt: OpenBrace
+      line: 2
+      column: 6
+    - tt:
+        Ident: print
+      line: 3
+      column: 5
+    - tt: OpenParen
+      line: 3
+      column: 10
+    - tt:
+        Ident: x
+      line: 3
+      column: 11
+    - tt: CloseParen
+      line: 3
+      column: 12
+    - tt:
+        Semicolon: true
+      line: 3
+      column: 13
+    - tt: CloseBrace
+      line: 4
+      column: 1
+    - tt:
+        Semicolon: true
+      line: 4
+      column: 2
+
