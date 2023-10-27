@@ -530,6 +530,35 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
+    fn visit_loop(
+        &mut self, body: hir::Node,
+    ) -> Self::Result {
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building loop".to_string())?;
+
+        // Create body and post blocks
+        let body_bb = self.context.append_basic_block(parent, "loop.body");
+        let post_bb = self.context.append_basic_block(parent, "loop.post");
+
+        // Jump from entry to body
+        self.builder.build_unconditional_branch(body_bb);
+
+        // Generate all body expressions
+        self.builder.position_at_end(body_bb);
+        self.visit_node(body)?;
+
+        // Loop around to the beginning
+        self.builder.build_unconditional_branch(body_bb);
+
+        // Set insertion to after the loop
+        self.builder.position_at_end(post_bb);
+
+        Ok(None)
+    }
+
     fn visit_let(&mut self, name: String, antn: Type, init: Option<hir::Node>) -> Self::Result {
         let parent = self
             .builder

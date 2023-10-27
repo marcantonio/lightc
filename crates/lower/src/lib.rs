@@ -162,6 +162,10 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(hir::Node::new_for(start_name, start_antn, Some(start_expr), cond_expr, step_expr, body))
     }
 
+    fn visit_loop(&mut self, body: ast::Node) -> Self::Result {
+        Ok(hir::Node::new_loop(self.visit_node(body)?))
+    }
+
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
         self.symbol_table.insert(Symbol::new_var(&name, &antn, &self.module));
         let init_node = self.lower_var_init(&name, init.as_ref(), &antn)?;
