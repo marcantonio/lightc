@@ -10,6 +10,8 @@ stmt                 : let_stmt
                      | extern_decl
                      | struct_decl
                      | use_stmt
+                     | break_stmt
+                     | next_stmt
                      | expr;
 mod_decl             : 'module' IDENT ';';
 block                : '{' stmt_list? '}';
@@ -25,6 +27,8 @@ typed_decl           : IDENT ':' type_antn;
 type_antn            : TYPE
                      | '[' TYPE ']';
 use_stmt             : 'use' IDENT ;
+break_stmt           : 'break' ;
+next_stmt            : 'next' ;
 expr                 : primary_expr
                      | expr ('*' | '/') expr
                      | expr ('+' | '-') expr

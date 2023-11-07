@@ -57,6 +57,7 @@ impl Default for Token {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub enum TokenType {
     Bool(bool),
+    Break,
     Char(String),
     CloseBrace,
     CloseBracket,
@@ -74,6 +75,7 @@ pub enum TokenType {
     Let,
     Loop,
     Module,
+    Next,
     Num(String),
     Op(Operator),
     OpenBrace,

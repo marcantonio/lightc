@@ -42,6 +42,14 @@ impl Node {
         Self { kind: Kind::Struct { name, fields, methods } }
     }
 
+    pub fn new_break() -> Self {
+        Self { kind: Kind::Break }
+    }
+
+    pub fn new_next() -> Self {
+        Self { kind: Kind::Next }
+    }
+
     pub fn new_lit(value: Literal<Node>, ty: Option<Type>) -> Self {
         Self { kind: Kind::Lit { value, ty } }
     }
@@ -183,6 +191,8 @@ pub enum Kind {
         fields: Vec<Node>,
         methods: Vec<Node>,
     },
+    Break,
+    Next,
 
     // Expressions
     Lit {
@@ -250,6 +260,8 @@ impl VisitableNode for Node {
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Struct { name, fields, methods } => v.visit_struct(name, fields, methods),
+            Break => v.visit_break(),
+            Next => v.visit_next(),
             Lit { value, ty } => v.visit_lit(value, ty),
             Ident { name, ty } => v.visit_ident(name, ty),
             BinOp { op, lhs, rhs, ty } => v.visit_binop(op, *lhs, *rhs, ty),
@@ -312,6 +324,8 @@ impl Display for Node {
                     meth_string.strip_suffix(' ').unwrap_or("")
                 )
             },
+            Break => write!(f, "break"),
+            Next => write!(f, "next"),
             Lit { value, .. } => write!(f, "{}", value),
             Ident { name, .. } => write!(f, "{}", name),
             BinOp { op, lhs, rhs, .. } => write!(f, "({} {} {})", op, lhs, rhs),

@@ -27,6 +27,7 @@ pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
     struct_methods: Vec<hir::Node>,
     imported_functions: HashSet<Symbol>,
+    discard_nodes: bool,
     module: String,
 }
 
@@ -36,6 +37,7 @@ impl<'a> Lower<'a> {
             symbol_table,
             struct_methods: vec![],
             imported_functions: HashSet::new(),
+            discard_nodes: false,
             module: module.to_owned(),
         }
     }
@@ -141,15 +143,20 @@ impl<'a> ast::Visitor for Lower<'a> {
     type Result = Result<hir::Node, String>;
 
     fn visit_node(&mut self, node: Self::AstNode) -> Self::Result {
-        node.accept(self)
+        if self.discard_nodes {
+            Ok(hir::Node::new_blank())
+        } else {
+            node.accept(self)
+        }
     }
 
     fn visit_for(
         &mut self, start_name: String, start_antn: Type, start_expr: Option<ast::Node>, cond_expr: ast::Node,
         step_expr: ast::Node, body: ast::Node,
     ) -> Self::Result {
-        // Insert start var
         self.symbol_table.enter_scope();
+
+        // Insert start var
         self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn, &self.module));
 
         let start_expr = self.lower_var_init(&start_name, start_expr.as_ref(), &start_antn)?;
@@ -217,6 +224,15 @@ impl<'a> ast::Visitor for Lower<'a> {
         self.struct_methods.append(&mut lowered_methods);
 
         Ok(hir::Node::new_blank())
+    }
+
+    fn visit_break(&mut self) -> Self::Result {
+        self.discard_nodes = true;
+        Ok(hir::Node::new_break())
+    }
+
+    fn visit_next(&mut self) -> Self::Result {
+        Ok(hir::Node::new_next())
     }
 
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -334,6 +350,8 @@ impl<'a> ast::Visitor for Lower<'a> {
         }
 
         self.symbol_table.leave_scope();
+
+        self.discard_nodes = false;
 
         Ok(hir::Node::new_block(lowered_list, ty.unwrap_or_default()))
     }

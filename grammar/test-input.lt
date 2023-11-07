@@ -1,3 +1,4 @@
+// Basic grammar checks. Requires explicit semicolons
 module main;
 
 use core;
@@ -60,6 +61,9 @@ fn main() {
     loop {
         let i: int = 0;
         i += 1;
+        if i == 3 {
+            break;
+        };
     };
 };
 

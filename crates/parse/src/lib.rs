@@ -76,7 +76,8 @@ impl<'a> Parse<'a> {
 
     /// Statement productions
 
-    // Stmt ::= LetStmt | ForStmt | LoopStmt | FnDecl | ExternDecl | StructDecl | UseStmt | Expr ;
+    // Stmt ::= LetStmt | ForStmt | LoopStmt | FnDecl | ExternDecl | StructDecl | UseStmt
+    //          | BreakStmt | Next | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
         use TokenType::*;
 
@@ -90,6 +91,8 @@ impl<'a> Parse<'a> {
             Extern => self.parse_extern()?,
             Struct => self.parse_struct()?,
             Use => self.parse_use()?,
+            Break => self.parse_break()?,
+            Next => self.parse_next()?,
             _ => self.parse_expr(0)?,
         };
 
@@ -314,6 +317,18 @@ impl<'a> Parse<'a> {
         self.imports.push(name.to_owned());
 
         Ok(ast::Node::new_blank())
+    }
+
+    // BreakStmt ::= 'break' ;
+    fn parse_break(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat break
+        Ok(ast::Node::new_break())
+    }
+
+    // NextStmt ::= 'next' ;
+    fn parse_next(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat next
+        Ok(ast::Node::new_next())
     }
 
     /// Expression productions

@@ -109,6 +109,8 @@ impl Lex {
                 "module" => Module,
                 "use" => Use,
                 "loop" => Loop,
+                "break" => Break,
+                "next" => Next,
                 _ => Ident(identifier),
             };
 
@@ -289,11 +291,13 @@ impl Lex {
             matches!(
                 t.tt,
                 Bool(_)
+                    | Break
                     | Char(_)
                     | CloseBrace
                     | CloseParen
                     | CloseBracket
                     | Ident(_)
+                    | Next
                     | Num(_)
                     | Op(Operator::Inc)
                     | Op(Operator::Dec)

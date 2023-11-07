@@ -38,6 +38,14 @@ impl Node {
         Self { kind: Kind::Fn { proto, body: body.map(Box::new) } }
     }
 
+    pub fn new_break() -> Self {
+        Self { kind: Kind::Break }
+    }
+
+    pub fn new_next() -> Self {
+        Self { kind: Kind::Next }
+    }
+
     pub fn new_lit(value: Literal<Node>, ty: Type) -> Self {
         Self { kind: Kind::Lit { value, ty } }
     }
@@ -139,6 +147,10 @@ impl Node {
             }
         )
     }
+
+    pub fn is_blank(&self) -> bool {
+        self.kind == Kind::Blank
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -164,6 +176,8 @@ pub enum Kind {
         proto: Prototype,
         body: Option<Box<Node>>,
     },
+    Break,
+    Next,
 
     // Expressions
     Lit {
@@ -225,6 +239,8 @@ impl VisitableNode for Node {
             Loop { body } => v.visit_loop(*body),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Lit { value, ty } => v.visit_lit(value, ty),
+            Break => v.visit_break(),
+            Next => v.visit_next(),
             Ident { name, ty } => v.visit_ident(name, ty),
             BinOp { op, lhs, rhs, .. } => v.visit_binop(op, *lhs, *rhs),
             UnOp { op, rhs, .. } => v.visit_unop(op, *rhs),
@@ -264,6 +280,8 @@ impl Display for Node {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
+            Break => write!(f, "break"),
+            Next => write!(f, "next"),
             Lit { value, .. } => write!(f, "{}", value),
             Ident { name, .. } => write!(f, "{}", name),
             BinOp { op, lhs, rhs, .. } => write!(f, "({} {} {})", op, lhs, rhs),

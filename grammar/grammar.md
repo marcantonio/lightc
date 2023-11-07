@@ -27,6 +27,8 @@ VarInit            ::= TypedDecl ( '=' Expr  )? ;
 TypedDecl          ::= ident ':' TypeAntn ;
 TypeAntn           ::= type | '[' type ']' ;
 UseStmt            ::= 'use' ident ;
+BreakStmt          ::= 'break' ;
+NextStmt           ::= 'next' ;
 Expr               ::= PrimaryExpr
                      | Expr mul_op Expr
                      | Expr add_op Expr

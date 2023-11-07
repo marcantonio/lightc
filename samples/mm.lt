@@ -1,33 +1,36 @@
 use core
 
 fn main() {
-    let arr: core::Array
+    // let arr: core::Array
 
-    arr.init()
-    core::printInt(arr.len())
-    arr.push(9)
-    core::printInt(arr.len())
+    // arr.init()
+    // core::printInt(arr.len())
+    // arr.push(9)
+    // core::printInt(arr.len())
 
-    for i: int; i < 4; 1 {
-        arr.push(i)
-    }
-    core::printInt(arr.len())
+    // for i: int; i < 4; 1 {
+    //     arr.push(i)
+    // }
+    // core::printInt(arr.len())
 
-    for i: int; i < 5; 1 {
-        core::printInt(arr.get(i))
-    }
+    // for i: int; i < 5; 1 {
+    //     core::printInt(arr.get(i))
+    // }
 
-    arr.insert(4, 7)
-    core::printInt(arr.buffer[4])
+    // arr.insert(4, 7)
+    // core::printInt(arr.buffer[4])
 
     core::printBang()
 
     let i: int = 0
     loop {
-        if i == 3 {
+        core::printBang()
+        if i == 0 {
+            core::printInt(6)
+        } else {
+            core::printInt(7)
             break
         }
-        core::printBang()
         i += 1
     }
 

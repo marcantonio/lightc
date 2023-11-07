@@ -372,6 +372,14 @@ impl<'a> ast::Visitor for Tych<'a> {
         Ok(ast::Node::new_struct(name, chkd_fields, chkd_methods))
     }
 
+    fn visit_break(&mut self) -> Self::Result {
+        Ok(ast::Node::new_break())
+    }
+
+    fn visit_next(&mut self) -> Self::Result {
+        Ok(ast::Node::new_next())
+    }
+
     // If there's a type hint (in `self.hint`), use it or fail. If not, use the literal's
     // type. Update `lit` with the result and return the type.
     fn visit_lit(&mut self, value: Literal<ast::Node>, _ty: Option<Type>) -> Self::Result {

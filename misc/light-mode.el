@@ -39,7 +39,10 @@
     "true"
     "false"
     "module"
-    "use"))
+    "use"
+    "loop"
+    "break"
+    "next"))
 
 (defconst light-builtin-type
   '("int" "uint"

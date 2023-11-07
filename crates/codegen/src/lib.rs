@@ -1,11 +1,12 @@
 use either::Either;
+use inkwell::basic_block::BasicBlock;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::targets::{FileType, InitializationConfig, Target, TargetMachine};
 use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue};
+use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue, InstructionOpcode};
 use inkwell::{IntPredicate, OptimizationLevel};
 use std::path::PathBuf;
 use std::process;
@@ -39,6 +40,7 @@ pub struct Codegen<'ctx> {
     opt_level: usize,
     no_verify: bool,
     module_name: String,
+    active_loop_exit_block: Option<BasicBlock<'ctx>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -75,6 +77,7 @@ impl<'ctx> Codegen<'ctx> {
             opt_level: args.opt_level,
             no_verify: args.no_verify,
             module_name: module_name.to_owned(),
+            active_loop_exit_block: None
         };
 
         codegen.walk(hir)?;
@@ -342,6 +345,7 @@ impl<'ctx> Codegen<'ctx> {
             Ident { .. } | FSelector { .. } => {
                 let value =
                     self.visit_node(array)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
+                // XXX use derive_composite_pointer!() here?
                 let inst = value.as_instruction_value().unwrap();
                 inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
             },
@@ -448,7 +452,11 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
     type Result = Result<Option<BasicValueEnum<'ctx>>, String>;
 
     fn visit_node(&mut self, node: Self::AstNode) -> Self::Result {
-        node.accept(self)
+        if node.is_blank() {
+            Ok(None)
+        } else {
+            node.accept(self)
+        }
     }
 
     // for start; cond; step { body }
@@ -546,17 +554,37 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Jump from entry to body
         self.builder.build_unconditional_branch(body_bb);
 
+        // Stash post_bb for possible break/next in body. Save old one
+        let old_post_bb = self.active_loop_exit_block;
+        self.active_loop_exit_block = Some(post_bb);
+
         // Generate all body expressions
         self.builder.position_at_end(body_bb);
-        self.visit_node(body)?;
+        let body_node = self.visit_node(body)?;
 
-        // Loop around to the beginning
-        self.builder.build_unconditional_branch(body_bb);
+        // Restore old post_bb
+        self.active_loop_exit_block = old_post_bb;
+
+        // Loop around to the beginning unless the block ended in a break
+        if body_node.is_some() {
+            self.builder.build_unconditional_branch(body_bb);
+        }
 
         // Set insertion to after the loop
         self.builder.position_at_end(post_bb);
 
         Ok(None)
+    }
+
+    fn visit_break(&mut self) -> Self::Result {
+        match self.active_loop_exit_block {
+            Some(bb) => {
+                // Jump out of active loop
+                self.builder.build_unconditional_branch(bb);
+                Ok(None)
+            },
+            None => Err("can't call `break` outside of loop".to_string()),
+        }
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<hir::Node>) -> Self::Result {
@@ -653,6 +681,11 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             }
         }
         Ok(None)
+    }
+
+
+    fn visit_next(&mut self) -> Self::Result {
+        unimplemented!()
     }
 
     fn visit_lit(&mut self, value: Literal<hir::Node>, ty: Type) -> Self::Result {
@@ -843,7 +876,10 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
         // Make sure the consequent returns to the end block after its
         // execution. Don't forget to reset `then_bb` in case codegen moved it.
-        self.builder.build_unconditional_branch(end_bb);
+        //println!("{:?}", then_bb.get_last_instruction().unwrap().get_operand(0));
+        if !then_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+            self.builder.build_unconditional_branch(end_bb);
+        }
         then_bb = self.builder.get_insert_block().ok_or("Can't reset `then` block")?;
 
         // Point the builder at the end of the empty else/end block
@@ -859,8 +895,10 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             };
 
             // Make sure the alternative returns to the end block after its
-            // execution. Don't forget to reset `then_bb` in case codegen moved it.
-            self.builder.build_unconditional_branch(end_bb);
+            // execution. Don't forget to reset `else_bb` in case codegen moved it.
+            if !else_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+                self.builder.build_unconditional_branch(end_bb);
+            }
             else_bb = self.builder.get_insert_block().ok_or("Can't reset `else` block")?;
 
             // Point the builder at the end of the empty end block
