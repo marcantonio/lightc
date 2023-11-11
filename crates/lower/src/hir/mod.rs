@@ -57,6 +57,9 @@ pub trait Visitor {
     fn visit_loop(&mut self, body: Node) -> Self::Result;
     fn visit_let(&mut self, name: String, antn: Type, init: Option<Node>) -> Self::Result;
     fn visit_fn(&mut self, proto: Prototype, body: Option<Node>) -> Self::Result;
+    fn visit_cond_stmt(
+        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Type,
+    ) -> Self::Result;
     fn visit_break(&mut self) -> Self::Result;
     fn visit_next(&mut self) -> Self::Result;
     fn visit_lit(&mut self, value: Literal<Node>, ty: Type) -> Self::Result;
@@ -64,8 +67,8 @@ pub trait Visitor {
     fn visit_binop(&mut self, op: Operator, lhs: Node, rhs: Node) -> Self::Result;
     fn visit_unop(&mut self, op: Operator, rhs: Node) -> Self::Result;
     fn visit_call(&mut self, name: String, args: Vec<Node>) -> Self::Result;
-    fn visit_cond(
-        &mut self, cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Type,
+    fn visit_cond_expr(
+        &mut self, cond_expr: Node, then_block: Node, else_block: Node, ty: Type,
     ) -> Self::Result;
     fn visit_block(&mut self, list: Vec<Node>) -> Self::Result;
     fn visit_index(&mut self, binding: Node, idx: Node) -> Self::Result;

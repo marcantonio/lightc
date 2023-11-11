@@ -458,3 +458,30 @@ fn main() {
     ];
     run_insta!("struct", tests);
 }
+
+#[test]
+fn test_loop() {
+    let tests = [
+        [
+            "a",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+    }
+}
+"#,
+        ],
+        [
+            "b",
+            r#"
+fn main() {
+    foo()
+}
+fn foo() {}
+"#,
+        ],
+    ];
+    run_insta!("loop", tests);
+}

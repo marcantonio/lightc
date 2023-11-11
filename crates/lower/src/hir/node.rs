@@ -38,6 +38,17 @@ impl Node {
         Self { kind: Kind::Fn { proto, body: body.map(Box::new) } }
     }
 
+    pub fn new_cond_stmt(cond_expr: Node, then_block: Node, else_block: Option<Node>) -> Self {
+        Self {
+            kind: Kind::CondStmt {
+                cond_expr: Box::new(cond_expr),
+                then_block: Box::new(then_block),
+                else_block: else_block.map(Box::new),
+                ty: Type::Void,
+            },
+        }
+    }
+
     pub fn new_break() -> Self {
         Self { kind: Kind::Break }
     }
@@ -66,12 +77,12 @@ impl Node {
         Self { kind: Kind::Call { name, args, ty } }
     }
 
-    pub fn new_cond(cond_expr: Node, then_block: Node, else_block: Option<Node>, ty: Type) -> Self {
+    pub fn new_cond_expr(cond_expr: Node, then_block: Node, else_block: Node, ty: Type) -> Self {
         Self {
-            kind: Kind::Cond {
+            kind: Kind::CondExpr {
                 cond_expr: Box::new(cond_expr),
                 then_block: Box::new(then_block),
-                else_block: else_block.map(Box::new),
+                else_block: Box::new(else_block),
                 ty,
             },
         }
@@ -102,7 +113,7 @@ impl Node {
             BinOp { ty, .. } => ty,
             UnOp { ty, .. } => ty,
             Call { ty, .. } => ty,
-            Cond { ty, .. } => ty,
+            CondExpr { ty, .. } => ty,
             Block { ty, .. } => ty,
             Index { ty, .. } => ty,
             FSelector { ty, .. } => ty,
@@ -119,7 +130,7 @@ impl Node {
             BinOp { ty, .. } => *ty = new_ty,
             UnOp { ty, .. } => *ty = new_ty,
             Call { ty, .. } => *ty = new_ty,
-            Cond { ty, .. } => *ty = new_ty,
+            CondExpr { ty, .. } => *ty = new_ty,
             Block { ty, .. } => *ty = new_ty,
             Index { ty, .. } => *ty = new_ty,
             FSelector { ty, .. } => *ty = new_ty,
@@ -176,6 +187,12 @@ pub enum Kind {
         proto: Prototype,
         body: Option<Box<Node>>,
     },
+    CondStmt {
+        cond_expr: Box<Node>,
+        then_block: Box<Node>,
+        else_block: Option<Box<Node>>,
+        ty: Type,
+    },
     Break,
     Next,
 
@@ -204,10 +221,10 @@ pub enum Kind {
         args: Vec<Node>,
         ty: Type,
     },
-    Cond {
+    CondExpr {
         cond_expr: Box<Node>,
         then_block: Box<Node>,
-        else_block: Option<Box<Node>>,
+        else_block: Box<Node>,
         ty: Type,
     },
     Block {
@@ -238,6 +255,9 @@ impl VisitableNode for Node {
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
             Loop { body } => v.visit_loop(*body),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
+            CondStmt { cond_expr, then_block, else_block, ty } => {
+                v.visit_cond_stmt(*cond_expr, *then_block, else_block.map(|x| *x), ty)
+            },
             Lit { value, ty } => v.visit_lit(value, ty),
             Break => v.visit_break(),
             Next => v.visit_next(),
@@ -245,8 +265,8 @@ impl VisitableNode for Node {
             BinOp { op, lhs, rhs, .. } => v.visit_binop(op, *lhs, *rhs),
             UnOp { op, rhs, .. } => v.visit_unop(op, *rhs),
             Call { name, args, .. } => v.visit_call(name, args),
-            Cond { cond_expr, then_block, else_block, ty } => {
-                v.visit_cond(*cond_expr, *then_block, else_block.map(|x| *x), ty)
+            CondExpr { cond_expr, then_block, else_block, ty } => {
+                v.visit_cond_expr(*cond_expr, *then_block, *else_block, ty)
             },
             Block { list, .. } => v.visit_block(list),
             Index { array, idx, .. } => v.visit_index(*array, *idx),
@@ -280,6 +300,13 @@ impl Display for Node {
                 Some(body) => write!(f, "(define {} {})", proto, body),
                 _ => write!(f, "(define {})", proto),
             },
+            CondStmt { cond_expr, then_block, else_block, .. } => {
+                let mut s = format!("(if {} {}", cond_expr, then_block);
+                if let Some(alt) = &else_block {
+                    s += &format!(" {}", alt);
+                }
+                write!(f, "{})", s)
+            },
             Break => write!(f, "break"),
             Next => write!(f, "next"),
             Lit { value, .. } => write!(f, "{}", value),
@@ -295,12 +322,8 @@ impl Display for Node {
                 }
                 write!(f, "{})", s)
             },
-            Cond { cond_expr, then_block, else_block, .. } => {
-                let mut s = format!("(if {} {}", cond_expr, then_block);
-                if let Some(alt) = &else_block {
-                    s += &format!(" {}", alt);
-                }
-                write!(f, "{})", s)
+            CondExpr { cond_expr, then_block, else_block, .. } => {
+                write!(f, "(if {} {} {})", cond_expr, then_block, else_block)
             },
             Block { list, .. } => {
                 let mut s = "'(".to_string();

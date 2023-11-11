@@ -6,7 +6,7 @@ use inkwell::module::Module;
 use inkwell::passes::PassManager;
 use inkwell::targets::{FileType, InitializationConfig, Target, TargetMachine};
 use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue, InstructionOpcode};
+use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue, InstructionOpcode, PointerValue};
 use inkwell::{IntPredicate, OptimizationLevel};
 use std::path::PathBuf;
 use std::process;
@@ -77,7 +77,7 @@ impl<'ctx> Codegen<'ctx> {
             opt_level: args.opt_level,
             no_verify: args.no_verify,
             module_name: module_name.to_owned(),
-            active_loop_exit_block: None
+            active_loop_exit_block: None,
         };
 
         codegen.walk(hir)?;
@@ -538,9 +538,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
-    fn visit_loop(
-        &mut self, body: hir::Node,
-    ) -> Self::Result {
+    fn visit_loop(&mut self, body: hir::Node) -> Self::Result {
         let parent = self
             .builder
             .get_insert_block()
@@ -560,15 +558,13 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 
         // Generate all body expressions
         self.builder.position_at_end(body_bb);
-        let body_node = self.visit_node(body)?;
+        self.visit_node(body)?;
 
         // Restore old post_bb
         self.active_loop_exit_block = old_post_bb;
 
         // Loop around to the beginning unless the block ended in a break
-        if body_node.is_some() {
-            self.builder.build_unconditional_branch(body_bb);
-        }
+        self.builder.build_unconditional_branch(body_bb);
 
         // Set insertion to after the loop
         self.builder.position_at_end(post_bb);
@@ -581,6 +577,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             Some(bb) => {
                 // Jump out of active loop
                 self.builder.build_unconditional_branch(bb);
+                self.active_loop_exit_block = Some(bb);
                 Ok(None)
             },
             None => Err("can't call `break` outside of loop".to_string()),
@@ -683,6 +680,74 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
+    fn visit_cond_stmt(
+        &mut self, cond_expr: hir::Node, then_block: hir::Node, else_block: Option<hir::Node>, _ty: Type,
+    ) -> Self::Result {
+        // Get the current function for insertion
+        let parent = self
+            .builder
+            .get_insert_block()
+            .and_then(|x| x.get_parent())
+            .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
+
+        // Codegen expression. Will be optimized to a 0 or 1 if comparing
+        // constants. Otherwise, the value will be IR to evaluate. Result will
+        // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
+        // "bool".
+        let cond_val = self.visit_node(cond_expr)?.expr_value()?.into_int_value();
+        let cond_bool = self.builder.build_int_compare(
+            IntPredicate::NE,
+            cond_val,
+            self.context.bool_type().const_zero(),
+            "if.cond.int",
+        );
+
+        // Create blocks for branches and after. The else block is just a
+        // pointer to end if there's no else expression.
+        let then_bb = self.context.append_basic_block(parent, "if.then");
+        let merge_bb = self.context.append_basic_block(parent, "if.merge");
+        let mut else_bb = merge_bb;
+        if else_block.is_some() {
+            else_bb = self.context.append_basic_block(parent, "if.else");
+        }
+
+        // Emits the entry conditional branch instructions
+        self.builder.build_conditional_branch(cond_bool, then_bb, else_bb);
+
+        // Point the builder at the end of the empty then block
+        self.builder.position_at_end(then_bb);
+
+        // Codegen the then block
+        self.visit_node(then_block)?;
+
+        // Only jump to the merge block if we don't have a previous break instruction
+        if !then_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+            self.builder.build_unconditional_branch(merge_bb);
+        }
+        // Don't forget to reset `then_bb` in case codegen moved it
+        self.builder.get_insert_block().ok_or("can't reset `then` block")?;
+
+        // Point the builder at the end of the empty else/end block
+        self.builder.position_at_end(else_bb);
+
+        // Codegen the else block if we have one
+        if let Some(else_block) = else_block {
+            // Codegen the else block
+            self.visit_node(else_block)?;
+
+            // Only jump to the merge block if we don't have a previous break instruction
+            if !else_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+                self.builder.build_unconditional_branch(merge_bb);
+            }
+
+            // Don't forget to reset `else_bb` in case codegen moved it
+            self.builder.get_insert_block().ok_or("can't reset `else` block")?;
+
+            // Point the builder at the end of the empty end block
+            self.builder.position_at_end(merge_bb);
+        }
+        Ok(None)
+    }
 
     fn visit_next(&mut self) -> Self::Result {
         unimplemented!()
@@ -821,30 +886,15 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         })
     }
 
-    // if then optional else
-    fn visit_cond(
-        &mut self, cond_expr: hir::Node, then_block: hir::Node, else_block: Option<hir::Node>, ty: Type,
+    fn visit_cond_expr(
+        &mut self, cond_expr: hir::Node, then_block: hir::Node, else_block: hir::Node, ty: Type,
     ) -> Self::Result {
-        // Should never be used. Useful for an unused phi branch. Note: undef
-        // value must be in sync with phi type.
-        let undef_val = make_undef_value!(self.context, ty);
-
-        // Get the current function for insertion
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
             .ok_or_else(|| "Parent function not found when building conditional".to_string())?;
 
-        // Get the starting basic block. This is only used later if there is no
-        // else block, but we need to capture it now before we start appending
-        // new blocks.
-        let entry_bb = parent.get_last_basic_block().unwrap();
-
-        // Codegen expression. Will be optimized to a 0 or 1 if comparing
-        // constants. Otherwise, the value will be IR to evaluate. Result will
-        // be a 0 or 1. Then compare cond_val to 0. Result will be a 1 bit
-        // "bool".
         let cond_val = self.visit_node(cond_expr)?.expr_value()?.into_int_value();
         let cond_bool = self.builder.build_int_compare(
             IntPredicate::NE,
@@ -853,67 +903,27 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             "if.cond.int",
         );
 
-        // Create blocks for branches and after. The else block is just a
-        // pointer to end if there's no else expression.
         let mut then_bb = self.context.append_basic_block(parent, "if.then");
         let end_bb = self.context.append_basic_block(parent, "if.end");
-        let mut else_bb = end_bb;
-        if else_block.is_some() {
-            else_bb = self.context.append_basic_block(parent, "if.else");
-        }
-
-        // Emits the entry conditional branch instructions
+        let mut else_bb = self.context.append_basic_block(parent, "if.else");
         self.builder.build_conditional_branch(cond_bool, then_bb, else_bb);
 
-        // Point the builder at the end of the empty then block
         self.builder.position_at_end(then_bb);
+        let then_val =
+            self.visit_node(then_block)?.unwrap_or_else(|| unreachable!("no return value for then block"));
+        self.builder.build_unconditional_branch(end_bb);
+        then_bb = self.builder.get_insert_block().ok_or("can't reset `then` block")?;
 
-        // Codegen the then block. Save the last value for phi.
-        let then_val = match self.visit_node(then_block)? {
-            Some(v) => v,
-            None => undef_val,
-        };
-
-        // Make sure the consequent returns to the end block after its
-        // execution. Don't forget to reset `then_bb` in case codegen moved it.
-        //println!("{:?}", then_bb.get_last_instruction().unwrap().get_operand(0));
-        if !then_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
-            self.builder.build_unconditional_branch(end_bb);
-        }
-        then_bb = self.builder.get_insert_block().ok_or("Can't reset `then` block")?;
-
-        // Point the builder at the end of the empty else/end block
         self.builder.position_at_end(else_bb);
+        let else_val =
+            self.visit_node(else_block)?.unwrap_or_else(|| unreachable!("no return value for else block"));
+        self.builder.build_unconditional_branch(end_bb);
+        else_bb = self.builder.get_insert_block().ok_or("can't reset `else` block")?;
 
-        let val;
-        // Codegen the else block if we have one
-        if let Some(else_block) = else_block {
-            // Codegen the else block. Save the last value for phi.
-            let else_val = match self.visit_node(else_block)? {
-                Some(v) => v,
-                None => undef_val,
-            };
-
-            // Make sure the alternative returns to the end block after its
-            // execution. Don't forget to reset `else_bb` in case codegen moved it.
-            if !else_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
-                self.builder.build_unconditional_branch(end_bb);
-            }
-            else_bb = self.builder.get_insert_block().ok_or("Can't reset `else` block")?;
-
-            // Point the builder at the end of the empty end block
-            self.builder.position_at_end(end_bb);
-
-            // Create the phi node and insert code/value pairs
-            let phi = make_phi_for_type!(self.builder, self.context, ty, "if.else.phi");
-            phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
-            val = phi.as_basic_value();
-        } else {
-            let phi = make_phi_for_type!(self.builder, self.context, ty, "if.phi");
-            phi.add_incoming(&[(&then_val, then_bb), (&undef_val, entry_bb)]);
-            val = phi.as_basic_value();
-        }
-        Ok(Some(val))
+        self.builder.position_at_end(end_bb);
+        let phi = make_phi_for_type!(self.builder, self.context, ty, "if.else.phi");
+        phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
+        Ok(Some(phi.as_basic_value()))
     }
 
     fn visit_block(&mut self, list: Vec<hir::Node>) -> Self::Result {
