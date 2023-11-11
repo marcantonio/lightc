@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 605
+expression: "(test[1], res, res_opt)"
+---
+- "\nfn main() {\n    let i: int = 0\n    loop {\n        i += 1\n        loop {\n            i += 1\n            break\n        }\n        i += 1\n        break\n    }\n    i += 1\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %i = alloca i32, align 4\n  store i32 0, i32* %i, align 4\n  br label %loop.body\n\nloop.body:                                        ; preds = %entry\n  %i1 = load i32, i32* %i, align 4\n  %i2 = load i32, i32* %i, align 4\n  %add.int = add i32 %i2, 1\n  store i32 %add.int, i32* %i, align 4\n  br label %loop.body3\n\nloop.post:                                        ; preds = %loop.post4\n  %i11 = load i32, i32* %i, align 4\n  %i12 = load i32, i32* %i, align 4\n  %add.int13 = add i32 %i12, 1\n  store i32 %add.int13, i32* %i, align 4\n  ret void\n\nloop.body3:                                       ; preds = %loop.body\n  %i5 = load i32, i32* %i, align 4\n  %i6 = load i32, i32* %i, align 4\n  %add.int7 = add i32 %i6, 1\n  store i32 %add.int7, i32* %i, align 4\n  br label %loop.post4\n\nloop.post4:                                       ; preds = %loop.body3\n  %i8 = load i32, i32* %i, align 4\n  %i9 = load i32, i32* %i, align 4\n  %add.int10 = add i32 %i9, 1\n  store i32 %add.int10, i32* %i, align 4\n  br label %loop.post\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  ret void\n}\n"
+

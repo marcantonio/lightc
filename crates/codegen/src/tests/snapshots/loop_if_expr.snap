@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 587
+expression: "(test[1], res, res_opt)"
+---
+- "\nfn main() {\n    let i: int = 0\n    loop {\n        i += 1\n        if i == 1 {\n            2\n        } else {\n            3\n        }\n    }\n    i += 1\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %i = alloca i32, align 4\n  store i32 0, i32* %i, align 4\n  br label %loop.body\n\nloop.body:                                        ; preds = %if.merge, %entry\n  %i1 = load i32, i32* %i, align 4\n  %i2 = load i32, i32* %i, align 4\n  %add.int = add i32 %i2, 1\n  store i32 %add.int, i32* %i, align 4\n  %i3 = load i32, i32* %i, align 4\n  %eq.int = icmp eq i32 %i3, 1\n  %if.cond.int = icmp ne i1 %eq.int, false\n  br i1 %if.cond.int, label %if.then, label %if.else\n\nloop.post:                                        ; No predecessors!\n  %i4 = load i32, i32* %i, align 4\n  %i5 = load i32, i32* %i, align 4\n  %add.int6 = add i32 %i5, 1\n  store i32 %add.int6, i32* %i, align 4\n  ret void\n\nif.then:                                          ; preds = %loop.body\n  br label %if.merge\n\nif.merge:                                         ; preds = %if.else, %if.then\n  %if.else.phi.int32 = phi i32 [ 2, %if.then ], [ 3, %if.else ]\n  br label %loop.body\n\nif.else:                                          ; preds = %loop.body\n  br label %if.merge\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  br label %loop.body\n\nloop.body:                                        ; preds = %loop.body, %entry\n  br label %loop.body\n}\n"
+

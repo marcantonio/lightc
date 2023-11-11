@@ -563,8 +563,16 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Restore old post_bb
         self.active_loop_exit_block = old_post_bb;
 
-        // Loop around to the beginning unless the block ended in a break
-        self.builder.build_unconditional_branch(body_bb);
+        // Get the last block written and check for a break before we complete the loop
+        if !self
+            .builder
+            .get_insert_block()
+            .unwrap_or_else(|| unreachable!("can't location insert block"))
+            .get_terminator()
+            .is_some_and(|t| t.get_opcode() == InstructionOpcode::Br)
+        {
+            self.builder.build_unconditional_branch(body_bb);
+        }
 
         // Set insertion to after the loop
         self.builder.position_at_end(post_bb);
@@ -854,15 +862,15 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Point the builder at the end of the empty then block
         self.builder.position_at_end(then_bb);
 
-        // Codegen the then block
+        // Codegen the then block. Don't forget to reset `then_bb` in case codegen moved
+        // it
         let then_val = self.visit_node(then_block)?;
+        then_bb = self.builder.get_insert_block().ok_or("can't reset `then` block")?;
 
         // Only jump to the merge block if we don't have a previous break instruction
-        //if !then_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+        if !then_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
             self.builder.build_unconditional_branch(merge_bb);
-        //}
-        // Don't forget to reset `then_bb` in case codegen moved it
-        then_bb = self.builder.get_insert_block().ok_or("can't reset `then` block")?;
+        }
 
         // Point the builder at the end of the empty else/end block
         self.builder.position_at_end(else_bb);
@@ -870,16 +878,15 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Codegen the else block if we have one
         let mut else_val = None;
         if let Some(else_block) = else_block {
-            // Codegen the else block
+            // Codegen the else block. Don't forget to reset `else_bb` in case codegen
+            // moved it
             else_val = self.visit_node(else_block)?;
+            else_bb = self.builder.get_insert_block().ok_or("can't reset `else` block")?;
 
             // Only jump to the merge block if we don't have a previous break instruction
-            //if !else_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
+            if !else_bb.get_terminator().is_some_and(|t| t.get_opcode() == InstructionOpcode::Br) {
                 self.builder.build_unconditional_branch(merge_bb);
-            //}
-
-            // Don't forget to reset `else_bb` in case codegen moved it
-            else_bb = self.builder.get_insert_block().ok_or("can't reset `else` block")?;
+            }
 
             // Point the builder at the end of the empty end block
             self.builder.position_at_end(merge_bb);

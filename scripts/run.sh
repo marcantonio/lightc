@@ -2,8 +2,8 @@
 
 set -e
 
-# Don't try to exec is `-c` pr `-h` is specified
-if [[ " ${@} " =~  [[:space:]]+-[ch][[:space:]]+ ]]; then
+# Don't try to exec compiled binary for these switches
+if [[ " ${@} " =~  [[:space:]]+-[chn][[:space:]]+ ]]; then
     cargo run -- $@
 else
     cargo run -- $@ && ./a.out

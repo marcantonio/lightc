@@ -463,7 +463,7 @@ fn main() {
 fn test_loop() {
     let tests = [
         [
-            "a",
+            "basic",
             r#"
 fn main() {
     let i: int = 0
@@ -474,12 +474,131 @@ fn main() {
 "#,
         ],
         [
-            "b",
+            "if_breaks",
             r#"
 fn main() {
-    foo()
+    let i: int = 0
+    loop {
+        if i == 0 {
+            break
+        } else {
+            break
+        }
+        i += 1
+    }
+    i += 1
 }
-fn foo() {}
+"#,
+        ],
+        [
+            "if_expr",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "both",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        if i == 0 {
+            break
+        } else {
+            break
+        }
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+        i += 1
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "end_break",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        break
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "with_for",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        if i == 0 {
+            break
+        } else {
+            for i: int; i < 2; 1 {
+                i += 1
+            }
+        }
+        i += 1
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "cond_break",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+        if true {
+            break
+        }
+        i += 1
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "nested_breaks",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        loop {
+            i += 1
+            break
+        }
+        i += 1
+        break
+    }
+    i += 1
+}
 "#,
         ],
     ];

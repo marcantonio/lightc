@@ -1,0 +1,130 @@
+use core
+
+fn main() {
+    t1()
+    t2()
+    t3()
+    t4()
+    t5()
+    t6()
+}
+
+fn t1() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        if i == 0 {
+            core::printInt(6)
+            break
+        } else {
+            core::printInt(7)
+            break
+        }
+        i += 1
+        core::printInt(i)
+    }
+    core::printDot()
+}
+
+fn t2() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+        core::printInt(i)
+        break
+    }
+    core::printDot()
+}
+
+fn t3() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        if i == 0 {
+            core::printInt(6)
+            break
+        } else {
+            core::printInt(7)
+            for i: int; i < 2; 1 {
+                i += 1
+            }
+            if i == 2 {
+                break
+            }
+        }
+        core::printInt(i)
+    }
+    core::printDot()
+}
+
+fn t4() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        if i == 0 {
+            core::printInt(6)
+            break
+        } else {
+            core::printInt(7)
+            break
+        }
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+        core::printInt(i)
+    }
+    core::printDot()
+}
+
+fn t5() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        i += 1
+        if i == 1 {
+            2
+        } else {
+            3
+        }
+        core::printInt(i)
+        if true {
+            break
+        }
+    }
+    core::printDot()
+}
+
+fn t6() {
+    core::printBang()
+
+    let i: int = 0
+    loop {
+        core::printBang()
+        loop {
+            core::printBang()
+            break
+        }
+        core::printInt(i)
+        break
+    }
+    core::printDot()
+}
