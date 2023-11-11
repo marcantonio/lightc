@@ -334,19 +334,12 @@ impl<'a> ast::Visitor for Lower<'a> {
         &mut self, cond_expr: ast::Node, then_block: ast::Node, else_block: Option<ast::Node>,
         ty: Option<Type>,
     ) -> Self::Result {
-        match ty {
-            Some(Type::Void) => Ok(hir::Node::new_cond_stmt(
-                self.visit_node(cond_expr)?,
-                self.visit_node(then_block)?,
-                else_block.map(|e| self.visit_node(e)).transpose()?,
-            )),
-            _ => Ok(hir::Node::new_cond_expr(
-                self.visit_node(cond_expr)?,
-                self.visit_node(then_block)?,
-                self.visit_node(else_block.unwrap())?, // XXX: ensure this is defined
-                ty.unwrap_or_default(),
-            )),
-        }
+        Ok(hir::Node::new_cond(
+            self.visit_node(cond_expr)?,
+            self.visit_node(then_block)?,
+            else_block.map(|e| self.visit_node(e)).transpose()?,
+            ty.unwrap_or_default(),
+        ))
     }
 
     fn visit_block(&mut self, list: Vec<ast::Node>, ty: Option<Type>) -> Self::Result {
