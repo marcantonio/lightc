@@ -8,11 +8,15 @@
 - [x] Test for all parser errors
 - [ ] Test for all type_checker errors
 - [ ] Test for all codegen errors
+- [ ] Test running code
+- [ ] More dead code detection
 - [x] More context in parser errors
 - [x] More context in codegen errors
 - [ ] Include file name in error
 - [ ] Add while
 - [ ] Desugar for loops
+- [ ] For loops ending in next need to handle conditional conditional properly
+- [ ] break/next labels
 - [x] Fix main exit code
 - [x] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)
@@ -36,7 +40,7 @@
 - [ ] Globals
 - [ ] Type inference
 - [ ] Pointer types
-- [ ] Custom types
+- [x] Custom types
 - [ ] Manual memory management
 - [ ] Basic RAII
 - [ ] HashMap type

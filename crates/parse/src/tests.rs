@@ -432,8 +432,6 @@ for i: int = 0; i <= ; 1 {
 
 #[test]
 fn test_loop() {
-    let tests = [
-        ["basic", "loop { i += 1 }"],
-    ];
+    let tests = [["basic", "loop { i += 1 }"]];
     run_insta!("loop", tests);
 }
