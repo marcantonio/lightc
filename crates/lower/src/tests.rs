@@ -225,3 +225,34 @@ struct Bar {
     ];
     run_insta!("init_literal", tests);
 }
+
+#[test]
+fn test_dead_code() {
+    let tests = [
+        [
+            "break",
+            r#"
+fn main() {
+    loop {
+        let i: int = 0
+        break
+        i += 1
+    }
+}
+"#,
+        ],
+        [
+            "next",
+            r#"
+fn main() {
+    loop {
+        let i: int = 0
+        next
+        i += 1
+    }
+}
+"#,
+        ],
+    ];
+    run_insta!("dead_code", tests);
+}

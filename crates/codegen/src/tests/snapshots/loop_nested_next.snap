@@ -1,0 +1,9 @@
+---
+source: crates/codegen/src/tests.rs
+assertion_line: 639
+expression: "(test[1], res, res_opt)"
+---
+- "\nfn main() {\n    let i: int = 0\n    loop {\n        i += 1\n        loop {\n            if i == 1 {\n                next\n            }\n        }\n        next\n    }\n    i += 1\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  %i = alloca i32, align 4\n  store i32 0, i32* %i, align 4\n  br label %loop.body\n\nloop.body:                                        ; preds = %loop.post4, %entry\n  %i1 = load i32, i32* %i, align 4\n  %i2 = load i32, i32* %i, align 4\n  %add.int = add i32 %i2, 1\n  store i32 %add.int, i32* %i, align 4\n  br label %loop.body3\n\nloop.post:                                        ; No predecessors!\n  %i6 = load i32, i32* %i, align 4\n  %i7 = load i32, i32* %i, align 4\n  %add.int8 = add i32 %i7, 1\n  store i32 %add.int8, i32* %i, align 4\n  ret void\n\nloop.body3:                                       ; preds = %if.merge, %if.then, %loop.body\n  %i5 = load i32, i32* %i, align 4\n  %eq.int = icmp eq i32 %i5, 1\n  %if.cond.int = icmp ne i1 %eq.int, false\n  br i1 %if.cond.int, label %if.then, label %if.merge\n\nloop.post4:                                       ; No predecessors!\n  br label %loop.body\n\nif.then:                                          ; preds = %loop.body3\n  br label %loop.body3\n\nif.merge:                                         ; preds = %loop.body3\n  br label %loop.body3\n}\n"
+- "; ModuleID = 'main'\nsource_filename = \"main\"\n\ndefine void @main() {\nentry:\n  br label %loop.body3\n\nloop.body3:                                       ; preds = %loop.body3, %entry\n  br label %loop.body3\n}\n"
+

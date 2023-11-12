@@ -1,0 +1,49 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 257
+expression: "(test[1], res)"
+---
+- "\nfn main() {\n    loop {\n        let i: int = 0\n        next\n        i += 1\n    }\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: main
+              params: []
+              ret_ty: Void
+              is_extern: false
+              module: main
+              member_of: ~
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Loop:
+                          body:
+                            kind:
+                              Block:
+                                list:
+                                  - kind:
+                                      Let:
+                                        name: i
+                                        antn: Int32
+                                        init:
+                                          kind:
+                                            Lit:
+                                              value:
+                                                Int32: 0
+                                              ty: Int32
+                                  - kind: Next
+                                  - kind: Blank
+                                ty: Void
+                  ty: Void
+    prototypes:
+      - name: main
+        params: []
+        ret_ty: Void
+        is_extern: false
+        module: main
+        member_of: ~
+

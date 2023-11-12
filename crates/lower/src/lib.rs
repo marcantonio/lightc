@@ -233,6 +233,7 @@ impl<'a> ast::Visitor for Lower<'a> {
     }
 
     fn visit_next(&mut self) -> Self::Result {
+        self.discard_nodes = true;
         Ok(hir::Node::new_next())
     }
 

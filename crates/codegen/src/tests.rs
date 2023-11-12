@@ -601,6 +601,40 @@ fn main() {
 }
 "#,
         ],
+        [
+            "next",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        if i == 1 {
+            next
+        }
+    }
+    i += 1
+}
+"#,
+        ],
+        [
+            "nested_next",
+            r#"
+fn main() {
+    let i: int = 0
+    loop {
+        i += 1
+        loop {
+            if i == 1 {
+                next
+            }
+        }
+        next
+    }
+    i += 1
+}
+"#,
+        ],
+
     ];
     run_insta!("loop", tests);
 }

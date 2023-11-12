@@ -13,6 +13,8 @@ Stmt               ::= LetStmt
                      | ExternDecl
                      | StructDecl
                      | UseStmt
+                     | BreakStmt
+                     | NextStmt
                      | Expr ;
 ModDecl            ::= 'module' ident ';' ;
 Block              ::= '{' StmtList? '}' ;

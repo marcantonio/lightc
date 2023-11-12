@@ -77,7 +77,7 @@ impl<'a> Parse<'a> {
     /// Statement productions
 
     // Stmt ::= LetStmt | ForStmt | LoopStmt | FnDecl | ExternDecl | StructDecl | UseStmt
-    //          | BreakStmt | Next | Expr ;
+    //          | BreakStmt | NextStmt | Expr ;
     fn parse_stmt(&mut self) -> ParseResult {
         use TokenType::*;
 

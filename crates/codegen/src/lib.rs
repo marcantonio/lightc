@@ -40,7 +40,7 @@ pub struct Codegen<'ctx> {
     opt_level: usize,
     no_verify: bool,
     module_name: String,
-    active_loop_exit_block: Option<BasicBlock<'ctx>>,
+    loop_data: Option<LoopData<'ctx>>,
 }
 
 impl<'ctx> Codegen<'ctx> {
@@ -77,7 +77,7 @@ impl<'ctx> Codegen<'ctx> {
             opt_level: args.opt_level,
             no_verify: args.no_verify,
             module_name: module_name.to_owned(),
-            active_loop_exit_block: None,
+            loop_data: None,
         };
 
         codegen.walk(hir)?;
@@ -543,7 +543,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building loop".to_string())?;
+            .ok_or_else(|| "parent function not found when building loop".to_string())?;
 
         // Create body and post blocks
         let body_bb = self.context.append_basic_block(parent, "loop.body");
@@ -552,16 +552,15 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         // Jump from entry to body
         self.builder.build_unconditional_branch(body_bb);
 
-        // Stash post_bb for possible break/next in body. Save old one
-        let old_post_bb = self.active_loop_exit_block;
-        self.active_loop_exit_block = Some(post_bb);
+        // Stash loop data for possible break/next in body. Save old one
+        let old_loop_data = self.loop_data.replace(LoopData { active_block: body_bb, exit_block: post_bb });
 
         // Generate all body expressions
         self.builder.position_at_end(body_bb);
         self.visit_node(body)?;
 
-        // Restore old post_bb
-        self.active_loop_exit_block = old_post_bb;
+        // Restore old loop data
+        self.loop_data = old_loop_data;
 
         // Get the last block written and check for a break before we complete the loop
         if !self
@@ -580,24 +579,12 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
-    fn visit_break(&mut self) -> Self::Result {
-        match self.active_loop_exit_block {
-            Some(bb) => {
-                // Jump out of active loop
-                self.builder.build_unconditional_branch(bb);
-                self.active_loop_exit_block = Some(bb);
-                Ok(None)
-            },
-            None => Err("can't call `break` outside of loop".to_string()),
-        }
-    }
-
     fn visit_let(&mut self, name: String, antn: Type, init: Option<hir::Node>) -> Self::Result {
         let parent = self
             .builder
             .get_insert_block()
             .and_then(|x| x.get_parent())
-            .ok_or_else(|| "Parent function not found when building let statement".to_string())?;
+            .ok_or_else(|| "parent function not found when building let statement".to_string())?;
 
         let init_code = self.codegen_var_init(&antn, init)?;
 
@@ -688,8 +675,26 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
         Ok(None)
     }
 
+    fn visit_break(&mut self) -> Self::Result {
+        match &self.loop_data {
+            Some(data) => {
+                // Jump to post active loop
+                self.builder.build_unconditional_branch(data.exit_block);
+                Ok(None)
+            },
+            None => Err("can't call `break` outside of loop".to_string()),
+        }
+    }
+
     fn visit_next(&mut self) -> Self::Result {
-        unimplemented!()
+        match &self.loop_data {
+            Some(data) => {
+                // Jump to head of active loop
+                self.builder.build_unconditional_branch(data.active_block);
+                Ok(None)
+            },
+            None => Err("can't call `next` outside of loop".to_string()),
+        }
     }
 
     fn visit_lit(&mut self, value: Literal<hir::Node>, ty: Type) -> Self::Result {
@@ -946,6 +951,11 @@ impl CodegenResult {
             CodegenResult::Ir(ir) => ir,
         }
     }
+}
+
+struct LoopData<'ctx> {
+    active_block: BasicBlock<'ctx>,
+    exit_block: BasicBlock<'ctx>,
 }
 
 // Like unwrap() but with a fixed error message. Necessary to allow call_expr to

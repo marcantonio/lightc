@@ -5,14 +5,21 @@ fn main() {
 
     let i: int = 0
     loop {
-        if i > 3 {
+        if i == 1 {
+            i += 2
+            next
+        } else if i == 3 {
             break
         }
-        core::printInt(i)
         i += 1
         loop {
             i += 1
-            break
+            core::printInt(i)
+            if i == 2 {
+                next
+            } else {
+                break
+            }
         }
     }
 
