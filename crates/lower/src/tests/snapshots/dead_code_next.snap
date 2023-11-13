@@ -36,7 +36,6 @@ expression: "(test[1], res)"
                                                 Int32: 0
                                               ty: Int32
                                   - kind: Next
-                                  - kind: Blank
                                 ty: Void
                   ty: Void
     prototypes:

@@ -49,6 +49,7 @@ impl<'a> Lower<'a> {
             .into_nodes()
             .into_iter()
             .map(|node| node.accept(&mut self))
+            .filter_map(Result::transpose)
             .collect::<Result<Vec<_>, String>>()?;
 
         // Add globals nodes to the right place in the HIR
@@ -57,7 +58,6 @@ impl<'a> Lower<'a> {
                 hir.add_prototype(proto.clone());
                 hir.add_node(node);
             },
-            hir::node::Kind::Blank => (),
             _ => unreachable!("invalid node kind at global level"),
         });
 
@@ -77,10 +77,11 @@ impl<'a> Lower<'a> {
         };
 
         // Rewrap every element
-        let mut chkd_elements = Vec::with_capacity(elements.len());
-        for el in elements {
-            chkd_elements.push(self.visit_node(el)?);
-        }
+        let chkd_elements = elements
+            .into_iter()
+            .map(|el| self.visit_node(el))
+            .filter_map(Result::transpose)
+            .collect::<Result<Vec<_>, String>>()?;
 
         // Rebuild the literal and return the type
         Ok(Literal::Array { elements: chkd_elements, inner_ty: ty })
@@ -92,6 +93,7 @@ impl<'a> Lower<'a> {
     ) -> Result<hir::Node, String> {
         if let Some(init) = init {
             self.visit_node(init.clone())
+                .map(|n| n.unwrap_or_else(|| unreachable!("missing initializer node in var init")))
         } else {
             self.init_null(name, antn)
         }
@@ -141,11 +143,11 @@ impl<'a> Lower<'a> {
 
 impl<'a> ast::Visitor for Lower<'a> {
     type AstNode = ast::Node;
-    type Result = Result<hir::Node, String>;
+    type Result = Result<Option<hir::Node>, String>;
 
     fn visit_node(&mut self, node: Self::AstNode) -> Self::Result {
         if self.discard_nodes {
-            Ok(hir::Node::new_blank())
+            Ok(None)
         } else {
             node.accept(self)
         }
@@ -161,23 +163,28 @@ impl<'a> ast::Visitor for Lower<'a> {
         self.symbol_table.insert(Symbol::new_var(&start_name, &start_antn, &self.module));
 
         let start_expr = self.lower_var_init(&start_name, start_expr.as_ref(), &start_antn)?;
-        let cond_expr = self.visit_node(cond_expr)?;
-        let step_expr = self.visit_node(step_expr)?;
-        let body = self.visit_node(body)?;
+        let cond_expr = self
+            .visit_node(cond_expr)?
+            .unwrap_or_else(|| unreachable!("missing conditional node in for loop"));
+        let step_expr =
+            self.visit_node(step_expr)?.unwrap_or_else(|| unreachable!("missing step node in for loop"));
+        let body = self.visit_node(body)?.unwrap_or_else(|| unreachable!("missing body node in for loop"));
 
         self.symbol_table.leave_scope();
 
-        Ok(hir::Node::new_for(start_name, start_antn, Some(start_expr), cond_expr, step_expr, body))
+        Ok(Some(hir::Node::new_for(start_name, start_antn, Some(start_expr), cond_expr, step_expr, body)))
     }
 
     fn visit_loop(&mut self, body: ast::Node) -> Self::Result {
-        Ok(hir::Node::new_loop(self.visit_node(body)?))
+        Ok(Some(hir::Node::new_loop(
+            self.visit_node(body)?.unwrap_or_else(|| unreachable!("missing body node in loop")),
+        )))
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
         self.symbol_table.insert(Symbol::new_var(&name, &antn, &self.module));
         let init_node = self.lower_var_init(&name, init.as_ref(), &antn)?;
-        Ok(hir::Node::new_let(name, antn, Some(init_node)))
+        Ok(Some(hir::Node::new_let(name, antn, Some(init_node))))
     }
 
     fn visit_fn(&mut self, proto: Prototype, body: Option<ast::Node>) -> Self::Result {
@@ -206,35 +213,38 @@ impl<'a> ast::Visitor for Lower<'a> {
             self.symbol_table.insert(Symbol::new_var(&arg.0, &arg.1, &self.module));
         }
 
-        let body_node = body.map(|e| self.visit_node(e));
+        let body_node = body.map(|e| {
+            self.visit_node(e).map(|n| n.unwrap_or_else(|| unreachable!("missing body node in function")))
+        });
 
         self.symbol_table.leave_scope();
 
-        Ok(hir::Node::new_fn(proto, body_node.transpose()?))
+        Ok(Some(hir::Node::new_fn(proto, body_node.transpose()?)))
     }
 
     // Structs don't make it into the HIR. The type with fields is already in the symbol
-    // table. This lowers the methods to be added via self.struct_methods. Returns a blank
-    // node
+    // table. This lowers the methods to be added via self.struct_methods
     fn visit_struct(
         &mut self, _name: String, _fields: Vec<ast::Node>, methods: Vec<ast::Node>,
     ) -> Self::Result {
         // Save the methods separately to pop them up to the top of the HIR later
-        let mut lowered_methods =
-            methods.into_iter().map(|n| self.visit_node(n)).collect::<Result<Vec<_>, String>>()?;
+        let mut lowered_methods = methods
+            .into_iter()
+            .map(|n| self.visit_node(n).map(|n| n.unwrap_or_else(|| unreachable!("missing field in struct"))))
+            .collect::<Result<Vec<_>, String>>()?;
         self.struct_methods.append(&mut lowered_methods);
 
-        Ok(hir::Node::new_blank())
+        Ok(None)
     }
 
     fn visit_break(&mut self) -> Self::Result {
         self.discard_nodes = true;
-        Ok(hir::Node::new_break())
+        Ok(Some(hir::Node::new_break()))
     }
 
     fn visit_next(&mut self) -> Self::Result {
         self.discard_nodes = true;
-        Ok(hir::Node::new_next())
+        Ok(Some(hir::Node::new_next()))
     }
 
     fn visit_lit(&mut self, value: Literal<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -257,11 +267,11 @@ impl<'a> ast::Visitor for Lower<'a> {
             Array { .. } => self.lower_lit_array(value)?,
             Comp(_) => todo!(),
         };
-        Ok(hir::Node::new_lit(lit, ty.unwrap_or_default()))
+        Ok(Some(hir::Node::new_lit(lit, ty.unwrap_or_default())))
     }
 
     fn visit_ident(&mut self, name: String, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_ident(name, ty.unwrap_or_default()))
+        Ok(Some(hir::Node::new_ident(name, ty.unwrap_or_default())))
     }
 
     // Lower `x += 1` to `x = x + 1`
@@ -270,39 +280,26 @@ impl<'a> ast::Visitor for Lower<'a> {
     ) -> Self::Result {
         use Operator::*;
 
-        let lowered_lhs = self.visit_node(lhs)?;
-
+        let lowered_lhs = self.visit_node(lhs)?.unwrap_or_else(|| unreachable!("missing lhs node in binop"));
         let ty = ty.unwrap_or_default();
-
-        let top_op;
-        let rhs = match op {
-            AddEq => {
-                top_op = Assign;
-                hir::Node::new_binop(Add, lowered_lhs.clone(), self.visit_node(rhs)?, ty.clone())
-            },
-            SubEq => {
-                top_op = Assign;
-                hir::Node::new_binop(Sub, lowered_lhs.clone(), self.visit_node(rhs)?, ty.clone())
-            },
-            MulEq => {
-                top_op = Assign;
-                hir::Node::new_binop(Mul, lowered_lhs.clone(), self.visit_node(rhs)?, ty.clone())
-            },
-            DivEq => {
-                top_op = Assign;
-                hir::Node::new_binop(Div, lowered_lhs.clone(), self.visit_node(rhs)?, ty.clone())
-            },
-            _ => {
-                top_op = op;
-                self.visit_node(rhs)?
-            },
+        let rhs = self.visit_node(rhs)?.unwrap_or_else(|| unreachable!("missing rhs node in binop"));
+        let (top_op, lowered_rhs) = match op {
+            AddEq => (Assign, hir::Node::new_binop(Add, lowered_lhs.clone(), rhs, ty.clone())),
+            SubEq => (Assign, hir::Node::new_binop(Sub, lowered_lhs.clone(), rhs, ty.clone())),
+            MulEq => (Assign, hir::Node::new_binop(Mul, lowered_lhs.clone(), rhs, ty.clone())),
+            DivEq => (Assign, hir::Node::new_binop(Div, lowered_lhs.clone(), rhs, ty.clone())),
+            _ => (op, rhs),
         };
 
-        Ok(hir::Node::new_binop(top_op, lowered_lhs, rhs, ty))
+        Ok(Some(hir::Node::new_binop(top_op, lowered_lhs, lowered_rhs, ty)))
     }
 
     fn visit_unop(&mut self, op: Operator, rhs: ast::Node, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_unop(op, self.visit_node(rhs)?, ty.unwrap_or_default()))
+        Ok(Some(hir::Node::new_unop(
+            op,
+            self.visit_node(rhs)?.unwrap_or_else(|| unreachable!("missing rhs node in unop")),
+            ty.unwrap_or_default(),
+        )))
     }
 
     fn visit_call(&mut self, name: String, args: Vec<ast::Node>, ty: Option<Type>) -> Self::Result {
@@ -325,45 +322,60 @@ impl<'a> ast::Visitor for Lower<'a> {
 
         let mut lowered_args = vec![];
         for arg in args {
-            lowered_args.push(self.visit_node(arg)?);
+            lowered_args
+                .push(self.visit_node(arg)?.unwrap_or_else(|| unreachable!("missing arg node in fn call")));
         }
 
-        Ok(hir::Node::new_call(lowered_name, lowered_args, ty.unwrap_or_default()))
+        Ok(Some(hir::Node::new_call(lowered_name, lowered_args, ty.unwrap_or_default())))
     }
 
     fn visit_cond(
         &mut self, cond_expr: ast::Node, then_block: ast::Node, else_block: Option<ast::Node>,
         ty: Option<Type>,
     ) -> Self::Result {
-        Ok(hir::Node::new_cond(
-            self.visit_node(cond_expr)?,
-            self.visit_node(then_block)?,
-            else_block.map(|e| self.visit_node(e)).transpose()?,
-            ty.unwrap_or_default(),
-        ))
+        let lowered_cond = self
+            .visit_node(cond_expr)?
+            .unwrap_or_else(|| unreachable!("missing conditional node in conditional"));
+        let lowered_then =
+            self.visit_node(then_block)?.unwrap_or_else(|| unreachable!("missing then block in conditional"));
+        let lowered_else = else_block
+            .map(|e| {
+                self.visit_node(e)
+                    .map(|n| n.unwrap_or_else(|| unreachable!("missing else block in conditional")))
+            })
+            .transpose()?;
+
+        Ok(Some(hir::Node::new_cond(lowered_cond, lowered_then, lowered_else, ty.unwrap_or_default())))
     }
 
     fn visit_block(&mut self, list: Vec<ast::Node>, ty: Option<Type>) -> Self::Result {
         self.symbol_table.enter_scope();
 
-        let mut lowered_list = vec![];
-        for node in list {
-            lowered_list.push(self.visit_node(node)?);
-        }
+        let lowered_list = list
+            .into_iter()
+            .map(|n| self.visit_node(n))
+            .filter_map(Result::transpose)
+            .collect::<Result<Vec<_>, String>>()?;
 
         self.symbol_table.leave_scope();
 
         self.discard_nodes = false;
 
-        Ok(hir::Node::new_block(lowered_list, ty.unwrap_or_default()))
+        Ok(Some(hir::Node::new_block(lowered_list, ty.unwrap_or_default())))
     }
 
     fn visit_index(&mut self, binding: ast::Node, idx: ast::Node, ty: Option<Type>) -> Self::Result {
-        Ok(hir::Node::new_index(self.visit_node(binding)?, self.visit_node(idx)?, ty.unwrap_or_default()))
+        let lowered_binding =
+            self.visit_node(binding)?.unwrap_or_else(|| unreachable!("missing binding node in index"));
+        let lowered_index =
+            self.visit_node(idx)?.unwrap_or_else(|| unreachable!("missing index node in index"));
+        Ok(Some(hir::Node::new_index(lowered_binding, lowered_index, ty.unwrap_or_default())))
     }
 
     fn visit_fselector(&mut self, comp: ast::Node, field: String, ty: Option<Type>) -> Self::Result {
-        let mut lowered_comp = self.visit_node(comp)?;
+        let mut lowered_comp = self
+            .visit_node(comp)?
+            .unwrap_or_else(|| unreachable!("missing composite node in field selector"));
 
         let comp_name = match lowered_comp.ty() {
             Type::Ptr(boxed) => match &**boxed {
@@ -395,14 +407,18 @@ impl<'a> ast::Visitor for Lower<'a> {
             .try_into()
             .map_err(|err| format!("failed to convert composite index: `{}`", err))?;
 
-        Ok(hir::Node::new_fselector(lowered_comp, idx, ty.unwrap()))
+        Ok(Some(hir::Node::new_fselector(lowered_comp, idx, ty.unwrap())))
     }
 
     fn visit_mselector(
         &mut self, comp: ast::Node, name: String, args: Vec<ast::Node>, ty: Option<Type>,
     ) -> Self::Result {
-        let lowered_comp = self.visit_node(comp)?;
-        let lowered_call = self.visit_call(name, args, ty)?;
+        let lowered_comp = self
+            .visit_node(comp)?
+            .unwrap_or_else(|| unreachable!("missing composite node in method selector"));
+        let lowered_call = self
+            .visit_call(name, args, ty)?
+            .unwrap_or_else(|| unreachable!("missing call node in method selector"));
         match lowered_call.kind {
             hir::node::Kind::Call { name, mut args, ty } => {
                 // Replace `self` node with the real composite value
@@ -413,7 +429,7 @@ impl<'a> ast::Visitor for Lower<'a> {
                     },
                     e => unimplemented!("unexpected node type for `self`: `{:?}`", e),
                 };
-                Ok(hir::Node::new_call(name, args, ty))
+                Ok(Some(hir::Node::new_call(name, args, ty)))
             },
             _ => unreachable!("unknown node kind in `visit_mselector()`"),
         }

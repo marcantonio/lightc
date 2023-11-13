@@ -89,10 +89,6 @@ impl Node {
         Self { kind: Kind::FSelector { comp: Box::new(comp), idx, ty } }
     }
 
-    pub fn new_blank() -> Self {
-        Self { kind: Kind::Blank }
-    }
-
     pub fn ty(&self) -> &Type {
         use Kind::*;
 
@@ -146,10 +142,6 @@ impl Node {
                 ..
             }
         )
-    }
-
-    pub fn is_blank(&self) -> bool {
-        self.kind == Kind::Blank
     }
 }
 
@@ -224,7 +216,6 @@ pub enum Kind {
         idx: u32,
         ty: Type,
     },
-    Blank,
 }
 
 impl VisitableNode for Node {
@@ -251,7 +242,6 @@ impl VisitableNode for Node {
             Block { list, .. } => v.visit_block(list),
             Index { array, idx, .. } => v.visit_index(*array, *idx),
             FSelector { comp, idx, .. } => v.visit_fselector(*comp, idx),
-            _ => unreachable!("invalid node kind visited"),
         }
     }
 }
@@ -312,7 +302,6 @@ impl Display for Node {
             },
             Index { array, idx, .. } => write!(f, "{}[{}]", array, idx),
             FSelector { comp, idx, .. } => write!(f, "{}.{}", comp, idx),
-            Blank => write!(f, "<blank_node>"),
         }
     }
 }

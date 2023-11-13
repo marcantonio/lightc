@@ -452,11 +452,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
     type Result = Result<Option<BasicValueEnum<'ctx>>, String>;
 
     fn visit_node(&mut self, node: Self::AstNode) -> Self::Result {
-        if node.is_blank() {
-            Ok(None)
-        } else {
-            node.accept(self)
-        }
+        node.accept(self)
     }
 
     // for start; cond; step { body }
