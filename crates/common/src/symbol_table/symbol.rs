@@ -48,7 +48,7 @@ impl Symbol {
         Symbol {
             name: names.0.to_owned(),
             data: AssocData::Fn(FnData {
-                fq_name: names.0.to_owned(),
+                fq_name: names.1.to_owned(),
                 params: params.to_vec(),
                 ret_ty: ret_ty.to_owned(),
                 is_extern,
