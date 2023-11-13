@@ -79,8 +79,7 @@ impl From<&Prototype> for Symbol {
         };
 
         Symbol::new_fn(
-            &cooked_name,
-            &proto.name,
+            (&cooked_name, &proto.name),
             args,
             &proto.ret_ty,
             proto.is_extern,

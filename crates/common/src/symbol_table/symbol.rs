@@ -42,13 +42,13 @@ pub struct Symbol {
 
 impl Symbol {
     pub fn new_fn(
-        name: &str, fq_name: &str, params: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
+        names: (&str, &str), params: &[(String, Type)], ret_ty: &Type, is_extern: bool, module: &str,
         is_exportable: bool, member_of: Option<&str>,
     ) -> Self {
         Symbol {
-            name: name.to_owned(),
+            name: names.0.to_owned(),
             data: AssocData::Fn(FnData {
-                fq_name: fq_name.to_owned(),
+                fq_name: names.0.to_owned(),
                 params: params.to_vec(),
                 ret_ty: ret_ty.to_owned(),
                 is_extern,
