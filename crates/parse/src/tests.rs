@@ -435,3 +435,9 @@ fn test_loop() {
     let tests = [["basic", "loop { i += 1 }"]];
     run_insta!("loop", tests);
 }
+
+#[test]
+fn test_while() {
+    let tests = [["basic", "while x < 7 { i += 1 }"]];
+    run_insta!("while", tests);
+}

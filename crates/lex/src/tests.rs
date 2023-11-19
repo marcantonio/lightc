@@ -159,7 +159,19 @@ foo
 let foo = 13
 // line2"#,
         ],
+        [
+            "eol",
+            r#"
+let foo = 13 // line1"#,
+        ],
+        [
+            "eol1",
+            r#"
+if foo { // line1"#,
+        ],
+
     ];
+
     run_insta!("comment", tests);
 }
 
@@ -188,6 +200,19 @@ fn test_semi() {
 fn test_sarray() {
     let tests = [["type", "[int; 3]"], ["lit", "[1, 2, 3]"], ["index", "foo[0]"]];
     run_insta!("array", tests);
+}
+
+#[test]
+fn test_while() {
+    let tests = [[
+        "basic",
+        r#"
+while i < 1 {
+    i += 1
+}
+"#,
+    ]];
+    run_insta!("while", tests);
 }
 
 #[test]

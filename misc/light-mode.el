@@ -42,7 +42,8 @@
     "use"
     "loop"
     "break"
-    "next"))
+    "next"
+    "while"))
 
 (defconst light-builtin-type
   '("int" "uint"

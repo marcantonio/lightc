@@ -1,0 +1,123 @@
+---
+source: crates/lower/src/tests.rs
+assertion_line: 277
+expression: "(test[1], res)"
+---
+- "\nfn foo() {}\nfn main() {\n    let i: int = 0\n    while i < 3 {\n        i += 1\n    }\n    foo()\n}\n"
+- Ok:
+    nodes:
+      - kind:
+          Fn:
+            proto:
+              name: "_main::foo~void"
+              params: []
+              ret_ty: Void
+              is_extern: false
+              module: main
+              member_of: ~
+            body:
+              kind:
+                Block:
+                  list: []
+                  ty: Void
+      - kind:
+          Fn:
+            proto:
+              name: main
+              params: []
+              ret_ty: Void
+              is_extern: false
+              module: main
+              member_of: ~
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        Let:
+                          name: i
+                          antn: Int32
+                          init:
+                            kind:
+                              Lit:
+                                value:
+                                  Int32: 0
+                                ty: Int32
+                    - kind:
+                        Loop:
+                          body:
+                            kind:
+                              Cond:
+                                cond_expr:
+                                  kind:
+                                    BinOp:
+                                      op: Lt
+                                      lhs:
+                                        kind:
+                                          Ident:
+                                            name: i
+                                            ty: Int32
+                                      rhs:
+                                        kind:
+                                          Lit:
+                                            value:
+                                              Int32: 3
+                                            ty: Int32
+                                      ty: Bool
+                                then_block:
+                                  kind:
+                                    Block:
+                                      list:
+                                        - kind:
+                                            BinOp:
+                                              op: Assign
+                                              lhs:
+                                                kind:
+                                                  Ident:
+                                                    name: i
+                                                    ty: Int32
+                                              rhs:
+                                                kind:
+                                                  BinOp:
+                                                    op: Add
+                                                    lhs:
+                                                      kind:
+                                                        Ident:
+                                                          name: i
+                                                          ty: Int32
+                                                    rhs:
+                                                      kind:
+                                                        Lit:
+                                                          value:
+                                                            Int32: 1
+                                                          ty: Int32
+                                                    ty: Void
+                                              ty: Void
+                                      ty: Void
+                                else_block:
+                                  kind:
+                                    Block:
+                                      list:
+                                        - kind: Break
+                                      ty: Void
+                                ty: Void
+                    - kind:
+                        Call:
+                          name: "_main::foo~void"
+                          args: []
+                          ty: Void
+                  ty: Void
+    prototypes:
+      - name: "_main::foo~void"
+        params: []
+        ret_ty: Void
+        is_extern: false
+        module: main
+        member_of: ~
+      - name: main
+        params: []
+        ret_ty: Void
+        is_extern: false
+        module: main
+        member_of: ~
+

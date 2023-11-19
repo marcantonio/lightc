@@ -1,0 +1,48 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 442
+expression: "(test[1], ast, ast_string)"
+---
+- "while x < 7 { i += 1 }"
+- Ok:
+    nodes:
+      - kind:
+          While:
+            cond_expr:
+              kind:
+                BinOp:
+                  op: Lt
+                  lhs:
+                    kind:
+                      Ident:
+                        name: x
+                        ty: ~
+                  rhs:
+                    kind:
+                      Lit:
+                        value:
+                          UInt64: 7
+                        ty: ~
+                  ty: ~
+            body:
+              kind:
+                Block:
+                  list:
+                    - kind:
+                        BinOp:
+                          op: AddEq
+                          lhs:
+                            kind:
+                              Ident:
+                                name: i
+                                ty: ~
+                          rhs:
+                            kind:
+                              Lit:
+                                value:
+                                  UInt64: 1
+                                ty: ~
+                          ty: ~
+                  ty: ~
+- "(while (< x 7) '((+= i 1)))"
+

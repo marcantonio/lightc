@@ -109,6 +109,7 @@ impl Lex {
                 "module" => Module,
                 "use" => Use,
                 "loop" => Loop,
+                "while" => While,
                 "break" => Break,
                 "next" => Next,
                 _ => Ident(identifier),

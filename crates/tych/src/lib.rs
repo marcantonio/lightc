@@ -198,6 +198,10 @@ impl<'a> ast::Visitor for Tych<'a> {
         Ok(ast::Node::new_loop(self.check_node(body, None)?))
     }
 
+    fn visit_while(&mut self, cond_expr: ast::Node, body: ast::Node) -> Self::Result {
+        Ok(ast::Node::new_while(self.check_node(cond_expr, None)?, self.check_node(body, None)?))
+    }
+
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {
         let mut antn = match self.resolve_type(&antn) {
             Some(ty) => ty,

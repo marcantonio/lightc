@@ -927,7 +927,7 @@ impl<'ctx> hir::Visitor for Codegen<'ctx> {
 }
 
 // This is a little wonky. Allows us to return a file path for main or a string for the
-// test suite.
+// test suite
 pub enum CodegenResult {
     FilePath(PathBuf),
     Ir(String),
@@ -954,8 +954,7 @@ struct LoopData<'ctx> {
     exit_block: BasicBlock<'ctx>,
 }
 
-// Like unwrap() but with a fixed error message. Necessary to allow call_expr to
-// return an Option for void calls.
+// Like unwrap() but with a fixed error message
 trait ExprValue<T> {
     type Result;
 

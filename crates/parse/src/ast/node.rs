@@ -30,6 +30,10 @@ impl Node {
         Self { kind: Kind::Loop { body: Box::new(body) } }
     }
 
+    pub fn new_while(cond_expr: Node, body: Node) -> Self {
+        Self { kind: Kind::While { cond_expr: Box::new(cond_expr), body: Box::new(body) } }
+    }
+
     pub fn new_let(name: String, antn: Type, init: Option<Node>) -> Self {
         Self { kind: Kind::Let { name, antn, init: init.map(Box::new) } }
     }
@@ -177,6 +181,10 @@ pub enum Kind {
     Loop {
         body: Box<Node>,
     },
+    While {
+        cond_expr: Box<Node>,
+        body: Box<Node>,
+    },
     Let {
         name: String,
         antn: Type,
@@ -257,6 +265,7 @@ impl VisitableNode for Node {
                 v.visit_for(start_name, start_antn, start_expr.map(|x| *x), *cond_expr, *step_expr, *body)
             },
             Loop { body } => v.visit_loop(*body),
+            While { cond_expr, body } => v.visit_while(*cond_expr, *body),
             Let { name, antn, init } => v.visit_let(name, antn, init.map(|x| *x)),
             Fn { proto, body } => v.visit_fn(proto, body.map(|x| *x)),
             Struct { name, fields, methods } => v.visit_struct(name, fields, methods),
@@ -292,6 +301,7 @@ impl Display for Node {
                 write!(f, "{}) {} {} {})", s, cond_expr, step_expr, body)
             },
             Loop { body } => write!(f, "(loop {})", body),
+            While { cond_expr, body } => write!(f, "(while {} {})", cond_expr, body),
             Let { name, antn, init } => {
                 let mut s = format!("(let {}:{}", name, antn);
                 if let Some(body) = &init {

@@ -84,6 +84,7 @@ pub enum TokenType {
     Semicolon(bool), // (is implicit?)
     Struct,
     Use,
+    While,
 }
 
 impl std::fmt::Display for TokenType {

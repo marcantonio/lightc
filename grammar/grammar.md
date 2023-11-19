@@ -13,6 +13,7 @@ StmtList           ::= ( Stmt ';' )+ ;
 Stmt               ::= LetStmt
                      | ForStmt
                      | LoopStmt
+                     | WhileStmt
                      | FnDecl
                      | ExternDecl
                      | StructDecl
@@ -28,6 +29,7 @@ StructDecl         ::= 'struct' ident '{' ( LetStmt ';' | FnDecl ';' )* '}' ;
 Prototype          ::= 'fn' ident '(' ( TypedDecl ( ',' TypedDecl )* )* ')' ( '->' TypeAntn )? ;
 ForStmt            ::= 'for' VarInit ';' Expr ';' number? Block ;
 LoopStmt           ::= 'loop' Block ;
+WhileStmt          ::= 'while' Expr Block ;
 LetStmt            ::= 'let' VarInit ;
 VarInit            ::= TypedDecl ( '=' Expr  )? ;
 TypedDecl          ::= ident ':' TypeAntn ;

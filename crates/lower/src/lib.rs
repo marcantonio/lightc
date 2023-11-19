@@ -23,6 +23,7 @@ extern crate common;
 // - inserts let statements to support field/method chaining
 // - inserts imported functions into the HIR
 // - discards unreachable nodes (e.g., after a `break`)
+// - desugars while
 
 pub struct Lower<'a> {
     symbol_table: &'a mut SymbolTable<Symbol>,
@@ -179,6 +180,20 @@ impl<'a> ast::Visitor for Lower<'a> {
         Ok(Some(hir::Node::new_loop(
             self.visit_node(body)?.unwrap_or_else(|| unreachable!("missing body node in loop")),
         )))
+    }
+
+    // Lowers `while foo { ... }` to:
+    // loop {
+    //     if foo {
+    //         ...
+    //     } else {
+    //         break
+    //     }
+    // }
+    fn visit_while(&mut self, cond_expr: ast::Node, body: ast::Node) -> Self::Result {
+        // Must be wrapped in a block to handle discarded nodes properly
+        let break_br = ast::Node::new_block(vec![ast::Node::new_break()], None);
+        Ok(Some(hir::Node::new_loop(self.visit_cond(cond_expr, body, Some(break_br), None)?.unwrap())))
     }
 
     fn visit_let(&mut self, name: String, antn: Type, init: Option<ast::Node>) -> Self::Result {

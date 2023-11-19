@@ -4,24 +4,19 @@ fn main() {
     core::printBang()
 
     let i: int = 0
-    loop {
-        if i == 1 {
-            i += 2
-            next
-        } else if i == 3 {
-            break
-        }
+    while i < 3 {
+        core::printInt(i)
         i += 1
-        loop {
-            i += 1
-            core::printInt(i)
-            if i == 2 {
-                next
-            } else {
-                break
-            }
-        }
     }
+
+    // loop {
+    //     if i < 3 {
+    //         core::printInt(i)
+    //         i += 1
+    //     } else {
+    //         break
+    //     }
+    // }
 
     core::printDot()
 }

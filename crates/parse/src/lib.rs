@@ -76,8 +76,9 @@ impl<'a> Parse<'a> {
 
     /// Statement productions
 
-    // Stmt ::= LetStmt | ForStmt | LoopStmt | FnDecl | ExternDecl | StructDecl | UseStmt
-    //          | BreakStmt | NextStmt | Expr ;
+    // Stmt ::= LetStmt | ForStmt | LoopStmt | WhileStmt | FnDecl | ExternDecl
+    //          | StructDecl | UseStmt | BreakStmt | NextStmt | Expr ;
+
     fn parse_stmt(&mut self) -> ParseResult {
         use TokenType::*;
 
@@ -86,6 +87,7 @@ impl<'a> Parse<'a> {
         let stmt = match &token.tt {
             For => self.parse_for()?,
             Loop => self.parse_loop()?,
+            While => self.parse_while()?,
             Let => self.parse_let()?,
             Fn => self.parse_fn()?,
             Extern => self.parse_extern()?,
@@ -227,6 +229,12 @@ impl<'a> Parse<'a> {
     fn parse_loop(&mut self) -> ParseResult {
         self.tokens.next(); // Eat loop
         Ok(ast::Node::new_loop(self.parse_block()?))
+    }
+
+    // WhileStmt ::= 'while' Expr Block ;
+    fn parse_while(&mut self) -> ParseResult {
+        self.tokens.next(); // Eat while
+        Ok(ast::Node::new_while(self.parse_expr(0)?, self.parse_block()?))
     }
 
     // LetStmt ::= 'let' VarInit ;

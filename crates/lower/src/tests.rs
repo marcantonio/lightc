@@ -227,7 +227,7 @@ struct Bar {
 }
 
 #[test]
-fn test_dead_code() {
+fn test_loop_dead_code() {
     let tests = [
         [
             "break",
@@ -254,5 +254,25 @@ fn main() {
 "#,
         ],
     ];
-    run_insta!("dead_code", tests);
+    run_insta!("loop_dead_code", tests);
+}
+
+#[test]
+fn test_while() {
+    let tests = [
+        [
+            "basic",
+            r#"
+fn foo() {}
+fn main() {
+    let i: int = 0
+    while i < 3 {
+        i += 1
+    }
+    foo()
+}
+"#,
+        ],
+    ];
+    run_insta!("while", tests);
 }

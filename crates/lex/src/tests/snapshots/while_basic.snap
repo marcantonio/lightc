@@ -1,0 +1,49 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 203
+expression: "(test[1], tokens)"
+---
+- "\nwhile i < 1 {\n    i += 1\n}\n"
+- Ok:
+    - tt: While
+      line: 2
+      column: 1
+    - tt:
+        Ident: i
+      line: 2
+      column: 7
+    - tt:
+        Op: Lt
+      line: 2
+      column: 9
+    - tt:
+        Num: "1"
+      line: 2
+      column: 11
+    - tt: OpenBrace
+      line: 2
+      column: 13
+    - tt:
+        Ident: i
+      line: 3
+      column: 5
+    - tt:
+        Op: AddEq
+      line: 3
+      column: 7
+    - tt:
+        Num: "1"
+      line: 3
+      column: 10
+    - tt:
+        Semicolon: true
+      line: 3
+      column: 11
+    - tt: CloseBrace
+      line: 4
+      column: 1
+    - tt:
+        Semicolon: true
+      line: 4
+      column: 2
+

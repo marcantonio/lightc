@@ -1,0 +1,27 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 175
+expression: "(test[1], tokens)"
+---
+- "\nlet foo = 13 // line1"
+- Ok:
+    - tt: Let
+      line: 2
+      column: 1
+    - tt:
+        Ident: foo
+      line: 2
+      column: 5
+    - tt:
+        Op: Assign
+      line: 2
+      column: 9
+    - tt:
+        Num: "13"
+      line: 2
+      column: 11
+    - tt:
+        Semicolon: true
+      line: 2
+      column: 12
+

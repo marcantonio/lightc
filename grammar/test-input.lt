@@ -65,6 +65,10 @@ fn main() {
             break;
         };
     };
+
+    while i < 7 {
+        i += 1;
+    };
 };
 
 struct Foo {
