@@ -345,9 +345,7 @@ impl<'ctx> Codegen<'ctx> {
             Ident { .. } | FSelector { .. } => {
                 let value =
                     self.visit_node(array)?.unwrap_or_else(|| unreachable!("can't find struct pointer"));
-                // XXX use derive_composite_pointer!() here?
-                let inst = value.as_instruction_value().unwrap();
-                inst.get_operand(0).unwrap().left().unwrap().into_pointer_value()
+                derive_composite_pointer!(value)
             },
             _ => unreachable!("unsupported type for array index"),
         };
@@ -432,7 +430,7 @@ impl<'ctx> Codegen<'ctx> {
                     .unwrap_or_else(|| {
                         unreachable!("missing struct definition for `{}` in `get_llvm_basic_type()`", name)
                     })
-                    .ptr_type(inkwell::AddressSpace::Generic) // XXX right address space?
+                    .ptr_type(inkwell::AddressSpace::Generic) // TODO: right address space?
                     .as_basic_type_enum()
             },
             Type::Void => unreachable!("void can't be coerced into LLVM basic type"),

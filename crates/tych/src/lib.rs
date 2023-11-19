@@ -636,7 +636,7 @@ impl<'a> ast::Visitor for Tych<'a> {
                 Some(ty) => ty,
                 None => unreachable!("bad arg type in `visit_call()`"),
             };
-            // XXX: remove `&& pointer_wrap!()...` when declaration order is resolved
+            // TODO: remove `&& pointer_wrap!()...` when declaration order is resolved
             if fp_ty != ca_ty && pointer_wrap!(fp_ty) != ca_ty {
                 Err(format!(
                     "type mismatch in arg {} of call to `{}()`: `{}` != `{}`",
