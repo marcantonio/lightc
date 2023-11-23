@@ -17,6 +17,7 @@ pub enum Literal<T> {
     Double(f64),
     Bool(bool),
     Char(u8),
+    Str(String),
     Array { elements: Vec<T>, inner_ty: Option<Type> },
     Comp(Vec<T>),
 }
@@ -38,6 +39,7 @@ impl<T: Display> Display for Literal<T> {
             Double(v) => write!(f, "{}", v),
             Bool(v) => write!(f, "{}", v),
             Char(v) => write!(f, "{}", *v as char),
+            Str(v) => write!(f, "{}", v),
             Array { elements: el, .. } => {
                 let mut s = String::from("[");
                 if !el.is_empty() {

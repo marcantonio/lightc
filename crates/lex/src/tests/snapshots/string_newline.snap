@@ -1,0 +1,11 @@
+---
+source: crates/lex/src/tests.rs
+assertion_line: 228
+expression: "(test[1], tokens)"
+---
+- "\"mitral\n\""
+- Err:
+    message: "Unterminated string literal. Expecting `\"`"
+    line: 1
+    column: 8
+

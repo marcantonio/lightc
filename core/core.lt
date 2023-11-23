@@ -1,6 +1,7 @@
 module core
 
 extern fn putchar(x: int)
+extern fn exit(status: int)
 
 fn printDot() {
     putchar(46)
@@ -17,6 +18,25 @@ fn printInt(x: int) {
     putchar(10)
 }
 
+fn exit(status: int) {
+    exit(status)
+}
+
+fn terminate() {
+    exit(251)
+}
+
+struct String {
+    let buffer: [char; 9]
+    let size: int
+    let capacity: int
+
+    fn init(size: int) {
+        self.capacity = size
+        self.size = size
+    }
+}
+
 struct Array {
     let buffer: [int; 5]
     let size: int
@@ -24,6 +44,7 @@ struct Array {
 
     fn init() {
         self.capacity = 5
+        self.size = 0
     }
 
     fn len() -> int {
@@ -35,6 +56,9 @@ struct Array {
     }
 
     fn get(index: int) -> int {
+        if index > self.size {
+            terminate()
+        }
         self.buffer[index]
     }
 

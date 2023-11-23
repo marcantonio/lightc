@@ -1,0 +1,21 @@
+---
+source: crates/parse/src/tests.rs
+assertion_line: 86
+expression: "(test[1], ast, ast_string)"
+---
+- "let s: str = \"bar\\n\""
+- Ok:
+    nodes:
+      - kind:
+          Let:
+            name: s
+            antn:
+              Comp: str
+            init:
+              kind:
+                Lit:
+                  value:
+                    Str: "bar\\n"
+                  ty: ~
+- "(let s:str bar\\n)"
+

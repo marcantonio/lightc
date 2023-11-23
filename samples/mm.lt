@@ -3,20 +3,13 @@ use core
 fn main() {
     core::printBang()
 
-    let i: int = 0
-    while i < 3 {
-        core::printInt(i)
-        i += 1
-    }
+    let arr: core::Array
+    arr.init()
+    arr.push(9)
+    core::printInt(arr.get(10))
 
-    // loop {
-    //     if i < 3 {
-    //         core::printInt(i)
-    //         i += 1
-    //     } else {
-    //         break
-    //     }
-    // }
+    let foo: core::String = "mitral"
+    printInt(foo.buffer[0])
 
     core::printDot()
 }

@@ -58,7 +58,7 @@ PrimaryExpr        ::= CondExpr
                      | FieldSelectorExpr
                      | MethodSelectorExpr ;
 UnopExpr           ::= ( '-' | '!' ) Expr ;
-LitExpr            ::= number | bool | CharLit | ArrayLit ;
+LitExpr            ::= number | bool | CharLit | StringLit | ArrayLit ;
 CallExpr           ::= ident '(' ExprList? ')' ;
 ParenExpr          ::= '(' Expr ')' ;
 CondExpr           ::= 'if' Expr Block ( 'else' (CondExpr | Block ) )? ;
@@ -70,6 +70,7 @@ MethodSelectorExpr ::= PrimaryExpr '.' CallExpr ;
 IndexExpr          ::= PrimaryExpr '[' Expr ']' ;
 ArrayLit           ::= '[' ExprList? ']' ;
 CharLit            ::= char ;
+StringLit          ::= string ;
 ExprList           ::= Expr ','? | Expr ( ',' Expr )* ;
 
 type               ::= 'int' | 'int8' | 'int16' | 'int32' | 'int64'
@@ -87,7 +88,9 @@ number             ::= integer | float ;
 integer            ::= digit+ ;
 float              ::= digit '.' digit ;
 digit              ::= [0-9] ;
-char               ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
+esc_seq            ::= '\' [rnt0'"\] ;
+char               ::= "'" ( esc_seq | [^\r\n\\'] ) "'" ;
+string             ::= '"' ( esc_seq | [^\r\n\\""])* '"' ;
 letter             ::= [a-zA-Z] ;
 whitespace         ::= [ \t\r\n] ;
 comment            ::= '//' [^\r\n]* [\r\n] ;

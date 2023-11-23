@@ -169,7 +169,6 @@ let foo = 13 // line1"#,
             r#"
 if foo { // line1"#,
         ],
-
     ];
 
     run_insta!("comment", tests);
@@ -192,6 +191,7 @@ fn test_semi() {
         ["keyword_1", "let"],
         ["keyword_2", "fn"],
         ["char_lit", "'c'"],
+        ["string_lit", r#""mitral""#],
     ];
     run_insta!("semi", tests);
 }
@@ -213,6 +213,20 @@ while i < 1 {
 "#,
     ]];
     run_insta!("while", tests);
+}
+
+#[test]
+fn test_string() {
+    let tests = [
+        ["basic", r#""mitral""#],
+        ["eol", r#""mitral"#],
+        [
+            "newline",
+            r#""mitral
+""#,
+        ],
+    ];
+    run_insta!("string", tests);
 }
 
 #[test]

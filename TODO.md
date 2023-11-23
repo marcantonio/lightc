@@ -13,10 +13,10 @@
 - [x] More context in parser errors
 - [x] More context in codegen errors
 - [ ] Include file name in error
-- [ ] Add while
+- [x] Add while
 - [ ] Desugar for loops
-- [ ] For loops ending in next need to handle conditional conditional properly
-- [ ] break/next labels
+- [ ] For loops ending in next need to handle conditional properly
+- [x] break/next labels
 - [x] Fix main exit code
 - [x] Decide on redundant errors in codegen and the type checker
 - [x] Force comparisons to be bools (parser)

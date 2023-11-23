@@ -415,6 +415,7 @@ impl<'a> Parse<'a> {
             Bool(b) => self.parse_lit_bool(*b)?,
             Char(c) => self.parse_lit_char(c, token)?,
             Num(num) => self.parse_lit_num(num, token)?,
+            Str(s) => self.parse_lit_string(s)?,
             OpenBracket => self.parse_lit_array()?,
             x => return Err(ParseError::from((format!("Expecting primary expression. Got `{}`", x), token))),
         };
@@ -560,6 +561,7 @@ impl<'a> Parse<'a> {
     }
 
     /// Literals
+    // LitExpr ::= number | bool | CharLit | StringLit | ArrayLit ;
 
     // bool ::= 'true' | 'false' ;
     fn parse_lit_bool(&mut self, b: bool) -> ParseResult {
@@ -569,7 +571,8 @@ impl<'a> Parse<'a> {
     }
 
     // CharLit ::= char ;
-    // char    ::= "'" ( [^'\\r\n\t] | '\' [rnt0] ) "'" ;
+    // esc_seq ::= '\' [rnt0'"\] ;
+    // char    ::= "'" ( esc_seq | [^\r\n\\'] ) "'" ;
     fn parse_lit_char(&mut self, c: &str, token: &Token) -> ParseResult {
         self.tokens.next(); // Eat char
 
@@ -599,6 +602,14 @@ impl<'a> Parse<'a> {
                 Err(_) => Err(ParseError::from((format!("Invalid numeric literal: {}", token), token))),
             },
         }
+    }
+
+    // StringLit ::= string ;
+    // string    ::= '"' ( esc_seq | [^\r\n\\""])* '"' ;
+    fn parse_lit_string(&mut self, s: &str) -> ParseResult {
+        self.tokens.next(); // Eat string
+
+        Ok(ast::Node::new_lit(Literal::Str(s.to_string()), None))
     }
 
     // ArrayLit ::= '[' ExprList? ']' ;

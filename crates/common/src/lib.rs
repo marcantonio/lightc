@@ -91,6 +91,7 @@ pub enum Type {
     Double,
     Bool,
     Char,
+    Str,
     Void,
     SArray(Box<Type>, usize),
     Comp(String),

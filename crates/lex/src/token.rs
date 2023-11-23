@@ -82,6 +82,7 @@ pub enum TokenType {
     OpenBracket,
     OpenParen,
     Semicolon(bool), // (is implicit?)
+    Str(String),
     Struct,
     Use,
     While,

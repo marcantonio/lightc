@@ -118,7 +118,7 @@ impl Lex {
             return Ok(Token::new(tt, cur.line, cur.column));
         }
 
-        // Literal numbers
+        // Number literal
         if cur.value.is_ascii_digit() {
             let mut n = String::from(cur.value);
             while let Some(c) = self.stream.peek() {
@@ -133,7 +133,7 @@ impl Lex {
             return Ok(Token::new(Num(n), cur.line, cur.column));
         }
 
-        // Literal char
+        // Char literal
         if cur == '\'' {
             let mut ch = String::new();
             let next = self.stream.next().unwrap_or_else(|| unreachable!("lexed None when looking for char"));
@@ -188,6 +188,25 @@ impl Lex {
             }
 
             return Ok(Token::new(Char(ch), cur.line, cur.column));
+        }
+
+        // String literal
+        if cur == '"' {
+            let mut s = String::new();
+            for c in self.stream.by_ref() {
+                match c.value {
+                    '"' => break,
+                    '\0' | '\n' => {
+                        return Err(LexError::from((
+                            "Unterminated string literal. Expecting `\"`".to_string(),
+                            c,
+                        )));
+                    },
+                    v => s.push(v),
+                }
+            }
+
+            return Ok(Token::new(Str(s), cur.line, cur.column));
         }
 
         // Multi-character operators
@@ -302,6 +321,7 @@ impl Lex {
                     | Num(_)
                     | Op(Operator::Inc)
                     | Op(Operator::Dec)
+                    | Str(_)
             )
         } else {
             false

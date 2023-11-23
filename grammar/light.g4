@@ -63,6 +63,7 @@ unop_expr            : ('-' | '!') expr;
 lit_expr             : NUMBER
                      | BOOL
                      | char_lit
+                     | string_lit
                      | array_lit;
 call_expr            : IDENT '(' expr_list? ')';
 paren_expr           : '(' expr ')';
@@ -70,6 +71,7 @@ cond_expr            : 'if' expr block ('else' (cond_expr | block))?;
 ident_expr           : IDENT;
 array_lit            : '[' expr_list? ']';
 char_lit             : CHAR;
+string_lit           : STRING;
 expr_list            : expr ','? | expr (',' expr)*;
 
 TYPE                 : 'int'
@@ -92,7 +94,9 @@ NUMBER               : INTEGER | FLOAT;
 INTEGER              : DIGIT+;
 FLOAT                : DIGIT '.' DIGIT;
 DIGIT                : [0-9];
-CHAR                 : '\'' (~['\\\r\n\t] | '\\' [n0]) '\'';
+ESC_SEQ              : '\\' [n0"\\'];
+CHAR                 : '\'' (ESC_SEQ | ~[\r\n\t\\']) '\'';
+STRING               : '"' (ESC_SEQ | ~[\r\n\\"])* '"';
 LETTER               : [a-zA-Z];
 WHITESPACE           : [ \t\r\n] -> skip;
 COMMENT              : '//' ~[\r\n]* [\r\n] -> skip;

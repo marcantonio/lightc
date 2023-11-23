@@ -81,6 +81,12 @@ fn test_char() {
 }
 
 #[test]
+fn test_string() {
+    let tests = [["basic", r#"let s: str = "foo""#], ["control", r#"let s: str = "bar\n""#]];
+    run_insta!("string", tests);
+}
+
+#[test]
 fn test_extern() {
     let tests = [["basic", "extern fn cos(x: float)"], ["err", "extern cos(x: float)"]];
     run_insta!("extern", tests);
